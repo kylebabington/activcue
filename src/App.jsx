@@ -1,6 +1,6 @@
 // src/App.jsx
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { getActivitySuggestions } from "./api/activityApi";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import "./App.css";
@@ -111,6 +111,13 @@ function App() {
 
   const [activities, setActivities] = useState([]);
 
+  const [activeActivity, setActiveActivity] = useLocalStorage(
+    "activeActivity",
+    null
+  );
+
+  const timerSecondsRemaining = useActivityTimer(activeActivity);
+
   const [activityHistory, setActivityHistory] = useLocalStorage(
     "activityHistory",
     []
@@ -118,6 +125,16 @@ function App() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+
+  useEffect(() => {
+    if (!activeActivity?.id) {
+      return;
+    }
+
+    document
+      .getElementById("active-activity-panel")
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [activeActivity?.id]);
 
   function applyParentStatusPreset(preset) {
     setParentStatus({
@@ -356,8 +373,63 @@ function App() {
   }
 
   function handleStartActivity(activity) {
+    const durationMinutes = Number(safetySettings.maxActivityMinutes) || 20;
+
+    const activityToStart = {
+      id: crypto.randomUUID(),
+      title: activity.title,
+      summary: activity.summary,
+      steps: Array.isArray(activity.steps) ? activity.steps : [],
+      uses: Array.isArray(activity.uses) ? activity.uses : [],
+      startedAt: Date.now(),
+      durationMinutes,
+    };
+
+    setActiveActivity(activityToStart);
     saveActivityFeedback(activity, "started");
-    setErrorMessage(`Saved: "${activity.title}" was started.`);
+    setErrorMessage(`Started: "${activity.title}". Timer is running.`);
+  };
+
+  function finishActiveActivity() {
+    if (!activeActivity) {
+      return;
+    }
+
+    const finishedHistoryItem = {
+      id: crypto.randomUUID(),
+      title: activeActivity.title,
+      feedbackType: "finished",
+      createdAt: new Date().toISOString(),
+      kidMood,
+      messLevel,
+      locationPreference,
+      childAgeRange,
+    };
+
+    setActivityHistory([...activityHistory, finishedHistoryItem]);
+    setActiveActivity(null);
+    setErrorMessage(`Finished: "${activeActivity.title}". Nice work.`);
+  }
+
+  function cancelActiveActivity() {
+    if (!activeActivity) {
+      return;
+    }
+
+    const canceledHistoryItem = {
+      id: crypto.randomUUID(),
+      title: activeActivity.title,
+      feedbackType: "canceled",
+      createdAt: new Date().toISOString(),
+      kidMood,
+      messLevel,
+      locationPreference,
+      childAgeRange,
+    };
+
+    setActivityHistory([...activityHistory, canceledHistoryItem]);
+    setActiveActivity(null);
+    setErrorMessage(`Canceled: "${activeActivity.title}".`);
   }
 
   function handleTooMessy(activity) {
@@ -405,6 +477,7 @@ function App() {
     window.localStorage.removeItem("childAgeRange");
     window.localStorage.removeItem("safetySettings");
     window.localStorage.removeItem("activityHistory");
+    window.localStorage.removeItem("activeActivity");
     window.location.reload();
   }
 
@@ -434,6 +507,15 @@ function App() {
           Kid Mode
         </button>
       </section>
+
+      {activeActivity && (
+        <ActiveActivityPanel
+          activeActivity={activeActivity}
+          timerSecondsRemaining={timerSecondsRemaining}
+          finishActiveActivity={finishActiveActivity}
+          cancelActiveActivity={cancelActiveActivity}
+        />
+      )}
 
       {showPinGate && (
         <section className="panel pin-panel">
@@ -1000,6 +1082,73 @@ function ActivityControls({
   );
 }
 
+function ActiveActivityPanel({
+  activeActivity,
+  timerSecondsRemaining,
+  finishActiveActivity,
+  cancelActiveActivity,
+}) {
+  const steps = Array.isArray(activeActivity.steps) ? activeActivity.steps : [];
+  const uses = Array.isArray(activeActivity.uses) ? activeActivity.uses : [];
+  const timerDone = timerSecondsRemaining <= 0;
+
+  return (
+    <section
+      id="active-activity-panel"
+      className="panel active-activity-panel"
+    >
+      <div className="active-activity-header">
+        <div>
+          <p className="eyebrow dark">Current Mission</p>
+          <h2>{activeActivity.title}</h2>
+          <p>{activeActivity.summary}</p>
+        </div>
+
+        <div
+          className={timerDone ? "timer-badge done" : "timer-badge"}
+          aria-live="polite"
+          aria-label={
+            timerDone
+              ? "Activity timer finished"
+              : `Time left: ${formatTimer(timerSecondsRemaining)}`
+          }
+        >
+          <span className="timer-label">
+            {timerDone ? "Timer" : "Time left"}
+          </span>
+          <span className="timer-value">
+            {timerDone ? "Done!" : formatTimer(timerSecondsRemaining)}
+          </span>
+        </div>
+      </div>
+
+      <div className="mission-steps">
+        <h3>Mission steps</h3>
+
+        <ol>
+          {steps.map((step) => (
+            <li key={step}>{step}</li>
+          ))}
+        </ol>
+      </div>
+
+      {uses.length > 0 && (
+        <p className="uses-list">Uses: {uses.join(", ")}</p>
+      )}
+
+      <div className="active-activity-actions">
+        <button onClick={finishActiveActivity}>
+          {timerDone ? "Mark Finished" : "Finished Early"}
+        </button>
+
+        <button className="danger-button" onClick={cancelActiveActivity}>
+          Cancel Mission
+        </button>
+      </div>
+    </section>
+  );
+}
+
 function ActivityResults({
   activities,
   isLoading,
@@ -1095,12 +1244,58 @@ function getAvailabilityMessage(availability) {
   return "Check before interrupting.";
 }
 
+function getActivitySecondsRemaining(activeActivity) {
+  if (!activeActivity) {
+    return 0;
+  }
+
+  const startedAt = Number(activeActivity.startedAt);
+  const durationMinutes = Number(activeActivity.durationMinutes) || 20;
+
+  if (!Number.isFinite(startedAt) || durationMinutes <= 0) {
+    return 0;
+  }
+
+  const endTime = startedAt + durationMinutes * 60 * 1000;
+  return Math.max(0, Math.ceil((endTime - Date.now()) / 1000));
+}
+
+function useActivityTimer(activeActivity) {
+  const [, setTick] = useState(0);
+
+  useEffect(() => {
+    if (!activeActivity) {
+      return;
+    }
+
+    const timerId = window.setInterval(() => {
+      setTick((currentTick) => currentTick + 1);
+    }, 1000);
+
+    return () => {
+      window.clearInterval(timerId);
+    };
+  }, [activeActivity]);
+
+  return getActivitySecondsRemaining(activeActivity);
+}
+
+function formatTimer(totalSeconds) {
+  const safeSeconds = Math.max(0, Number(totalSeconds) || 0);
+  const minutes = Math.floor(safeSeconds / 60);
+  const seconds = safeSeconds % 60;
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
 function formatFeedbackLabel(feedbackType) {
   if (feedbackType === "started") return "Started";
+  if (feedbackType === "finished") return "Finished";
+  if (feedbackType === "canceled") return "Canceled";
   if (feedbackType === "too-messy") return "Too messy";
   if (feedbackType === "too-hard") return "Too hard";
   if (feedbackType === "need-quieter") return "Needed quieter";
   if (feedbackType === "more-like-this") return "More like this";
+
 
   return feedbackType;
 }

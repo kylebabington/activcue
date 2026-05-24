@@ -262,7 +262,8 @@ select {
   .preset-grid,
   .custom-preset-item,
   .safety-toggle-grid,
-  .safety-controls-grid {
+  .safety-controls-grid,
+  .active-activity-header {
     grid-template-columns: 1fr;
   }
 
@@ -627,4 +628,98 @@ select {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 14px;
+}
+
+.active-activity-panel {
+  margin-top: 0;
+  margin-bottom: 18px;
+  border: 2px solid #86efac;
+  background: #f0fdf4;
+}
+
+.active-activity-header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 18px;
+  align-items: start;
+}
+
+.eyebrow.dark {
+  color: #166534;
+  opacity: 1;
+}
+
+.timer-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 120px;
+  min-height: 80px;
+  padding: 12px 16px;
+  background: #2f4858;
+  color: white;
+  border-radius: 22px;
+  box-shadow: 0 12px 24px rgba(47, 72, 88, 0.18);
+}
+
+.timer-label {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.88;
+}
+
+.timer-value {
+  font-size: 2rem;
+  font-weight: 950;
+  line-height: 1;
+}
+
+.timer-badge.done {
+  background: #16a34a;
+}
+
+.mission-steps {
+  margin-top: 18px;
+  background: white;
+  border: 1px solid #bbf7d0;
+  border-radius: 18px;
+  padding: 16px;
+}
+
+.mission-steps h3 {
+  margin-bottom: 8px;
+}
+
+.mission-steps ol {
+  padding-left: 22px;
+  margin-bottom: 0;
+}
+
+.mission-steps li {
+  color: #334155;
+  line-height: 1.5;
+}
+
+.active-activity-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.active-activity-actions button {
+  border: 0;
+  border-radius: 14px;
+  padding: 12px 16px;
+  background: #166534;
+  color: white;
+  font-weight: 950;
+}
+
+.active-activity-actions .danger-button {
+  background: #991b1b;
 }
