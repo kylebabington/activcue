@@ -260,7 +260,9 @@ select {
   .kid-choice-grid,
   .pin-row,
   .preset-grid,
-  .custom-preset-item {
+  .custom-preset-item,
+  .safety-toggle-grid,
+  .safety-controls-grid {
     grid-template-columns: 1fr;
   }
 
@@ -582,4 +584,47 @@ select {
   background: #2f4858;
   color: white;
   font-weight: 950;
+}
+
+.safety-panel {
+  margin-top: 18px;
+}
+
+.safety-toggle-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.safety-toggle-grid button {
+  display: grid;
+  gap: 6px;
+  text-align: left;
+  border: 1px solid #dbe3ea;
+  background: #f8fafc;
+  color: #1f2933;
+  border-radius: 18px;
+  padding: 16px;
+}
+
+.safety-toggle-grid button.enabled {
+  background: #dcfce7;
+  border-color: #86efac;
+}
+
+.safety-toggle-grid span {
+  font-weight: 950;
+}
+
+.safety-toggle-grid small {
+  color: #64748b;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.safety-controls-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
 }

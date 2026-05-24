@@ -41,6 +41,7 @@ app.post("/api/activity-suggestions", async (req, res) => {
             childAgeRange,
             feedbackContext,
             previousActivityTitles,
+            safetySettings,
         } = req.body;
 
         if (!parentActivity || !parentAvailability || !kidMood) {
@@ -64,6 +65,16 @@ app.post("/api/activity-suggestions", async (req, res) => {
             ? previousActivityTitles
             : [];
 
+        const safeSafetySettings = safetySettings || {
+            screenFreeOnly: true,
+            noFoodActivities: false,
+            noWaterPlay: true,
+            noSmallObjects: true,
+            quietMode: false,
+            maxActivityMinutes: 30,
+            adultHelpAllowed: "optional",
+        };
+
         const instructions = `
 You are a family activity coach.
 
@@ -82,6 +93,14 @@ Rules:
 - Do not suggest buying anything.
 - Avoid repeating previous activity titles.
 - Adapt to the feedback context.
+- Follow all parent safety settings strictly.
+- If screen-free only is true, do not suggest screens, apps, videos, games, tablets, phones, or internet use.
+- If no food activities is true, do not suggest snacks, cooking, baking, food sorting, or eating-based activities.
+- If no water play is true, do not suggest water, sinks, tubs, buckets of water, hoses, or pouring games.
+- If no small objects is true, avoid beads, coins, tiny pieces, marbles, buttons, or choking-sized items.
+- If quiet mode is true, suggest calm low-noise activities only.
+- Respect max activity time.
+- Respect adult help allowed.
 `;
 
         const input = `
@@ -95,7 +114,14 @@ Family context:
 - Available toys/supplies: ${inventory.join(", ")}
 - Feedback context: ${safeFeedbackContext}
 - Previous activity titles to avoid: ${safePreviousActivityTitles.join(", ")}
-
+- Safety settings:
+  - Screen-free only: ${safeSafetySettings.screenFreeOnly}
+  - No food activities: ${safeSafetySettings.noFoodActivities}
+  - No water play: ${safeSafetySettings.noWaterPlay}
+  - No small objects: ${safeSafetySettings.noSmallObjects}
+  - Quiet mode: ${safeSafetySettings.quietMode}
+  - Max activity minutes: ${safeSafetySettings.maxActivityMinutes}
+  - Adult help allowed: ${safeSafetySettings.adultHelpAllowed}
 Return JSON in exactly this shape:
 
 {

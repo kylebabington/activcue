@@ -99,6 +99,16 @@ function App() {
     "6-9"
   );
 
+  const [safetySettings, setSafetySettings] = useLocalStorage("safetySettings", {
+    screenFreeOnly: true,
+    noFoodActivities: false,
+    noWaterPlay: true,
+    noSmallObjects: true,
+    quietMode: false,
+    maxActivityMinutes: 30,
+    adultHelpAllowed: "optional",
+  });
+
   const [activities, setActivities] = useState([]);
 
   const [activityHistory, setActivityHistory] = useLocalStorage(
@@ -162,6 +172,20 @@ function App() {
     );
 
     setErrorMessage("Custom preset deleted.");
+  }
+
+  function updateSafetySetting(settingName, newValue) {
+    setSafetySettings({
+      ...safetySettings,
+      [settingName]: newValue,
+    });
+  }
+
+  function toggleSafetySetting(settingName) {
+    setSafetySettings({
+      ...safetySettings,
+      [settingName]: !safetySettings[settingName],
+    });
   }
 
   function addInventoryItem() {
@@ -251,6 +275,7 @@ function App() {
         messLevel,
         locationPreference,
         childAgeRange,
+        safetySettings,
         feedbackContext: customFeedbackContext,
         previousActivityTitles,
       };
@@ -378,6 +403,7 @@ function App() {
     window.localStorage.removeItem("messLevel");
     window.localStorage.removeItem("locationPreference");
     window.localStorage.removeItem("childAgeRange");
+    window.localStorage.removeItem("safetySettings");
     window.localStorage.removeItem("activityHistory");
     window.location.reload();
   }
@@ -573,6 +599,118 @@ function App() {
               </label>
 
               <ParentStatusCard parentStatus={parentStatus} />
+            </section>
+
+            <section className="panel safety-panel">
+              <div className="panel-header">
+                <div>
+                  <h2>Parent Safety Settings</h2>
+                  <p>
+                    These rules tell the AI what not to suggest. This is how parents stay in
+                    control.
+                  </p>
+                </div>
+              </div>
+
+              <div className="safety-toggle-grid">
+                <button
+                  type="button"
+                  className={safetySettings.screenFreeOnly ? "enabled" : ""}
+                  onClick={() => toggleSafetySetting("screenFreeOnly")}
+                >
+                  <span>Screen-free only</span>
+                  <small>
+                    {safetySettings.screenFreeOnly
+                      ? "AI avoids screens"
+                      : "Screens may be suggested"}
+                  </small>
+                </button>
+
+                <button
+                  type="button"
+                  className={safetySettings.noFoodActivities ? "enabled" : ""}
+                  onClick={() => toggleSafetySetting("noFoodActivities")}
+                >
+                  <span>No food activities</span>
+                  <small>
+                    {safetySettings.noFoodActivities
+                      ? "AI avoids food"
+                      : "Food may be suggested"}
+                  </small>
+                </button>
+
+                <button
+                  type="button"
+                  className={safetySettings.noWaterPlay ? "enabled" : ""}
+                  onClick={() => toggleSafetySetting("noWaterPlay")}
+                >
+                  <span>No water play</span>
+                  <small>
+                    {safetySettings.noWaterPlay
+                      ? "AI avoids water play"
+                      : "Water play may be suggested"}
+                  </small>
+                </button>
+
+                <button
+                  type="button"
+                  className={safetySettings.noSmallObjects ? "enabled" : ""}
+                  onClick={() => toggleSafetySetting("noSmallObjects")}
+                >
+                  <span>No small objects</span>
+                  <small>
+                    {safetySettings.noSmallObjects
+                      ? "AI avoids choking-sized items"
+                      : "Small items may be suggested"}
+                  </small>
+                </button>
+
+                <button
+                  type="button"
+                  className={safetySettings.quietMode ? "enabled" : ""}
+                  onClick={() => toggleSafetySetting("quietMode")}
+                >
+                  <span>Quiet mode</span>
+                  <small>
+                    {safetySettings.quietMode
+                      ? "AI suggests quiet ideas"
+                      : "Normal noise allowed"}
+                  </small>
+                </button>
+              </div>
+
+              <div className="safety-controls-grid">
+                <label>
+                  Max activity time
+                  <select
+                    value={safetySettings.maxActivityMinutes}
+                    onChange={(event) =>
+                      updateSafetySetting("maxActivityMinutes", Number(event.target.value))
+                    }
+                  >
+                    <option value={10}>10 minutes</option>
+                    <option value={15}>15 minutes</option>
+                    <option value={20}>20 minutes</option>
+                    <option value={30}>30 minutes</option>
+                    <option value={45}>45 minutes</option>
+                    <option value={60}>60 minutes</option>
+                  </select>
+                </label>
+
+                <label>
+                  Adult help allowed?
+                  <select
+                    value={safetySettings.adultHelpAllowed}
+                    onChange={(event) =>
+                      updateSafetySetting("adultHelpAllowed", event.target.value)
+                    }
+                  >
+                    <option value="none">No adult help</option>
+                    <option value="optional">Optional adult help</option>
+                    <option value="needed">Adult help is okay</option>
+                  </select>
+                </label>
+              </div>
             </section>
 
             <section className="panel">
