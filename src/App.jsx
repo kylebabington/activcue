@@ -5,13 +5,77 @@ import { getActivitySuggestions } from "./api/activityApi";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import "./App.css";
 
+const defaultParentStatusPresets = [
+  {
+    label: "Cooking",
+    activity: "Cooking",
+    availability: "helper-welcome",
+  },
+  {
+    label: "Cleaning",
+    activity: "Cleaning",
+    availability: "helper-welcome",
+  },
+  {
+    label: "Work call",
+    activity: "On a work call",
+    availability: "do-not-interrupt",
+  },
+  {
+    label: "Paying bills",
+    activity: "Paying bills",
+    availability: "ask-first",
+  },
+  {
+    label: "Resting",
+    activity: "Resting",
+    availability: "do-not-interrupt",
+  },
+  {
+    label: "Yard work",
+    activity: "Doing yard work",
+    availability: "helper-welcome",
+  },
+  {
+    label: "Errands",
+    activity: "Handling errands",
+    availability: "ask-first",
+  },
+  {
+    label: "Helping sibling",
+    activity: "Helping someone else",
+    availability: "ask-first",
+  },
+];
+
 function App() {
   const [appMode, setAppMode] = useLocalStorage("appMode", "parent");
+
+  // This is the parent PIN.
+  // For MVP, we save it in localStorage.
+  // Later, real accounts should move this server-side.
+  const [parentPin, setParentPin] = useLocalStorage("parentPin", "");
+
+  // This stores what the user types into the PIN fields.
+  const [pinInput, setPinInput] = useState("");
+
+  // This controls whether the PIN box is currently shown.
+  const [showPinGate, setShowPinGate] = useState(false);
 
   const [parentStatus, setParentStatus] = useLocalStorage("parentStatus", {
     activity: "Cleaning the kitchen",
     availability: "helper-welcome",
   });
+
+  const [customParentPresets, setCustomParentPresets] = useLocalStorage(
+    "customParentPresets",
+    []
+  );
+
+  const [newPresetLabel, setNewPresetLabel] = useState("");
+  const [newPresetActivity, setNewPresetActivity] = useState("");
+  const [newPresetAvailability, setNewPresetAvailability] =
+    useState("ask-first");
 
   const [inventory, setInventory] = useLocalStorage("inventory", [
     "LEGO",
@@ -45,6 +109,61 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
+  function applyParentStatusPreset(preset) {
+    setParentStatus({
+      activity: preset.activity,
+      availability: preset.availability,
+    });
+
+    setErrorMessage(`Parent status set to "${preset.label}".`);
+  }
+
+  function addCustomParentPreset() {
+    const cleanedLabel = newPresetLabel.trim();
+    const cleanedActivity = newPresetActivity.trim();
+
+    if (cleanedLabel === "" || cleanedActivity === "") {
+      setErrorMessage("Preset name and activity are required.");
+      return;
+    }
+
+    const duplicateDefaultPreset = defaultParentStatusPresets.some(
+      (preset) => preset.label.toLowerCase() === cleanedLabel.toLowerCase()
+    );
+
+    const duplicateCustomPreset = customParentPresets.some(
+      (preset) => preset.label.toLowerCase() === cleanedLabel.toLowerCase()
+    );
+
+    if (duplicateDefaultPreset || duplicateCustomPreset) {
+      setErrorMessage("A preset with that name already exists.");
+      return;
+    }
+
+    const newPreset = {
+      id: crypto.randomUUID(),
+      label: cleanedLabel,
+      activity: cleanedActivity,
+      availability: newPresetAvailability,
+    };
+
+    setCustomParentPresets([...customParentPresets, newPreset]);
+
+    setNewPresetLabel("");
+    setNewPresetActivity("");
+    setNewPresetAvailability("ask-first");
+
+    setErrorMessage(`Custom preset "${cleanedLabel}" saved.`);
+  }
+
+  function deleteCustomParentPreset(presetId) {
+    setCustomParentPresets(
+      customParentPresets.filter((preset) => preset.id !== presetId)
+    );
+
+    setErrorMessage("Custom preset deleted.");
+  }
+
   function addInventoryItem() {
     const cleanedItem = newInventoryItem.trim();
 
@@ -66,6 +185,52 @@ function App() {
 
   function removeInventoryItem(itemToRemove) {
     setInventory(inventory.filter((item) => item !== itemToRemove));
+  }
+
+  function switchToKidMode() {
+    setAppMode("kid");
+    setShowPinGate(false);
+    setPinInput("");
+    setErrorMessage("");
+  }
+
+  function requestParentMode() {
+    // If no PIN exists yet, allow parent setup.
+    // The parent can create a PIN inside Parent Setup.
+    if (parentPin === "") {
+      setAppMode("parent");
+      setErrorMessage("Create a Parent PIN to lock Parent Setup.");
+      return;
+    }
+
+    // If a PIN does exist, show the PIN gate.
+    setShowPinGate(true);
+    setPinInput("");
+    setErrorMessage("");
+  }
+
+  function unlockParentMode() {
+    if (pinInput === parentPin) {
+      setAppMode("parent");
+      setShowPinGate(false);
+      setPinInput("");
+      setErrorMessage("");
+      return;
+    }
+
+    setErrorMessage("Incorrect PIN.");
+  }
+
+  function saveParentPin(newPin) {
+    const cleanedPin = newPin.trim();
+
+    if (cleanedPin.length < 4) {
+      setErrorMessage("PIN must be at least 4 digits.");
+      return;
+    }
+
+    setParentPin(cleanedPin);
+    setErrorMessage("Parent PIN saved.");
   }
 
   async function handleGenerateActivities(customFeedbackContext = "") {
@@ -205,7 +370,9 @@ function App() {
 
   function resetSavedData() {
     window.localStorage.removeItem("appMode");
+    window.localStorage.removeItem("parentPin");
     window.localStorage.removeItem("parentStatus");
+    window.localStorage.removeItem("customParentPresets");
     window.localStorage.removeItem("inventory");
     window.localStorage.removeItem("kidMood");
     window.localStorage.removeItem("messLevel");
@@ -229,18 +396,52 @@ function App() {
       <section className="mode-switcher">
         <button
           className={appMode === "parent" ? "active" : ""}
-          onClick={() => setAppMode("parent")}
+          onClick={requestParentMode}
         >
           Parent Setup
         </button>
 
         <button
           className={appMode === "kid" ? "active" : ""}
-          onClick={() => setAppMode("kid")}
+          onClick={switchToKidMode}
         >
           Kid Mode
         </button>
       </section>
+
+      {showPinGate && (
+        <section className="panel pin-panel">
+          <h2>Enter Parent PIN</h2>
+          <p>Parent Setup is locked so kids cannot change the rules.</p>
+
+          <div className="pin-row">
+            <input
+              type="password"
+              inputMode="numeric"
+              value={pinInput}
+              onChange={(event) => setPinInput(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  unlockParentMode();
+                }
+              }}
+              placeholder="Enter PIN"
+            />
+
+            <button onClick={unlockParentMode}>Unlock</button>
+
+            <button
+              className="ghost-button"
+              onClick={() => {
+                setShowPinGate(false);
+                setPinInput("");
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </section>
+      )}
 
       {appMode === "parent" ? (
         <>
@@ -252,6 +453,91 @@ function App() {
                   <p>
                     Make adult work visible without needing a full schedule yet.
                   </p>
+                </div>
+              </div>
+
+              <div className="preset-section">
+                <h3>Quick status</h3>
+
+                <div className="preset-grid">
+                  {defaultParentStatusPresets.map((preset) => (
+                    <button
+                      key={preset.label}
+                      type="button"
+                      onClick={() => applyParentStatusPreset(preset)}
+                    >
+                      <span>{preset.label}</span>
+                      <small>{getAvailabilityLabel(preset.availability)}</small>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="preset-section">
+                <h3>Custom status</h3>
+
+                {customParentPresets.length === 0 ? (
+                  <p className="empty-text">No custom presets yet.</p>
+                ) : (
+                  <div className="custom-preset-list">
+                    {customParentPresets.map((preset) => (
+                      <div key={preset.id} className="custom-preset-item">
+                        <button type="button" onClick={() => applyParentStatusPreset(preset)}>
+                          <span>{preset.label}</span>
+                          <small>{getAvailabilityLabel(preset.availability)}</small>
+                        </button>
+
+                        <button
+                          type="button"
+                          className="delete-small-button"
+                          onClick={() => deleteCustomParentPreset(preset.id)}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="custom-preset-form">
+                  <label>
+                    Preset name
+                    <input
+                      value={newPresetLabel}
+                      onChange={(event) => setNewPresetLabel(event.target.value)}
+                      placeholder="Example: Shower"
+                    />
+                  </label>
+
+                  <label>
+                    What should kids see?
+                    <input
+                      value={newPresetActivity}
+                      onChange={(event) => setNewPresetActivity(event.target.value)}
+                      placeholder="Example: Taking a shower"
+                    />
+                  </label>
+
+                  <label>
+                    Availability
+                    <select
+                      value={newPresetAvailability}
+                      onChange={(event) => setNewPresetAvailability(event.target.value)}
+                    >
+                      <option value="available">Available</option>
+                      <option value="ask-first">Ask first</option>
+                      <option value="do-not-interrupt">Do not interrupt</option>
+                      <option value="helper-welcome">Helper welcome</option>
+                    </select>
+                  </label>
+
+                  <button
+                    type="button"
+                    className="save-preset-button"
+                    onClick={addCustomParentPreset}
+                  >
+                    Save custom preset
+                  </button>
                 </div>
               </div>
 
@@ -324,6 +610,20 @@ function App() {
                 ))}
               </div>
             </section>
+          </section>
+
+          <section className="panel pin-settings-panel">
+            <div className="panel-header">
+              <div>
+                <h2>Parent PIN</h2>
+                <p>
+                  This locks Parent Setup from Kid Mode. MVP-level protection,
+                  not real account security.
+                </p>
+              </div>
+            </div>
+
+            <ParentPinForm parentPin={parentPin} saveParentPin={saveParentPin} />
           </section>
 
           <section className="panel">
@@ -447,6 +747,41 @@ function App() {
         )}
       </section>
     </main>
+  );
+}
+
+function ParentPinForm({ parentPin, saveParentPin }) {
+  const [newPin, setNewPin] = useState("");
+
+  function handleSavePin() {
+    saveParentPin(newPin);
+    setNewPin("");
+  }
+
+  return (
+    <div className="pin-form">
+      <p className="pin-status">
+        Current PIN status:{" "}
+        <strong>{parentPin === "" ? "No PIN set" : "PIN is set"}</strong>
+      </p>
+
+      <div className="pin-row">
+        <input
+          type="password"
+          inputMode="numeric"
+          value={newPin}
+          onChange={(event) => setNewPin(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              handleSavePin();
+            }
+          }}
+          placeholder="Create or replace PIN"
+        />
+
+        <button onClick={handleSavePin}>Save PIN</button>
+      </div>
+    </div>
   );
 }
 
@@ -600,6 +935,15 @@ function ActivityResults({
       </div>
     </section>
   );
+}
+
+function getAvailabilityLabel(availability) {
+  if (availability === "available") return "Available";
+  if (availability === "ask-first") return "Ask first";
+  if (availability === "do-not-interrupt") return "Do not interrupt";
+  if (availability === "helper-welcome") return "Helper welcome";
+
+  return "Check first";
 }
 
 function getAvailabilityMessage(availability) {
