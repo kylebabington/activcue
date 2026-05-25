@@ -723,3 +723,11 @@ select {
 .active-activity-actions .danger-button {
   background: #991b1b;
 }
+
+.active-activity-actions .secondary-action {
+  background: #2f4858;
+}
+
+.active-activity-actions .secondary-action:hover {
+  transform: translateY(-1px);
+}

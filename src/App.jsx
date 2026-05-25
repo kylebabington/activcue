@@ -432,6 +432,81 @@ function App() {
     setErrorMessage(`Canceled: "${activeActivity.title}".`);
   }
 
+  function handleTimerNotFinished() {
+    if (!activeActivity) {
+      return;
+    }
+
+    const notFinishedHistoryItem = {
+      id: crypto.randomUUID(),
+      title: activeActivity.title,
+      feedbackType: "not-finished",
+      createdAt: new Date().toISOString(),
+      kidMood,
+      messLevel,
+      locationPreference,
+      childAgeRange,
+    };
+
+    setActivityHistory([...activityHistory, notFinishedHistoryItem]);
+    setActiveActivity(null);
+    setErrorMessage(
+      `"${activeActivity.title}" was marked not finished. We’ll use that to improve suggestions.`
+    );
+  }
+
+  function handleTimerNeedAnotherIdea() {
+    if (!activeActivity) {
+      return;
+    }
+
+    const previousTitle = activeActivity.title;
+
+    const anotherIdeaHistoryItem = {
+      id: crypto.randomUUID(),
+      title: previousTitle,
+      feedbackType: "need-another-idea",
+      createdAt: new Date().toISOString(),
+      kidMood,
+      messLevel,
+      locationPreference,
+      childAgeRange,
+    };
+
+    setActivityHistory([...activityHistory, anotherIdeaHistoryItem]);
+    setActiveActivity(null);
+
+    handleGenerateActivities(
+      `The child tried "${previousTitle}" but needs another idea. Suggest 3 different activities that are easier to start and feel fresh.`
+    );
+  }
+
+  function handleTimerMoreLikeThis() {
+    if (!activeActivity) {
+      return;
+    }
+
+    const previousTitle = activeActivity.title;
+
+    const moreLikeThisHistoryItem = {
+      id: crypto.randomUUID(),
+      title: previousTitle,
+      feedbackType: "timer-more-like-this",
+      createdAt: new Date().toISOString(),
+      kidMood,
+      messLevel,
+      locationPreference,
+      childAgeRange,
+    };
+
+    setActivityHistory([...activityHistory, moreLikeThisHistoryItem]);
+    setActiveActivity(null);
+
+    handleGenerateActivities(
+      `The child finished or liked "${previousTitle}". Suggest 3 more activities with a similar feeling, but do not repeat it.`
+    );
+  }
+
   function handleTooMessy(activity) {
     saveActivityFeedback(activity, "too-messy");
     handleGenerateActivities(
@@ -514,6 +589,9 @@ function App() {
           timerSecondsRemaining={timerSecondsRemaining}
           finishActiveActivity={finishActiveActivity}
           cancelActiveActivity={cancelActiveActivity}
+          handleTimerNotFinished={handleTimerNotFinished}
+          handleTimerNeedAnotherIdea={handleTimerNeedAnotherIdea}
+          handleTimerMoreLikeThis={handleTimerMoreLikeThis}
         />
       )}
 
@@ -1087,6 +1165,9 @@ function ActiveActivityPanel({
   timerSecondsRemaining,
   finishActiveActivity,
   cancelActiveActivity,
+  handleTimerNotFinished,
+  handleTimerNeedAnotherIdea,
+  handleTimerMoreLikeThis,
 }) {
   const steps = Array.isArray(activeActivity.steps) ? activeActivity.steps : [];
   const uses = Array.isArray(activeActivity.uses) ? activeActivity.uses : [];
@@ -1137,13 +1218,31 @@ function ActiveActivityPanel({
       )}
 
       <div className="active-activity-actions">
-        <button onClick={finishActiveActivity}>
-          {timerDone ? "Mark Finished" : "Finished Early"}
-        </button>
+        {!timerDone ? (
+          <>
+            <button onClick={finishActiveActivity}>Finished Early</button>
 
-        <button className="danger-button" onClick={cancelActiveActivity}>
-          Cancel Mission
-        </button>
+            <button className="danger-button" onClick={cancelActiveActivity}>
+              Cancel Mission
+            </button>
+          </>
+        ) : (
+          <>
+            <button onClick={finishActiveActivity}>Yes, finished</button>
+
+            <button className="secondary-action" onClick={handleTimerNotFinished}>
+              Not really
+            </button>
+
+            <button className="secondary-action" onClick={handleTimerNeedAnotherIdea}>
+              Need another idea
+            </button>
+
+            <button className="secondary-action" onClick={handleTimerMoreLikeThis}>
+              More like this
+            </button>
+          </>
+        )}
       </div>
     </section>
   );
@@ -1291,6 +1390,9 @@ function formatFeedbackLabel(feedbackType) {
   if (feedbackType === "started") return "Started";
   if (feedbackType === "finished") return "Finished";
   if (feedbackType === "canceled") return "Canceled";
+  if (feedbackType === "not-finished") return "Not finished";
+  if (feedbackType === "need-another-idea") return "Need another idea";
+  if (feedbackType === "timer-more-like-this") return "More like this";
   if (feedbackType === "too-messy") return "Too messy";
   if (feedbackType === "too-hard") return "Too hard";
   if (feedbackType === "need-quieter") return "Needed quieter";
