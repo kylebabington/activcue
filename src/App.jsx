@@ -162,6 +162,18 @@ function App() {
     "6-9"
   );
 
+  const [childProfiles, setChildProfiles] = useLocalStorage("childProfiles", []);
+
+  const [activeChildId, setActiveChildId] = useLocalStorage(
+    "activeChildId",
+    ""
+  );
+
+  const [newChildName, setNewChildName] = useState("");
+  const [newChildAgeRange, setNewChildAgeRange] = useState("6-9");
+  const [newChildInterests, setNewChildInterests] = useState("");
+  const [newChildNeeds, setNewChildNeeds] = useState("");
+
   const [safetySettings, setSafetySettings] = useLocalStorage("safetySettings", {
     screenFreeOnly: true,
     noFoodActivities: false,
@@ -199,10 +211,19 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
+  const activeChildProfile =
+    childProfiles.find((child) => child.id === activeChildId) || null;
+
+  const effectiveChildAgeRange = activeChildProfile
+    ? activeChildProfile.ageRange
+    : childAgeRange;
+
   useEffect(() => {
     if (!activeActivity?.id) {
       return;
     }
+
+
 
     document
       .getElementById("active-activity-panel")
@@ -278,6 +299,67 @@ function App() {
     });
   }
 
+  function addChildProfile() {
+    const cleanedName = newChildName.trim();
+    const cleanedInterests = newChildInterests.trim();
+    const cleanedNeeds = newChildNeeds.trim();
+
+    if (cleanedName === "") {
+      setErrorMessage("Child name is required.");
+      return;
+    }
+
+    const duplicateChild = childProfiles.some(
+      (child) => child.name.toLowerCase() === cleanedName.toLowerCase()
+    );
+
+    if (duplicateChild) {
+      setErrorMessage("A child with that name already exists.");
+      return;
+    }
+
+    const childToAdd = {
+      id: crypto.randomUUID(),
+      name: cleanedName,
+      ageRange: newChildAgeRange,
+      interests: cleanedInterests,
+      needs: cleanedNeeds,
+      createdAt: new Date().toISOString(),
+    };
+
+    const updatedChildren = [...childProfiles, childToAdd];
+
+    setChildProfiles(updatedChildren);
+    setActiveChildId(childToAdd.id);
+
+    setNewChildName("");
+    setNewChildAgeRange("6-9");
+    setNewChildInterests("");
+    setNewChildNeeds("");
+
+    setErrorMessage(`Added child profile for ${cleanedName}.`);
+  }
+
+  function deleteChildProfile(childIdToDelete) {
+    const childToDelete = childProfiles.find(
+      (child) => child.id === childIdToDelete
+    );
+
+    setChildProfiles(
+      childProfiles.filter((child) => child.id !== childIdToDelete)
+    );
+
+    if (activeChildId === childIdToDelete) {
+      setActiveChildId("");
+    }
+
+    setErrorMessage(
+      childToDelete
+        ? `Deleted child profile for ${childToDelete.name}.`
+        : "Child profile deleted."
+    );
+  }
+
   function normalizeInventoryItems(items) {
     return items.map((item) => {
       if (typeof item === "string") {
@@ -297,6 +379,67 @@ function App() {
   }
 
   const normalizedInventory = normalizeInventoryItems(inventory);
+
+  function addChildProfile() {
+    const cleanedName = newChildName.trim();
+    const cleanedInterests = newChildInterests.trim();
+    const cleanedNeeds = newChildNeeds.trim();
+
+    if (cleanedName === "") {
+      setErrorMessage("Child name is required.");
+      return;
+    }
+
+    const duplicateChild = childProfiles.some(
+      (child) => child.name.toLowerCase() === cleanedName.toLowerCase()
+    );
+
+    if (duplicateChild) {
+      setErrorMessage("A child with that name already exists.");
+      return;
+    }
+
+    const childToAdd = {
+      id: crypto.randomUUID(),
+      name: cleanedName,
+      ageRange: newChildAgeRange,
+      interests: cleanedInterests,
+      needs: cleanedNeeds,
+      createdAt: new Date().toISOString(),
+    };
+
+    const updatedChildren = [...childProfiles, childToAdd];
+
+    setChildProfiles(updatedChildren);
+    setActiveChildId(childToAdd.id);
+
+    setNewChildName("");
+    setNewChildAgeRange("6-9");
+    setNewChildInterests("");
+    setNewChildNeeds("");
+
+    setErrorMessage(`Added child profile for ${cleanedName}.`);
+  }
+
+  function deleteChildProfile(childIdToDelete) {
+    const childToDelete = childProfiles.find(
+      (child) => child.id === childIdToDelete
+    );
+
+    setChildProfiles(
+      childProfiles.filter((child) => child.id !== childIdToDelete)
+    );
+
+    if (activeChildId === childIdToDelete) {
+      setActiveChildId("");
+    }
+
+    setErrorMessage(
+      childToDelete
+        ? `Deleted child profile for ${childToDelete.name}.`
+        : "Child profile deleted."
+    );
+  }
 
   function addInventoryItem() {
     const cleanedItem = newInventoryItem.trim();
@@ -391,12 +534,12 @@ function App() {
       const activityRequest = {
         parentActivity: parentStatus.activity,
         parentAvailability: parentStatus.availability,
-        inventory: normalizedInventory,
+        inventory,
         kidMood,
         messLevel,
         locationPreference,
-        activitySpace: activeActivitySpace,
-        childAgeRange,
+        childAgeRange: effectiveChildAgeRange,
+        activeChildProfile,
         safetySettings,
         feedbackContext: customFeedbackContext,
         previousActivityTitles,
@@ -471,7 +614,7 @@ function App() {
       kidMood,
       messLevel,
       locationPreference,
-      childAgeRange,
+      childAgeRange: effectiveChildAgeRange,
     };
 
     setActivityHistory([...activityHistory, historyItem]);
@@ -544,7 +687,7 @@ function App() {
       kidMood,
       messLevel,
       locationPreference,
-      childAgeRange,
+      childAgeRange: effectiveChildAgeRange,
     };
 
     setActivityHistory([...activityHistory, finishedHistoryItem]);
@@ -565,7 +708,7 @@ function App() {
       kidMood,
       messLevel,
       locationPreference,
-      childAgeRange,
+      childAgeRange: effectiveChildAgeRange,
     };
 
     setActivityHistory([...activityHistory, canceledHistoryItem]);
@@ -586,7 +729,7 @@ function App() {
       kidMood,
       messLevel,
       locationPreference,
-      childAgeRange,
+      childAgeRange: effectiveChildAgeRange,
     };
 
     setActivityHistory([...activityHistory, notFinishedHistoryItem]);
@@ -611,7 +754,7 @@ function App() {
       kidMood,
       messLevel,
       locationPreference,
-      childAgeRange,
+      childAgeRange: effectiveChildAgeRange,
     };
 
     setActivityHistory([...activityHistory, anotherIdeaHistoryItem]);
@@ -637,7 +780,7 @@ function App() {
       kidMood,
       messLevel,
       locationPreference,
-      childAgeRange,
+      childAgeRange: effectiveChildAgeRange,
     };
 
     setActivityHistory([...activityHistory, moreLikeThisHistoryItem]);
@@ -693,6 +836,8 @@ function App() {
     window.localStorage.removeItem("activitySpace");
     window.localStorage.removeItem("customActivitySpace");
     window.localStorage.removeItem("childAgeRange");
+    window.localStorage.removeItem("childProfiles");
+    window.localStorage.removeItem("activeChildId");
     window.localStorage.removeItem("safetySettings");
     window.localStorage.removeItem("activityHistory");
     window.localStorage.removeItem("savedActivities");
@@ -1095,6 +1240,109 @@ function App() {
             <ParentPinForm parentPin={parentPin} saveParentPin={saveParentPin} />
           </section>
 
+          <section className="panel child-profile-panel">
+            <div className="panel-header">
+              <div>
+                <h2>Child Profiles</h2>
+                <p>
+                  Add basic details so AI suggestions can fit each child instead
+                  of treating everyone the same.
+                </p>
+              </div>
+            </div>
+
+            <div className="child-profile-form">
+              <label>
+                Child name
+                <input
+                  value={newChildName}
+                  onChange={(event) => setNewChildName(event.target.value)}
+                  placeholder="Example: Mia"
+                />
+              </label>
+
+              <label>
+                Age range
+                <select
+                  value={newChildAgeRange}
+                  onChange={(event) => setNewChildAgeRange(event.target.value)}
+                >
+                  <option value="3-5">3-5</option>
+                  <option value="6-9">6-9</option>
+                  <option value="10-12">10-12</option>
+                  <option value="13+">13+</option>
+                </select>
+              </label>
+
+              <label>
+                Interests
+                <input
+                  value={newChildInterests}
+                  onChange={(event) =>
+                    setNewChildInterests(event.target.value)
+                  }
+                  placeholder="Example: animals, LEGO, drawing"
+                />
+              </label>
+
+              <label>
+                Helpful notes
+                <input
+                  value={newChildNeeds}
+                  onChange={(event) => setNewChildNeeds(event.target.value)}
+                  placeholder="Example: gets overwhelmed by loud games"
+                />
+              </label>
+
+              <button type="button" onClick={addChildProfile}>
+                Add child profile
+              </button>
+            </div>
+
+            {childProfiles.length === 0 ? (
+              <p className="empty-text">No child profiles yet.</p>
+            ) : (
+              <div className="child-profile-list">
+                {childProfiles.map((child) => (
+                  <article
+                    key={child.id}
+                    className={
+                      activeChildId === child.id
+                        ? "child-profile-card active"
+                        : "child-profile-card"
+                    }
+                  >
+                    <div>
+                      <h3>{child.name}</h3>
+                      <p>Age: {child.ageRange}</p>
+
+                      {child.interests && <p>Interests: {child.interests}</p>}
+
+                      {child.needs && <p>Notes: {child.needs}</p>}
+                    </div>
+
+                    <div className="child-profile-actions">
+                      <button
+                        type="button"
+                        onClick={() => setActiveChildId(child.id)}
+                      >
+                        Use profile
+                      </button>
+
+                      <button
+                        type="button"
+                        className="danger-button"
+                        onClick={() => deleteChildProfile(child.id)}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
+
           <section className="panel">
             <div className="panel-header">
               <div>
@@ -1122,6 +1370,9 @@ function App() {
               setCustomActivitySpace={setCustomActivitySpace}
               childAgeRange={childAgeRange}
               setChildAgeRange={setChildAgeRange}
+              childProfiles={childProfiles}
+              activeChildId={activeChildId}
+              setActiveChildId={setActiveChildId}
             />
 
             <button
@@ -1288,9 +1539,27 @@ function ActivityControls({
   setCustomActivitySpace,
   childAgeRange,
   setChildAgeRange,
+  childProfiles,
+  activeChildId,
+  setActiveChildId,
 }) {
   return (
     <div className="controls-grid">
+      <label>
+        Active child
+        <select
+          value={activeChildId}
+          onChange={(event) => setActiveChildId(event.target.value)}
+        >
+          <option value="">No profile selected</option>
+
+          {childProfiles.map((child) => (
+            <option key={child.id} value={child.id}>
+              {child.name} ({child.ageRange})
+            </option>
+          ))}
+        </select>
+      </label>
       <label>
         What kind of activity?
         <select

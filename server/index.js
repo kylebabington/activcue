@@ -40,6 +40,7 @@ app.post("/api/activity-suggestions", async (req, res) => {
             locationPreference,
             activitySpace,
             childAgeRange,
+            activeChildProfile,
             feedbackContext,
             previousActivityTitles,
             safetySettings,
@@ -92,6 +93,8 @@ Rules:
 - Respect the parent's availability.
 - If the parent is busy or unavailable, suggest mostly independent activities.
 - Use simple kid-friendly language.
+- If an active child profile is provided, personalize ideas to that child's interests and helpful notes.
+- Do not mention private notes directly to the child. Use them quietly to shape the suggestion.
 - Do not guilt the parent.
 - Do not suggest buying anything.
 - Avoid repeating previous activity titles.
@@ -116,6 +119,10 @@ Family context:
 - Preferred location: ${locationPreference}
 - Specific activity space: ${activitySpace || "Not specified"}
 - Child age range: ${childAgeRange}
+- Active child profile:
+  - Name: ${activeChildProfile?.name || "Not specified"}
+  - Interests: ${activeChildProfile?.interests || "Not specified"}
+  - Helpful notes: ${activeChildProfile?.needs || "Not specified"}
 - Available toys/supplies by category: ${formatInventoryForPrompt(inventory)}
 - Feedback context: ${safeFeedbackContext}
 - Previous activity titles to avoid: ${safePreviousActivityTitles.join(", ")}
