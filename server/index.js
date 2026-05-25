@@ -84,6 +84,7 @@ Rules:
 - Return only valid JSON.
 - Give exactly 3 activities.
 - Use the family's inventory when possible.
+- Pay attention to inventory categories. Use categories to combine items creatively, such as building toys plus pretend play, or art supplies plus household-safe items.
 - Activities should be realistic at home.
 - Avoid fire, sharp tools, chemicals, choking hazards, unsafe climbing, weapons, or unsupervised internet use.
 - Respect the parent's availability.
@@ -101,6 +102,7 @@ Rules:
 - If quiet mode is true, suggest calm low-noise activities only.
 - Respect max activity time.
 - Respect adult help allowed.
+
 `;
 
         const input = `
@@ -111,7 +113,7 @@ Family context:
 - Preferred mess level: ${messLevel}
 - Preferred location: ${locationPreference}
 - Child age range: ${childAgeRange}
-- Available toys/supplies: ${inventory.join(", ")}
+- Available toys/supplies by category: ${formatInventoryForPrompt(inventory)}
 - Feedback context: ${safeFeedbackContext}
 - Previous activity titles to avoid: ${safePreviousActivityTitles.join(", ")}
 - Safety settings:
@@ -158,6 +160,40 @@ Return JSON in exactly this shape:
         });
     }
 });
+
+function formatInventoryForPrompt(inventory) {
+    if (!Array.isArray(inventory)) {
+        return "No inventory provided.";
+    }
+
+    const normalizedInventory = inventory.map((item) => {
+        if (typeof item === "string") {
+            return {
+                name: item,
+                category: "Other",
+            };
+        }
+
+        return {
+            name: item.name || "Unnamed item",
+            category: item.category || "Other",
+        };
+    });
+
+    const groupedInventory = normalizedInventory.reduce((groups, item) => {
+        if (!groups[item.category]) {
+            groups[item.category] = [];
+        }
+
+        groups[item.category].push(item.name);
+
+        return groups;
+    }, {});
+
+    return Object.entries(groupedInventory)
+        .map(([category, items]) => `${category}: ${items.join(", ")}`)
+        .join(" | ");
+}
 
 app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`);

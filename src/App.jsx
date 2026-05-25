@@ -48,6 +48,19 @@ const defaultParentStatusPresets = [
   },
 ];
 
+const inventoryCategories = [
+  "Building toys",
+  "Art supplies",
+  "Outdoor gear",
+  "Pretend play",
+  "Books",
+  "Board games",
+  "Household-safe items",
+  "STEM / experiments",
+  "Quiet activities",
+  "Other",
+];
+
 function App() {
   const [appMode, setAppMode] = useLocalStorage("appMode", "parent");
 
@@ -78,15 +91,42 @@ function App() {
     useState("ask-first");
 
   const [inventory, setInventory] = useLocalStorage("inventory", [
-    "LEGO",
-    "markers",
-    "paper",
-    "blankets",
-    "stuffed animals",
-    "soccer ball",
+    {
+      id: crypto.randomUUID(),
+      name: "LEGO",
+      category: "Building toys",
+    },
+    {
+      id: crypto.randomUUID(),
+      name: "markers",
+      category: "Art supplies",
+    },
+    {
+      id: crypto.randomUUID(),
+      name: "paper",
+      category: "Art supplies",
+    },
+    {
+      id: crypto.randomUUID(),
+      name: "blankets",
+      category: "Household-safe items",
+    },
+    {
+      id: crypto.randomUUID(),
+      name: "stuffed animals",
+      category: "Pretend play",
+    },
+    {
+      id: crypto.randomUUID(),
+      name: "soccer ball",
+      category: "Outdoor gear",
+    },
   ]);
 
   const [newInventoryItem, setNewInventoryItem] = useState("");
+
+  const [newInventoryCategory, setNewInventoryCategory] =
+    useState("Building toys");
 
   const [kidMood, setKidMood] = useLocalStorage("kidMood", "creative");
   const [messLevel, setMessLevel] = useLocalStorage("messLevel", "low");
@@ -210,13 +250,35 @@ function App() {
     });
   }
 
+  function normalizeInventoryItems(items) {
+    return items.map((item) => {
+      if (typeof item === "string") {
+        return {
+          id: crypto.randomUUID(),
+          name: item,
+          category: "Other",
+        };
+      }
+
+      return {
+        id: item.id || crypto.randomUUID(),
+        name: item.name || "Unnamed item",
+        category: item.category || "Other",
+      };
+    });
+  }
+
+  const normalizedInventory = normalizeInventoryItems(inventory);
+
   function addInventoryItem() {
     const cleanedItem = newInventoryItem.trim();
 
-    if (cleanedItem === "") return;
+    if (cleanedItem === "") {
+      return;
+    }
 
-    const itemAlreadyExists = inventory.some(
-      (item) => item.toLowerCase() === cleanedItem.toLowerCase()
+    const itemAlreadyExists = normalizedInventory.some(
+      (item) => item.name.toLowerCase() === cleanedItem.toLowerCase()
     );
 
     if (itemAlreadyExists) {
@@ -224,13 +286,22 @@ function App() {
       return;
     }
 
-    setInventory([...inventory, cleanedItem]);
+    const itemToAdd = {
+      id: crypto.randomUUID(),
+      name: cleanedItem,
+      category: newInventoryCategory,
+    };
+
+    setInventory([...normalizedInventory, itemToAdd]);
     setNewInventoryItem("");
+    setNewInventoryCategory("Building toys");
     setErrorMessage("");
   }
 
-  function removeInventoryItem(itemToRemove) {
-    setInventory(inventory.filter((item) => item !== itemToRemove));
+  function removeInventoryItem(itemIdToRemove) {
+    setInventory(
+      normalizedInventory.filter((item) => item.id !== itemIdToRemove)
+    );
   }
 
   function switchToKidMode() {
@@ -292,7 +363,7 @@ function App() {
       const activityRequest = {
         parentActivity: parentStatus.activity,
         parentAvailability: parentStatus.availability,
-        inventory,
+        inventory: normalizedInventory,
         kidMood,
         messLevel,
         locationPreference,
@@ -923,31 +994,58 @@ function App() {
                 </div>
               </div>
 
-              <div className="add-row">
+              <div className="inventory-add-grid">
                 <input
                   value={newInventoryItem}
-                  onChange={(event) =>
-                    setNewInventoryItem(event.target.value)
-                  }
+                  onChange={(event) => setNewInventoryItem(event.target.value)}
                   onKeyDown={(event) => {
                     if (event.key === "Enter") addInventoryItem();
                   }}
                   placeholder="Example: chalk, blocks, cards"
                 />
 
+                <select
+                  value={newInventoryCategory}
+                  onChange={(event) => setNewInventoryCategory(event.target.value)}
+                >
+                  {inventoryCategories.map((category) => (
+                    <option key={category} value={category}>
+                      {category}
+                    </option>
+                  ))}
+                </select>
+
                 <button onClick={addInventoryItem}>Add</button>
               </div>
 
-              <div className="chip-list">
-                {inventory.map((item) => (
-                  <button
-                    key={item}
-                    className="chip"
-                    onClick={() => removeInventoryItem(item)}
-                  >
-                    {item} ×
-                  </button>
-                ))}
+              <div className="categorized-inventory-list">
+                {inventoryCategories.map((category) => {
+                  const itemsInCategory = normalizedInventory.filter(
+                    (item) => item.category === category
+                  );
+
+                  if (itemsInCategory.length === 0) {
+                    return null;
+                  }
+
+                  return (
+                    <section key={category} className="inventory-category-group">
+                      <h3>{category}</h3>
+
+                      <div className="chip-list">
+                        {itemsInCategory.map((item) => (
+                          <button
+                            key={item.id}
+                            className="chip"
+                            onClick={() => removeInventoryItem(item.id)}
+                          >
+                            {item.name} ×
+                          </button>
+                        ))}
+                      </div>
+                    </section>
+                  );
+                })}
               </div>
             </section>
           </section>

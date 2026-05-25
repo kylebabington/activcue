@@ -264,7 +264,8 @@ select {
   .safety-toggle-grid,
   .safety-controls-grid,
   .active-activity-header,
-  .saved-activity-item {
+  .saved-activity-item,
+  .inventory-add-grid {
     grid-template-columns: 1fr;
   }
 
@@ -778,4 +779,38 @@ select {
 
 .saved-activity-actions .danger-button {
   background: #991b1b;
+}
+
+.inventory-add-grid {
+  display: grid;
+  grid-template-columns: 1fr 220px auto;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.inventory-add-grid button {
+  border: 0;
+  border-radius: 14px;
+  padding: 12px 16px;
+  background: #2f4858;
+  color: white;
+  font-weight: 900;
+}
+
+.categorized-inventory-list {
+  display: grid;
+  gap: 18px;
+}
+
+.inventory-category-group {
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 18px;
+  padding: 14px;
+}
+
+.inventory-category-group h3 {
+  margin-bottom: 10px;
+  font-size: 0.95rem;
+  color: #475569;
 }
