@@ -141,6 +141,11 @@ function App() {
   const [newInventoryCategory, setNewInventoryCategory] =
     useState("Building toys");
 
+  const [activityMode, setActivityMode] = useLocalStorage(
+    "activityMode",
+    "single-child"
+  );
+
   const [kidMood, setKidMood] = useLocalStorage("kidMood", "creative");
   const [messLevel, setMessLevel] = useLocalStorage("messLevel", "low");
   const [locationPreference, setLocationPreference] = useLocalStorage(
@@ -203,13 +208,13 @@ function App() {
     []
   );
 
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+
   const activeActivitySpace =
     activitySpace === "Custom" && customActivitySpace.trim() !== ""
       ? customActivitySpace.trim()
       : activitySpace;
-
-  const [isLoading, setIsLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
 
   const activeChildProfile =
     childProfiles.find((child) => child.id === activeChildId) || null;
@@ -217,6 +222,13 @@ function App() {
   const effectiveChildAgeRange = activeChildProfile
     ? activeChildProfile.ageRange
     : childAgeRange;
+
+  const selectedChildProfiles =
+    activityMode === "family"
+      ? childProfiles
+      : activeChildProfile
+        ? [activeChildProfile]
+        : [];
 
   useEffect(() => {
     if (!activeActivity?.id) {
@@ -538,13 +550,15 @@ function App() {
         kidMood,
         messLevel,
         locationPreference,
+        activitySpace: activeActivitySpace,
         childAgeRange: effectiveChildAgeRange,
+        activityMode,
         activeChildProfile,
+        selectedChildProfiles,
         safetySettings,
         feedbackContext: customFeedbackContext,
         previousActivityTitles,
       };
-
       const generatedActivities = await getActivitySuggestions(activityRequest);
 
       setActivities(generatedActivities);
@@ -635,6 +649,12 @@ function App() {
       id: crypto.randomUUID(),
       title: activity.title,
       summary: activity.summary,
+      parentSetup: activity.parentSetup || null,
+      kidMission: activity.kidMission || "",
+      roles: Array.isArray(activity.roles) ? activity.roles : [],
+      extensionIdeas: Array.isArray(activity.extensionIdeas)
+        ? activity.extensionIdeas
+        : [],
       steps: Array.isArray(activity.steps) ? activity.steps : [],
       uses: Array.isArray(activity.uses) ? activity.uses : [],
       energy: activity.energy || "medium",
@@ -662,8 +682,19 @@ function App() {
     const activityToStart = {
       id: crypto.randomUUID(),
       title: activity.title,
+      theme: activity.theme || "",
       summary: activity.summary,
+      kidRole: activity.kidRole || "",
+      mission: activity.mission || "",
+      starterPrompts: Array.isArray(activity.starterPrompts)
+        ? activity.starterPrompts
+        : [],
+      firstMoves: Array.isArray(activity.firstMoves) ? activity.firstMoves : [],
+      roles: Array.isArray(activity.roles) ? activity.roles : [],
       steps: Array.isArray(activity.steps) ? activity.steps : [],
+      extensionIdeas: Array.isArray(activity.extensionIdeas)
+        ? activity.extensionIdeas
+        : [],
       uses: Array.isArray(activity.uses) ? activity.uses : [],
       startedAt: Date.now(),
       durationMinutes,
@@ -830,6 +861,7 @@ function App() {
     window.localStorage.removeItem("parentStatus");
     window.localStorage.removeItem("customParentPresets");
     window.localStorage.removeItem("inventory");
+    window.localStorage.removeItem("activityMode");
     window.localStorage.removeItem("kidMood");
     window.localStorage.removeItem("messLevel");
     window.localStorage.removeItem("locationPreference");
@@ -1360,6 +1392,8 @@ function App() {
             <ActivityControls
               kidMood={kidMood}
               setKidMood={setKidMood}
+              activityMode={activityMode}
+              setActivityMode={setActivityMode}
               messLevel={messLevel}
               setMessLevel={setMessLevel}
               locationPreference={locationPreference}
@@ -1527,6 +1561,8 @@ function ParentStatusCard({ parentStatus }) {
 }
 
 function ActivityControls({
+  activityMode,
+  setActivityMode,
   kidMood,
   setKidMood,
   messLevel,
@@ -1546,10 +1582,21 @@ function ActivityControls({
   return (
     <div className="controls-grid">
       <label>
+        Activity mode
+        <select
+          value={activityMode}
+          onChange={(event) => setActivityMode(event.target.value)}
+        >
+          <option value="single-child">One child</option>
+          <option value="family">Family / multiple kids</option>
+        </select>
+      </label>
+      <label>
         Active child
         <select
           value={activeChildId}
           onChange={(event) => setActiveChildId(event.target.value)}
+          disabled={activityMode === "family"}
         >
           <option value="">No profile selected</option>
 
@@ -1660,8 +1707,13 @@ function ActiveActivityPanel({
     >
       <div className="active-activity-header">
         <div>
-          <p className="eyebrow dark">Current Mission</p>
+          <p className="eyebrow dark">Current Quest</p>
           <h2>{activeActivity.title}</h2>
+
+          {activeActivity.theme && (
+            <p className="activity-theme">{activeActivity.theme}</p>
+          )}
+
           <p>{activeActivity.summary}</p>
         </div>
 
@@ -1683,17 +1735,112 @@ function ActiveActivityPanel({
         </div>
       </div>
 
+      {activeActivity.kidMission && (
+        <div className="kid-mission-box active-mission-box">
+          <h3>Kid mission</h3>
+          <p>{activeActivity.kidMission}</p>
+        </div>
+      )}
+
+      {Array.isArray(activeActivity.roles) &&
+        activeActivity.roles.length > 0 && (
+          <div className="activity-roles active-roles">
+            <h3>Roles</h3>
+
+            <ul>
+              {activeActivity.roles.map((role) => (
+                <li key={role}>{role}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+      {activeActivity.kidRole && (
+        <div className="quest-box active-quest-box">
+          <h3>Your role</h3>
+          <p>{activeActivity.kidRole}</p>
+        </div>
+      )}
+
+      {activeActivity.mission && (
+        <div className="quest-box active-quest-box">
+          <h3>Your mission</h3>
+          <p>{activeActivity.mission}</p>
+        </div>
+      )}
+
+      {Array.isArray(activeActivity.starterPrompts) &&
+        activeActivity.starterPrompts.length > 0 && (
+          <div className="quest-box active-quest-box">
+            <h3>Starter prompts</h3>
+            <ul>
+              {activeActivity.starterPrompts.map((prompt) => (
+                <li key={prompt}>{prompt}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+      {Array.isArray(activeActivity.firstMoves) &&
+        activeActivity.firstMoves.length > 0 && (
+          <div className="quest-box active-quest-box">
+            <h3>First moves</h3>
+            <ol>
+              {activeActivity.firstMoves.map((move) => (
+                <li key={move}>{move}</li>
+              ))}
+            </ol>
+          </div>
+        )}
+
+      {Array.isArray(activeActivity.roles) &&
+        activeActivity.roles.length > 0 && (
+          <div className="quest-box active-quest-box">
+            <h3>Roles</h3>
+            <ul>
+              {activeActivity.roles.map((role) => (
+                <li key={role}>{role}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
       <div className="mission-steps">
-        <h3>Mission steps</h3>
+        <h3>Quest steps</h3>
 
         <ol>
-          {steps.map((step) => (
+          {activeActivity.steps.map((step) => (
             <li key={step}>{step}</li>
           ))}
         </ol>
       </div>
 
-      {uses.length > 0 && (
+      {Array.isArray(activeActivity.extensionIdeas) &&
+        activeActivity.extensionIdeas.length > 0 && (
+          <div className="quest-box active-quest-box">
+            <h3>Keep going</h3>
+            <ul>
+              {activeActivity.extensionIdeas.map((idea) => (
+                <li key={idea}>{idea}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+      {Array.isArray(activeActivity.roles) &&
+        activeActivity.roles.length > 0 && (
+          <div className="activity-roles active-roles">
+            <h3>Roles</h3>
+
+            <ul>
+              {activeActivity.roles.map((role) => (
+                <li key={role}>{role}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+      {activeActivity.uses.length > 0 && (
         <p className="uses-list">Uses: {uses.join(", ")}</p>
       )}
 
@@ -1816,7 +1963,58 @@ function ActivityResults({
         {activities.map((activity) => (
           <article key={activity.title} className="activity-card">
             <h3>{activity.title}</h3>
+
+            {activity.theme && <p className="activity-theme">{activity.theme}</p>}
+
             <p>{activity.summary}</p>
+
+            {activity.kidRole && (
+              <div className="quest-box role-box">
+                <h4>Your role</h4>
+                <p>{activity.kidRole}</p>
+              </div>
+            )}
+
+            {activity.mission && (
+              <div className="quest-box mission-box">
+                <h4>Your mission</h4>
+                <p>{activity.mission}</p>
+              </div>
+            )}
+
+            {Array.isArray(activity.starterPrompts) &&
+              activity.starterPrompts.length > 0 && (
+                <div className="quest-box prompt-box">
+                  <h4>Starter prompts</h4>
+                  <ul>
+                    {activity.starterPrompts.map((prompt) => (
+                      <li key={prompt}>{prompt}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+            {Array.isArray(activity.firstMoves) && activity.firstMoves.length > 0 && (
+              <div className="quest-box first-moves-box">
+                <h4>First moves</h4>
+                <ol>
+                  {activity.firstMoves.map((move) => (
+                    <li key={move}>{move}</li>
+                  ))}
+                </ol>
+              </div>
+            )}
+
+            {Array.isArray(activity.roles) && activity.roles.length > 0 && (
+              <div className="quest-box roles-box">
+                <h4>Roles</h4>
+                <ul>
+                  {activity.roles.map((role) => (
+                    <li key={role}>{role}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             <h4>Steps</h4>
             <ol>
@@ -1825,13 +2023,50 @@ function ActivityResults({
               ))}
             </ol>
 
+            {Array.isArray(activity.extensionIdeas) &&
+              activity.extensionIdeas.length > 0 && (
+                <div className="quest-box extension-box">
+                  <h4>Keep going</h4>
+                  <ul>
+                    {activity.extensionIdeas.map((idea) => (
+                      <li key={idea}>{idea}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
             <div className="activity-meta">
               <span>Energy: {activity.energy}</span>
               <span>Mess: {activity.mess}</span>
               <span>Adult help: {activity.adultHelp}</span>
             </div>
 
+            {Array.isArray(activity.extensionIdeas) &&
+              activity.extensionIdeas.length > 0 && (
+                <div className="extension-ideas-box">
+                  <h4>If they finish early</h4>
+
+                  <ul>
+                    {activity.extensionIdeas.map((idea) => (
+                      <li key={idea}>{idea}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
             <p className="why-it-fits">{activity.whyItFits}</p>
+
+            {Array.isArray(activity.roles) && activity.roles.length > 0 && (
+              <div className="activity-roles">
+                <h4>Roles</h4>
+
+                <ul>
+                  {activity.roles.map((role) => (
+                    <li key={role}>{role}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             {activity.uses.length > 0 && (
               <p className="uses-list">Uses: {activity.uses.join(", ")}</p>

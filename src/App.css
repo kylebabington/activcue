@@ -889,3 +889,175 @@ select {
 .child-profile-actions .danger-button {
   background: #991b1b;
 }
+
+.field-note {
+  color: #64748b;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.activity-roles {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 16px;
+  padding: 12px;
+  margin: 14px 0;
+}
+
+.activity-roles h4,
+.activity-roles h3 {
+  margin-bottom: 8px;
+}
+
+.activity-roles ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.activity-roles li {
+  color: #334155;
+  line-height: 1.5;
+}
+
+.active-roles {
+  background: white;
+}
+
+.parent-setup-box,
+.kid-mission-box,
+.activity-roles,
+.extension-ideas-box {
+  border-radius: 16px;
+  padding: 14px;
+  margin: 14px 0;
+}
+
+.parent-setup-box {
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+}
+
+.kid-mission-box {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+}
+
+.activity-roles {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+}
+
+.extension-ideas-box {
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+}
+
+.parent-setup-box h4,
+.kid-mission-box h4,
+.activity-roles h4,
+.extension-ideas-box h4,
+.parent-setup-box h3,
+.kid-mission-box h3,
+.activity-roles h3,
+.extension-ideas-box h3 {
+  margin-bottom: 8px;
+}
+
+.parent-setup-box ol,
+.activity-roles ul,
+.extension-ideas-box ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.parent-setup-box li,
+.activity-roles li,
+.extension-ideas-box li {
+  color: #334155;
+  line-height: 1.5;
+}
+
+.scene-script {
+  background: white;
+  border-left: 4px solid #fb923c;
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 0;
+  font-weight: 800;
+}
+
+.active-mission-box,
+.active-roles {
+  background: white;
+}
+
+.activity-theme {
+  color: #334155;
+  font-weight: 900;
+  line-height: 1.5;
+  background: #f8fafc;
+  border-left: 4px solid #2f4858;
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.quest-box {
+  border-radius: 16px;
+  padding: 14px;
+  margin: 14px 0;
+}
+
+.quest-box h3,
+.quest-box h4 {
+  margin-bottom: 8px;
+}
+
+.quest-box p {
+  margin-bottom: 0;
+}
+
+.quest-box ul,
+.quest-box ol {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.quest-box li {
+  color: #334155;
+  line-height: 1.5;
+}
+
+.role-box {
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+}
+
+.mission-box {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+}
+
+.prompt-box {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+}
+
+.first-moves-box {
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+}
+
+.roles-box {
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+}
+
+.extension-box {
+  background: #f5f3ff;
+  border: 1px solid #ddd6fe;
+}
+
+.active-quest-box {
+  background: white;
+  border: 1px solid #bbf7d0;
+}
