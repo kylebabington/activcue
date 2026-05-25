@@ -1964,7 +1964,9 @@ function ActivityResults({
           <article key={activity.title} className="activity-card">
             <h3>{activity.title}</h3>
 
-            {activity.theme && <p className="activity-theme">{activity.theme}</p>}
+            {activity.theme && (
+              <p className="activity-theme">{activity.theme}</p>
+            )}
 
             <p>{activity.summary}</p>
 
@@ -1986,6 +1988,7 @@ function ActivityResults({
               activity.starterPrompts.length > 0 && (
                 <div className="quest-box prompt-box">
                   <h4>Starter prompts</h4>
+
                   <ul>
                     {activity.starterPrompts.map((prompt) => (
                       <li key={prompt}>{prompt}</li>
@@ -1994,20 +1997,23 @@ function ActivityResults({
                 </div>
               )}
 
-            {Array.isArray(activity.firstMoves) && activity.firstMoves.length > 0 && (
-              <div className="quest-box first-moves-box">
-                <h4>First moves</h4>
-                <ol>
-                  {activity.firstMoves.map((move) => (
-                    <li key={move}>{move}</li>
-                  ))}
-                </ol>
-              </div>
-            )}
+            {Array.isArray(activity.firstMoves) &&
+              activity.firstMoves.length > 0 && (
+                <div className="quest-box first-moves-box">
+                  <h4>First moves</h4>
+
+                  <ol>
+                    {activity.firstMoves.map((move) => (
+                      <li key={move}>{move}</li>
+                    ))}
+                  </ol>
+                </div>
+              )}
 
             {Array.isArray(activity.roles) && activity.roles.length > 0 && (
               <div className="quest-box roles-box">
                 <h4>Roles</h4>
+
                 <ul>
                   {activity.roles.map((role) => (
                     <li key={role}>{role}</li>
@@ -2016,9 +2022,9 @@ function ActivityResults({
               </div>
             )}
 
-            <h4>Steps</h4>
+            <h4>Quest steps</h4>
             <ol>
-              {activity.steps.map((step) => (
+              {(Array.isArray(activity.steps) ? activity.steps : []).map((step) => (
                 <li key={step}>{step}</li>
               ))}
             </ol>
@@ -2027,6 +2033,7 @@ function ActivityResults({
               activity.extensionIdeas.length > 0 && (
                 <div className="quest-box extension-box">
                   <h4>Keep going</h4>
+
                   <ul>
                     {activity.extensionIdeas.map((idea) => (
                       <li key={idea}>{idea}</li>
@@ -2041,44 +2048,15 @@ function ActivityResults({
               <span>Adult help: {activity.adultHelp}</span>
             </div>
 
-            {Array.isArray(activity.extensionIdeas) &&
-              activity.extensionIdeas.length > 0 && (
-                <div className="extension-ideas-box">
-                  <h4>If they finish early</h4>
-
-                  <ul>
-                    {activity.extensionIdeas.map((idea) => (
-                      <li key={idea}>{idea}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
             <p className="why-it-fits">{activity.whyItFits}</p>
 
-            {Array.isArray(activity.roles) && activity.roles.length > 0 && (
-              <div className="activity-roles">
-                <h4>Roles</h4>
-
-                <ul>
-                  {activity.roles.map((role) => (
-                    <li key={role}>{role}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {activity.uses.length > 0 && (
+            {Array.isArray(activity.uses) && activity.uses.length > 0 && (
               <p className="uses-list">Uses: {activity.uses.join(", ")}</p>
             )}
 
             <div className="feedback-buttons">
               <button onClick={() => handleStartActivity(activity)}>
                 Start this
-              </button>
-
-              <button onClick={() => saveFavoriteActivity(activity)}>
-                Save favorite
               </button>
 
               <button onClick={() => handleTooMessy(activity)}>Too messy</button>
