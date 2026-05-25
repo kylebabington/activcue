@@ -61,6 +61,19 @@ const inventoryCategories = [
   "Other",
 ];
 
+const activitySpaceOptions = [
+  "Living room",
+  "Bedroom",
+  "Kitchen table",
+  "Backyard",
+  "Front yard",
+  "Garage",
+  "Basement",
+  "Car ride",
+  "Waiting room",
+  "Custom",
+];
+
 function App() {
   const [appMode, setAppMode] = useLocalStorage("appMode", "parent");
 
@@ -134,6 +147,16 @@ function App() {
     "locationPreference",
     "indoor"
   );
+
+  const [activitySpace, setActivitySpace] = useLocalStorage(
+    "activitySpace",
+    "Living room"
+  );
+
+  const [customActivitySpace, setCustomActivitySpace] = useLocalStorage(
+    "customActivitySpace",
+    ""
+  );
   const [childAgeRange, setChildAgeRange] = useLocalStorage(
     "childAgeRange",
     "6-9"
@@ -167,6 +190,11 @@ function App() {
     "activityHistory",
     []
   );
+
+  const activeActivitySpace =
+    activitySpace === "Custom" && customActivitySpace.trim() !== ""
+      ? customActivitySpace.trim()
+      : activitySpace;
 
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -367,6 +395,7 @@ function App() {
         kidMood,
         messLevel,
         locationPreference,
+        activitySpace: activeActivitySpace,
         childAgeRange,
         safetySettings,
         feedbackContext: customFeedbackContext,
@@ -661,6 +690,8 @@ function App() {
     window.localStorage.removeItem("kidMood");
     window.localStorage.removeItem("messLevel");
     window.localStorage.removeItem("locationPreference");
+    window.localStorage.removeItem("activitySpace");
+    window.localStorage.removeItem("customActivitySpace");
     window.localStorage.removeItem("childAgeRange");
     window.localStorage.removeItem("safetySettings");
     window.localStorage.removeItem("activityHistory");
@@ -1085,6 +1116,10 @@ function App() {
               setMessLevel={setMessLevel}
               locationPreference={locationPreference}
               setLocationPreference={setLocationPreference}
+              activitySpace={activitySpace}
+              setActivitySpace={setActivitySpace}
+              customActivitySpace={customActivitySpace}
+              setCustomActivitySpace={setCustomActivitySpace}
               childAgeRange={childAgeRange}
               setChildAgeRange={setChildAgeRange}
             />
@@ -1247,6 +1282,10 @@ function ActivityControls({
   setMessLevel,
   locationPreference,
   setLocationPreference,
+  activitySpace,
+  setActivitySpace,
+  customActivitySpace,
+  setCustomActivitySpace,
   childAgeRange,
   setChildAgeRange,
 }) {
@@ -1290,6 +1329,31 @@ function ActivityControls({
           <option value="either">Either</option>
         </select>
       </label>
+
+      <label>
+        Activity space
+        <select
+          value={activitySpace}
+          onChange={(event) => setActivitySpace(event.target.value)}
+        >
+          {activitySpaceOptions.map((space) => (
+            <option key={space} value={space}>
+              {space}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      {activitySpace === "Custom" && (
+        <label>
+          Custom space
+          <input
+            value={customActivitySpace}
+            onChange={(event) => setCustomActivitySpace(event.target.value)}
+            placeholder="Example: Grandma's house"
+          />
+        </label>
+      )}
 
       <label>
         Age range

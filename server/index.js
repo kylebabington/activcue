@@ -38,6 +38,7 @@ app.post("/api/activity-suggestions", async (req, res) => {
             kidMood,
             messLevel,
             locationPreference,
+            activitySpace,
             childAgeRange,
             feedbackContext,
             previousActivityTitles,
@@ -86,6 +87,7 @@ Rules:
 - Use the family's inventory when possible.
 - Pay attention to inventory categories. Use categories to combine items creatively, such as building toys plus pretend play, or art supplies plus household-safe items.
 - Activities should be realistic at home.
+- Respect the specific activity space. Do not suggest ideas that do not fit the selected room or place.
 - Avoid fire, sharp tools, chemicals, choking hazards, unsafe climbing, weapons, or unsupervised internet use.
 - Respect the parent's availability.
 - If the parent is busy or unavailable, suggest mostly independent activities.
@@ -112,6 +114,7 @@ Family context:
 - Kid mood/request: ${kidMood}
 - Preferred mess level: ${messLevel}
 - Preferred location: ${locationPreference}
+- Specific activity space: ${activitySpace || "Not specified"}
 - Child age range: ${childAgeRange}
 - Available toys/supplies by category: ${formatInventoryForPrompt(inventory)}
 - Feedback context: ${safeFeedbackContext}
