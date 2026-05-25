@@ -263,7 +263,8 @@ select {
   .custom-preset-item,
   .safety-toggle-grid,
   .safety-controls-grid,
-  .active-activity-header {
+  .active-activity-header,
+  .saved-activity-item {
     grid-template-columns: 1fr;
   }
 
@@ -730,4 +731,51 @@ select {
 
 .active-activity-actions .secondary-action:hover {
   transform: translateY(-1px);
+}
+
+.saved-activities-panel {
+  margin-top: 18px;
+}
+
+.saved-activity-list {
+  display: grid;
+  gap: 12px;
+}
+
+.saved-activity-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 16px;
+  align-items: start;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 18px;
+  padding: 16px;
+}
+
+.saved-activity-item h3 {
+  margin-bottom: 6px;
+}
+
+.saved-activity-item p {
+  color: #4b5563;
+  line-height: 1.5;
+}
+
+.saved-activity-actions {
+  display: grid;
+  gap: 8px;
+}
+
+.saved-activity-actions button {
+  border: 0;
+  border-radius: 14px;
+  padding: 10px 14px;
+  background: #2f4858;
+  color: white;
+  font-weight: 900;
+}
+
+.saved-activity-actions .danger-button {
+  background: #991b1b;
 }

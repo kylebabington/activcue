@@ -118,6 +118,11 @@ function App() {
 
   const timerSecondsRemaining = useActivityTimer(activeActivity);
 
+  const [savedActivities, setSavedActivities] = useLocalStorage(
+    "savedActivities",
+    []
+  );
+
   const [activityHistory, setActivityHistory] = useLocalStorage(
     "activityHistory",
     []
@@ -372,6 +377,42 @@ function App() {
     setActivityHistory([...activityHistory, historyItem]);
   }
 
+  function saveFavoriteActivity(activity) {
+    const alreadySaved = savedActivities.some(
+      (savedActivity) =>
+        savedActivity.title.toLowerCase() === activity.title.toLowerCase()
+    );
+
+    if (alreadySaved) {
+      setErrorMessage(`"${activity.title}" is already saved.`);
+      return;
+    }
+
+    const favoriteActivity = {
+      id: crypto.randomUUID(),
+      title: activity.title,
+      summary: activity.summary,
+      steps: Array.isArray(activity.steps) ? activity.steps : [],
+      uses: Array.isArray(activity.uses) ? activity.uses : [],
+      energy: activity.energy || "medium",
+      mess: activity.mess || "low",
+      adultHelp: activity.adultHelp || "optional",
+      whyItFits: activity.whyItFits || "",
+      savedAt: new Date().toISOString(),
+    };
+
+    setSavedActivities([...savedActivities, favoriteActivity]);
+    setErrorMessage(`Saved favorite: "${activity.title}".`);
+  }
+
+  function removeSavedActivity(activityId) {
+    setSavedActivities(
+      savedActivities.filter((activity) => activity.id !== activityId)
+    );
+
+    setErrorMessage("Saved activity removed.");
+  }
+
   function handleStartActivity(activity) {
     const durationMinutes = Number(safetySettings.maxActivityMinutes) || 20;
 
@@ -552,6 +593,7 @@ function App() {
     window.localStorage.removeItem("childAgeRange");
     window.localStorage.removeItem("safetySettings");
     window.localStorage.removeItem("activityHistory");
+    window.localStorage.removeItem("savedActivities");
     window.localStorage.removeItem("activeActivity");
     window.location.reload();
   }
@@ -1006,10 +1048,17 @@ function App() {
         activities={activities}
         isLoading={isLoading}
         handleStartActivity={handleStartActivity}
+        saveFavoriteActivity={saveFavoriteActivity}
         handleTooMessy={handleTooMessy}
         handleTooHard={handleTooHard}
         handleNeedQuieter={handleNeedQuieter}
         handleMoreLikeThis={handleMoreLikeThis}
+      />
+
+      <SavedActivitiesPanel
+        savedActivities={savedActivities}
+        handleStartActivity={handleStartActivity}
+        removeSavedActivity={removeSavedActivity}
       />
 
       <section className="panel history-panel">
@@ -1248,10 +1297,68 @@ function ActiveActivityPanel({
   );
 }
 
+function SavedActivitiesPanel({
+  savedActivities,
+  handleStartActivity,
+  removeSavedActivity,
+}) {
+  if (savedActivities.length === 0) {
+    return null;
+  }
+
+  return (
+    <section className="panel saved-activities-panel">
+      <div className="panel-header">
+        <div>
+          <h2>Saved Activities</h2>
+          <p>
+            These are ideas that worked well enough to keep. Start one again
+            anytime.
+          </p>
+        </div>
+      </div>
+
+      <div className="saved-activity-list">
+        {savedActivities
+          .slice()
+          .reverse()
+          .map((activity) => (
+            <article key={activity.id} className="saved-activity-item">
+              <div>
+                <h3>{activity.title}</h3>
+                <p>{activity.summary}</p>
+
+                {activity.uses.length > 0 && (
+                  <p className="uses-list">
+                    Uses: {activity.uses.join(", ")}
+                  </p>
+                )}
+              </div>
+
+              <div className="saved-activity-actions">
+                <button onClick={() => handleStartActivity(activity)}>
+                  Start
+                </button>
+
+                <button
+                  className="danger-button"
+                  onClick={() => removeSavedActivity(activity.id)}
+                >
+                  Remove
+                </button>
+              </div>
+            </article>
+          ))}
+      </div>
+    </section>
+  );
+}
+
 function ActivityResults({
   activities,
   isLoading,
   handleStartActivity,
+  saveFavoriteActivity,
   handleTooMessy,
   handleTooHard,
   handleNeedQuieter,
@@ -1302,6 +1409,10 @@ function ActivityResults({
             <div className="feedback-buttons">
               <button onClick={() => handleStartActivity(activity)}>
                 Start this
+              </button>
+
+              <button onClick={() => saveFavoriteActivity(activity)}>
+                Save favorite
               </button>
 
               <button onClick={() => handleTooMessy(activity)}>Too messy</button>
