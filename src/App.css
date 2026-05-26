@@ -1061,3 +1061,77 @@ select {
   background: white;
   border: 1px solid #bbf7d0;
 }
+
+/* Multi-page navigation */
+
+.app-nav {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin: 1rem 0 1.5rem;
+}
+
+.app-nav a {
+  text-decoration: none;
+  color: inherit;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 0.75rem 1rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  font-weight: 700;
+}
+
+.app-nav a.active {
+  background: white;
+  color: #1f2937;
+}
+
+.page-layout {
+  display: grid;
+  gap: 1rem;
+}
+
+.page-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+
+.primary-link-button,
+.ghost-link-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  border-radius: 999px;
+  padding: 0.8rem 1rem;
+  font-weight: 800;
+}
+
+.primary-link-button {
+  background: white;
+  color: #1f2937;
+}
+
+.ghost-link-button {
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.try-first-box {
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.try-first-box h3 {
+  margin-top: 0;
+}
+
+.loading-note {
+  margin-top: 1rem;
+  font-weight: 700;
+}
