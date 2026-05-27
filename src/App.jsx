@@ -13,46 +13,85 @@ import "./App.css";
 const defaultParentStatusPresets = [
   {
     label: "Cooking",
-    activity: "Cooking",
+    activity: "Cooking dinner",
     availability: "helper-welcome",
+    timeNeededMinutes: 20,
+    space: "Kitchen table",
+    messLevel: "low",
+    noiseLevel: "normal",
+    supervisionLevel: "nearby",
   },
   {
     label: "Cleaning",
-    activity: "Cleaning",
+    activity: "Cleaning the house",
     availability: "helper-welcome",
+    timeNeededMinutes: 20,
+    space: "Living room",
+    messLevel: "low",
+    noiseLevel: "normal",
+    supervisionLevel: "nearby",
   },
   {
     label: "Work call",
     activity: "On a work call",
     availability: "do-not-interrupt",
+    timeNeededMinutes: 30,
+    space: "Living room",
+    messLevel: "low",
+    noiseLevel: "quiet",
+    supervisionLevel: "independent",
   },
   {
     label: "Paying bills",
     activity: "Paying bills",
     availability: "ask-first",
+    timeNeededMinutes: 20,
+    space: "Kitchen table",
+    messLevel: "low",
+    noiseLevel: "quiet",
+    supervisionLevel: "mostly-independent",
   },
   {
     label: "Resting",
     activity: "Resting",
     availability: "do-not-interrupt",
+    timeNeededMinutes: 30,
+    space: "Bedroom",
+    messLevel: "low",
+    noiseLevel: "quiet",
+    supervisionLevel: "independent",
   },
   {
     label: "Yard work",
     activity: "Doing yard work",
     availability: "helper-welcome",
+    timeNeededMinutes: 30,
+    space: "Backyard",
+    messLevel: "medium",
+    noiseLevel: "normal",
+    supervisionLevel: "nearby",
   },
   {
     label: "Errands",
     activity: "Handling errands",
     availability: "ask-first",
+    timeNeededMinutes: 15,
+    space: "Living room",
+    messLevel: "low",
+    noiseLevel: "normal",
+    supervisionLevel: "mostly-independent",
   },
   {
     label: "Helping sibling",
     activity: "Helping someone else",
     availability: "ask-first",
+    timeNeededMinutes: 20,
+    space: "Living room",
+    messLevel: "low",
+    noiseLevel: "normal",
+    supervisionLevel: "mostly-independent",
   },
 ];
-
 const inventoryCategories = [
   "Building toys",
   "Art supplies",
@@ -77,6 +116,31 @@ function App() {
   const [parentStatus, setParentStatus] = useLocalStorage("parentStatus", {
     activity: "Cleaning the kitchen",
     availability: "helper-welcome",
+  });
+
+  // currentMoment stores the full "right now" family situation.
+  //
+  // This is different from parentStatus.
+  // parentStatus only knows:
+  // - what the parent is doing
+  // - whether kids can interrupt
+  //
+  // currentMoment knows more:
+  // - what the parent is doing
+  // - whether kids can interrupt
+  // - how much time the parent needs
+  // - where the kid should play
+  // - how messy the activity can be
+  // - how noisy the activity can be
+  // - how much supervision is available
+  const [currentMoment, setCurrentMoment] = useLocalStorage("currentMoment", {
+    parentActivity: "Cleaning the kitchen",
+    availability: "helper-welcome",
+    timeNeededMinutes: 20,
+    space: "Living room",
+    messLevel: "low",
+    noiseLevel: "normal",
+    supervisionLevel: "independent",
   });
 
   const [customParentPresets] = useLocalStorage(
@@ -222,12 +286,40 @@ function App() {
   }, [activeActivity?.id]);
 
   function applyParentStatusPreset(preset) {
+    // Keep the old parentStatus state updated for now.
+    // This prevents older parts of the app from breaking.
     setParentStatus({
       activity: preset.activity,
       availability: preset.availability,
     });
 
-    setErrorMessage(`Parent status set to "${preset.label}".`);
+    // Update the new currentMoment object.
+    // This is the new "source of truth" for the right-now family situation.
+    setCurrentMoment({
+      parentActivity: preset.activity,
+      availability: preset.availability,
+      timeNeededMinutes: preset.timeNeededMinutes || currentMoment.timeNeededMinutes,
+      space: preset.space || currentMoment.space,
+      messLevel: preset.messLevel || currentMoment.messLevel,
+      noiseLevel: preset.noiseLevel || currentMoment.noiseLevel,
+      supervisionLevel:
+        preset.supervisionLevel || currentMoment.supervisionLevel,
+    });
+
+    setErrorMessage(`Current moment set to "${preset.label}".`);
+  }
+  // This helper updates one field inside currentMoment.
+  //
+  // Example:
+  // updateCurrentMoment("space", "Backyard")
+  //
+  // That keeps the rest of currentMoment the same,
+  // but changes only the space field.
+  function updateCurrentMoment(fieldName, newValue) {
+    setCurrentMoment({
+      ...currentMoment,
+      [fieldName]: newValue,
+    });
   }
 
   function updateSafetySetting(settingName, newValue) {
@@ -382,18 +474,38 @@ function App() {
         .map((historyItem) => historyItem.title);
 
       const activityRequest = {
-        parentActivity: parentStatus.activity,
-        parentAvailability: parentStatus.availability,
+        // New currentMoment fields.
+        //
+        // These are now the best description of what is happening right now.
+        currentMoment,
+
+        // Keep these old fields too for backend compatibility.
+        //
+        // This means the backend will still work even if it has not been updated
+        // to fully understand currentMoment yet.
+        parentActivity: currentMoment.parentActivity,
+        parentAvailability: currentMoment.availability,
         inventory,
         kidMood,
-        messLevel,
+
+        // Use currentMoment as the source of truth for mess and space.
+        messLevel: currentMoment.messLevel,
         locationPreference,
-        activitySpace: activeActivitySpace,
+        activitySpace: currentMoment.space,
+
         childAgeRange: effectiveChildAgeRange,
         activityMode,
         activeChildProfile,
         selectedChildProfiles,
-        safetySettings,
+
+        // Safety settings still matter.
+        // But currentMoment.timeNeededMinutes should now guide activity duration.
+        safetySettings: {
+          ...safetySettings,
+          maxActivityMinutes: currentMoment.timeNeededMinutes,
+          quietMode: currentMoment.noiseLevel === "quiet",
+        },
+
         feedbackContext: customFeedbackContext,
         previousActivityTitles,
       };
@@ -532,7 +644,7 @@ function App() {
   }
 
   function handleStartActivity(activity) {
-    const durationMinutes = Number(safetySettings.maxActivityMinutes) || 20;
+    const durationMinutes = Number(currentMoment.timeNeededMinutes) || 20;
 
     const activityToStart = {
       id: crypto.randomUUID(),
@@ -729,6 +841,7 @@ function App() {
     window.localStorage.removeItem("activityHistory");
     window.localStorage.removeItem("savedActivities");
     window.localStorage.removeItem("activeActivity");
+    window.localStorage.removeItem("currentMoment");
     window.location.reload();
   }
 
@@ -786,6 +899,9 @@ function App() {
             <ParentPage
               parentStatus={parentStatus}
               setParentStatus={setParentStatus}
+              currentMoment={currentMoment}
+              updateCurrentMoment={updateCurrentMoment}
+              setCurrentMoment={setCurrentMoment}
               defaultParentStatusPresets={defaultParentStatusPresets}
               customParentPresets={customParentPresets}
               applyParentStatusPreset={applyParentStatusPreset}
@@ -800,6 +916,7 @@ function App() {
           element={
             <KidPage
               parentStatus={parentStatus}
+              currentMoment={currentMoment}
               ParentStatusCard={ParentStatusCard}
               handleKidQuickChoice={handleKidQuickChoice}
               isLoading={isLoading}

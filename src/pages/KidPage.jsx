@@ -7,29 +7,53 @@ import { Link } from "react-router-dom";
 // They just choose what they need.
 
 function KidPage({
-    parentStatus,
+    currentMoment,
     ParentStatusCard,
     handleKidQuickChoice,
     isLoading,
 }) {
+    // ParentStatusCard expects an object with:
+    // - activity
+    // - availability
+    //
+    // currentMoment uses parentActivity instead of activity,
+    // so we adapt the shape here.
+    const currentMomentStatusCardData = {
+        activity: currentMoment.parentActivity,
+        availability: currentMoment.availability,
+    };
+
     return (
         <section className="page-layout kid-mode">
             <section className="panel kid-status-panel">
                 <h2>What is the adult doing?</h2>
 
-                <ParentStatusCard parentStatus={parentStatus} />
+                <ParentStatusCard parentStatus={currentMomentStatusCardData} />
 
-                {parentStatus.availability === "do-not-interrupt" && (
+                {currentMoment.availability === "do-not-interrupt" && (
                     <div className="try-first-box">
                         <h3>Try this first</h3>
 
                         <ol>
                             <li>Pick one quest.</li>
-                            <li>Try it for 10 minutes.</li>
+                            <li>
+                                Try it for at least{" "}
+                                {Math.min(10, currentMoment.timeNeededMinutes)} minutes.
+                            </li>
                             <li>Then ask for help if you still need it.</li>
                         </ol>
                     </div>
                 )}
+
+                <div className="moment-summary kid-moment-summary">
+                    <h3>Today’s mission rules</h3>
+
+                    <p>
+                        Play in the <strong>{currentMoment.space}</strong>. Try to keep it{" "}
+                        <strong>{currentMoment.messLevel}</strong> mess and{" "}
+                        <strong>{currentMoment.noiseLevel}</strong> noise.
+                    </p>
+                </div>
             </section>
 
             <section className="panel">
@@ -83,11 +107,7 @@ function KidPage({
                     </button>
                 </div>
 
-                {isLoading && (
-                    <p className="loading-note">
-                        Thinking up quests...
-                    </p>
-                )}
+                {isLoading && <p className="loading-note">Thinking up quests...</p>}
 
                 <div className="page-actions">
                     <Link className="ghost-link-button" to="/parent">

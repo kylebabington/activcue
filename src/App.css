@@ -1135,3 +1135,26 @@ select {
   margin-top: 1rem;
   font-weight: 700;
 }
+
+/* Current moment summary */
+
+.moment-summary {
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.moment-summary h3 {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+}
+
+.moment-summary p {
+  margin-bottom: 0;
+}
+
+.kid-moment-summary {
+  margin-top: 1rem;
+}
