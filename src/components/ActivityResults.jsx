@@ -3,6 +3,79 @@
 // useState lets this component remember which quest card is expanded.
 import { useState } from "react";
 
+function formatEstimatedMinutes(estimatedMinutes) {
+  // The AI should return a number like 20 or 30.
+  // But because this app talks to an AI, we protect ourselves.
+  // If the value is missing or not a number, we show nothing.
+  if (typeof estimatedMinutes !== "number") {
+    return null;
+  }
+
+  // If the number is weirdly low, do not show confusing text like "0 min".
+  if (estimatedMinutes < 1) {
+    return null;
+  }
+
+  // Round the number so the UI stays clean.
+  // Example: 24.7 becomes 25.
+  return `${Math.round(estimatedMinutes)} min`;
+}
+
+function formatMessLabel(mess) {
+  // Convert backend values into friendly labels.
+  // The backend sends: low, medium, high.
+  if (mess === "low") {
+    return "Low mess";
+  }
+
+  if (mess === "medium") {
+    return "Medium mess";
+  }
+
+  if (mess === "high") {
+    return "Messy";
+  }
+
+  // If the value is missing, return null so the UI can skip it.
+  return null;
+}
+
+function formatEnergyLabel(energy) {
+  // Convert backend values into kid/parent-friendly labels.
+  // For this app, energy also roughly communicates noise/activity level.
+  if (energy === "low") {
+    return "Calm";
+  }
+
+  if (energy === "medium") {
+    return "Active";
+  }
+
+  if (energy === "high") {
+    return "High energy";
+  }
+
+  return null;
+}
+
+function formatAdultHelpLabel(adultHelp) {
+  // Convert backend values into clearer labels.
+  // The backend sends: none, optional, needed.
+  if (adultHelp === "none") {
+    return "No adult help";
+  }
+
+  if (adultHelp === "optional") {
+    return "Adult optional";
+  }
+
+  if (adultHelp === "needed") {
+    return "Adult needed";
+  }
+
+  return null;
+}
+
 // This component displays the activity choices returned by the AI.
 //
 // Product goal:
@@ -106,6 +179,12 @@ function ActivityResults({
             ? activity.extensionIdeas
             : [];
 
+          // These helper values convert raw activity fields into friendly UI labels.
+          const estimatedMinutesLabel = formatEstimatedMinutes(activity.estimatedMinutes);
+          const messLabel = formatMessLabel(activity.mess);
+          const energyLabel = formatEnergyLabel(activity.energy);
+          const adultHelpLabel = formatAdultHelpLabel(activity.adultHelp);
+
           // These booleans make the JSX easier to read.
           const detailsAreOpen = expandedActivityTitle === activity.title;
           const feedbackIsOpen = feedbackActivityTitle === activity.title;
@@ -125,18 +204,18 @@ function ActivityResults({
                   )}
 
                   <div className="activity-meta compact-meta">
+                    {estimatedMinutesLabel && <span>{estimatedMinutesLabel}</span>}
+
                     <span>{steps.length} steps</span>
+
+                    {messLabel && <span>{messLabel}</span>}
+
+                    {energyLabel && <span>{energyLabel}</span>}
+
+                    {adultHelpLabel && <span>{adultHelpLabel}</span>}
 
                     {uses.length > 0 && (
                       <span>Uses: {uses.slice(0, 3).join(", ")}</span>
-                    )}
-
-                    {activity.mess && <span>Mess: {activity.mess}</span>}
-
-                    {activity.energy && <span>Energy: {activity.energy}</span>}
-
-                    {activity.adultHelp && (
-                      <span>Adult help: {activity.adultHelp}</span>
                     )}
                   </div>
                 </div>
@@ -239,7 +318,10 @@ function ActivityResults({
                   )}
 
                   {activity.whyItFits && (
-                    <p className="why-it-fits">{activity.whyItFits}</p>
+                    <div className="quest-box why-it-fits-box">
+                      <h4>Why this fits right now</h4>
+                      <p>{activity.whyItFits}</p>
+                    </div>
                   )}
 
                   {uses.length > 0 && (

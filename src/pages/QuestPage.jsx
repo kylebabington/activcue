@@ -59,7 +59,7 @@ function QuestPage({
                         <h2>Want the app to choose?</h2>
 
                         <p>
-                            Skip comparing options. Start the first good quest now.
+                            Skip comparing options. The app will choose the quest that best fits right now.
                         </p>
                     </div>
 
