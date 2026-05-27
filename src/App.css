@@ -1263,3 +1263,25 @@ select {
     width: 100%;
   }
 }
+
+/* Auto-pick quest panel */
+
+.auto-pick-panel {
+  display: grid;
+  gap: 1rem;
+  align-items: center;
+}
+
+.auto-pick-panel h2 {
+  margin-top: 0;
+}
+
+.auto-pick-panel p {
+  margin-bottom: 0;
+}
+
+@media (min-width: 760px) {
+  .auto-pick-panel {
+    grid-template-columns: 1fr auto;
+  }
+}

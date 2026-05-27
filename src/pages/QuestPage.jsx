@@ -24,6 +24,7 @@ function QuestPage({
     handleTooHard,
     handleNeedQuieter,
     handleMoreLikeThis,
+    handleAutoPickQuest,
 }) {
     return (
         <section className="page-layout">
@@ -48,6 +49,24 @@ function QuestPage({
                     handleTimerMoreLikeThis={handleTimerMoreLikeThis}
                     formatTimer={formatTimer}
                 />
+            )}
+
+            {!activeActivity && activities.length > 0 && !isLoading && (
+                <section className="panel auto-pick-panel">
+                    <div>
+                        <p className="eyebrow dark">Decision helper</p>
+
+                        <h2>Want the app to choose?</h2>
+
+                        <p>
+                            Skip comparing options. Start the first good quest now.
+                        </p>
+                    </div>
+
+                    <button className="generate-button" onClick={handleAutoPickQuest}>
+                        Just pick one for me
+                    </button>
+                </section>
             )}
 
             <ActivityResults

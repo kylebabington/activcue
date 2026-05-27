@@ -672,6 +672,36 @@ function App() {
     setErrorMessage(`Started: "${activity.title}". Timer is running.`);
   };
 
+  // This starts one of the generated activities automatically.
+  //
+  // For now, we choose the first activity in the list.
+  // Later, we can make this smarter by scoring activities based on:
+  // - currentMoment
+  // - mess level
+  // - noise level
+  // - adultHelp
+  // - previous feedback
+  // - child profile
+  function handleAutoPickQuest() {
+    // If there are no activities yet, there is nothing to start.
+    if (activities.length === 0) {
+      setErrorMessage("No quests available yet. Choose something from Kid Mode first.");
+      return;
+    }
+
+    // Pick the first generated activity.
+    // The backend already tries to order useful suggestions,
+    // so the first item is a decent MVP auto-pick.
+    const selectedActivity = activities[0];
+
+    // Start the selected activity using the existing start logic.
+    // This keeps the timer/history behavior consistent.
+    handleStartActivity(selectedActivity);
+
+    // Give the user clear feedback.
+    setErrorMessage(`Auto-picked: "${selectedActivity.title}".`);
+  }
+
   function finishActiveActivity() {
     if (!activeActivity) {
       return;
@@ -944,6 +974,7 @@ function App() {
               handleTooHard={handleTooHard}
               handleNeedQuieter={handleNeedQuieter}
               handleMoreLikeThis={handleMoreLikeThis}
+              handleAutoPickQuest={handleAutoPickQuest}
             />
           }
         />
