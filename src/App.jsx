@@ -958,6 +958,7 @@ function App() {
           path="/quest"
           element={
             <QuestPage
+              currentMoment={currentMoment}
               activeActivity={activeActivity}
               timerSecondsRemaining={timerSecondsRemaining}
               finishActiveActivity={finishActiveActivity}

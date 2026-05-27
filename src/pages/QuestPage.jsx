@@ -4,10 +4,83 @@ import { Link } from "react-router-dom";
 import ActiveActivityPanel from "../components/ActiveActivityPanel";
 import ActivityResults from "../components/ActivityResults";
 
+function formatAvailabilityForBanner(availability) {
+    // Convert internal availability values into friendly text.
+    if (availability === "helper-welcome") {
+        return "Helper welcome";
+    }
+
+    if (availability === "ask-first") {
+        return "Ask first";
+    }
+
+    if (availability === "do-not-interrupt") {
+        return "Do not interrupt";
+    }
+
+    if (availability === "available") {
+        return "Available";
+    }
+
+    return "Check first";
+}
+
+function formatNoiseForBanner(noiseLevel) {
+    // Convert internal noise values into friendly text.
+    if (noiseLevel === "quiet") {
+        return "Quiet";
+    }
+
+    if (noiseLevel === "normal") {
+        return "Normal noise";
+    }
+
+    if (noiseLevel === "loud") {
+        return "Loud okay";
+    }
+
+    return "Noise not set";
+}
+
+function formatMessForBanner(messLevel) {
+    // Convert internal mess values into friendly text.
+    if (messLevel === "low") {
+        return "Low mess";
+    }
+
+    if (messLevel === "medium") {
+        return "Medium mess";
+    }
+
+    if (messLevel === "high") {
+        return "Messy okay";
+    }
+
+    return "Mess not set";
+}
+
+function formatSupervisionForBanner(supervisionLevel) {
+    // Convert internal supervision values into friendly text.
+    if (supervisionLevel === "independent") {
+        return "No adult help";
+    }
+
+    if (supervisionLevel === "mostly-independent") {
+        return "Mostly independent";
+    }
+
+    if (supervisionLevel === "nearby") {
+        return "Adult nearby";
+    }
+
+    return "Supervision not set";
+}
+
 // This page owns the quest experience.
 // It shows the current running quest and the generated quest choices.
 
 function QuestPage({
+    currentMoment,
     activeActivity,
     timerSecondsRemaining,
     finishActiveActivity,
@@ -37,6 +110,34 @@ function QuestPage({
                     Choose a quest, start the timer, and let the activity guide the kid.
                 </p>
             </section>
+
+            {currentMoment && (
+                <section className="current-moment-banner">
+                    <div>
+                        <p className="eyebrow dark">Right now</p>
+
+                        <h2>{currentMoment.parentActivity}</h2>
+
+                        <p>
+                            These quests are tuned for this family moment.
+                        </p>
+                    </div>
+
+                    <div className="moment-chip-list">
+                        <span>{formatAvailabilityForBanner(currentMoment.availability)}</span>
+
+                        <span>{Number(currentMoment.timeNeededMinutes) || 20} min</span>
+
+                        <span>{currentMoment.space || "Space not set"}</span>
+
+                        <span>{formatNoiseForBanner(currentMoment.noiseLevel)}</span>
+
+                        <span>{formatMessForBanner(currentMoment.messLevel)}</span>
+
+                        <span>{formatSupervisionForBanner(currentMoment.supervisionLevel)}</span>
+                    </div>
+                </section>
+            )}
 
             {activeActivity && (
                 <ActiveActivityPanel
