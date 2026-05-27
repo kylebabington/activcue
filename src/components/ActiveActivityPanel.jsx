@@ -1,3 +1,69 @@
+function formatEstimatedMinutes(estimatedMinutes) {
+  // If estimatedMinutes is not a real number, do not show a badge.
+  if (typeof estimatedMinutes !== "number") {
+    return null;
+  }
+
+  // Avoid weird labels like "0 min".
+  if (estimatedMinutes < 1) {
+    return null;
+  }
+
+  // Round to keep the UI clean.
+  return `${Math.round(estimatedMinutes)} min quest`;
+}
+
+function formatMessLabel(mess) {
+  // Convert backend values into friendly display text.
+  if (mess === "low") {
+    return "Low mess";
+  }
+
+  if (mess === "medium") {
+    return "Medium mess";
+  }
+
+  if (mess === "high") {
+    return "Messy";
+  }
+
+  return null;
+}
+
+function formatEnergyLabel(energy) {
+  // Convert backend values into kid/parent-friendly display text.
+  if (energy === "low") {
+    return "Calm";
+  }
+
+  if (energy === "medium") {
+    return "Active";
+  }
+
+  if (energy === "high") {
+    return "High energy";
+  }
+
+  return null;
+}
+
+function formatAdultHelpLabel(adultHelp) {
+  // Convert backend values into friendly display text.
+  if (adultHelp === "none") {
+    return "No adult help";
+  }
+
+  if (adultHelp === "optional") {
+    return "Adult optional";
+  }
+
+  if (adultHelp === "needed") {
+    return "Adult needed";
+  }
+
+  return null;
+}
+
 function ActiveActivityPanel({
   activeActivity,
   timerSecondsRemaining,
@@ -8,8 +74,19 @@ function ActiveActivityPanel({
   handleTimerMoreLikeThis,
   formatTimer,
 }) {
+  // Make sure uses is always an array before rendering it.
   const uses = Array.isArray(activeActivity.uses) ? activeActivity.uses : [];
+
+  // The timer is done when seconds remaining hits zero or below.
   const timerDone = timerSecondsRemaining <= 0;
+
+  // Convert raw activity values into friendly badge labels.
+  const estimatedMinutesLabel = formatEstimatedMinutes(
+    activeActivity.estimatedMinutes
+  );
+  const messLabel = formatMessLabel(activeActivity.mess);
+  const energyLabel = formatEnergyLabel(activeActivity.energy);
+  const adultHelpLabel = formatAdultHelpLabel(activeActivity.adultHelp);
 
   return (
     <section
@@ -25,7 +102,19 @@ function ActiveActivityPanel({
             <p className="activity-theme">{activeActivity.theme}</p>
           )}
 
-          <p>{activeActivity.summary}</p>
+          {activeActivity.summary && <p>{activeActivity.summary}</p>}
+
+          <div className="active-fit-badges">
+            {estimatedMinutesLabel && <span>{estimatedMinutesLabel}</span>}
+
+            {messLabel && <span>{messLabel}</span>}
+
+            {energyLabel && <span>{energyLabel}</span>}
+
+            {adultHelpLabel && <span>{adultHelpLabel}</span>}
+
+            {uses.length > 0 && <span>Uses: {uses.slice(0, 3).join(", ")}</span>}
+          </div>
         </div>
 
         <div
@@ -124,6 +213,13 @@ function ActiveActivityPanel({
             </ul>
           </div>
         )}
+
+      {activeActivity.whyItFits && (
+        <div className="quest-box active-quest-box why-it-fits-box">
+          <h3>Why this fits right now</h3>
+          <p>{activeActivity.whyItFits}</p>
+        </div>
+      )}
 
       {uses.length > 0 && (
         <p className="uses-list">Uses: {uses.join(", ")}</p>

@@ -644,13 +644,25 @@ function App() {
   }
 
   function handleStartActivity(activity) {
-    const durationMinutes = Number(currentMoment.timeNeededMinutes) || 20;
+    // Use the activity's own estimatedMinutes when available.
+    // If that is missing, fall back to the parent's currentMoment time.
+    // If that is missing too, use 20 minutes as a safe default.
+    const durationMinutes =
+      Number(activity.estimatedMinutes) ||
+      Number(currentMoment.timeNeededMinutes) ||
+      20;
 
     const activityToStart = {
+      // Give this active quest a unique ID.
+      // This is separate from the activity title so repeated activities still work.
       id: crypto.randomUUID(),
+
+      // Basic visible quest information.
       title: activity.title,
       theme: activity.theme || "",
-      summary: activity.summary,
+      summary: activity.summary || "",
+
+      // Kid-facing quest structure.
       kidRole: activity.kidRole || "",
       mission: activity.mission || "",
       starterPrompts: Array.isArray(activity.starterPrompts)
@@ -662,7 +674,19 @@ function App() {
       extensionIdeas: Array.isArray(activity.extensionIdeas)
         ? activity.extensionIdeas
         : [],
+
+      // Supplies.
       uses: Array.isArray(activity.uses) ? activity.uses : [],
+
+      // New structured fit fields.
+      // These power the small badges on the active quest panel.
+      estimatedMinutes: Number(activity.estimatedMinutes) || durationMinutes,
+      energy: activity.energy || "medium",
+      mess: activity.mess || "low",
+      adultHelp: activity.adultHelp || "optional",
+      whyItFits: activity.whyItFits || "",
+
+      // Timer fields.
       startedAt: Date.now(),
       durationMinutes,
     };
@@ -670,8 +694,7 @@ function App() {
     setActiveActivity(activityToStart);
     saveActivityFeedback(activity, "started");
     setErrorMessage(`Started: "${activity.title}". Timer is running.`);
-  };
-
+  }
   // This starts one of the generated activities automatically.
   //
   // For now, we choose the first activity in the list.
