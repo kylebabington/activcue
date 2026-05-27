@@ -32,6 +32,12 @@ app.get("/api/health", (req, res) => {
 app.post("/api/activity-suggestions", async (req, res) => {
     try {
         const {
+            // currentMoment is the new main object that describes
+            // what is happening in the family right now.
+            currentMoment,
+
+            // These older fields are still accepted as fallbacks.
+            // Keeping them prevents older frontend code from breaking.
             parentActivity,
             parentAvailability,
             inventory,
@@ -48,7 +54,70 @@ app.post("/api/activity-suggestions", async (req, res) => {
             safetySettings,
         } = req.body;
 
-        if (!parentActivity || !parentAvailability || !kidMood) {
+        const safeCurrentMoment = {
+            // What the parent is doing right now.
+            // Prefer currentMoment.parentActivity.
+            // Fall back to old parentActivity.
+            // Fall back again to a safe default.
+            parentActivity:
+                currentMoment?.parentActivity ||
+                parentActivity ||
+                "Doing a household task",
+
+            // Whether the child can interrupt.
+            // Expected values:
+            // - helper-welcome
+            // - ask-first
+            // - do-not-interrupt
+            availability:
+                currentMoment?.availability ||
+                parentAvailability ||
+                "ask-first",
+
+            // How much time the parent needs.
+            // Convert it to a number so the prompt and safety settings stay reliable.
+            timeNeededMinutes: Number(
+                currentMoment?.timeNeededMinutes ||
+                safetySettings?.maxActivityMinutes ||
+                20
+            ),
+
+            // Where the child should do the activity.
+            space:
+                currentMoment?.space ||
+                activitySpace ||
+                "Living room",
+
+            // How much mess is acceptable.
+            // Expected values:
+            // - low
+            // - medium
+            // - high
+            messLevel:
+                currentMoment?.messLevel ||
+                messLevel ||
+                "low",
+
+            // How noisy the activity can be.
+            // Expected values:
+            // - quiet
+            // - normal
+            // - loud
+            noiseLevel:
+                currentMoment?.noiseLevel ||
+                (safetySettings?.quietMode ? "quiet" : "normal"),
+
+            // How much adult supervision is available.
+            // Expected values:
+            // - independent
+            // - mostly-independent
+            // - nearby
+            supervisionLevel:
+                currentMoment?.supervisionLevel ||
+                "mostly-independent",
+        };
+
+        if (!safeCurrentMoment.parentActivity || !safeCurrentMoment.availability || !kidMood) {
             return res.status(400).json({
                 error: "Missing required fields.",
             });
@@ -73,14 +142,37 @@ app.post("/api/activity-suggestions", async (req, res) => {
             ? selectedChildProfiles
             : [];
 
-        const safeSafetySettings = safetySettings || {
-            screenFreeOnly: true,
-            noFoodActivities: false,
-            noWaterPlay: true,
-            noSmallObjects: true,
-            quietMode: false,
-            maxActivityMinutes: 30,
-            adultHelpAllowed: "optional",
+        const safeSafetySettings = {
+            // Screen-free is true by default because this app is meant
+            // to help kids do real-world activities, not grab another screen.
+            screenFreeOnly: safetySettings?.screenFreeOnly ?? true,
+
+            // Food activities are allowed by default unless the parent disables them.
+            noFoodActivities: safetySettings?.noFoodActivities ?? false,
+
+            // Water play is blocked by default because it often needs more supervision.
+            noWaterPlay: safetySettings?.noWaterPlay ?? true,
+
+            // Small objects are blocked by default for safety.
+            noSmallObjects: safetySettings?.noSmallObjects ?? true,
+
+            // Quiet mode should follow the current moment.
+            // If parent chose quiet, this becomes true.
+            quietMode: safeCurrentMoment.noiseLevel === "quiet",
+
+            // The current moment controls the target duration.
+            maxActivityMinutes: safeCurrentMoment.timeNeededMinutes,
+
+            // Adult help should match supervision level.
+            // If the current moment says independent, adult help should be "none".
+            // If mostly-independent, adult help can be optional.
+            // If nearby, optional help is okay.
+            adultHelpAllowed:
+                safeCurrentMoment.supervisionLevel === "independent"
+                    ? "none"
+                    : safeCurrentMoment.supervisionLevel === "mostly-independent"
+                        ? "optional"
+                        : safetySettings?.adultHelpAllowed || "optional",
         };
 
         const instructions = `
@@ -100,6 +192,13 @@ Important:
 - Do NOT give broad generic activities like "paper crafts", "story writing", "treasure hunt", "drawing", or "build with blocks" unless they are transformed into a specific themed quest with a mission, role, prompts, and first moves.
 
 Rules:
+- Treat the current family moment as the source of truth.
+- The parent activity, availability, time needed, space, mess level, noise level, and supervision level must shape every activity.
+- If the current moment says the parent is unavailable or supervision is independent, every activity must be child-startable without adult help.
+- If the current moment says quiet, every activity must be low-noise and calm.
+- If the current moment says low mess, avoid activities involving cutting, glue, paint, water, food, lots of scattered pieces, or cleanup-heavy steps.
+- If the current moment gives a specific space, do not suggest an activity that obviously belongs somewhere else.
+- Every activity should be able to reasonably fill the parent's requested time without exceeding it.
 - Return only valid JSON.
 - Give exactly 3 activities.
 - Each activity must be a specific themed quest, not a generic activity.
@@ -156,12 +255,15 @@ Good:
 
         const input = `
 Family context:
-- Parent is currently doing: ${parentActivity}
-- Parent availability: ${parentAvailability}
+- Parent is currently doing: ${safeCurrentMoment.parentActivity}
+- Parent availability: ${safeCurrentMoment.availability}
+- Parent needs about: ${safeCurrentMoment.timeNeededMinutes} minutes
+- Activity should happen in: ${safeCurrentMoment.space}
+- Allowed mess level: ${safeCurrentMoment.messLevel}
+- Allowed noise level: ${safeCurrentMoment.noiseLevel}
+- Available supervision level: ${safeCurrentMoment.supervisionLevel}
 - Kid mood/request: ${kidMood}
-- Preferred mess level: ${messLevel}
 - Preferred location: ${locationPreference}
-- Specific activity space: ${activitySpace || "Not specified"}
 - Child age range: ${childAgeRange}
 - Active child profile:
   - Name: ${activeChildProfile?.name || "Not specified"}
@@ -184,7 +286,7 @@ Family context:
   - Max activity minutes: ${safeSafetySettings.maxActivityMinutes}
   - Adult help allowed: ${safeSafetySettings.adultHelpAllowed}
 
-Every activity object MUST include these fields: title, theme, summary, kidRole, mission, starterPrompts, firstMoves, steps, roles, extensionIdeas, uses, energy, mess, adultHelp, whyItFits.
+Every activity object MUST include these fields: title, theme, summary, kidRole, mission, starterPrompts, firstMoves, steps, roles, extensionIdeas, uses, energy, mess, adultHelp, estimatedMinutes, whyItFits.
 
 Return JSON in exactly this shape:
 
@@ -223,7 +325,8 @@ Return JSON in exactly this shape:
       "energy": "low | medium | high",
       "mess": "low | medium | high",
       "adultHelp": "none | optional | needed",
-      "whyItFits": "Specific explanation tied to child profile, activity space, safety settings, and inventory."
+      "estimatedMinutes": 20,
+      "whyItFits": "Specific explanation tied to current moment, child profile, activity space, safety settings, and inventory."
     }
   ]
 }
@@ -287,6 +390,9 @@ Return JSON in exactly this shape:
                                             type: "string",
                                             enum: ["none", "optional", "needed"],
                                         },
+                                        estimatedMinutes: {
+                                            type: "number",
+                                        },
                                         whyItFits: { type: "string" },
                                     },
                                     required: [
@@ -304,6 +410,7 @@ Return JSON in exactly this shape:
                                         "energy",
                                         "mess",
                                         "adultHelp",
+                                        "estimatedMinutes",
                                         "whyItFits",
                                     ],
                                     additionalProperties: false,
