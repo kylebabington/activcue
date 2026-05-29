@@ -819,9 +819,15 @@ function App() {
       const generatedActivities = await getActivitySuggestions(activityRequest);
 
       setActivities(generatedActivities);
+
+      // Return the generated activities so other workflows can use them immediately.
+      // This matters for "Start something for me", because we want to generate,
+      // score, and start without waiting for React state to update.
+      return generatedActivities;
     } catch (error) {
       console.error(error);
       setErrorMessage("Something went wrong while generating ideas.");
+      return [];
     } finally {
       setIsLoading(false);
     }
@@ -893,6 +899,39 @@ function App() {
       navigate("/quest");
     }
   }
+
+  async function handleStartSomethingForMe() {
+    // Set the kid mood to surprise because this button means:
+    // "I do not want to choose. Just give me something that works."
+    setKidMood("surprise");
+
+    // Clear any old active quest before starting a fresh one.
+    setActiveActivity(null);
+
+    // Generate activities and wait for the API response.
+    // We use the returned activities directly instead of waiting for React state.
+    const generatedActivities = await handleGenerateActivities(
+      "The child wants the app to choose and start something automatically. Generate 3 safe, easy-to-start quests that fit the current family moment. Prioritize activities that require the least decision-making from the child."
+    );
+
+    // Pick the best option using the same scoring system as auto-pick.
+    const selectedActivity = getBestActivityForCurrentMoment(generatedActivities);
+
+    if (!selectedActivity) {
+      setErrorMessage("I could not start a quest automatically. Try choosing a quest instead.");
+      navigate("/quest");
+      return;
+    }
+
+    // Start the quest immediately.
+    handleStartActivity(selectedActivity);
+
+    // Move the child to the Quest page where the active timer panel lives.
+    navigate("/quest");
+
+    setErrorMessage(`Started: "${selectedActivity.title}" because it fits right now.`);
+  }
+
   function saveActivityFeedback(activity, feedbackType) {
     const historyItem = {
       id: crypto.randomUUID(),
@@ -1019,38 +1058,44 @@ function App() {
       return;
     }
 
-    // Score every generated activity against the current family moment.
-    //
-    // Each item in scoredActivities looks like:
-    // {
-    //   activity: { ...the original activity... },
-    //   score: 12
-    // }
-    const scoredActivities = activities.map((activity) => {
+    // Use the shared helper so auto-pick and fast-start choose the same way.
+    const selectedActivity = getBestActivityForCurrentMoment(activities);
+
+    if (!selectedActivity) {
+      setErrorMessage("I could not pick a quest yet. Try generating again.");
+      return;
+    }
+
+    // Start the selected activity using the existing start logic.
+    handleStartActivity(selectedActivity);
+
+    // Give the user clear feedback.
+    setErrorMessage(
+      `Auto-picked: "${selectedActivity.title}" because it best fits right now.`
+    );
+  }
+
+  function getBestActivityForCurrentMoment(activityOptions) {
+    // If the caller gives us nothing, return null.
+    if (!Array.isArray(activityOptions) || activityOptions.length === 0) {
+      return null;
+    }
+
+    // Score every option using the same scoring function used by auto-pick.
+    const scoredOptions = activityOptions.map((activity) => {
       return {
         activity,
         score: scoreActivityForCurrentMoment(activity, currentMoment),
       };
     });
 
-    // Sort from highest score to lowest score.
-    //
-    // Example:
-    // score 14 goes before score 9.
-    scoredActivities.sort((a, b) => b.score - a.score);
+    // Sort highest score first.
+    scoredOptions.sort((a, b) => b.score - a.score);
 
-    // The best match is now first in the sorted list.
-    const bestMatch = scoredActivities[0];
-
-    // Safety fallback:
-    // If something goes wrong and bestMatch does not exist,
-    // use the first activity so the button still does something.
-    const selectedActivity = bestMatch?.activity || activities[0];
-
-    // This console table is useful while developing.
-    // It lets you see why the app picked what it picked.
+    // Useful while developing.
+    // This lets you confirm the app is picking the correct quest.
     console.table(
-      scoredActivities.map((item) => {
+      scoredOptions.map((item) => {
         return {
           title: item.activity.title,
           score: item.score,
@@ -1062,14 +1107,8 @@ function App() {
       })
     );
 
-    // Start the selected activity using the existing start logic.
-    // This keeps the timer/history behavior consistent.
-    handleStartActivity(selectedActivity);
-
-    // Give the user clear feedback.
-    setErrorMessage(
-      `Auto-picked: "${selectedActivity.title}" because it best fits right now.`
-    );
+    // Return only the winning activity.
+    return scoredOptions[0].activity;
   }
 
   function finishActiveActivity() {
@@ -1319,6 +1358,7 @@ function App() {
               currentMoment={currentMoment}
               ParentStatusCard={ParentStatusCard}
               handleKidQuickChoice={handleKidQuickChoice}
+              handleStartSomethingForMe={handleStartSomethingForMe}
               isLoading={isLoading}
             />
           }

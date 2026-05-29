@@ -1,122 +1,110 @@
 // src/pages/KidPage.jsx
 
-import { Link } from "react-router-dom";
-
-// This page is the child-facing launch page.
-// The kid should not need to understand settings.
-// They just choose what they need.
-
 function KidPage({
+    parentStatus,
     currentMoment,
     ParentStatusCard,
     handleKidQuickChoice,
+    handleStartSomethingForMe,
     isLoading,
 }) {
-    // ParentStatusCard expects an object with:
-    // - activity
-    // - availability
-    //
-    // currentMoment uses parentActivity instead of activity,
-    // so we adapt the shape here.
-    const currentMomentStatusCardData = {
-        activity: currentMoment.parentActivity,
-        availability: currentMoment.availability,
-    };
-
     return (
-        <section className="page-layout kid-mode">
-            <section className="panel kid-status-panel">
-                <h2>What is the adult doing?</h2>
+        <section className="page-layout">
+            <section className="hero-card">
+                <p className="eyebrow">Kid Mode</p>
 
-                <ParentStatusCard parentStatus={currentMomentStatusCardData} />
+                <h1>What do you need?</h1>
 
-                {currentMoment.availability === "do-not-interrupt" && (
-                    <div className="try-first-box">
-                        <h3>Try this first</h3>
-
-                        <ol>
-                            <li>Pick one quest.</li>
-                            <li>
-                                Try it for at least{" "}
-                                {Math.min(10, currentMoment.timeNeededMinutes)} minutes.
-                            </li>
-                            <li>Then ask for help if you still need it.</li>
-                        </ol>
-                    </div>
-                )}
-
-                <div className="moment-summary kid-moment-summary">
-                    <h3>Today’s mission rules</h3>
-
-                    <p>
-                        Play in the <strong>{currentMoment.space}</strong>. Try to keep it{" "}
-                        <strong>{currentMoment.messLevel}</strong> mess and{" "}
-                        <strong>{currentMoment.noiseLevel}</strong> noise.
-                    </p>
-                </div>
+                <p>
+                    Pick the kind of help you want, or let the app start the best quest
+                    for right now.
+                </p>
             </section>
 
-            <section className="panel">
-                <h2>What do you want to do?</h2>
+            <ParentStatusCard parentStatus={parentStatus} />
 
-                <p className="kid-helper-text">
-                    Pick one. The app will give you a few quests.
-                </p>
+            {currentMoment?.availability === "do-not-interrupt" && (
+                <section className="panel try-first-panel">
+                    <p className="eyebrow dark">Try this first</p>
+
+                    <h2>Grown-up is busy right now.</h2>
+
+                    <ol>
+                        <li>Start one quest.</li>
+                        <li>Try it for at least 10 minutes.</li>
+                        <li>Then ask for help if you still need it.</li>
+                    </ol>
+                </section>
+            )}
+
+            <section className="panel fast-start-panel">
+                <div>
+                    <p className="eyebrow dark">Fast start</p>
+
+                    <h2>I need something to do</h2>
+
+                    <p>
+                        Skip choosing. The app will pick the best quest for right now and
+                        start it.
+                    </p>
+                </div>
+
+                <button
+                    className="fast-start-button"
+                    onClick={handleStartSomethingForMe}
+                    disabled={isLoading}
+                >
+                    {isLoading ? "Finding a quest..." : "Start something for me"}
+                </button>
+            </section>
+
+            <section className="panel kid-choice-panel">
+                <p className="eyebrow dark">Choose your mood</p>
+
+                <h2>Or pick what you want</h2>
 
                 <div className="kid-choice-grid">
                     <button
-                        disabled={isLoading}
                         onClick={() => handleKidQuickChoice("bored")}
+                        disabled={isLoading}
                     >
-                        I’m bored
+                        I&apos;m bored
                     </button>
 
                     <button
-                        disabled={isLoading}
                         onClick={() => handleKidQuickChoice("move")}
+                        disabled={isLoading}
                     >
-                        I need to move
+                        I want to move
                     </button>
 
                     <button
-                        disabled={isLoading}
                         onClick={() => handleKidQuickChoice("make")}
+                        disabled={isLoading}
                     >
                         I want to make something
                     </button>
 
                     <button
-                        disabled={isLoading}
                         onClick={() => handleKidQuickChoice("quiet")}
+                        disabled={isLoading}
                     >
-                        I want quiet time
+                        I need quiet
                     </button>
 
                     <button
-                        disabled={isLoading}
                         onClick={() => handleKidQuickChoice("help")}
+                        disabled={isLoading}
                     >
                         I want to help
                     </button>
 
                     <button
-                        disabled={isLoading}
                         onClick={() => handleKidQuickChoice("surprise")}
+                        disabled={isLoading}
                     >
                         Surprise me
                     </button>
-                </div>
-
-                {isLoading && <p className="loading-note">Thinking up quests...</p>}
-
-                <div className="page-actions">
-                    <Link className="ghost-link-button" to="/parent">
-                        Back to parent
-                    </Link>
-
-                    <Link className="ghost-link-button" to="/quest">
-                        View quests
-                    </Link>
                 </div>
             </section>
         </section>
