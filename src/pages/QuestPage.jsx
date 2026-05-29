@@ -90,6 +90,7 @@ function QuestPage({
     handleTimerMoreLikeThis,
     formatTimer,
     activities,
+    scoredActivities,
     isLoading,
     handleStartActivity,
     saveFavoriteActivity,
@@ -172,6 +173,7 @@ function QuestPage({
 
             <ActivityResults
                 activities={activities}
+                scoredActivities={scoredActivities}
                 isLoading={isLoading}
                 handleStartActivity={handleStartActivity}
                 saveFavoriteActivity={saveFavoriteActivity}

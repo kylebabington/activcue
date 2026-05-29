@@ -532,6 +532,22 @@ function App() {
     null
   );
 
+  const scoredActivities = activities
+    .map((activity) => {
+      // For each generated activity, calculate how well it matches
+      // the current family moment.
+      return {
+        activity,
+        score: scoreActivityForCurrentMoment(activity, currentMoment),
+      };
+    })
+    .sort((a, b) => {
+      // Sort highest score first.
+      // Example:
+      // score 22 comes before score 15.
+      return b.score - a.score;
+    });
+
   const timerSecondsRemaining = useActivityTimer(activeActivity);
 
   const [savedActivities, setSavedActivities] = useLocalStorage(
@@ -1322,6 +1338,7 @@ function App() {
               handleTimerMoreLikeThis={handleTimerMoreLikeThis}
               formatTimer={formatTimer}
               activities={activities}
+              scoredActivities={scoredActivities}
               isLoading={isLoading}
               handleStartActivity={handleStartActivity}
               saveFavoriteActivity={saveFavoriteActivity}

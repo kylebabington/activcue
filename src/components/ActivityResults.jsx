@@ -3,6 +3,13 @@
 // useState lets this component remember which quest card is expanded.
 import { useState } from "react";
 
+// This helper formats the estimatedMinutes value returned by the backend.
+//
+// Example:
+// 25 becomes "25 min"
+//
+// If the backend does not send a usable number,
+// this returns null so the UI can simply skip it.
 function formatEstimatedMinutes(estimatedMinutes) {
   // The AI should return a number like 20 or 30.
   // But because this app talks to an AI, we protect ourselves.
@@ -21,6 +28,12 @@ function formatEstimatedMinutes(estimatedMinutes) {
   return `${Math.round(estimatedMinutes)} min`;
 }
 
+// This helper converts the backend mess value into a friendly label.
+//
+// Backend values:
+// - low
+// - medium
+// - high
 function formatMessLabel(mess) {
   // Convert backend values into friendly labels.
   // The backend sends: low, medium, high.
@@ -40,6 +53,12 @@ function formatMessLabel(mess) {
   return null;
 }
 
+// This helper converts the backend energy value into a friendly label.
+//
+// Backend values:
+// - low
+// - medium
+// - high
 function formatEnergyLabel(energy) {
   // Convert backend values into kid/parent-friendly labels.
   // For this app, energy also roughly communicates noise/activity level.
@@ -58,6 +77,12 @@ function formatEnergyLabel(energy) {
   return null;
 }
 
+// This helper converts the backend adultHelp value into a friendly label.
+//
+// Backend values:
+// - none
+// - optional
+// - needed
 function formatAdultHelpLabel(adultHelp) {
   // Convert backend values into clearer labels.
   // The backend sends: none, optional, needed.
@@ -82,9 +107,9 @@ function formatAdultHelpLabel(adultHelp) {
 // Do NOT overwhelm the kid with three huge walls of text.
 // First show compact quest cards.
 // Then let the kid open details only when they want them.
-
 function ActivityResults({
   activities,
+  scoredActivities,
   isLoading,
   handleStartActivity,
   saveFavoriteActivity,
@@ -146,6 +171,18 @@ function ActivityResults({
     setFeedbackActivityTitle(activityTitle);
   }
 
+  // Prefer scored activities when App.jsx provides them.
+  // If they are missing for any reason, fall back to plain activities.
+  const displayActivities =
+    Array.isArray(scoredActivities) && scoredActivities.length > 0
+      ? scoredActivities
+      : activities.map((activity) => {
+        return {
+          activity,
+          score: null,
+        };
+      });
+
   return (
     <section className="panel results-panel">
       <div className="panel-header">
@@ -162,7 +199,20 @@ function ActivityResults({
       </div>
 
       <div className="quest-choice-list">
-        {activities.map((activity) => {
+        {displayActivities.map((scoredActivity, index) => {
+          // scoredActivity is a wrapper object:
+          //
+          // {
+          //   activity: { title, steps, mess, energy, etc. },
+          //   score: 18
+          // }
+          const activity = scoredActivity.activity;
+          const score = scoredActivity.score;
+
+          // Because App.jsx sorts scoredActivities highest score first,
+          // the first item is the best match.
+          const isBestFit = index === 0 && typeof score === "number";
+
           // Defensive cleanup:
           // The AI should return arrays, but we still protect the UI
           // in case something comes back missing or malformed.
@@ -180,7 +230,9 @@ function ActivityResults({
             : [];
 
           // These helper values convert raw activity fields into friendly UI labels.
-          const estimatedMinutesLabel = formatEstimatedMinutes(activity.estimatedMinutes);
+          const estimatedMinutesLabel = formatEstimatedMinutes(
+            activity.estimatedMinutes
+          );
           const messLabel = formatMessLabel(activity.mess);
           const energyLabel = formatEnergyLabel(activity.energy);
           const adultHelpLabel = formatAdultHelpLabel(activity.adultHelp);
@@ -193,6 +245,16 @@ function ActivityResults({
             <article key={activity.title} className="quest-choice-card">
               <div className="quest-choice-main">
                 <div>
+                  <div className="quest-card-topline">
+                    {isBestFit && (
+                      <span className="best-fit-badge">Best fit right now</span>
+                    )}
+
+                    {typeof score === "number" && (
+                      <span className="fit-score-badge">Fit score: {score}</span>
+                    )}
+                  </div>
+
                   <h3>{activity.title}</h3>
 
                   {activity.theme && (
@@ -320,6 +382,14 @@ function ActivityResults({
                   {activity.whyItFits && (
                     <div className="quest-box why-it-fits-box">
                       <h4>Why this fits right now</h4>
+
+                      {typeof score === "number" && (
+                        <p className="fit-score-note">
+                          This quest scored {score} against the current family
+                          moment.
+                        </p>
+                      )}
+
                       <p>{activity.whyItFits}</p>
                     </div>
                   )}
