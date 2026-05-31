@@ -90,6 +90,7 @@ function QuestPage({
     handleTimerMoreLikeThis,
     goToNextQuestStep,
     goToPreviousQuestStep,
+    toggleQuestStepComplete,
     toggleShowAllQuestSteps,
     stepHint,
     isHintLoading,
@@ -157,6 +158,7 @@ function QuestPage({
                     handleTimerMoreLikeThis={handleTimerMoreLikeThis}
                     goToNextQuestStep={goToNextQuestStep}
                     goToPreviousQuestStep={goToPreviousQuestStep}
+                    toggleQuestStepComplete={toggleQuestStepComplete}
                     toggleShowAllQuestSteps={toggleShowAllQuestSteps}
                     stepHint={stepHint}
                     isHintLoading={isHintLoading}

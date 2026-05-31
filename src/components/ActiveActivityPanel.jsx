@@ -74,6 +74,7 @@ function ActiveActivityPanel({
   handleTimerMoreLikeThis,
   goToNextQuestStep,
   goToPreviousQuestStep,
+  toggleQuestStepComplete,
   toggleShowAllQuestSteps,
   stepHint,
   isHintLoading,
@@ -85,6 +86,12 @@ function ActiveActivityPanel({
 
   // Make sure steps is always an array before using it.
   const steps = Array.isArray(activeActivity.steps) ? activeActivity.steps : [];
+
+  // Make sure completedStepIndexes is always an array.
+  // This allows older saved active quests to keep working.
+  const completedStepIndexes = Array.isArray(activeActivity.completedStepIndexes)
+    ? activeActivity.completedStepIndexes
+    : [];
 
   // The timer is done when seconds remaining hits zero or below.
   const timerDone = timerSecondsRemaining <= 0;
@@ -101,6 +108,9 @@ function ActiveActivityPanel({
   // These booleans help us enable/disable navigation buttons.
   const isFirstStep = currentStepIndex === 0;
   const isLastStep = currentStepIndex === totalSteps - 1;
+
+  // This tells us whether the current step has been marked complete.
+  const currentStepIsComplete = completedStepIndexes.includes(currentStepIndex);
 
   // Convert raw activity values into friendly badge labels.
   const estimatedMinutesLabel = formatEstimatedMinutes(
@@ -252,10 +262,19 @@ function ActiveActivityPanel({
               {isHintLoading ? "Thinking..." : "Need a hint"}
             </button>
 
-            <button onClick={goToNextQuestStep} disabled={isLastStep}>
-              {isLastStep ? "Last step" : "Done with this step"}
+            <button
+              className={currentStepIsComplete ? "secondary-action" : ""}
+              onClick={() => toggleQuestStepComplete(currentStepIndex)}
+            >
+              {currentStepIsComplete ? "Mark not done" : "Mark step done"}
             </button>
-          </div>{stepHint && (
+
+            <button onClick={goToNextQuestStep} disabled={isLastStep}>
+              {isLastStep ? "Last step" : "Next step"}
+            </button>
+          </div>
+
+          {stepHint && (
             <div className="step-hint-box">
               <p className="eyebrow dark">Hint</p>
               <p>{stepHint}</p>
@@ -268,17 +287,38 @@ function ActiveActivityPanel({
             <div className="mission-steps all-steps-list">
               <h3>All quest steps</h3>
 
-              <ol>
-                {steps.map((step, index) => (
-                  <li
-                    key={step}
-                    className={
-                      index === currentStepIndex ? "current-step-item" : ""
-                    }
-                  >
-                    {step}
-                  </li>
-                ))}
+              <ol className="tracked-step-list">
+                {steps.map((step, index) => {
+                  const stepIsComplete = completedStepIndexes.includes(index);
+                  const stepIsCurrent = index === currentStepIndex;
+
+                  return (
+                    <li
+                      key={step}
+                      className={[
+                        stepIsCurrent ? "current-step-item" : "",
+                        stepIsComplete ? "completed-step-item" : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" ")}
+                    >
+                      <button
+                        type="button"
+                        className="step-complete-toggle"
+                        onClick={() => toggleQuestStepComplete(index)}
+                        aria-label={
+                          stepIsComplete
+                            ? `Mark step ${index + 1} not done`
+                            : `Mark step ${index + 1} done`
+                        }
+                      >
+                        {stepIsComplete ? "✅" : "⬜"}
+                      </button>
+
+                      <span>{step}</span>
+                    </li>
+                  );
+                })}
               </ol>
             </div>
           )}

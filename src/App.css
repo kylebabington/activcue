@@ -1527,6 +1527,45 @@ select {
   padding: 0.35rem 0.5rem;
 }
 
+.tracked-step-list {
+  display: grid;
+  gap: 0.5rem;
+  padding-left: 0;
+  list-style: none;
+}
+
+.tracked-step-list li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.65rem;
+  align-items: start;
+  padding: 0.55rem 0.65rem;
+  border-radius: 0.85rem;
+}
+
+.completed-step-item {
+  opacity: 0.85;
+}
+
+.completed-step-item span {
+  text-decoration: line-through;
+}
+
+.step-complete-toggle {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 1.05rem;
+  line-height: 1.2;
+  padding: 0;
+}
+
+.step-complete-toggle:focus-visible {
+  outline: 3px solid rgba(22, 33, 62, 0.24);
+  outline-offset: 3px;
+  border-radius: 0.35rem;
+}
+
 @media (max-width: 760px) {
   .guided-step-header {
     flex-direction: column;

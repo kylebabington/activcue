@@ -1041,6 +1041,16 @@ function App() {
       // steps[1] is the second step.
       currentStepIndex: 0,
 
+      // completedStepIndexes stores which steps the kid has completed.
+      //
+      // Example:
+      // [0, 1] means:
+      // - step 1 is complete
+      // - step 2 is complete
+      //
+      // We store indexes instead of step text because step text can be long.
+      completedStepIndexes: [],
+
       // showAllSteps controls whether the full list is visible.
       // false means the kid mainly sees one step at a time.
       showAllSteps: false,
@@ -1083,12 +1093,25 @@ function App() {
     // Do not go past the final step.
     const nextStepIndex = Math.min(currentStepIndex + 1, lastStepIndex);
 
+    // Make sure completedStepIndexes is always an array.
+    const completedStepIndexes = Array.isArray(activeActivity.completedStepIndexes)
+      ? activeActivity.completedStepIndexes
+      : [];
+
+    // If the current step is not already marked complete,
+    // add it to the completed list.
+    const updatedCompletedStepIndexes = completedStepIndexes.includes(currentStepIndex)
+      ? completedStepIndexes
+      : [...completedStepIndexes, currentStepIndex];
+
+    // Clear the old hint when the child moves to a new step.
     setStepHint("");
 
     // Update activeActivity while keeping all the other quest data.
     setActiveActivity({
       ...activeActivity,
       currentStepIndex: nextStepIndex,
+      completedStepIndexes: updatedCompletedStepIndexes,
     });
   }
 
@@ -1110,6 +1133,33 @@ function App() {
     setActiveActivity({
       ...activeActivity,
       currentStepIndex: previousStepIndex,
+    });
+  }
+
+  function toggleQuestStepComplete(stepIndexToToggle) {
+    // If there is no active quest, there is nothing to update.
+    if (!activeActivity) {
+      return;
+    }
+
+    // Make sure completedStepIndexes is always an array.
+    const completedStepIndexes = Array.isArray(activeActivity.completedStepIndexes)
+      ? activeActivity.completedStepIndexes
+      : [];
+
+    // Check whether this step is already complete.
+    const stepIsAlreadyComplete = completedStepIndexes.includes(stepIndexToToggle);
+
+    // If it is complete, remove it.
+    // If it is not complete, add it.
+    const updatedCompletedStepIndexes = stepIsAlreadyComplete
+      ? completedStepIndexes.filter((stepIndex) => stepIndex !== stepIndexToToggle)
+      : [...completedStepIndexes, stepIndexToToggle];
+
+    // Save the updated completion list back into activeActivity.
+    setActiveActivity({
+      ...activeActivity,
+      completedStepIndexes: updatedCompletedStepIndexes,
     });
   }
 
@@ -1556,6 +1606,7 @@ function App() {
               handleTimerMoreLikeThis={handleTimerMoreLikeThis}
               goToNextQuestStep={goToNextQuestStep}
               goToPreviousQuestStep={goToPreviousQuestStep}
+              toggleQuestStepComplete={toggleQuestStepComplete}
               toggleShowAllQuestSteps={toggleShowAllQuestSteps}
               stepHint={stepHint}
               isHintLoading={isHintLoading}
