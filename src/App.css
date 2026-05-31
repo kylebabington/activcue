@@ -1497,6 +1497,25 @@ select {
   opacity: 0.5;
 }
 
+.step-hint-box {
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 1rem;
+  background: rgba(233, 196, 106, 0.18);
+  border: 1px solid rgba(22, 33, 62, 0.12);
+}
+
+.step-hint-box p {
+  margin: 0;
+}
+
+.step-hint-box p:last-child {
+  margin-top: 0.35rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
 .all-steps-list {
   margin-top: 1rem;
 }

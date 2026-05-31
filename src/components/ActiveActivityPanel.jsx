@@ -75,6 +75,9 @@ function ActiveActivityPanel({
   goToNextQuestStep,
   goToPreviousQuestStep,
   toggleShowAllQuestSteps,
+  stepHint,
+  isHintLoading,
+  handleNeedStepHint,
   formatTimer,
 }) {
   // Make sure uses is always an array before rendering it.
@@ -241,10 +244,25 @@ function ActiveActivityPanel({
               Back
             </button>
 
+            <button
+              className="secondary-action"
+              onClick={handleNeedStepHint}
+              disabled={isHintLoading}
+            >
+              {isHintLoading ? "Thinking..." : "Need a hint"}
+            </button>
+
             <button onClick={goToNextQuestStep} disabled={isLastStep}>
               {isLastStep ? "Last step" : "Done with this step"}
             </button>
-          </div>
+          </div>{stepHint && (
+            <div className="step-hint-box">
+              <p className="eyebrow dark">Hint</p>
+              <p>{stepHint}</p>
+            </div>
+          )}
+
+
 
           {activeActivity.showAllSteps && (
             <div className="mission-steps all-steps-list">

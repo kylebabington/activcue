@@ -91,6 +91,9 @@ function QuestPage({
     goToNextQuestStep,
     goToPreviousQuestStep,
     toggleShowAllQuestSteps,
+    stepHint,
+    isHintLoading,
+    handleNeedStepHint,
     formatTimer,
     activities,
     scoredActivities,
@@ -155,6 +158,9 @@ function QuestPage({
                     goToNextQuestStep={goToNextQuestStep}
                     goToPreviousQuestStep={goToPreviousQuestStep}
                     toggleShowAllQuestSteps={toggleShowAllQuestSteps}
+                    stepHint={stepHint}
+                    isHintLoading={isHintLoading}
+                    handleNeedStepHint={handleNeedStepHint}
                     formatTimer={formatTimer}
                 />
             )}

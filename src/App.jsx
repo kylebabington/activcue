@@ -2,7 +2,7 @@
 
 import { Navigate, NavLink, Route, Routes, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { getActivitySuggestions } from "./api/activityApi";
+import { getActivitySuggestions, getQuestStepHint } from "./api/activityApi";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import ParentPage from "./pages/ParentPage";
 import KidPage from "./pages/KidPage";
@@ -563,6 +563,9 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
+  const [stepHint, setStepHint] = useState("");
+  const [isHintLoading, setIsHintLoading] = useState(false);
+
   const activeActivitySpace =
     activitySpace === "Custom" && customActivitySpace.trim() !== ""
       ? customActivitySpace.trim()
@@ -1047,6 +1050,7 @@ function App() {
       durationMinutes,
     };
 
+    setStepHint("");
     setActiveActivity(activityToStart);
     saveActivityFeedback(activity, "started");
     setErrorMessage(`Started: "${activity.title}". Timer is running.`);
@@ -1079,6 +1083,8 @@ function App() {
     // Do not go past the final step.
     const nextStepIndex = Math.min(currentStepIndex + 1, lastStepIndex);
 
+    setStepHint("");
+
     // Update activeActivity while keeping all the other quest data.
     setActiveActivity({
       ...activeActivity,
@@ -1098,6 +1104,8 @@ function App() {
     // Do not go below zero.
     const previousStepIndex = Math.max(currentStepIndex - 1, 0);
 
+    setStepHint("");
+
     // Update activeActivity while keeping all the other quest data.
     setActiveActivity({
       ...activeActivity,
@@ -1116,6 +1124,64 @@ function App() {
       ...activeActivity,
       showAllSteps: !activeActivity.showAllSteps,
     });
+  }
+
+  async function handleNeedStepHint() {
+    // If there is no active quest, there is no step to help with.
+    if (!activeActivity) {
+      setErrorMessage("Start a quest first, then ask for a hint.");
+      return;
+    }
+
+    // Make sure steps is always an array before reading from it.
+    const steps = Array.isArray(activeActivity.steps) ? activeActivity.steps : [];
+
+    // Get the current step index.
+    // If currentStepIndex is missing, default to 0, which means step 1.
+    const currentStepIndex = Number(activeActivity.currentStepIndex) || 0;
+
+    // Pull out the current step text.
+    const currentStep = steps[currentStepIndex];
+
+    // If there is no current step, we cannot generate a useful hint.
+    if (!currentStep) {
+      setErrorMessage("This quest does not have a current step to hint at.");
+      return;
+    }
+
+    // Start loading state for the hint button.
+    setIsHintLoading(true);
+
+    // Clear old error messages before trying.
+    setErrorMessage("");
+
+    try {
+      const hintRequest = {
+        // The whole active activity gives the backend context.
+        activeActivity,
+
+        // The current step is the exact step the child needs help with.
+        currentStep,
+
+        // These numbers let the backend understand where the child is.
+        currentStepNumber: currentStepIndex + 1,
+        totalSteps: steps.length,
+
+        // The current family moment keeps the hint appropriate.
+        // Example:
+        // If the moment says quiet, the hint should not suggest shouting.
+        currentMoment,
+      };
+
+      const hint = await getQuestStepHint(hintRequest);
+
+      setStepHint(hint);
+    } catch (error) {
+      console.error(error);
+      setErrorMessage("I could not make a hint right now.");
+    } finally {
+      setIsHintLoading(false);
+    }
   }
   // This starts one of the generated activities automatically.
   //
@@ -1491,6 +1557,9 @@ function App() {
               goToNextQuestStep={goToNextQuestStep}
               goToPreviousQuestStep={goToPreviousQuestStep}
               toggleShowAllQuestSteps={toggleShowAllQuestSteps}
+              stepHint={stepHint}
+              isHintLoading={isHintLoading}
+              handleNeedStepHint={handleNeedStepHint}
               formatTimer={formatTimer}
               activities={activities}
               scoredActivities={scoredActivities}

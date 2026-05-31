@@ -447,6 +447,104 @@ Return JSON in exactly this shape:
     }
 });
 
+app.post("/api/quest-step-hint", async (req, res) => {
+    try {
+        const {
+            activeActivity,
+            currentStep,
+            currentStepNumber,
+            totalSteps,
+            currentMoment,
+        } = req.body;
+
+        if (!activeActivity || !currentStep) {
+            return res.status(400).json({
+                error: "Missing active activity or current step.",
+            });
+        }
+
+        const safeCurrentMoment = currentMoment || {};
+
+        const instructions = `
+You are a gentle kid-facing play coach.
+
+Your job is to give ONE small hint for the child's current quest step.
+
+Rules:
+- Return only valid JSON.
+- Do not give a whole new activity.
+- Do not rewrite the quest.
+- Do not solve the entire step for the child.
+- Give one small nudge that helps the child keep going.
+- Use simple kid-friendly language.
+- Keep it short: one or two sentences.
+- Respect the current family moment.
+- If the moment requires quiet, do not suggest loud actions.
+- If the moment requires low mess, do not suggest messy materials.
+- If the parent is unavailable, do not tell the child to ask the parent.
+`;
+
+        const input = `
+Quest:
+- Title: ${activeActivity.title || "Untitled quest"}
+- Theme: ${activeActivity.theme || "Not specified"}
+- Mission: ${activeActivity.mission || "Not specified"}
+
+Current step:
+- Step ${currentStepNumber || "?"} of ${totalSteps || "?"}: ${currentStep}
+
+Current family moment:
+- Parent activity: ${safeCurrentMoment.parentActivity || "Not specified"}
+- Parent availability: ${safeCurrentMoment.availability || "Not specified"}
+- Time needed: ${safeCurrentMoment.timeNeededMinutes || "Not specified"} minutes
+- Space: ${safeCurrentMoment.space || "Not specified"}
+- Mess level: ${safeCurrentMoment.messLevel || "Not specified"}
+- Noise level: ${safeCurrentMoment.noiseLevel || "Not specified"}
+- Supervision level: ${safeCurrentMoment.supervisionLevel || "Not specified"}
+
+Return JSON in exactly this shape:
+
+{
+  "hint": "One short kid-friendly hint for the current step."
+}
+`;
+
+        const response = await client.responses.create({
+            model: "gpt-5.4-mini",
+            instructions,
+            input,
+            text: {
+                format: {
+                    type: "json_schema",
+                    name: "quest_step_hint",
+                    strict: true,
+                    schema: {
+                        type: "object",
+                        properties: {
+                            hint: {
+                                type: "string",
+                            },
+                        },
+                        required: ["hint"],
+                        additionalProperties: false,
+                    },
+                },
+            },
+        });
+
+        const rawText = response.output_text;
+        const parsed = JSON.parse(rawText);
+
+        res.json(parsed);
+    } catch (error) {
+        console.error("Quest step hint error:", error);
+
+        res.status(500).json({
+            error: "Could not generate quest step hint.",
+        });
+    }
+});
+
 function formatInventoryForPrompt(inventory) {
     if (!Array.isArray(inventory)) {
         return "No inventory provided.";
