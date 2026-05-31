@@ -72,13 +72,32 @@ function ActiveActivityPanel({
   handleTimerNotFinished,
   handleTimerNeedAnotherIdea,
   handleTimerMoreLikeThis,
+  goToNextQuestStep,
+  goToPreviousQuestStep,
+  toggleShowAllQuestSteps,
   formatTimer,
 }) {
   // Make sure uses is always an array before rendering it.
   const uses = Array.isArray(activeActivity.uses) ? activeActivity.uses : [];
 
+  // Make sure steps is always an array before using it.
+  const steps = Array.isArray(activeActivity.steps) ? activeActivity.steps : [];
+
   // The timer is done when seconds remaining hits zero or below.
   const timerDone = timerSecondsRemaining <= 0;
+
+  // currentStepIndex tells us which step the kid is currently viewing.
+  const currentStepIndex = Number(activeActivity.currentStepIndex) || 0;
+
+  // currentStep is the actual instruction text for the current step.
+  const currentStep = steps[currentStepIndex];
+
+  // totalSteps is used for labels like "Step 2 of 5".
+  const totalSteps = steps.length;
+
+  // These booleans help us enable/disable navigation buttons.
+  const isFirstStep = currentStepIndex === 0;
+  const isLastStep = currentStepIndex === totalSteps - 1;
 
   // Convert raw activity values into friendly badge labels.
   const estimatedMinutesLabel = formatEstimatedMinutes(
@@ -192,15 +211,61 @@ function ActiveActivityPanel({
           </div>
         )}
 
-      <div className="mission-steps">
-        <h3>Quest steps</h3>
+      {steps.length > 0 && (
+        <div className="guided-step-panel">
+          <div className="guided-step-header">
+            <div>
+              <p className="eyebrow dark">Guided step</p>
 
-        <ol>
-          {(Array.isArray(activeActivity.steps) ? activeActivity.steps : []).map((step) => (
-            <li key={step}>{step}</li>
-          ))}
-        </ol>
-      </div>
+              <h3>
+                Step {currentStepIndex + 1} of {totalSteps}
+              </h3>
+            </div>
+
+            <button
+              className="secondary-action"
+              onClick={toggleShowAllQuestSteps}
+            >
+              {activeActivity.showAllSteps ? "Hide all steps" : "Show all steps"}
+            </button>
+          </div>
+
+          <p className="guided-step-text">{currentStep}</p>
+
+          <div className="guided-step-actions">
+            <button
+              className="secondary-action"
+              onClick={goToPreviousQuestStep}
+              disabled={isFirstStep}
+            >
+              Back
+            </button>
+
+            <button onClick={goToNextQuestStep} disabled={isLastStep}>
+              {isLastStep ? "Last step" : "Done with this step"}
+            </button>
+          </div>
+
+          {activeActivity.showAllSteps && (
+            <div className="mission-steps all-steps-list">
+              <h3>All quest steps</h3>
+
+              <ol>
+                {steps.map((step, index) => (
+                  <li
+                    key={step}
+                    className={
+                      index === currentStepIndex ? "current-step-item" : ""
+                    }
+                  >
+                    {step}
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+        </div>
+      )}
 
       {Array.isArray(activeActivity.extensionIdeas) &&
         activeActivity.extensionIdeas.length > 0 && (

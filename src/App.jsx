@@ -1000,7 +1000,6 @@ function App() {
 
     const activityToStart = {
       // Give this active quest a unique ID.
-      // This is separate from the activity title so repeated activities still work.
       id: crypto.randomUUID(),
 
       // Basic visible quest information.
@@ -1024,13 +1023,24 @@ function App() {
       // Supplies.
       uses: Array.isArray(activity.uses) ? activity.uses : [],
 
-      // New structured fit fields.
-      // These power the small badges on the active quest panel.
+      // Structured fit fields.
       estimatedMinutes: Number(activity.estimatedMinutes) || durationMinutes,
       energy: activity.energy || "medium",
       mess: activity.mess || "low",
       adultHelp: activity.adultHelp || "optional",
       whyItFits: activity.whyItFits || "",
+
+      // New guided step state.
+      // currentStepIndex starts at 0 because arrays start counting at 0.
+      //
+      // Example:
+      // steps[0] is the first step.
+      // steps[1] is the second step.
+      currentStepIndex: 0,
+
+      // showAllSteps controls whether the full list is visible.
+      // false means the kid mainly sees one step at a time.
+      showAllSteps: false,
 
       // Timer fields.
       startedAt: Date.now(),
@@ -1040,6 +1050,72 @@ function App() {
     setActiveActivity(activityToStart);
     saveActivityFeedback(activity, "started");
     setErrorMessage(`Started: "${activity.title}". Timer is running.`);
+  }
+
+  function goToNextQuestStep() {
+    // If there is no active quest, there is nothing to update.
+    if (!activeActivity) {
+      return;
+    }
+
+    // Make sure steps is always an array.
+    const steps = Array.isArray(activeActivity.steps) ? activeActivity.steps : [];
+
+    // If there are no steps, there is nothing to advance.
+    if (steps.length === 0) {
+      return;
+    }
+
+    // Get the current step index.
+    const currentStepIndex = Number(activeActivity.currentStepIndex) || 0;
+
+    // The last valid index is steps.length - 1.
+    //
+    // Example:
+    // If there are 5 steps, indexes are:
+    // 0, 1, 2, 3, 4
+    const lastStepIndex = steps.length - 1;
+
+    // Do not go past the final step.
+    const nextStepIndex = Math.min(currentStepIndex + 1, lastStepIndex);
+
+    // Update activeActivity while keeping all the other quest data.
+    setActiveActivity({
+      ...activeActivity,
+      currentStepIndex: nextStepIndex,
+    });
+  }
+
+  function goToPreviousQuestStep() {
+    // If there is no active quest, there is nothing to update.
+    if (!activeActivity) {
+      return;
+    }
+
+    // Get the current step index.
+    const currentStepIndex = Number(activeActivity.currentStepIndex) || 0;
+
+    // Do not go below zero.
+    const previousStepIndex = Math.max(currentStepIndex - 1, 0);
+
+    // Update activeActivity while keeping all the other quest data.
+    setActiveActivity({
+      ...activeActivity,
+      currentStepIndex: previousStepIndex,
+    });
+  }
+
+  function toggleShowAllQuestSteps() {
+    // If there is no active quest, there is nothing to update.
+    if (!activeActivity) {
+      return;
+    }
+
+    // Flip showAllSteps from false to true, or true to false.
+    setActiveActivity({
+      ...activeActivity,
+      showAllSteps: !activeActivity.showAllSteps,
+    });
   }
   // This starts one of the generated activities automatically.
   //
@@ -1073,6 +1149,42 @@ function App() {
     setErrorMessage(
       `Auto-picked: "${selectedActivity.title}" because it best fits right now.`
     );
+  }
+
+  function getBestActivityForCurrentMoment(activityOptions) {
+    // If the caller gives us nothing, return null.
+    if (!Array.isArray(activityOptions) || activityOptions.length === 0) {
+      return null;
+    }
+
+    // Score every option using the same scoring function used by auto-pick.
+    const scoredOptions = activityOptions.map((activity) => {
+      return {
+        activity,
+        score: scoreActivityForCurrentMoment(activity, currentMoment),
+      };
+    });
+
+    // Sort highest score first.
+    scoredOptions.sort((a, b) => b.score - a.score);
+
+    // Useful while developing.
+    // This lets you confirm the app is picking the correct quest.
+    console.table(
+      scoredOptions.map((item) => {
+        return {
+          title: item.activity.title,
+          score: item.score,
+          estimatedMinutes: item.activity.estimatedMinutes,
+          mess: item.activity.mess,
+          energy: item.activity.energy,
+          adultHelp: item.activity.adultHelp,
+        };
+      })
+    );
+
+    // Return only the winning activity.
+    return scoredOptions[0].activity;
   }
 
   function getBestActivityForCurrentMoment(activityOptions) {
@@ -1376,6 +1488,9 @@ function App() {
               handleTimerNotFinished={handleTimerNotFinished}
               handleTimerNeedAnotherIdea={handleTimerNeedAnotherIdea}
               handleTimerMoreLikeThis={handleTimerMoreLikeThis}
+              goToNextQuestStep={goToNextQuestStep}
+              goToPreviousQuestStep={goToPreviousQuestStep}
+              toggleShowAllQuestSteps={toggleShowAllQuestSteps}
               formatTimer={formatTimer}
               activities={activities}
               scoredActivities={scoredActivities}

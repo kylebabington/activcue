@@ -88,6 +88,9 @@ function QuestPage({
     handleTimerNotFinished,
     handleTimerNeedAnotherIdea,
     handleTimerMoreLikeThis,
+    goToNextQuestStep,
+    goToPreviousQuestStep,
+    toggleShowAllQuestSteps,
     formatTimer,
     activities,
     scoredActivities,
@@ -149,6 +152,9 @@ function QuestPage({
                     handleTimerNotFinished={handleTimerNotFinished}
                     handleTimerNeedAnotherIdea={handleTimerNeedAnotherIdea}
                     handleTimerMoreLikeThis={handleTimerMoreLikeThis}
+                    goToNextQuestStep={goToNextQuestStep}
+                    goToPreviousQuestStep={goToPreviousQuestStep}
+                    toggleShowAllQuestSteps={toggleShowAllQuestSteps}
                     formatTimer={formatTimer}
                 />
             )}
