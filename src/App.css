@@ -1516,6 +1516,63 @@ select {
   line-height: 1.4;
 }
 
+.quest-complete-summary {
+  border: 2px solid rgba(46, 125, 50, 0.18);
+  background: rgba(255, 255, 255, 0.94);
+}
+
+.quest-complete-summary h2 {
+  margin: 0.25rem 0;
+}
+
+.completion-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.completion-stat-grid div {
+  padding: 0.9rem;
+  border-radius: 1rem;
+  background: rgba(22, 33, 62, 0.06);
+}
+
+.completion-stat-grid span {
+  display: block;
+  margin-bottom: 0.25rem;
+  color: var(--muted-text);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.completion-stat-grid strong {
+  display: block;
+  color: var(--text);
+  font-size: 1rem;
+}
+
+.completion-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+@media (max-width: 760px) {
+  .completion-stat-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .completion-actions>* {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
 .all-steps-list {
   margin-top: 1rem;
 }

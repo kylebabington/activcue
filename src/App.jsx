@@ -532,6 +532,11 @@ function App() {
     null
   );
 
+  const [lastCompletedQuest, setLastCompletedQuest] = useLocalStorage(
+    "lastCompletedQuest",
+    null
+  );
+
   const scoredActivities = activities
     .map((activity) => {
       // For each generated activity, calculate how well it matches
@@ -1060,7 +1065,14 @@ function App() {
       durationMinutes,
     };
 
+    // Clear any old step hint when a brand-new quest starts.
+    // A hint from an old quest should not appear in a new quest.
     setStepHint("");
+
+    // Clear the previous completed quest summary.
+    // Starting a new quest means the old completion screen should disappear.
+    setLastCompletedQuest(null);
+
     setActiveActivity(activityToStart);
     saveActivityFeedback(activity, "started");
     setErrorMessage(`Started: "${activity.title}". Timer is running.`);
@@ -1340,9 +1352,70 @@ function App() {
   }
 
   function finishActiveActivity() {
+    // If there is no active quest, there is nothing to finish.
     if (!activeActivity) {
       return;
     }
+
+    // Make sure steps is always an array before counting them.
+    const steps = Array.isArray(activeActivity.steps) ? activeActivity.steps : [];
+
+    // Make sure completedStepIndexes is always an array.
+    const completedStepIndexes = Array.isArray(activeActivity.completedStepIndexes)
+      ? activeActivity.completedStepIndexes
+      : [];
+
+    // If the kid is currently on a step, finishing the quest should count that
+    // current step as completed too.
+    const currentStepIndex = Number(activeActivity.currentStepIndex) || 0;
+
+    const completedWithCurrentStep = completedStepIndexes.includes(currentStepIndex)
+      ? completedStepIndexes
+      : [...completedStepIndexes, currentStepIndex];
+
+    // Remove duplicate indexes just in case.
+    const uniqueCompletedStepIndexes = [...new Set(completedWithCurrentStep)];
+
+    // Work out how many steps were completed.
+    const completedStepCount = uniqueCompletedStepIndexes.length;
+
+    // Work out how many total steps exist.
+    const totalStepCount = steps.length;
+
+    // Calculate how long the quest was active.
+    const startedAt = Number(activeActivity.startedAt);
+    const finishedAt = Date.now();
+
+    const minutesWorked =
+      Number.isFinite(startedAt) && startedAt > 0
+        ? Math.max(1, Math.round((finishedAt - startedAt) / 1000 / 60))
+        : null;
+
+    // Build a summary object that the Quest page can display.
+    const completedQuestSummary = {
+      id: crypto.randomUUID(),
+      title: activeActivity.title,
+      theme: activeActivity.theme || "",
+      summary: activeActivity.summary || "",
+      completedAt: new Date(finishedAt).toISOString(),
+
+      // Progress summary.
+      completedStepCount,
+      totalStepCount,
+      completedStepIndexes: uniqueCompletedStepIndexes,
+
+      // Time summary.
+      minutesWorked,
+
+      // Useful quest metadata.
+      uses: Array.isArray(activeActivity.uses) ? activeActivity.uses : [],
+      energy: activeActivity.energy || "medium",
+      mess: activeActivity.mess || "low",
+      adultHelp: activeActivity.adultHelp || "optional",
+
+      // Save the full quest too, because "More like this" needs context.
+      activity: activeActivity,
+    };
 
     const finishedHistoryItem = {
       id: crypto.randomUUID(),
@@ -1353,10 +1426,22 @@ function App() {
       messLevel,
       locationPreference,
       childAgeRange: effectiveChildAgeRange,
+
+      // Add richer completion data to history.
+      completedStepCount,
+      totalStepCount,
+      minutesWorked,
     };
 
     setActivityHistory([...activityHistory, finishedHistoryItem]);
+
+    // Save the completion summary before clearing the active quest.
+    setLastCompletedQuest(completedQuestSummary);
+
+    // Clear the active quest and hint.
     setActiveActivity(null);
+    setStepHint("");
+
     setErrorMessage(`Finished: "${activeActivity.title}". Nice work.`);
   }
 
@@ -1377,7 +1462,12 @@ function App() {
     };
 
     setActivityHistory([...activityHistory, canceledHistoryItem]);
+
+    // Canceling should not show a celebration summary.
+    setLastCompletedQuest(null);
+
     setActiveActivity(null);
+    setStepHint("");
     setErrorMessage(`Canceled: "${activeActivity.title}".`);
   }
 
@@ -1484,6 +1574,42 @@ function App() {
     );
   }
 
+  function clearLastCompletedQuest() {
+    // This hides the completion summary.
+    setLastCompletedQuest(null);
+  }
+
+  function handleCompletedQuestMoreLikeThis() {
+    // If there is no completed quest summary, we cannot use it for feedback.
+    if (!lastCompletedQuest?.activity) {
+      setErrorMessage("No completed quest to use yet.");
+      return;
+    }
+
+    const completedTitle = lastCompletedQuest.title;
+
+    clearLastCompletedQuest();
+
+    handleGenerateActivities(
+      `The child completed "${completedTitle}" and liked it. Suggest 3 more quests with a similar feeling, but do not repeat the same title.`
+    );
+
+    navigate("/quest");
+  }
+
+  function handleCompletedQuestNeedAnotherIdea() {
+    // If there is no completed quest summary, use a generic request.
+    const completedTitle = lastCompletedQuest?.title || "the last quest";
+
+    clearLastCompletedQuest();
+
+    handleGenerateActivities(
+      `The child finished "${completedTitle}" and wants something different now. Suggest 3 fresh quests that feel different from the completed one.`
+    );
+
+    navigate("/quest");
+  }
+
   function clearActivityHistory() {
     setActivityHistory([]);
     setErrorMessage("Activity history cleared.");
@@ -1508,6 +1634,7 @@ function App() {
     window.localStorage.removeItem("activityHistory");
     window.localStorage.removeItem("savedActivities");
     window.localStorage.removeItem("activeActivity");
+    window.localStorage.removeItem("lastCompletedQuest");
     window.localStorage.removeItem("currentMoment");
     window.location.reload();
   }
@@ -1598,6 +1725,10 @@ function App() {
             <QuestPage
               currentMoment={currentMoment}
               activeActivity={activeActivity}
+              lastCompletedQuest={lastCompletedQuest}
+              clearLastCompletedQuest={clearLastCompletedQuest}
+              handleCompletedQuestMoreLikeThis={handleCompletedQuestMoreLikeThis}
+              handleCompletedQuestNeedAnotherIdea={handleCompletedQuestNeedAnotherIdea}
               timerSecondsRemaining={timerSecondsRemaining}
               finishActiveActivity={finishActiveActivity}
               cancelActiveActivity={cancelActiveActivity}

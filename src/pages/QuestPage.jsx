@@ -76,12 +76,92 @@ function formatSupervisionForBanner(supervisionLevel) {
     return "Supervision not set";
 }
 
+function QuestCompleteSummary({
+    lastCompletedQuest,
+    clearLastCompletedQuest,
+    handleCompletedQuestMoreLikeThis,
+    handleCompletedQuestNeedAnotherIdea,
+}) {
+    const uses = Array.isArray(lastCompletedQuest.uses)
+        ? lastCompletedQuest.uses
+        : [];
+
+    const completedStepCount = Number(lastCompletedQuest.completedStepCount) || 0;
+    const totalStepCount = Number(lastCompletedQuest.totalStepCount) || 0;
+
+    const progressText =
+        totalStepCount > 0
+            ? `${completedStepCount} of ${totalStepCount} steps completed`
+            : "Quest completed";
+
+    return (
+        <section className="panel quest-complete-summary">
+            <p className="eyebrow dark">Quest complete</p>
+
+            <h2>{lastCompletedQuest.title}</h2>
+
+            {lastCompletedQuest.theme && (
+                <p className="activity-theme">{lastCompletedQuest.theme}</p>
+            )}
+
+            <div className="completion-stat-grid">
+                <div>
+                    <span>Progress</span>
+                    <strong>{progressText}</strong>
+                </div>
+
+                {lastCompletedQuest.minutesWorked && (
+                    <div>
+                        <span>Time spent</span>
+                        <strong>{lastCompletedQuest.minutesWorked} min</strong>
+                    </div>
+                )}
+
+                {uses.length > 0 && (
+                    <div>
+                        <span>Used</span>
+                        <strong>{uses.slice(0, 3).join(", ")}</strong>
+                    </div>
+                )}
+            </div>
+
+            <div className="completion-actions">
+                <button onClick={handleCompletedQuestMoreLikeThis}>
+                    More like this
+                </button>
+
+                <button
+                    className="secondary-action"
+                    onClick={handleCompletedQuestNeedAnotherIdea}
+                >
+                    Need another idea
+                </button>
+
+                <button
+                    className="ghost-button"
+                    onClick={clearLastCompletedQuest}
+                >
+                    Close summary
+                </button>
+
+                <Link className="primary-link-button" to="/kid">
+                    Back to Kid Mode
+                </Link>
+            </div>
+        </section>
+    );
+}
+
 // This page owns the quest experience.
 // It shows the current running quest and the generated quest choices.
 
 function QuestPage({
     currentMoment,
     activeActivity,
+    lastCompletedQuest,
+    clearLastCompletedQuest,
+    handleCompletedQuestMoreLikeThis,
+    handleCompletedQuestNeedAnotherIdea,
     timerSecondsRemaining,
     finishActiveActivity,
     cancelActiveActivity,
@@ -167,6 +247,15 @@ function QuestPage({
                 />
             )}
 
+            {!activeActivity && lastCompletedQuest && (
+                <QuestCompleteSummary
+                    lastCompletedQuest={lastCompletedQuest}
+                    clearLastCompletedQuest={clearLastCompletedQuest}
+                    handleCompletedQuestMoreLikeThis={handleCompletedQuestMoreLikeThis}
+                    handleCompletedQuestNeedAnotherIdea={handleCompletedQuestNeedAnotherIdea}
+                />
+            )}
+
             {!activeActivity && activities.length > 0 && !isLoading && (
                 <section className="panel auto-pick-panel">
                     <div>
@@ -197,7 +286,7 @@ function QuestPage({
                 handleMoreLikeThis={handleMoreLikeThis}
             />
 
-            {!activeActivity && activities.length === 0 && !isLoading && (
+            {!activeActivity && !lastCompletedQuest && activities.length === 0 && !isLoading && (
                 <section className="panel">
                     <h2>No quests yet</h2>
 
