@@ -560,6 +560,7 @@ select {
   gap: 10px;
 }
 
+
 .preset-grid button {
   display: grid;
   gap: 4px;
@@ -583,6 +584,55 @@ select {
 .preset-grid small {
   color: #64748b;
   font-weight: 800;
+}
+
+.quick-adjust-panel {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.quick-adjust-panel>p {
+  margin: 0;
+  color: var(--muted-text);
+}
+
+.quick-adjust-group {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.quick-adjust-group h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.quick-adjust-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.quick-adjust-button,
+.quick-adjust-buttons button {
+  border: 1px solid rgba(22, 33, 62, 0.14);
+  border-radius: 999px;
+  padding: 0.6rem 0.85rem;
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--text);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.quick-adjust-button:hover,
+.quick-adjust-buttons button:hover {
+  transform: translateY(-1px);
+}
+
+.quick-adjust-button.active {
+  background: var(--accent);
+  color: white;
+  border-color: transparent;
+  box-shadow: 0 10px 24px rgba(22, 33, 62, 0.14);
 }
 
 .custom-preset-list {

@@ -869,6 +869,25 @@ function App() {
     });
   }
 
+  function applyCurrentMomentQuickAdjust(adjustment) {
+    // adjustment is an object containing one or more currentMoment fields.
+    //
+    // Example:
+    // {
+    //   noiseLevel: "quiet",
+    //   supervisionLevel: "independent"
+    // }
+    //
+    // We spread currentMoment first, then adjustment second.
+    // That means adjustment overwrites only the fields it contains.
+    setCurrentMoment({
+      ...currentMoment,
+      ...adjustment,
+    });
+
+    setErrorMessage("Current moment updated.");
+  }
+
   function updateSafetySetting(settingName, newValue) {
     setSafetySettings({
       ...safetySettings,
@@ -1905,6 +1924,7 @@ function App() {
               setParentStatus={setParentStatus}
               currentMoment={currentMoment}
               updateCurrentMoment={updateCurrentMoment}
+              applyCurrentMomentQuickAdjust={applyCurrentMomentQuickAdjust}
               setCurrentMoment={setCurrentMoment}
               defaultParentStatusPresets={defaultParentStatusPresets}
               customParentPresets={customParentPresets}

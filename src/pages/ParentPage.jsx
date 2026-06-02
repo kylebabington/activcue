@@ -12,6 +12,7 @@ function ParentPage({
     setParentStatus,
     currentMoment,
     updateCurrentMoment,
+    applyCurrentMomentQuickAdjust,
     setCurrentMoment,
     defaultParentStatusPresets,
     customParentPresets,
@@ -19,6 +20,14 @@ function ParentPage({
     getAvailabilityLabel,
     ParentStatusCard,
 }) {
+
+    function quickAdjustButtonClass(fieldName, expectedValue) {
+        // Check whether a currentMoment field matches this button's value.
+        const isActive = currentMoment?.[fieldName] === expectedValue;
+
+        // Return a class name that lets CSS style active buttons.
+        return isActive ? "quick-adjust-button active" : "quick-adjust-button";
+    }
     // This function updates both currentMoment and the older parentStatus state.
     //
     // Why both?
@@ -114,6 +123,254 @@ function ParentPage({
                         </div>
                     </>
                 )}
+            </section>
+
+            <section className="panel quick-adjust-panel">
+                <p className="eyebrow dark">Quick adjust</p>
+
+                <h2>Fine-tune right now</h2>
+
+                <p>
+                    Use these when the main preset is mostly right, but one thing needs to
+                    change.
+                </p>
+
+                <div className="quick-adjust-group">
+                    <h3>Time needed</h3>
+
+                    <div className="quick-adjust-buttons">
+                        <button
+                            type="button"
+                            className={quickAdjustButtonClass("timeNeededMinutes", 10)}
+                            onClick={() =>
+                                applyCurrentMomentQuickAdjust({
+                                    timeNeededMinutes: 10,
+                                })
+                            }
+                        >
+                            Need 10 min
+                        </button>
+
+                        <button
+                            type="button"
+                            className={quickAdjustButtonClass("timeNeededMinutes", 20)}
+                            onClick={() =>
+                                applyCurrentMomentQuickAdjust({
+                                    timeNeededMinutes: 20,
+                                })
+                            }
+                        >
+                            Need 20 min
+                        </button>
+
+                        <button
+                            type="button"
+                            className={quickAdjustButtonClass("timeNeededMinutes", 30)}
+                            onClick={() =>
+                                applyCurrentMomentQuickAdjust({
+                                    timeNeededMinutes: 30,
+                                })
+                            }
+                        >
+                            Need 30 min
+                        </button>
+
+                        <button
+                            type="button"
+                            className={quickAdjustButtonClass("timeNeededMinutes", 45)}
+                            onClick={() =>
+                                applyCurrentMomentQuickAdjust({
+                                    timeNeededMinutes: 45,
+                                })
+                            }
+                        >
+                            Need 45 min
+                        </button>
+                    </div>
+                </div>
+
+                <div className="quick-adjust-group">
+                    <h3>Noise</h3>
+
+                    <div className="quick-adjust-buttons">
+                        <button
+                            type="button"
+                            className={quickAdjustButtonClass("noiseLevel", "quiet")}
+                            onClick={() =>
+                                applyCurrentMomentQuickAdjust({
+                                    noiseLevel: "quiet",
+                                })
+                            }
+                        >
+                            Quiet needed
+                        </button>
+
+                        <button
+                            type="button"
+                            className={quickAdjustButtonClass("noiseLevel", "normal")}
+                            onClick={() =>
+                                applyCurrentMomentQuickAdjust({
+                                    noiseLevel: "normal",
+                                })
+                            }
+                        >
+                            Normal noise okay
+                        </button>
+
+                        <button
+                            type="button"
+                            className={quickAdjustButtonClass("noiseLevel", "loud")}
+                            onClick={() =>
+                                applyCurrentMomentQuickAdjust({
+                                    noiseLevel: "loud",
+                                })
+                            }
+                        >
+                            Loud is okay
+                        </button>
+                    </div>
+                </div>
+
+                <div className="quick-adjust-group">
+                    <h3>Mess</h3>
+
+                    <div className="quick-adjust-buttons">
+                        <button
+                            type="button"
+                            className={quickAdjustButtonClass("messLevel", "low")}
+                            onClick={() =>
+                                applyCurrentMomentQuickAdjust({
+                                    messLevel: "low",
+                                })
+                            }
+                        >
+                            No mess
+                        </button>
+
+                        <button
+                            type="button"
+                            className={quickAdjustButtonClass("messLevel", "medium")}
+                            onClick={() =>
+                                applyCurrentMomentQuickAdjust({
+                                    messLevel: "medium",
+                                })
+                            }
+                        >
+                            Medium mess okay
+                        </button>
+
+                        <button
+                            type="button"
+                            className={quickAdjustButtonClass("messLevel", "high")}
+                            onClick={() =>
+                                applyCurrentMomentQuickAdjust({
+                                    messLevel: "high",
+                                })
+                            }
+                        >
+                            Messy is okay
+                        </button>
+                    </div>
+                </div>
+
+                <div className="quick-adjust-group">
+                    <h3>Supervision</h3>
+
+                    <div className="quick-adjust-buttons">
+                        <button
+                            type="button"
+                            className={quickAdjustButtonClass("supervisionLevel", "independent")}
+                            onClick={() =>
+                                applyCurrentMomentQuickAdjust({
+                                    supervisionLevel: "independent",
+                                    availability: "do-not-interrupt",
+                                })
+                            }
+                        >
+                            Independent only
+                        </button>
+
+                        <button
+                            type="button"
+                            className={quickAdjustButtonClass("supervisionLevel", "mostly-independent")}
+                            onClick={() =>
+                                applyCurrentMomentQuickAdjust({
+                                    supervisionLevel: "mostly-independent",
+                                    availability: "ask-first",
+                                })
+                            }
+                        >
+                            Mostly independent
+                        </button>
+
+                        <button
+                            type="button"
+                            className={quickAdjustButtonClass("supervisionLevel", "nearby")}
+                            onClick={() =>
+                                applyCurrentMomentQuickAdjust({
+                                    supervisionLevel: "nearby",
+                                    availability: "helper-welcome",
+                                })
+                            }
+                        >
+                            Kid can help
+                        </button>
+                    </div>
+                </div>
+
+                <div className="quick-adjust-group">
+                    <h3>Space</h3>
+
+                    <div className="quick-adjust-buttons">
+                        <button
+                            type="button"
+                            className={quickAdjustButtonClass("space", "Living room")}
+                            onClick={() =>
+                                applyCurrentMomentQuickAdjust({
+                                    space: "Living room",
+                                })
+                            }
+                        >
+                            Living room
+                        </button>
+
+                        <button
+                            type="button"
+                            className={quickAdjustButtonClass("space", "Kitchen table")}
+                            onClick={() =>
+                                applyCurrentMomentQuickAdjust({
+                                    space: "Kitchen table",
+                                })
+                            }
+                        >
+                            Kitchen table
+                        </button>
+
+                        <button
+                            type="button"
+                            className={quickAdjustButtonClass("space", "Bedroom")}
+                            onClick={() =>
+                                applyCurrentMomentQuickAdjust({
+                                    space: "Bedroom",
+                                })
+                            }
+                        >
+                            Bedroom
+                        </button>
+
+                        <button
+                            type="button"
+                            className={quickAdjustButtonClass("space", "Backyard")}
+                            onClick={() =>
+                                applyCurrentMomentQuickAdjust({
+                                    space: "Backyard",
+                                })
+                            }
+                        >
+                            Backyard
+                        </button>
+                    </div>
+                </div>
             </section>
 
             <section className="panel">
