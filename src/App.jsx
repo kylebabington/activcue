@@ -134,6 +134,31 @@ function getActivityDurationMinutes(activity) {
   return null;
 }
 
+function activityUsesItem(activity, itemName) {
+  // Make sure activity.uses is an array.
+  const uses = Array.isArray(activity.uses) ? activity.uses : [];
+
+  // Normalize the item name we are looking for.
+  const normalizedItemName = normalizeTextValue(itemName);
+
+  // If itemName is missing or blank, this cannot match.
+  if (!normalizedItemName) {
+    return false;
+  }
+
+  // Check whether any item in activity.uses includes this item name.
+  //
+  // Example:
+  // itemName = "lego"
+  // use = "LEGO bricks"
+  // match = true
+  return uses.some((use) => {
+    const normalizedUse = normalizeTextValue(use);
+
+    return normalizedUse.includes(normalizedItemName);
+  });
+}
+
 function scoreActivityForCurrentMoment(activity, currentMoment) {
   // Every activity starts at zero.
   // Good matches add points.
@@ -396,6 +421,210 @@ function scoreActivityForCurrentMoment(activity, currentMoment) {
   return score;
 }
 
+function scoreActivityFromHistory(activity, activityHistory) {
+  // This function adjusts the score based on previous family feedback.
+  //
+  // It does NOT replace current-moment scoring.
+  // It adds a memory layer on top of it.
+
+  let score = 0;
+
+  // If there is no history yet, there is nothing to learn from.
+  if (!Array.isArray(activityHistory) || activityHistory.length === 0) {
+    return score;
+  }
+
+  // Normalize current activity values.
+  const activityEnergy = normalizeTextValue(activity.energy);
+  const activityMess = normalizeTextValue(activity.mess);
+  const activityAdultHelp = normalizeTextValue(activity.adultHelp);
+
+  const steps = Array.isArray(activity.steps) ? activity.steps : [];
+  const uses = Array.isArray(activity.uses) ? activity.uses : [];
+
+  // Look at recent history only.
+  // We do not want old feedback from months ago dominating forever.
+  const recentHistory = activityHistory.slice(-30);
+
+  // Count feedback types.
+  const tooMessyCount = recentHistory.filter(
+    (historyItem) => historyItem.feedbackType === "too-messy"
+  ).length;
+
+  const needQuieterCount = recentHistory.filter(
+    (historyItem) => historyItem.feedbackType === "need-quieter"
+  ).length;
+
+  const tooHardCount = recentHistory.filter(
+    (historyItem) => historyItem.feedbackType === "too-hard"
+  ).length;
+
+  const moreLikeThisItems = recentHistory.filter(
+    (historyItem) =>
+      historyItem.feedbackType === "more-like-this" ||
+      historyItem.feedbackType === "timer-more-like-this"
+  );
+
+  const finishedItems = recentHistory.filter(
+    (historyItem) => historyItem.feedbackType === "finished"
+  );
+
+  const canceledItems = recentHistory.filter(
+    (historyItem) => historyItem.feedbackType === "canceled"
+  );
+
+  // ------------------------------------------------------------
+  // Mess learning
+  // ------------------------------------------------------------
+  // If the family often rejects things as too messy,
+  // penalize medium and high mess activities.
+  if (tooMessyCount >= 2) {
+    if (activityMess === "medium") {
+      score -= 2;
+    }
+
+    if (activityMess === "high") {
+      score -= 5;
+    }
+  }
+
+  // ------------------------------------------------------------
+  // Noise / energy learning
+  // ------------------------------------------------------------
+  // If the family often asks for quieter ideas,
+  // penalize high energy and slightly penalize medium energy.
+  if (needQuieterCount >= 2) {
+    if (activityEnergy === "medium") {
+      score -= 2;
+    }
+
+    if (activityEnergy === "high") {
+      score -= 5;
+    }
+
+    if (activityEnergy === "low") {
+      score += 2;
+    }
+  }
+
+  // ------------------------------------------------------------
+  // Difficulty learning
+  // ------------------------------------------------------------
+  // If activities are often too hard, prefer shorter step lists
+  // and no-adult-help activities.
+  if (tooHardCount >= 2) {
+    if (steps.length > 5) {
+      score -= 3;
+    }
+
+    if (steps.length > 0 && steps.length <= 4) {
+      score += 2;
+    }
+
+    if (activityAdultHelp === "needed") {
+      score -= 4;
+    }
+
+    if (activityAdultHelp === "none") {
+      score += 2;
+    }
+  }
+
+  // ------------------------------------------------------------
+  // Positive learning from "more like this"
+  // ------------------------------------------------------------
+  // If the user asks for more like a previous quest,
+  // boost activities with similar supplies.
+  moreLikeThisItems.forEach((historyItem) => {
+    const historyUses = Array.isArray(historyItem.uses) ? historyItem.uses : [];
+
+    historyUses.forEach((usedItem) => {
+      if (activityUsesItem(activity, usedItem)) {
+        score += 2;
+      }
+    });
+  });
+
+  // ------------------------------------------------------------
+  // Positive learning from finished quests
+  // ------------------------------------------------------------
+  // If quests were finished, reward similar basic traits.
+  finishedItems.forEach((historyItem) => {
+    if (historyItem.energy && normalizeTextValue(historyItem.energy) === activityEnergy) {
+      score += 1;
+    }
+
+    if (historyItem.mess && normalizeTextValue(historyItem.mess) === activityMess) {
+      score += 1;
+    }
+
+    if (
+      historyItem.adultHelp &&
+      normalizeTextValue(historyItem.adultHelp) === activityAdultHelp
+    ) {
+      score += 1;
+    }
+  });
+
+  // ------------------------------------------------------------
+  // Negative learning from canceled quests
+  // ------------------------------------------------------------
+  // If quests were canceled, gently penalize similar titles.
+  // This avoids repeating a quest the family abandoned.
+  canceledItems.forEach((historyItem) => {
+    const historyTitle = normalizeTextValue(historyItem.title);
+    const activityTitle = normalizeTextValue(activity.title);
+
+    if (historyTitle && activityTitle && historyTitle === activityTitle) {
+      score -= 6;
+    }
+  });
+
+  // ------------------------------------------------------------
+  // Supply sanity bonus
+  // ------------------------------------------------------------
+  // If the activity uses at least one item, give a tiny boost.
+  // The more concrete it is, the easier it is to start.
+  if (uses.length > 0) {
+    score += 1;
+  }
+
+  return score;
+}
+
+function getTotalActivityScore(activity, currentMoment, activityHistory) {
+  const currentMomentScore = scoreActivityForCurrentMoment(
+    activity,
+    currentMoment
+  );
+  const historyScore = scoreActivityFromHistory(activity, activityHistory);
+  return currentMomentScore + historyScore;
+}
+
+function logActivityScoreTable(scoredOptions, currentMoment, activityHistory) {
+  if (!Array.isArray(scoredOptions) || scoredOptions.length === 0) {
+    return;
+  }
+
+  console.table(
+    scoredOptions.map((item) => {
+      return {
+        title: item.activity.title,
+        totalScore: item.score,
+        currentMomentScore: scoreActivityForCurrentMoment(
+          item.activity,
+          currentMoment
+        ),
+        historyScore: scoreActivityFromHistory(item.activity, activityHistory),
+        estimatedMinutes: item.activity.estimatedMinutes,
+        mess: item.activity.mess,
+        energy: item.activity.energy,
+        adultHelp: item.activity.adultHelp,
+      };
+    })
+  );
+}
+
 function App() {
   const navigate = useNavigate();
 
@@ -537,31 +766,34 @@ function App() {
     null
   );
 
+  const [activityHistory, setActivityHistory] = useLocalStorage(
+    "activityHistory",
+    []
+  );
+
   const scoredActivities = activities
     .map((activity) => {
-      // For each generated activity, calculate how well it matches
-      // the current family moment.
       return {
         activity,
-        score: scoreActivityForCurrentMoment(activity, currentMoment),
+        score: getTotalActivityScore(activity, currentMoment, activityHistory),
       };
     })
     .sort((a, b) => {
-      // Sort highest score first.
-      // Example:
-      // score 22 comes before score 15.
       return b.score - a.score;
     });
+
+  useEffect(() => {
+    if (activities.length === 0) {
+      return;
+    }
+
+    logActivityScoreTable(scoredActivities, currentMoment, activityHistory);
+  }, [activities, currentMoment, activityHistory]);
 
   const timerSecondsRemaining = useActivityTimer(activeActivity);
 
   const [savedActivities, setSavedActivities] = useLocalStorage(
     "savedActivities",
-    []
-  );
-
-  const [activityHistory, setActivityHistory] = useLocalStorage(
-    "activityHistory",
     []
   );
 
@@ -946,10 +1178,21 @@ function App() {
       title: activity.title,
       feedbackType,
       createdAt: new Date().toISOString(),
+
+      // Context at the time of feedback.
       kidMood,
       messLevel,
       locationPreference,
       childAgeRange: effectiveChildAgeRange,
+
+      // Activity traits.
+      // These are what feedback-weighted scoring learns from later.
+      energy: activity.energy || "medium",
+      mess: activity.mess || "low",
+      adultHelp: activity.adultHelp || "optional",
+      estimatedMinutes: Number(activity.estimatedMinutes) || null,
+      uses: Array.isArray(activity.uses) ? activity.uses : [],
+      stepsCount: Array.isArray(activity.steps) ? activity.steps.length : 0,
     };
 
     setActivityHistory([...activityHistory, historyItem]);
@@ -1289,63 +1532,14 @@ function App() {
     const scoredOptions = activityOptions.map((activity) => {
       return {
         activity,
-        score: scoreActivityForCurrentMoment(activity, currentMoment),
+        score: getTotalActivityScore(activity, currentMoment, activityHistory),
       };
     });
 
     // Sort highest score first.
     scoredOptions.sort((a, b) => b.score - a.score);
 
-    // Useful while developing.
-    // This lets you confirm the app is picking the correct quest.
-    console.table(
-      scoredOptions.map((item) => {
-        return {
-          title: item.activity.title,
-          score: item.score,
-          estimatedMinutes: item.activity.estimatedMinutes,
-          mess: item.activity.mess,
-          energy: item.activity.energy,
-          adultHelp: item.activity.adultHelp,
-        };
-      })
-    );
-
-    // Return only the winning activity.
-    return scoredOptions[0].activity;
-  }
-
-  function getBestActivityForCurrentMoment(activityOptions) {
-    // If the caller gives us nothing, return null.
-    if (!Array.isArray(activityOptions) || activityOptions.length === 0) {
-      return null;
-    }
-
-    // Score every option using the same scoring function used by auto-pick.
-    const scoredOptions = activityOptions.map((activity) => {
-      return {
-        activity,
-        score: scoreActivityForCurrentMoment(activity, currentMoment),
-      };
-    });
-
-    // Sort highest score first.
-    scoredOptions.sort((a, b) => b.score - a.score);
-
-    // Useful while developing.
-    // This lets you confirm the app is picking the correct quest.
-    console.table(
-      scoredOptions.map((item) => {
-        return {
-          title: item.activity.title,
-          score: item.score,
-          estimatedMinutes: item.activity.estimatedMinutes,
-          mess: item.activity.mess,
-          energy: item.activity.energy,
-          adultHelp: item.activity.adultHelp,
-        };
-      })
-    );
+    logActivityScoreTable(scoredOptions, currentMoment, activityHistory);
 
     // Return only the winning activity.
     return scoredOptions[0].activity;
@@ -1431,6 +1625,14 @@ function App() {
       completedStepCount,
       totalStepCount,
       minutesWorked,
+      energy: activeActivity.energy || "medium",
+      mess: activeActivity.mess || "low",
+      adultHelp: activeActivity.adultHelp || "optional",
+      estimatedMinutes: Number(activeActivity.estimatedMinutes) || null,
+      uses: Array.isArray(activeActivity.uses) ? activeActivity.uses : [],
+      stepsCount: Array.isArray(activeActivity.steps)
+        ? activeActivity.steps.length
+        : 0,
     };
 
     setActivityHistory([...activityHistory, finishedHistoryItem]);
@@ -1459,6 +1661,14 @@ function App() {
       messLevel,
       locationPreference,
       childAgeRange: effectiveChildAgeRange,
+      energy: activeActivity.energy || "medium",
+      mess: activeActivity.mess || "low",
+      adultHelp: activeActivity.adultHelp || "optional",
+      estimatedMinutes: Number(activeActivity.estimatedMinutes) || null,
+      uses: Array.isArray(activeActivity.uses) ? activeActivity.uses : [],
+      stepsCount: Array.isArray(activeActivity.steps)
+        ? activeActivity.steps.length
+        : 0,
     };
 
     setActivityHistory([...activityHistory, canceledHistoryItem]);
