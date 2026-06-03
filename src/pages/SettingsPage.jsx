@@ -36,6 +36,7 @@ function SettingsPage({
     saveParentPin,
     savedActivities,
     handleStartActivity,
+    handleReplaySavedActivity,
     removeSavedActivity,
     activityHistory,
     clearActivityHistory,
@@ -349,6 +350,7 @@ function SettingsPage({
             <SavedActivitiesPanel
                 savedActivities={savedActivities}
                 handleStartActivity={handleStartActivity}
+                handleReplaySavedActivity={handleReplaySavedActivity}
                 removeSavedActivity={removeSavedActivity}
             />
 

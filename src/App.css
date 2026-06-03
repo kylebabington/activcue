@@ -859,6 +859,48 @@ select {
   padding: 16px;
 }
 
+.saved-activity-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.saved-activity-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+  padding: 1rem;
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.84);
+  border: 1px solid rgba(22, 33, 62, 0.1);
+}
+
+.saved-activity-item h3 {
+  margin: 0 0 0.35rem;
+}
+
+.saved-activity-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+@media (max-width: 760px) {
+  .saved-activity-item {
+    flex-direction: column;
+  }
+
+  .saved-activity-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .saved-activity-actions button {
+    width: 100%;
+  }
+}
+
 .saved-activity-item h3 {
   margin-bottom: 6px;
 }

@@ -1229,21 +1229,45 @@ function App() {
     }
 
     const favoriteActivity = {
+      // This saved favorite gets its own ID.
+      // That lets us delete it later without relying on the title.
       id: crypto.randomUUID(),
+
+      // Main quest identity.
       title: activity.title,
-      summary: activity.summary,
-      parentSetup: activity.parentSetup || null,
+      theme: activity.theme || "",
+      summary: activity.summary || "",
+
+      // Older compatibility field.
+      // Some older saved activities may still use kidMission.
       kidMission: activity.kidMission || "",
+
+      // Newer quest structure.
+      kidRole: activity.kidRole || "",
+      mission: activity.mission || "",
+      starterPrompts: Array.isArray(activity.starterPrompts)
+        ? activity.starterPrompts
+        : [],
+      firstMoves: Array.isArray(activity.firstMoves)
+        ? activity.firstMoves
+        : [],
       roles: Array.isArray(activity.roles) ? activity.roles : [],
+      steps: Array.isArray(activity.steps) ? activity.steps : [],
       extensionIdeas: Array.isArray(activity.extensionIdeas)
         ? activity.extensionIdeas
         : [],
-      steps: Array.isArray(activity.steps) ? activity.steps : [],
+
+      // Supplies.
       uses: Array.isArray(activity.uses) ? activity.uses : [],
+
+      // Fit/scoring metadata.
+      estimatedMinutes: Number(activity.estimatedMinutes) || null,
       energy: activity.energy || "medium",
       mess: activity.mess || "low",
       adultHelp: activity.adultHelp || "optional",
       whyItFits: activity.whyItFits || "",
+
+      // Save timestamp.
       savedAt: new Date().toISOString(),
     };
 
@@ -1257,6 +1281,25 @@ function App() {
     );
 
     setErrorMessage("Saved activity removed.");
+  }
+
+  function handleReplaySavedActivity(savedActivity) {
+    // Clear any previous completion summary.
+    // Replaying a saved quest should put the user back into active quest mode.
+    setLastCompletedQuest(null);
+
+    // Clear old hints.
+    // A hint from the previous quest should not appear on this replayed quest.
+    setStepHint("");
+
+    // Start the saved activity using the same existing start logic.
+    // This gives it a fresh timer, fresh ID, and guided step state.
+    handleStartActivity(savedActivity);
+
+    // Move the user to the active quest screen.
+    navigate("/quest");
+
+    setErrorMessage(`Replaying saved quest: "${savedActivity.title}".`);
   }
 
   function handleStartActivity(activity) {
@@ -2020,6 +2063,7 @@ function App() {
               saveParentPin={saveParentPin}
               savedActivities={savedActivities}
               handleStartActivity={handleStartActivity}
+              handleReplaySavedActivity={handleReplaySavedActivity}
               removeSavedActivity={removeSavedActivity}
               activityHistory={activityHistory}
               clearActivityHistory={clearActivityHistory}
