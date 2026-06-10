@@ -711,7 +711,17 @@ function App() {
     "single-child"
   );
 
-  const [kidMood, setKidMood] = useLocalStorage("kidMood", "creative");
+  const [kidMood, setKidMood] = useLocalStorage("kidMood", "neutral");
+  const [kidEnergyLevel, setKidEnergyLevel] = useLocalStorage(
+    "kidEnergyLevel",
+    "neutral"
+  );
+
+  const [kidActivityStyle, setKidActivityStyle] = useLocalStorage(
+    "kidActivityStyle",
+    "simple"
+  );
+
   const [messLevel] = useLocalStorage("messLevel", "low");
   const [locationPreference] = useLocalStorage(
     "locationPreference",
@@ -1092,77 +1102,74 @@ function App() {
     }
   }
 
-  function handleKidQuickChoice(choice) {
-    if (choice === "bored") {
-      setKidMood("surprise");
+  function getKidEnergyInstruction(energyLevel) {
+    if (energyLevel === "quiet") {
+      return "The child feels quiet or low-energy. Prefer calm, low-noise activities. Avoid running, shouting, wild movement, or complex setup.";
+    }
 
-      handleGenerateActivities(
-        "The child says they are bored. Give 3 very different choices so they feel like they have options."
-      );
+    if (energyLevel === "energetic") {
+      return "The child has extra energy. Suggest movement or active engagement only if the current family moment allows it. If the parent moment requires quiet, choose contained energy like building, sorting, obstacle planning, or quiet movement.";
+    }
 
+    return "The child feels neutral. Suggest an activity with a balanced amount of effort.";
+  }
+
+  function getKidActivityStyleInstruction(activityStyle) {
+    if (activityStyle === "imaginative") {
+      return "The child wants imaginative play. It can include pretend roles, a mission, a small story frame, or make-believe, while still staying practical and easy to start.";
+    }
+
+    return "The child wants something simple. Avoid elaborate pretend-play framing. Suggest straightforward activities with clear steps, plain language, and minimal setup.";
+  }
+
+  async function handleKidQuickChoice(activityStyle) {
+    // activityStyle is now either:
+    // - "simple"
+    // - "imaginative"
+    //
+    // The old version used choices like bored/move/make/quiet/help/surprise.
+    // This new version is intentionally simpler.
+
+    setKidActivityStyle(activityStyle);
+
+    // Keep kidMood updated for older history/scoring code.
+    // The new UI uses kidEnergyLevel, but kidMood still exists elsewhere.
+    setKidMood(kidEnergyLevel);
+
+    const styleInstruction = getKidActivityStyleInstruction(activityStyle);
+    const energyInstruction = getKidEnergyInstruction(kidEnergyLevel);
+
+    const generatedActivities = await handleGenerateActivities(
+      `
+The child chose this activity style: ${activityStyle}.
+${styleInstruction}
+
+The child chose this energy level: ${kidEnergyLevel}.
+${energyInstruction}
+
+Generate 3 options that fit BOTH:
+1. the child's chosen style and energy level
+2. the current family moment
+
+Important:
+- If the child chose simple, do not turn every idea into a pretend quest.
+- If the child chose imaginative, make it playful but still easy to start.
+- Always obey currentMoment limits for time, mess, noise, supervision, and parent availability.
+`
+    );
+
+    if (generatedActivities.length === 0) {
       navigate("/quest");
       return;
     }
 
-    if (choice === "move") {
-      setKidMood("active");
-
-      handleGenerateActivities(
-        "The child needs to move. Suggest safe active ideas using available inventory."
-      );
-
-      navigate("/quest");
-      return;
-    }
-
-    if (choice === "make") {
-      setKidMood("creative");
-
-      handleGenerateActivities(
-        "The child wants to make something. Suggest creative ideas using available inventory."
-      );
-
-      navigate("/quest");
-      return;
-    }
-
-    if (choice === "quiet") {
-      setKidMood("calm");
-
-      handleGenerateActivities(
-        "The child wants quiet time. Suggest calm, low-noise activities."
-      );
-
-      navigate("/quest");
-      return;
-    }
-
-    if (choice === "help") {
-      setKidMood("helper");
-
-      handleGenerateActivities(
-        "The child wants to help. Suggest useful helper activities connected to the parent's current task if safe."
-      );
-
-      navigate("/quest");
-      return;
-    }
-
-    if (choice === "surprise") {
-      setKidMood("surprise");
-
-      handleGenerateActivities(
-        "Surprise the child with 3 fun, safe, very different activity ideas."
-      );
-
-      navigate("/quest");
-    }
+    navigate("/quest");
   }
 
   async function handleStartSomethingForMe() {
     // Set the kid mood to surprise because this button means:
     // "I do not want to choose. Just give me something that works."
-    setKidMood("surprise");
+    setKidMood(kidEnergyLevel);
 
     // Clear any old active quest before starting a fresh one.
     setActiveActivity(null);
@@ -1170,7 +1177,18 @@ function App() {
     // Generate activities and wait for the API response.
     // We use the returned activities directly instead of waiting for React state.
     const generatedActivities = await handleGenerateActivities(
-      "The child wants the app to choose and start something automatically. Generate 3 safe, easy-to-start quests that fit the current family moment. Prioritize activities that require the least decision-making from the child."
+      `
+The child wants the app to choose and start something automatically.
+
+Use the child's current energy level: ${kidEnergyLevel}.
+${getKidEnergyInstruction(kidEnergyLevel)}
+
+Use the child's preferred style: ${kidActivityStyle}.
+${getKidActivityStyleInstruction(kidActivityStyle)}
+
+Generate 3 safe, easy-to-start options that fit the current family moment.
+Prioritize activities that require the least decision-making from the child.
+`
     );
 
     // Pick the best option using the same scoring system as auto-pick.
@@ -1985,6 +2003,10 @@ function App() {
               parentStatus={parentStatus}
               currentMoment={currentMoment}
               ParentStatusCard={ParentStatusCard}
+              kidEnergyLevel={kidEnergyLevel}
+              setKidEnergyLevel={setKidEnergyLevel}
+              kidActivityStyle={kidActivityStyle}
+              setKidActivityStyle={setKidActivityStyle}
               handleKidQuickChoice={handleKidQuickChoice}
               handleStartSomethingForMe={handleStartSomethingForMe}
               isLoading={isLoading}

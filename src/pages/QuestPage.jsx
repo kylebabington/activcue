@@ -189,13 +189,13 @@ function QuestPage({
 }) {
     return (
         <section className="page-layout">
-            <section className="hero-card">
+            <section className="hero-card compact-hero-card">
                 <p className="eyebrow">Quest Board</p>
 
-                <h1>Pick a clear next move.</h1>
+                <h1>What should happen next?</h1>
 
                 <p>
-                    Choose a quest, start the timer, and let the activity guide the kid.
+                    Start a saved quest, pick a new one, or follow the current mission.
                 </p>
             </section>
 
@@ -206,9 +206,7 @@ function QuestPage({
 
                         <h2>{currentMoment.parentActivity}</h2>
 
-                        <p>
-                            These quests are tuned for this family moment.
-                        </p>
+                        <p>Tuned for right now.</p>
                     </div>
 
                     <div className="moment-chip-list">
@@ -256,35 +254,40 @@ function QuestPage({
                 />
             )}
 
-            {!activeActivity && activities.length > 0 && !isLoading && (
-                <section className="panel auto-pick-panel">
-                    <div>
-                        <p className="eyebrow dark">Decision helper</p>
+            {!activeActivity &&
+                !lastCompletedQuest &&
+                activities.length > 0 &&
+                !isLoading && (
+                    <section className="panel auto-pick-panel">
+                        <div>
+                            <p className="eyebrow dark">Decision helper</p>
 
-                        <h2>Want the app to choose?</h2>
+                            <h2>Want the app to choose?</h2>
 
-                        <p>
-                            Skip comparing options. The app will choose the quest that best fits right now.
-                        </p>
-                    </div>
+                            <p>
+                                Skip comparing options. The app will choose the quest that best fits right now.
+                            </p>
+                        </div>
 
-                    <button className="generate-button" onClick={handleAutoPickQuest}>
-                        Just pick one for me
-                    </button>
-                </section>
+                        <button className="generate-button" onClick={handleAutoPickQuest}>
+                            Just pick one for me
+                        </button>
+                    </section>
+                )}
+
+            {!activeActivity && !lastCompletedQuest && (
+                <ActivityResults
+                    activities={activities}
+                    scoredActivities={scoredActivities}
+                    isLoading={isLoading}
+                    handleStartActivity={handleStartActivity}
+                    saveFavoriteActivity={saveFavoriteActivity}
+                    handleTooMessy={handleTooMessy}
+                    handleTooHard={handleTooHard}
+                    handleNeedQuieter={handleNeedQuieter}
+                    handleMoreLikeThis={handleMoreLikeThis}
+                />
             )}
-
-            <ActivityResults
-                activities={activities}
-                scoredActivities={scoredActivities}
-                isLoading={isLoading}
-                handleStartActivity={handleStartActivity}
-                saveFavoriteActivity={saveFavoriteActivity}
-                handleTooMessy={handleTooMessy}
-                handleTooHard={handleTooHard}
-                handleNeedQuieter={handleNeedQuieter}
-                handleMoreLikeThis={handleMoreLikeThis}
-            />
 
             {!activeActivity && !lastCompletedQuest && activities.length === 0 && !isLoading && (
                 <section className="panel">

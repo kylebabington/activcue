@@ -4,20 +4,35 @@ function KidPage({
     parentStatus,
     currentMoment,
     ParentStatusCard,
+    kidEnergyLevel,
+    setKidEnergyLevel,
+    kidActivityStyle,
+    setKidActivityStyle,
     handleKidQuickChoice,
     handleStartSomethingForMe,
     isLoading,
 }) {
+
+    function energyChipClass(energyLevel) {
+        return kidEnergyLevel === energyLevel
+            ? "kid-energy-chip active"
+            : "kid-energy-chip";
+    }
+
+    function styleButtonClass(activityStyle) {
+        return kidActivityStyle === activityStyle
+            ? "kid-style-button active"
+            : "kid-style-button";
+    }
     return (
         <section className="page-layout">
-            <section className="hero-card">
+            <section className="hero-card compact-hero-card kid-hero-card">
                 <p className="eyebrow">Kid Mode</p>
 
-                <h1>What do you need?</h1>
+                <h1>What sounds good?</h1>
 
                 <p>
-                    Pick the kind of help you want, or let the app start the best quest
-                    for right now.
+                    Pick your energy, then choose simple or imaginative.
                 </p>
             </section>
 
@@ -37,16 +52,11 @@ function KidPage({
                 </section>
             )}
 
-            <section className="panel fast-start-panel">
+            <section className="panel fast-start-panel kid-fast-start-panel">
                 <div>
                     <p className="eyebrow dark">Fast start</p>
 
-                    <h2>I need something to do</h2>
-
-                    <p>
-                        Skip choosing. The app will pick the best quest for right now and
-                        start it.
-                    </p>
+                    <h2>Just start something</h2>
                 </div>
 
                 <button
@@ -54,56 +64,70 @@ function KidPage({
                     onClick={handleStartSomethingForMe}
                     disabled={isLoading}
                 >
-                    {isLoading ? "Finding a quest..." : "Start something for me"}
+                    {isLoading ? "Finding..." : "Start for me"}
                 </button>
             </section>
 
-            <section className="panel kid-choice-panel">
-                <p className="eyebrow dark">Choose your mood</p>
+            <section className="panel kid-choice-panel kid-simple-choice-panel">
+                <div className="panel-header compact-panel-header">
+                    <div>
+                        <p className="eyebrow dark">Choose</p>
+                        <h2>What kind of activity?</h2>
+                    </div>
+                </div>
 
-                <h2>Or pick what you want</h2>
+                <div className="kid-energy-picker">
+                    <h3>My energy is...</h3>
 
-                <div className="kid-choice-grid">
+                    <div className="kid-energy-row">
+                        <button
+                            type="button"
+                            className={energyChipClass("quiet")}
+                            onClick={() => setKidEnergyLevel("quiet")}
+                            disabled={isLoading}
+                        >
+                            Quiet
+                        </button>
+
+                        <button
+                            type="button"
+                            className={energyChipClass("neutral")}
+                            onClick={() => setKidEnergyLevel("neutral")}
+                            disabled={isLoading}
+                        >
+                            Neutral
+                        </button>
+
+                        <button
+                            type="button"
+                            className={energyChipClass("energetic")}
+                            onClick={() => setKidEnergyLevel("energetic")}
+                            disabled={isLoading}
+                        >
+                            Energetic
+                        </button>
+                    </div>
+                </div>
+
+                <div className="kid-style-grid">
                     <button
-                        onClick={() => handleKidQuickChoice("bored")}
+                        type="button"
+                        className={styleButtonClass("simple")}
+                        onClick={() => handleKidQuickChoice("simple")}
                         disabled={isLoading}
                     >
-                        I&apos;m bored
+                        <span>Simple</span>
+                        <small>Easy, clear, no big story</small>
                     </button>
 
                     <button
-                        onClick={() => handleKidQuickChoice("move")}
+                        type="button"
+                        className={styleButtonClass("imaginative")}
+                        onClick={() => handleKidQuickChoice("imaginative")}
                         disabled={isLoading}
                     >
-                        I want to move
-                    </button>
-
-                    <button
-                        onClick={() => handleKidQuickChoice("make")}
-                        disabled={isLoading}
-                    >
-                        I want to make something
-                    </button>
-
-                    <button
-                        onClick={() => handleKidQuickChoice("quiet")}
-                        disabled={isLoading}
-                    >
-                        I need quiet
-                    </button>
-
-                    <button
-                        onClick={() => handleKidQuickChoice("help")}
-                        disabled={isLoading}
-                    >
-                        I want to help
-                    </button>
-
-                    <button
-                        onClick={() => handleKidQuickChoice("surprise")}
-                        disabled={isLoading}
-                    >
-                        Surprise me
+                        <span>Imaginative</span>
+                        <small>Pretend, mission, story play</small>
                     </button>
                 </div>
             </section>

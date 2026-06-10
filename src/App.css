@@ -35,6 +35,41 @@ button:disabled {
   padding: 32px 0;
 }
 
+.hero-card,
+.panel {
+  overflow-wrap: anywhere;
+}
+
+.hero-card p,
+.panel-header p,
+.current-moment-banner p,
+.parent-now-card p {
+  max-width: 44rem;
+  line-height: 1.6;
+}
+
+.hero-card p,
+.panel-header p {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.panel-header {
+  text-align: center;
+}
+
+@media (max-width: 760px) {
+  .panel-header {
+    text-align: left;
+  }
+
+  .hero-card p,
+  .panel-header p {
+    margin-left: 0;
+    margin-right: 0;
+  }
+}
+
 .hero-card {
   background: linear-gradient(135deg, #2f4858, #496f7f);
   color: white;
@@ -331,6 +366,20 @@ select {
   .hero-card {
     padding: 28px;
   }
+
+  .compact-hero-card {
+    padding: 1.35rem;
+  }
+
+  .compact-hero-card h1 {
+    margin-bottom: 0.35rem;
+  }
+
+  .compact-hero-card p:last-child {
+    max-width: 42rem;
+    margin-left: auto;
+    margin-right: auto;
+  }
 }
 
 .panel-header {
@@ -487,6 +536,126 @@ select {
 
 .kid-choice-grid button:hover {
   transform: translateY(-2px);
+}
+
+.kid-hero-card {
+  text-align: center;
+}
+
+.kid-hero-card p:last-child {
+  max-width: 36rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.kid-fast-start-panel {
+  align-items: center;
+}
+
+.kid-fast-start-panel h2 {
+  margin: 0.2rem 0 0;
+}
+
+.kid-simple-choice-panel {
+  display: grid;
+  gap: 1.35rem;
+}
+
+.kid-energy-picker {
+  display: grid;
+  gap: 0.55rem;
+  text-align: center;
+}
+
+.kid-energy-picker h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.kid-energy-row {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.kid-energy-chip {
+  border: 1px solid rgba(22, 33, 62, 0.14);
+  border-radius: 999px;
+  padding: 0.7rem 1rem;
+  background: rgba(255, 255, 255, 0.86);
+  color: var(--text);
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.kid-energy-chip.active {
+  color: white;
+  background: var(--accent, #2a9d8f);
+  border-color: transparent;
+  box-shadow: 0 12px 26px rgba(22, 33, 62, 0.14);
+}
+
+.kid-style-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.9rem;
+}
+
+.kid-style-button {
+  display: grid;
+  gap: 0.35rem;
+  min-height: 8rem;
+  align-content: center;
+  justify-items: center;
+  border-radius: 1.25rem;
+  border: 2px solid rgba(22, 33, 62, 0.1);
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--text);
+  cursor: pointer;
+  text-align: center;
+}
+
+.kid-style-button span {
+  font-size: clamp(1.45rem, 3vw, 2rem);
+  font-weight: 950;
+}
+
+.kid-style-button small {
+  max-width: 12rem;
+  color: var(--muted-text);
+  font-size: 0.9rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.kid-style-button.active {
+  border-color: rgba(42, 157, 143, 0.6);
+  box-shadow: 0 16px 34px rgba(22, 33, 62, 0.12);
+}
+
+.kid-style-button:hover,
+.kid-energy-chip:hover {
+  transform: translateY(-1px);
+}
+
+@media (max-width: 760px) {
+  .kid-style-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .kid-energy-row {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .kid-energy-chip {
+    width: 100%;
+  }
+
+  .kid-energy-picker {
+    text-align: left;
+  }
 }
 
 .results-panel,
@@ -1120,6 +1289,129 @@ select {
 .extension-ideas-box li {
   color: #334155;
   line-height: 1.5;
+}
+
+.parent-hero-card {
+  text-align: center;
+}
+
+.parent-hero-card p:last-child {
+  max-width: 42rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.parent-now-card {
+  text-align: center;
+}
+
+.parent-now-card h2 {
+  margin: 0.25rem 0 1rem;
+  font-size: clamp(1.6rem, 3vw, 2.4rem);
+}
+
+.parent-now-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.55rem;
+}
+
+.parent-now-chips span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.25rem;
+  padding: 0.45rem 0.75rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(22, 33, 62, 0.1);
+  font-weight: 800;
+}
+
+.compact-panel-header {
+  margin-bottom: 0.25rem;
+}
+
+.parent-fine-tune-panel {
+  display: grid;
+  gap: 1.2rem;
+}
+
+.parent-fine-tune-panel h2 {
+  margin: 0.15rem 0 0;
+}
+
+.quick-chip-group {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.quick-chip-group h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.quick-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.quick-chip {
+  border: 1px solid rgba(22, 33, 62, 0.14);
+  border-radius: 999px;
+  padding: 0.65rem 0.9rem;
+  background: rgba(255, 255, 255, 0.84);
+  color: var(--text);
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.quick-chip:hover {
+  transform: translateY(-1px);
+}
+
+.quick-chip.active {
+  color: white;
+  background: var(--accent, #2a9d8f);
+  border-color: transparent;
+  box-shadow: 0 12px 26px rgba(22, 33, 62, 0.14);
+}
+
+.advanced-parent-controls {
+  border-radius: 1rem;
+}
+
+.advanced-parent-controls summary {
+  cursor: pointer;
+  font-weight: 900;
+  padding: 0.8rem 1rem;
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(22, 33, 62, 0.1);
+}
+
+.advanced-parent-controls>.panel {
+  margin-top: 0.75rem;
+}
+
+@media (max-width: 760px) {
+  .quick-chip-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .quick-chip {
+    width: 100%;
+  }
+
+  .parent-now-card {
+    text-align: left;
+  }
+
+  .parent-now-chips {
+    justify-content: flex-start;
+  }
 }
 
 .scene-script {

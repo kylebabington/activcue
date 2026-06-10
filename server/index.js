@@ -190,6 +190,8 @@ Important:
 - The child should be able to start with normal visible household items from the inventory.
 - If setup is needed, make it child-doable.
 - Do NOT give broad generic activities like "paper crafts", "story writing", "treasure hunt", "drawing", or "build with blocks" unless they are transformed into a specific themed quest with a mission, role, prompts, and first moves.
+-If the request asks for simple activities, avoid elaborate imaginative framing. Keep the title, summary, steps, and mission plain and practical. A simple activity may still use the same JSON fields, but the wording should feel like a normal activity, not a pretend quest.
+-If the request asks for imaginative activities, use playful pretend framing, roles, and mission language, but keep the setup easy and realistic.
 
 Rules:
 - Treat the current family moment as the source of truth.
