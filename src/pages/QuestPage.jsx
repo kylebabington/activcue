@@ -90,18 +90,24 @@ function QuestCompleteSummary({
     const completedStepCount = Number(lastCompletedQuest.completedStepCount) || 0;
     const totalStepCount = Number(lastCompletedQuest.totalStepCount) || 0;
 
+    const isSimpleActivity = lastCompletedQuest.activityStyle === "simple";
+
+    const completionLabel = isSimpleActivity
+        ? "Activity complete"
+        : "Quest complete";
+
     const progressText =
         totalStepCount > 0
             ? `${completedStepCount} of ${totalStepCount} steps completed`
-            : "Quest completed";
+            : completionLabel;
 
     return (
         <section className="panel quest-complete-summary">
-            <p className="eyebrow dark">Quest complete</p>
+            <p className="eyebrow dark">{completionLabel}</p>
 
             <h2>{lastCompletedQuest.title}</h2>
 
-            {lastCompletedQuest.theme && (
+            {!isSimpleActivity && lastCompletedQuest.theme && (
                 <p className="activity-theme">{lastCompletedQuest.theme}</p>
             )}
 

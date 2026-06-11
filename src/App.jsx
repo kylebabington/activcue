@@ -1637,7 +1637,7 @@ Prioritize activities that require the least decision-making from the child.
   async function handleNeedStepHint() {
     // If there is no active quest, there is no step to help with.
     if (!activeActivity) {
-      setErrorMessage("Start a quest first, then ask for a hint.");
+      setErrorMessage("Start a activity first, then ask for a hint.");
       return;
     }
 
@@ -1653,7 +1653,7 @@ Prioritize activities that require the least decision-making from the child.
 
     // If there is no current step, we cannot generate a useful hint.
     if (!currentStep) {
-      setErrorMessage("This quest does not have a current step to hint at.");
+      setErrorMessage("This activity does not have a current step to hint at.");
       return;
     }
 
@@ -1704,7 +1704,7 @@ Prioritize activities that require the least decision-making from the child.
   function handleAutoPickQuest() {
     // If there are no activities yet, there is nothing to start.
     if (activities.length === 0) {
-      setErrorMessage("No quests available yet. Choose something from Kid Mode first.");
+      setErrorMessage("No activities available yet. Choose something from Kid Mode first.");
       return;
     }
 
@@ -1712,7 +1712,7 @@ Prioritize activities that require the least decision-making from the child.
     const selectedActivity = getBestActivityForCurrentMoment(activities);
 
     if (!selectedActivity) {
-      setErrorMessage("I could not pick a quest yet. Try generating again.");
+      setErrorMessage("I could not pick a activity yet. Try generating again.");
       return;
     }
 
@@ -1788,10 +1788,18 @@ Prioritize activities that require the least decision-making from the child.
         ? Math.max(1, Math.round((finishedAt - startedAt) / 1000 / 60))
         : null;
 
-    // Build a summary object that the Quest page can display.
+    // Build a summary object that the activity page can display.
     const completedQuestSummary = {
       id: crypto.randomUUID(),
       title: activeActivity.title,
+
+      // Preserve whether this was a simple activity or an imaginative quest.
+      activityStyle:
+        activeActivity.activityStyle === "simple" ||
+          activeActivity.activityStyle === "imaginative"
+          ? activeActivity.activityStyle
+          : "simple",
+
       theme: activeActivity.theme || "",
       summary: activeActivity.summary || "",
       completedAt: new Date(finishedAt).toISOString(),
@@ -1817,6 +1825,13 @@ Prioritize activities that require the least decision-making from the child.
     const finishedHistoryItem = {
       id: crypto.randomUUID(),
       title: activeActivity.title,
+
+      activityStyle:
+        activeActivity.activityStyle === "simple" ||
+          activeActivity.activityStyle === "imaginative"
+          ? activeActivity.activityStyle
+          : "simple",
+
       feedbackType: "finished",
       createdAt: new Date().toISOString(),
       kidMood,
@@ -1847,7 +1862,8 @@ Prioritize activities that require the least decision-making from the child.
     setActiveActivity(null);
     setStepHint("");
 
-    setErrorMessage(`Finished: "${activeActivity.title}". Nice work.`);
+    setErrorMessage(`Finished: "${activeActivity.title
+      }". Nice work.`);
   }
 
   function cancelActiveActivity() {
@@ -1858,6 +1874,13 @@ Prioritize activities that require the least decision-making from the child.
     const canceledHistoryItem = {
       id: crypto.randomUUID(),
       title: activeActivity.title,
+
+      activityStyle:
+        activeActivity.activityStyle === "simple" ||
+          activeActivity.activityStyle === "imaginative"
+          ? activeActivity.activityStyle
+          : "simple",
+
       feedbackType: "canceled",
       createdAt: new Date().toISOString(),
       kidMood,
@@ -1892,6 +1915,13 @@ Prioritize activities that require the least decision-making from the child.
     const notFinishedHistoryItem = {
       id: crypto.randomUUID(),
       title: activeActivity.title,
+
+      activityStyle:
+        activeActivity.activityStyle === "simple" ||
+          activeActivity.activityStyle === "imaginative"
+          ? activeActivity.activityStyle
+          : "simple",
+
       feedbackType: "not-finished",
       createdAt: new Date().toISOString(),
       kidMood,
