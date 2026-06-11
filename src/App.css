@@ -2121,3 +2121,28 @@ select {
   font-weight: 800;
   cursor: pointer;
 }
+
+/* ------------------------------------------------------------
+   Activity style badges
+   ------------------------------------------------------------ */
+
+.activity-style-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.32rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.simple-style-badge {
+  background: #e7f5df;
+  color: #31572c;
+}
+
+.pretend-style-badge {
+  background: #ede7ff;
+  color: #4a357f;
+}

@@ -101,6 +101,24 @@ function formatAdultHelpLabel(adultHelp) {
   return null;
 }
 
+function formatActivityStyleLabel(activityStyle) {
+  // This converts the backend activityStyle field into a short UI label.
+  //
+  // Backend values:
+  // - simple
+  // - imaginative
+  if (activityStyle === "simple") {
+    return "Simple";
+  }
+
+  if (activityStyle === "imaginative") {
+    return "Pretend";
+  }
+
+  // Fallback for older saved activities or older backend responses.
+  return "Activity";
+}
+
 // This component displays the activity choices returned by the AI.
 //
 // Product goal:
@@ -187,13 +205,12 @@ function ActivityResults({
     <section className="panel results-panel">
       <div className="panel-header">
         <div>
-          <p className="eyebrow dark">Quest Board</p>
+          <p className="eyebrow dark">Activity Board</p>
 
-          <h2>Pick your quest</h2>
+          <h2>Pick something to do</h2>
 
           <p>
-            Choose one to start, or open details if you want to read the full
-            mission first.
+            Choose one to start, or open details if you want to see the steps first.
           </p>
         </div>
       </div>
@@ -209,10 +226,15 @@ function ActivityResults({
           const activity = scoredActivity.activity;
           const score = scoredActivity.score;
 
+          // Simple activities should be displayed differently from imaginative quests.
+          // This is the key UI branch for the result cards.
+          const isSimpleActivity = activity.activityStyle === "simple";
+
+          const activityStyleLabel = formatActivityStyleLabel(activity.activityStyle);
+
           // Because App.jsx sorts scoredActivities highest score first,
           // the first item is the best match.
           const isBestFit = index === 0 && typeof score === "number";
-
           // Defensive cleanup:
           // The AI should return arrays, but we still protect the UI
           // in case something comes back missing or malformed.
@@ -246,6 +268,16 @@ function ActivityResults({
               <div className="quest-choice-main">
                 <div>
                   <div className="quest-card-topline">
+                    <span
+                      className={
+                        isSimpleActivity
+                          ? "activity-style-badge simple-style-badge"
+                          : "activity-style-badge pretend-style-badge"
+                      }
+                    >
+                      {activityStyleLabel}
+                    </span>
+
                     {isBestFit && (
                       <span className="best-fit-badge">Best fit right now</span>
                     )}
@@ -257,7 +289,7 @@ function ActivityResults({
 
                   <h3>{activity.title}</h3>
 
-                  {activity.theme && (
+                  {!isSimpleActivity && activity.theme && (
                     <p className="activity-theme">{activity.theme}</p>
                   )}
 
@@ -305,21 +337,21 @@ function ActivityResults({
 
               {detailsAreOpen && (
                 <div className="quest-details">
-                  {activity.kidRole && (
+                  {!isSimpleActivity && activity.kidRole && (
                     <div className="quest-box role-box">
                       <h4>Your role</h4>
                       <p>{activity.kidRole}</p>
                     </div>
                   )}
 
-                  {activity.mission && (
+                  {!isSimpleActivity && activity.mission && (
                     <div className="quest-box mission-box">
                       <h4>Your mission</h4>
                       <p>{activity.mission}</p>
                     </div>
                   )}
 
-                  {starterPrompts.length > 0 && (
+                  {!isSimpleActivity && starterPrompts.length > 0 && (
                     <div className="quest-box prompt-box">
                       <h4>Starter prompts</h4>
 
@@ -331,7 +363,7 @@ function ActivityResults({
                     </div>
                   )}
 
-                  {firstMoves.length > 0 && (
+                  {!isSimpleActivity && firstMoves.length > 0 && (
                     <div className="quest-box first-moves-box">
                       <h4>First moves</h4>
 
@@ -343,7 +375,7 @@ function ActivityResults({
                     </div>
                   )}
 
-                  {roles.length > 0 && (
+                  {!isSimpleActivity && roles.length > 0 && (
                     <div className="quest-box roles-box">
                       <h4>Roles</h4>
 
@@ -357,7 +389,7 @@ function ActivityResults({
 
                   {steps.length > 0 && (
                     <div className="quest-box">
-                      <h4>Quest steps</h4>
+                      <h4>{isSimpleActivity ? "Steps" : "Quest steps"}</h4>
 
                       <ol>
                         {steps.map((step) => (
@@ -367,7 +399,7 @@ function ActivityResults({
                     </div>
                   )}
 
-                  {extensionIdeas.length > 0 && (
+                  {!isSimpleActivity && extensionIdeas.length > 0 && (
                     <div className="quest-box extension-box">
                       <h4>Keep going</h4>
 
@@ -400,7 +432,7 @@ function ActivityResults({
 
                   <div className="details-actions">
                     <button onClick={() => handleStartActivity(activity)}>
-                      Start this quest
+                      {isSimpleActivity ? "Start this activity" : "Start this quest"}
                     </button>
 
                     <button
