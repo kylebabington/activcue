@@ -1277,15 +1277,15 @@ Prioritize activities that require the least decision-making from the child.
     const selectedActivity = getBestActivityForCurrentMoment(generatedActivities);
 
     if (!selectedActivity) {
-      setErrorMessage("I could not start a quest automatically. Try choosing a quest instead.");
+      setErrorMessage("I could not start an activity automatically. Try choosing one instead.");
       navigate("/quest");
       return;
     }
 
-    // Start the quest immediately.
+    // Start the activity immediately.
     handleStartActivity(selectedActivity);
 
-    // Move the child to the Quest page where the active timer panel lives.
+    // Move the child to the activity page where the active timer panel lives.
     navigate("/quest");
 
     setErrorMessage(`Started: "${selectedActivity.title}" because it fits right now.`);
@@ -1306,6 +1306,12 @@ Prioritize activities that require the least decision-making from the child.
 
       // Activity traits.
       // These are what feedback-weighted scoring learns from later.
+      activityStyle:
+        activity.activityStyle === "simple" ||
+          activity.activityStyle === "imaginative"
+          ? activity.activityStyle
+          : "simple",
+
       energy: activity.energy || "medium",
       mess: activity.mess || "low",
       adultHelp: activity.adultHelp || "optional",
@@ -1333,8 +1339,17 @@ Prioritize activities that require the least decision-making from the child.
       // That lets us delete it later without relying on the title.
       id: crypto.randomUUID(),
 
-      // Main quest identity.
+      // Main activity identity.
       title: activity.title,
+
+      // Save whether this is a simple activity or an imaginative quest.
+      // This matters when replaying saved activities later.
+      activityStyle:
+        activity.activityStyle === "simple" ||
+          activity.activityStyle === "imaginative"
+          ? activity.activityStyle
+          : "simple",
+
       theme: activity.theme || "",
       summary: activity.summary || "",
 
@@ -1392,14 +1407,27 @@ Prioritize activities that require the least decision-making from the child.
     // A hint from the previous quest should not appear on this replayed quest.
     setStepHint("");
 
+    // Normalize the saved activity before replaying it.
+    // Older saved activities may not have activityStyle because this field
+    // was added later.
+    const activityToReplay = {
+      ...savedActivity,
+
+      activityStyle:
+        savedActivity.activityStyle === "simple" ||
+          savedActivity.activityStyle === "imaginative"
+          ? savedActivity.activityStyle
+          : "simple",
+    };
+
     // Start the saved activity using the same existing start logic.
     // This gives it a fresh timer, fresh ID, and guided step state.
-    handleStartActivity(savedActivity);
+    handleStartActivity(activityToReplay);
 
     // Move the user to the active quest screen.
     navigate("/quest");
 
-    setErrorMessage(`Replaying saved quest: "${savedActivity.title}".`);
+    setErrorMessage(`Replaying saved activity: "${savedActivity.title}".`);
   }
 
   function handleStartActivity(activity) {
