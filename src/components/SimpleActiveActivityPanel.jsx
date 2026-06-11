@@ -4,8 +4,8 @@ function SimpleActiveActivityPanel({
     activeActivity,
     stepHint,
     handleNeedStepHint,
-    completeActiveQuest,
-    cancelActiveQuest,
+    finishActiveActivity,
+    cancelActiveActivity,
 }) {
     // Keep these safe.
     // If the AI ever forgets an array, the UI still works.
@@ -65,11 +65,11 @@ function SimpleActiveActivityPanel({
                     Need a hint
                 </button>
 
-                <button type="button" onClick={completeActiveQuest}>
+                <button type="button" onClick={finishActiveActivity}>
                     Done
                 </button>
 
-                <button type="button" onClick={cancelActiveQuest}>
+                <button type="button" onClick={cancelActiveActivity}>
                     Stop
                 </button>
             </div>

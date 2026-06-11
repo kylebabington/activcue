@@ -1489,6 +1489,8 @@ Prioritize activities that require the least decision-making from the child.
     // Starting a new quest means the old completion screen should disappear.
     setLastCompletedQuest(null);
 
+    console.log("Activity being started:", activityToStart);
+
     setActiveActivity(activityToStart);
     saveActivityFeedback(activity, "started");
     setErrorMessage(`Started: "${activity.title}". Timer is running.`);

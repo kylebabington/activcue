@@ -191,12 +191,12 @@ function QuestPage({
     return (
         <section className="page-layout">
             <section className="hero-card compact-hero-card">
-                <p className="eyebrow">Quest Board</p>
+                <p className="eyebrow">Activity Board</p>
 
                 <h1>What should happen next?</h1>
 
                 <p>
-                    Start a saved quest, pick a new one, or follow the current mission.
+                    Start a saved activity, pick a new one, or follow what is already in progress.
                 </p>
             </section>
 
@@ -231,8 +231,8 @@ function QuestPage({
                     activeActivity={activeActivity}
                     stepHint={stepHint}
                     handleNeedStepHint={handleNeedStepHint}
-                    completeActiveQuest={completeActiveQuest}
-                    cancelActiveQuest={cancelActiveQuest}
+                    finishActiveActivity={finishActiveActivity}
+                    cancelActiveActivity={cancelActiveActivity}
                 />
             )}
 
