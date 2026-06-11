@@ -28,13 +28,13 @@ function ActivityHistoryPanel({
             <article key={index} className="activity-history-item">
               <div>
                 <h3>{item.title}</h3>
-                <span className="history-feedback-badge">
-                  {formatFeedbackLabel(item.feedback)}
+                <span className="activity-history-feedback-badge">
+                  {formatFeedbackLabel(item.feedbackType)}
                 </span>
               </div>
 
-              <p className="history-timestamp">
-                {new Date(item.timestamp).toLocaleDateString(undefined, {
+              <p className="activity-history-timestamp">
+                {new Date(item.createdAt).toLocaleDateString(undefined, {
                   month: "short",
                   day: "numeric",
                   hour: "numeric",

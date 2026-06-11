@@ -110,13 +110,6 @@ h1 {
   margin-bottom: 0;
 }
 
-.grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 18px;
-  margin-bottom: 18px;
-}
-
 .panel {
   background: rgba(255, 255, 255, 0.88);
   border: 1px solid rgba(47, 72, 88, 0.12);
@@ -195,14 +188,6 @@ select {
   color: #1f2933;
 }
 
-.add-row {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 10px;
-  margin-bottom: 16px;
-}
-
-.add-row button,
 .generate-button {
   border: 0;
   border-radius: 14px;
@@ -276,18 +261,25 @@ select {
   font-size: 1rem;
 }
 
-.error-message {
-  background: #fee2e2;
-  color: #991b1b;
+.status-message {
   border-radius: 14px;
   padding: 12px 14px;
   font-weight: 800;
 }
 
-.activity-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 18px;
+.status-message--error {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.status-message--success {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status-message--info {
+  background: #e0f2fe;
+  color: #0c4a6e;
 }
 
 .activity-card {
@@ -342,10 +334,7 @@ select {
 
 @media (max-width: 900px) {
 
-  .grid,
   .controls-grid,
-  .activity-grid,
-  .kid-choice-grid,
   .pin-row,
   .preset-grid,
   .custom-preset-item,
@@ -440,21 +429,21 @@ select {
   transform: translateY(-1px);
 }
 
-.history-panel {
-  margin-top: 18px;
-}
-
 .empty-text {
   color: #64748b;
   margin-bottom: 0;
 }
 
-.history-list {
+.activity-history-panel {
+  margin-top: 18px;
+}
+
+.activity-history-list {
   display: grid;
   gap: 10px;
 }
 
-.history-item {
+.activity-history-item {
   display: flex;
   justify-content: space-between;
   gap: 12px;
@@ -465,7 +454,12 @@ select {
   padding: 12px 14px;
 }
 
-.history-item span {
+.activity-history-item h3 {
+  margin: 0 0 6px;
+  font-size: 1rem;
+}
+
+.activity-history-feedback-badge {
   background: #eef2ff;
   color: #3730a3;
   border-radius: 999px;
@@ -475,67 +469,11 @@ select {
   white-space: nowrap;
 }
 
-.mode-switcher {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 18px;
-  background: rgba(255, 255, 255, 0.65);
-  border: 1px solid rgba(47, 72, 88, 0.12);
-  border-radius: 18px;
-  padding: 8px;
-}
-
-.mode-switcher button {
-  flex: 1;
-  border: 0;
-  border-radius: 14px;
-  padding: 14px 16px;
-  background: transparent;
-  color: #475569;
-  font-weight: 900;
-}
-
-.mode-switcher button.active {
-  background: #2f4858;
-  color: white;
-}
-
-.kid-mode {
-  display: grid;
-  gap: 18px;
-  margin-bottom: 18px;
-}
-
-.kid-status-panel h2 {
-  margin-bottom: 14px;
-}
-
-.kid-helper-text {
+.activity-history-timestamp {
   color: #64748b;
-  line-height: 1.5;
-}
-
-.kid-choice-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 14px;
-}
-
-.kid-choice-grid button {
-  min-height: 120px;
-  border: 0;
-  border-radius: 24px;
-  padding: 20px;
-  background: #2f4858;
-  color: white;
-  font-size: 1.25rem;
-  font-weight: 950;
-  text-align: left;
-  box-shadow: 0 12px 26px rgba(47, 72, 88, 0.18);
-}
-
-.kid-choice-grid button:hover {
-  transform: translateY(-2px);
+  font-size: 0.88rem;
+  margin: 0;
+  white-space: nowrap;
 }
 
 .kid-hero-card {

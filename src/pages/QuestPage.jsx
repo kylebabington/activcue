@@ -4,78 +4,13 @@ import { Link } from "react-router-dom";
 import ActiveActivityPanel from "../components/ActiveActivityPanel";
 import ActivityResults from "../components/ActivityResults";
 import SimpleActiveActivityPanel from "../components/SimpleActiveActivityPanel";
-
-function formatAvailabilityForBanner(availability) {
-    // Convert internal availability values into friendly text.
-    if (availability === "helper-welcome") {
-        return "Helper welcome";
-    }
-
-    if (availability === "ask-first") {
-        return "Ask first";
-    }
-
-    if (availability === "do-not-interrupt") {
-        return "Do not interrupt";
-    }
-
-    if (availability === "available") {
-        return "Available";
-    }
-
-    return "Check first";
-}
-
-function formatNoiseForBanner(noiseLevel) {
-    // Convert internal noise values into friendly text.
-    if (noiseLevel === "quiet") {
-        return "Quiet";
-    }
-
-    if (noiseLevel === "normal") {
-        return "Normal noise";
-    }
-
-    if (noiseLevel === "loud") {
-        return "Loud okay";
-    }
-
-    return "Noise not set";
-}
-
-function formatMessForBanner(messLevel) {
-    // Convert internal mess values into friendly text.
-    if (messLevel === "low") {
-        return "Low mess";
-    }
-
-    if (messLevel === "medium") {
-        return "Medium mess";
-    }
-
-    if (messLevel === "high") {
-        return "Messy okay";
-    }
-
-    return "Mess not set";
-}
-
-function formatSupervisionForBanner(supervisionLevel) {
-    // Convert internal supervision values into friendly text.
-    if (supervisionLevel === "independent") {
-        return "No adult help";
-    }
-
-    if (supervisionLevel === "mostly-independent") {
-        return "Mostly independent";
-    }
-
-    if (supervisionLevel === "nearby") {
-        return "Adult nearby";
-    }
-
-    return "Supervision not set";
-}
+import { useAppContext } from "../context/AppContext";
+import {
+    formatAvailabilityLabel,
+    formatMessForBanner,
+    formatNoiseForBanner,
+    formatSupervisionForBanner,
+} from "../utils/activityFormatters";
 
 function QuestCompleteSummary({
     lastCompletedQuest,
@@ -162,38 +97,39 @@ function QuestCompleteSummary({
 // This page owns the quest experience.
 // It shows the current running quest and the generated quest choices.
 
-function QuestPage({
-    currentMoment,
-    activeActivity,
-    lastCompletedQuest,
-    clearLastCompletedQuest,
-    handleCompletedQuestMoreLikeThis,
-    handleCompletedQuestNeedAnotherIdea,
-    timerSecondsRemaining,
-    finishActiveActivity,
-    cancelActiveActivity,
-    handleTimerNotFinished,
-    handleTimerNeedAnotherIdea,
-    handleTimerMoreLikeThis,
-    goToNextQuestStep,
-    goToPreviousQuestStep,
-    toggleQuestStepComplete,
-    toggleShowAllQuestSteps,
-    stepHint,
-    isHintLoading,
-    handleNeedStepHint,
-    formatTimer,
-    activities,
-    scoredActivities,
-    isLoading,
-    handleStartActivity,
-    saveFavoriteActivity,
-    handleTooMessy,
-    handleTooHard,
-    handleNeedQuieter,
-    handleMoreLikeThis,
-    handleAutoPickQuest,
-}) {
+function QuestPage() {
+    const {
+        currentMoment,
+        activeActivity,
+        lastCompletedQuest,
+        clearLastCompletedQuest,
+        handleCompletedQuestMoreLikeThis,
+        handleCompletedQuestNeedAnotherIdea,
+        timerSecondsRemaining,
+        finishActiveActivity,
+        cancelActiveActivity,
+        handleTimerNotFinished,
+        handleTimerNeedAnotherIdea,
+        handleTimerMoreLikeThis,
+        goToNextQuestStep,
+        goToPreviousQuestStep,
+        toggleQuestStepComplete,
+        toggleShowAllQuestSteps,
+        stepHint,
+        isHintLoading,
+        handleNeedStepHint,
+        formatTimer,
+        activities,
+        scoredActivities,
+        isLoading,
+        handleStartActivity,
+        saveFavoriteActivity,
+        handleTooMessy,
+        handleTooHard,
+        handleNeedQuieter,
+        handleMoreLikeThis,
+        handleAutoPickQuest,
+    } = useAppContext();
     return (
         <section className="page-layout">
             <section className="hero-card compact-hero-card">
@@ -217,7 +153,7 @@ function QuestPage({
                     </div>
 
                     <div className="moment-chip-list">
-                        <span>{formatAvailabilityForBanner(currentMoment.availability)}</span>
+                        <span>{formatAvailabilityLabel(currentMoment.availability)}</span>
 
                         <span>{Number(currentMoment.timeNeededMinutes) || 20} min</span>
 

@@ -1,13 +1,11 @@
 // src/pages/KidPage.jsx
 
 function KidPage({
-    parentStatus,
     currentMoment,
     ParentStatusCard,
     kidEnergyLevel,
     setKidEnergyLevel,
     kidActivityStyle,
-    setKidActivityStyle,
     handleKidQuickChoice,
     handleStartSomethingForMe,
     isLoading,
@@ -36,7 +34,12 @@ function KidPage({
                 </p>
             </section>
 
-            <ParentStatusCard parentStatus={parentStatus} />
+            <ParentStatusCard
+                parentStatus={{
+                    activity: currentMoment.parentActivity,
+                    availability: currentMoment.availability,
+                }}
+            />
 
             {currentMoment?.availability === "do-not-interrupt" && (
                 <section className="panel try-first-panel">

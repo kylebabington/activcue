@@ -8,622 +8,18 @@ import ParentPage from "./pages/ParentPage";
 import KidPage from "./pages/KidPage";
 import QuestPage from "./pages/QuestPage";
 import SettingsPage from "./pages/SettingsPage";
+import { AppProvider } from "./context/AppContext";
 import "./App.css";
+import { defaultParentStatusPresets, inventoryCategories } from "./constants/presets";
+import { getTotalActivityScore, logActivityScoreTable } from "./utils/activityScoring";
+import { normalizeActivityStyle } from "./utils/activityStyle";
+import {
+  formatAvailabilityLabel,
+  formatAvailabilityMessage,
+  formatFeedbackLabel,
+  formatTimer,
+} from "./utils/activityFormatters";
 
-const defaultParentStatusPresets = [
-  {
-    label: "Cooking",
-    activity: "Cooking dinner",
-    availability: "helper-welcome",
-    timeNeededMinutes: 20,
-    space: "Kitchen table",
-    messLevel: "low",
-    noiseLevel: "normal",
-    supervisionLevel: "nearby",
-  },
-  {
-    label: "Cleaning",
-    activity: "Cleaning the house",
-    availability: "helper-welcome",
-    timeNeededMinutes: 20,
-    space: "Living room",
-    messLevel: "low",
-    noiseLevel: "normal",
-    supervisionLevel: "nearby",
-  },
-  {
-    label: "Work call",
-    activity: "On a work call",
-    availability: "do-not-interrupt",
-    timeNeededMinutes: 30,
-    space: "Living room",
-    messLevel: "low",
-    noiseLevel: "quiet",
-    supervisionLevel: "independent",
-  },
-  {
-    label: "Paying bills",
-    activity: "Paying bills",
-    availability: "ask-first",
-    timeNeededMinutes: 20,
-    space: "Kitchen table",
-    messLevel: "low",
-    noiseLevel: "quiet",
-    supervisionLevel: "mostly-independent",
-  },
-  {
-    label: "Resting",
-    activity: "Resting",
-    availability: "do-not-interrupt",
-    timeNeededMinutes: 30,
-    space: "Bedroom",
-    messLevel: "low",
-    noiseLevel: "quiet",
-    supervisionLevel: "independent",
-  },
-  {
-    label: "Yard work",
-    activity: "Doing yard work",
-    availability: "helper-welcome",
-    timeNeededMinutes: 30,
-    space: "Backyard",
-    messLevel: "medium",
-    noiseLevel: "normal",
-    supervisionLevel: "nearby",
-  },
-  {
-    label: "Errands",
-    activity: "Handling errands",
-    availability: "ask-first",
-    timeNeededMinutes: 15,
-    space: "Living room",
-    messLevel: "low",
-    noiseLevel: "normal",
-    supervisionLevel: "mostly-independent",
-  },
-  {
-    label: "Helping sibling",
-    activity: "Helping someone else",
-    availability: "ask-first",
-    timeNeededMinutes: 20,
-    space: "Living room",
-    messLevel: "low",
-    noiseLevel: "normal",
-    supervisionLevel: "mostly-independent",
-  },
-];
-const inventoryCategories = [
-  "Building toys",
-  "Art supplies",
-  "Outdoor gear",
-  "Pretend play",
-  "Books",
-  "Board games",
-  "Household-safe items",
-  "STEM / experiments",
-  "Quiet activities",
-  "Other",
-];
-
-function normalizeTextValue(value) {
-  // This helper makes text easier to compare.
-  //
-  // Example:
-  // "Low" becomes "low"
-  // "  LOW  " becomes "low"
-  //
-  // This protects us from capitalization or spacing weirdness.
-  if (typeof value !== "string") {
-    return "";
-  }
-
-  return value.trim().toLowerCase();
-}
-
-function getActivityDurationMinutes(activity) {
-  // Prefer the new estimatedMinutes field from the backend.
-  const estimatedMinutes = Number(activity.estimatedMinutes);
-
-  // Number.isFinite checks that this is a real usable number.
-  if (Number.isFinite(estimatedMinutes) && estimatedMinutes > 0) {
-    return estimatedMinutes;
-  }
-
-  // Fallback: if no estimate exists, return null.
-  // That lets the scoring function know it cannot judge duration.
-  return null;
-}
-
-function activityUsesItem(activity, itemName) {
-  // Make sure activity.uses is an array.
-  const uses = Array.isArray(activity.uses) ? activity.uses : [];
-
-  // Normalize the item name we are looking for.
-  const normalizedItemName = normalizeTextValue(itemName);
-
-  // If itemName is missing or blank, this cannot match.
-  if (!normalizedItemName) {
-    return false;
-  }
-
-  // Check whether any item in activity.uses includes this item name.
-  //
-  // Example:
-  // itemName = "lego"
-  // use = "LEGO bricks"
-  // match = true
-  return uses.some((use) => {
-    const normalizedUse = normalizeTextValue(use);
-
-    return normalizedUse.includes(normalizedItemName);
-  });
-}
-
-function scoreActivityForCurrentMoment(activity, currentMoment) {
-  // Every activity starts at zero.
-  // Good matches add points.
-  // Bad matches subtract points.
-  let score = 0;
-
-  // Normalize values so comparisons are reliable.
-  const activityMess = normalizeTextValue(activity.mess);
-  const activityEnergy = normalizeTextValue(activity.energy);
-  const activityAdultHelp = normalizeTextValue(activity.adultHelp);
-
-  const momentMessLevel = normalizeTextValue(currentMoment?.messLevel);
-  const momentNoiseLevel = normalizeTextValue(currentMoment?.noiseLevel);
-  const momentSupervisionLevel = normalizeTextValue(
-    currentMoment?.supervisionLevel
-  );
-  const momentAvailability = normalizeTextValue(currentMoment?.availability);
-
-  const targetMinutes = Number(currentMoment?.timeNeededMinutes) || 20;
-  const activityMinutes = getActivityDurationMinutes(activity);
-
-  const steps = Array.isArray(activity.steps) ? activity.steps : [];
-  const uses = Array.isArray(activity.uses) ? activity.uses : [];
-  const firstMoves = Array.isArray(activity.firstMoves)
-    ? activity.firstMoves
-    : [];
-  const starterPrompts = Array.isArray(activity.starterPrompts)
-    ? activity.starterPrompts
-    : [];
-
-  // ------------------------------------------------------------
-  // 1. Duration scoring
-  // ------------------------------------------------------------
-  // If the activity has an estimated time and fits inside the parent's
-  // requested window, reward it.
-  if (activityMinutes !== null && activityMinutes <= targetMinutes) {
-    score += 4;
-  }
-
-  // If it is only a tiny bit longer, minor penalty.
-  // Example: parent needs 20 minutes, activity says 25.
-  if (activityMinutes !== null && activityMinutes > targetMinutes) {
-    const minutesOver = activityMinutes - targetMinutes;
-
-    if (minutesOver <= 5) {
-      score -= 1;
-    } else if (minutesOver <= 10) {
-      score -= 3;
-    } else {
-      score -= 6;
-    }
-  }
-
-  // If no duration exists, small penalty.
-  // We do not completely reject it, because old activities may not have this field.
-  if (activityMinutes === null) {
-    score -= 1;
-  }
-
-  // ------------------------------------------------------------
-  // 2. Mess scoring
-  // ------------------------------------------------------------
-  // Exact mess match is good.
-  if (activityMess && activityMess === momentMessLevel) {
-    score += 4;
-  }
-
-  // If parent asked for low mess, medium/high mess should be punished.
-  if (momentMessLevel === "low") {
-    if (activityMess === "medium") {
-      score -= 3;
-    }
-
-    if (activityMess === "high") {
-      score -= 7;
-    }
-  }
-
-  // If parent allows medium mess, high mess is still a little risky.
-  if (momentMessLevel === "medium" && activityMess === "high") {
-    score -= 2;
-  }
-
-  // ------------------------------------------------------------
-  // 3. Noise / energy scoring
-  // ------------------------------------------------------------
-  // Your backend uses energy: low | medium | high.
-  // Your currentMoment uses noiseLevel: quiet | normal | loud.
-  //
-  // So we map:
-  // quiet  -> prefer low energy
-  // normal -> low or medium are okay
-  // loud   -> high is okay
-  if (momentNoiseLevel === "quiet") {
-    if (activityEnergy === "low") {
-      score += 5;
-    }
-
-    if (activityEnergy === "medium") {
-      score -= 2;
-    }
-
-    if (activityEnergy === "high") {
-      score -= 7;
-    }
-  }
-
-  if (momentNoiseLevel === "normal") {
-    if (activityEnergy === "low" || activityEnergy === "medium") {
-      score += 3;
-    }
-
-    if (activityEnergy === "high") {
-      score -= 2;
-    }
-  }
-
-  if (momentNoiseLevel === "loud") {
-    if (activityEnergy === "high") {
-      score += 3;
-    }
-
-    if (activityEnergy === "medium") {
-      score += 2;
-    }
-
-    if (activityEnergy === "low") {
-      score += 1;
-    }
-  }
-
-  // ------------------------------------------------------------
-  // 4. Adult help / supervision scoring
-  // ------------------------------------------------------------
-  // If the current moment says independent, we strongly prefer no adult help.
-  if (
-    momentSupervisionLevel === "independent" ||
-    momentAvailability === "do-not-interrupt"
-  ) {
-    if (activityAdultHelp === "none") {
-      score += 6;
-    }
-
-    if (activityAdultHelp === "optional") {
-      score += 1;
-    }
-
-    if (activityAdultHelp === "needed") {
-      score -= 10;
-    }
-  }
-
-  // If mostly independent, optional help is okay.
-  if (momentSupervisionLevel === "mostly-independent") {
-    if (activityAdultHelp === "none") {
-      score += 4;
-    }
-
-    if (activityAdultHelp === "optional") {
-      score += 3;
-    }
-
-    if (activityAdultHelp === "needed") {
-      score -= 5;
-    }
-  }
-
-  // If adult is nearby/helper-welcome, adult optional is fine.
-  if (
-    momentSupervisionLevel === "nearby" ||
-    momentAvailability === "helper-welcome"
-  ) {
-    if (activityAdultHelp === "none") {
-      score += 2;
-    }
-
-    if (activityAdultHelp === "optional") {
-      score += 3;
-    }
-
-    if (activityAdultHelp === "needed") {
-      score -= 1;
-    }
-  }
-
-  // ------------------------------------------------------------
-  // 5. Startability scoring
-  // ------------------------------------------------------------
-  // We want quests that are easy to begin.
-  //
-  // A child should not have to read a novel before doing step one.
-  if (firstMoves.length > 0) {
-    score += 2;
-  }
-
-  if (starterPrompts.length > 0) {
-    score += 1;
-  }
-
-  if (steps.length > 0 && steps.length <= 5) {
-    score += 2;
-  }
-
-  if (steps.length > 5) {
-    score -= 1;
-  }
-
-  // ------------------------------------------------------------
-  // 6. Supplies scoring
-  // ------------------------------------------------------------
-  // Activities using known supplies are usually more actionable.
-  if (uses.length > 0) {
-    score += 2;
-  }
-
-  if (uses.length > 3) {
-    score -= 1;
-  }
-
-  // ------------------------------------------------------------
-  // 7. Extra safety penalties based on words in the activity
-  // ------------------------------------------------------------
-  // This is a simple guardrail.
-  // It catches obvious risky words even if the structured fields are imperfect.
-  const searchableActivityText = [
-    activity.title,
-    activity.summary,
-    activity.theme,
-    activity.mission,
-    ...(Array.isArray(activity.steps) ? activity.steps : []),
-    ...(Array.isArray(activity.uses) ? activity.uses : []),
-  ]
-    .join(" ")
-    .toLowerCase();
-
-  if (momentMessLevel === "low") {
-    const messyWords = ["paint", "glue", "water", "mud", "slime", "sand"];
-
-    const hasMessyWord = messyWords.some((word) =>
-      searchableActivityText.includes(word)
-    );
-
-    if (hasMessyWord) {
-      score -= 4;
-    }
-  }
-
-  if (momentNoiseLevel === "quiet") {
-    const loudWords = ["race", "jump", "shout", "yell", "drum", "dance party"];
-
-    const hasLoudWord = loudWords.some((word) =>
-      searchableActivityText.includes(word)
-    );
-
-    if (hasLoudWord) {
-      score -= 4;
-    }
-  }
-
-  return score;
-}
-
-function scoreActivityFromHistory(activity, activityHistory) {
-  // This function adjusts the score based on previous family feedback.
-  //
-  // It does NOT replace current-moment scoring.
-  // It adds a memory layer on top of it.
-
-  let score = 0;
-
-  // If there is no history yet, there is nothing to learn from.
-  if (!Array.isArray(activityHistory) || activityHistory.length === 0) {
-    return score;
-  }
-
-  // Normalize current activity values.
-  const activityEnergy = normalizeTextValue(activity.energy);
-  const activityMess = normalizeTextValue(activity.mess);
-  const activityAdultHelp = normalizeTextValue(activity.adultHelp);
-
-  const steps = Array.isArray(activity.steps) ? activity.steps : [];
-  const uses = Array.isArray(activity.uses) ? activity.uses : [];
-
-  // Look at recent history only.
-  // We do not want old feedback from months ago dominating forever.
-  const recentHistory = activityHistory.slice(-30);
-
-  // Count feedback types.
-  const tooMessyCount = recentHistory.filter(
-    (historyItem) => historyItem.feedbackType === "too-messy"
-  ).length;
-
-  const needQuieterCount = recentHistory.filter(
-    (historyItem) => historyItem.feedbackType === "need-quieter"
-  ).length;
-
-  const tooHardCount = recentHistory.filter(
-    (historyItem) => historyItem.feedbackType === "too-hard"
-  ).length;
-
-  const moreLikeThisItems = recentHistory.filter(
-    (historyItem) =>
-      historyItem.feedbackType === "more-like-this" ||
-      historyItem.feedbackType === "timer-more-like-this"
-  );
-
-  const finishedItems = recentHistory.filter(
-    (historyItem) => historyItem.feedbackType === "finished"
-  );
-
-  const canceledItems = recentHistory.filter(
-    (historyItem) => historyItem.feedbackType === "canceled"
-  );
-
-  // ------------------------------------------------------------
-  // Mess learning
-  // ------------------------------------------------------------
-  // If the family often rejects things as too messy,
-  // penalize medium and high mess activities.
-  if (tooMessyCount >= 2) {
-    if (activityMess === "medium") {
-      score -= 2;
-    }
-
-    if (activityMess === "high") {
-      score -= 5;
-    }
-  }
-
-  // ------------------------------------------------------------
-  // Noise / energy learning
-  // ------------------------------------------------------------
-  // If the family often asks for quieter ideas,
-  // penalize high energy and slightly penalize medium energy.
-  if (needQuieterCount >= 2) {
-    if (activityEnergy === "medium") {
-      score -= 2;
-    }
-
-    if (activityEnergy === "high") {
-      score -= 5;
-    }
-
-    if (activityEnergy === "low") {
-      score += 2;
-    }
-  }
-
-  // ------------------------------------------------------------
-  // Difficulty learning
-  // ------------------------------------------------------------
-  // If activities are often too hard, prefer shorter step lists
-  // and no-adult-help activities.
-  if (tooHardCount >= 2) {
-    if (steps.length > 5) {
-      score -= 3;
-    }
-
-    if (steps.length > 0 && steps.length <= 4) {
-      score += 2;
-    }
-
-    if (activityAdultHelp === "needed") {
-      score -= 4;
-    }
-
-    if (activityAdultHelp === "none") {
-      score += 2;
-    }
-  }
-
-  // ------------------------------------------------------------
-  // Positive learning from "more like this"
-  // ------------------------------------------------------------
-  // If the user asks for more like a previous quest,
-  // boost activities with similar supplies.
-  moreLikeThisItems.forEach((historyItem) => {
-    const historyUses = Array.isArray(historyItem.uses) ? historyItem.uses : [];
-
-    historyUses.forEach((usedItem) => {
-      if (activityUsesItem(activity, usedItem)) {
-        score += 2;
-      }
-    });
-  });
-
-  // ------------------------------------------------------------
-  // Positive learning from finished quests
-  // ------------------------------------------------------------
-  // If quests were finished, reward similar basic traits.
-  finishedItems.forEach((historyItem) => {
-    if (historyItem.energy && normalizeTextValue(historyItem.energy) === activityEnergy) {
-      score += 1;
-    }
-
-    if (historyItem.mess && normalizeTextValue(historyItem.mess) === activityMess) {
-      score += 1;
-    }
-
-    if (
-      historyItem.adultHelp &&
-      normalizeTextValue(historyItem.adultHelp) === activityAdultHelp
-    ) {
-      score += 1;
-    }
-  });
-
-  // ------------------------------------------------------------
-  // Negative learning from canceled quests
-  // ------------------------------------------------------------
-  // If quests were canceled, gently penalize similar titles.
-  // This avoids repeating a quest the family abandoned.
-  canceledItems.forEach((historyItem) => {
-    const historyTitle = normalizeTextValue(historyItem.title);
-    const activityTitle = normalizeTextValue(activity.title);
-
-    if (historyTitle && activityTitle && historyTitle === activityTitle) {
-      score -= 6;
-    }
-  });
-
-  // ------------------------------------------------------------
-  // Supply sanity bonus
-  // ------------------------------------------------------------
-  // If the activity uses at least one item, give a tiny boost.
-  // The more concrete it is, the easier it is to start.
-  if (uses.length > 0) {
-    score += 1;
-  }
-
-  return score;
-}
-
-function getTotalActivityScore(activity, currentMoment, activityHistory) {
-  const currentMomentScore = scoreActivityForCurrentMoment(
-    activity,
-    currentMoment
-  );
-  const historyScore = scoreActivityFromHistory(activity, activityHistory);
-  return currentMomentScore + historyScore;
-}
-
-function logActivityScoreTable(scoredOptions, currentMoment, activityHistory) {
-  if (!Array.isArray(scoredOptions) || scoredOptions.length === 0) {
-    return;
-  }
-
-  console.table(
-    scoredOptions.map((item) => {
-      return {
-        title: item.activity.title,
-        totalScore: item.score,
-        currentMomentScore: scoreActivityForCurrentMoment(
-          item.activity,
-          currentMoment
-        ),
-        historyScore: scoreActivityFromHistory(item.activity, activityHistory),
-        estimatedMinutes: item.activity.estimatedMinutes,
-        mess: item.activity.mess,
-        energy: item.activity.energy,
-        adultHelp: item.activity.adultHelp,
-      };
-    })
-  );
-}
 
 function App() {
   const navigate = useNavigate();
@@ -728,15 +124,6 @@ function App() {
     "indoor"
   );
 
-  const [activitySpace] = useLocalStorage(
-    "activitySpace",
-    "Living room"
-  );
-
-  const [customActivitySpace] = useLocalStorage(
-    "customActivitySpace",
-    ""
-  );
   const [childAgeRange] = useLocalStorage(
     "childAgeRange",
     "6-9"
@@ -797,7 +184,14 @@ function App() {
       return;
     }
 
-    logActivityScoreTable(scoredActivities, currentMoment, activityHistory);
+    const scored = activities
+      .map((activity) => ({
+        activity,
+        score: getTotalActivityScore(activity, currentMoment, activityHistory),
+      }))
+      .sort((a, b) => b.score - a.score);
+
+    logActivityScoreTable(scored, currentMoment, activityHistory);
   }, [activities, currentMoment, activityHistory]);
 
   const timerSecondsRemaining = useActivityTimer(activeActivity);
@@ -808,15 +202,22 @@ function App() {
   );
 
   const [isLoading, setIsLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
+  const [statusMessage, setStatusMessage] = useState("");
+  const [statusType, setStatusType] = useState("info");
+
+  function showStatus(message, type = "info") {
+    if (!message) {
+      setStatusMessage("");
+      setStatusType("info");
+      return;
+    }
+
+    setStatusMessage(message);
+    setStatusType(type);
+  }
 
   const [stepHint, setStepHint] = useState("");
   const [isHintLoading, setIsHintLoading] = useState(false);
-
-  const activeActivitySpace =
-    activitySpace === "Custom" && customActivitySpace.trim() !== ""
-      ? customActivitySpace.trim()
-      : activitySpace;
 
   const activeChildProfile =
     childProfiles.find((child) => child.id === activeChildId) || null;
@@ -863,7 +264,7 @@ function App() {
         preset.supervisionLevel || currentMoment.supervisionLevel,
     });
 
-    setErrorMessage(`Current moment set to "${preset.label}".`);
+    showStatus(`Current moment set to "${preset.label}".`, "success");
   }
   // This helper updates one field inside currentMoment.
   //
@@ -873,10 +274,12 @@ function App() {
   // That keeps the rest of currentMoment the same,
   // but changes only the space field.
   function updateCurrentMoment(fieldName, newValue) {
-    setCurrentMoment({
+    const nextMoment = {
       ...currentMoment,
       [fieldName]: newValue,
-    });
+    };
+    setCurrentMoment(nextMoment);
+    setParentStatus(parentStatusFromMoment(nextMoment));
   }
 
   function applyCurrentMomentQuickAdjust(adjustment) {
@@ -890,12 +293,14 @@ function App() {
     //
     // We spread currentMoment first, then adjustment second.
     // That means adjustment overwrites only the fields it contains.
-    setCurrentMoment({
+    const nextMoment = {
       ...currentMoment,
       ...adjustment,
-    });
+    };
+    setCurrentMoment(nextMoment);
+    setParentStatus(parentStatusFromMoment(nextMoment));
 
-    setErrorMessage("Current moment updated.");
+    showStatus("Current moment updated.", "success");
   }
 
   function updateSafetySetting(settingName, newValue) {
@@ -918,7 +323,7 @@ function App() {
     const cleanedNeeds = newChildNeeds.trim();
 
     if (cleanedName === "") {
-      setErrorMessage("Child name is required.");
+      showStatus("Child name is required.", "error");
       return;
     }
 
@@ -927,7 +332,7 @@ function App() {
     );
 
     if (duplicateChild) {
-      setErrorMessage("A child with that name already exists.");
+      showStatus("A child with that name already exists.", "error");
       return;
     }
 
@@ -950,7 +355,7 @@ function App() {
     setNewChildInterests("");
     setNewChildNeeds("");
 
-    setErrorMessage(`Added child profile for ${cleanedName}.`);
+    showStatus(`Added child profile for ${cleanedName}.`, "success");
   }
 
   function deleteChildProfile(childIdToDelete) {
@@ -966,10 +371,11 @@ function App() {
       setActiveChildId("");
     }
 
-    setErrorMessage(
+    showStatus(
       childToDelete
         ? `Deleted child profile for ${childToDelete.name}.`
-        : "Child profile deleted."
+        : "Child profile deleted.",
+      "success"
     );
   }
 
@@ -1005,7 +411,7 @@ function App() {
     );
 
     if (itemAlreadyExists) {
-      setErrorMessage("That item is already in your inventory.");
+      showStatus("That item is already in your inventory.", "error");
       return;
     }
 
@@ -1018,7 +424,7 @@ function App() {
     setInventory([...normalizedInventory, itemToAdd]);
     setNewInventoryItem("");
     setNewInventoryCategory("Building toys");
-    setErrorMessage("");
+    showStatus("");
   }
 
   function removeInventoryItem(itemIdToRemove) {
@@ -1031,17 +437,17 @@ function App() {
     const cleanedPin = newPin.trim();
 
     if (cleanedPin.length < 4) {
-      setErrorMessage("PIN must be at least 4 digits.");
+      showStatus("PIN must be at least 4 digits.", "error");
       return;
     }
 
     setParentPin(cleanedPin);
-    setErrorMessage("Parent PIN saved.");
+    showStatus("Parent PIN saved.", "success");
   }
 
   async function handleGenerateActivities(customFeedbackContext = "") {
     setIsLoading(true);
-    setErrorMessage("");
+    showStatus("");
     setActivities([]);
 
     try {
@@ -1074,7 +480,7 @@ function App() {
         // This is the kid's selected style.
         // Current values should be something like:
         // "simple" or "imaginative"
-        activityStyle: activityMode,
+        activityStyle: kidActivityStyle,
 
         // Keep activityMode too so older code still works.
         // This prevents us from breaking anything that already depends on activityMode.
@@ -1096,8 +502,6 @@ function App() {
       };
       const generatedActivities = await getActivitySuggestions(activityRequest);
 
-      console.log("Generated activities:", generatedActivities);
-
       setActivities(generatedActivities);
 
       // Return the generated activities so other workflows can use them immediately.
@@ -1106,7 +510,7 @@ function App() {
       return generatedActivities;
     } catch (error) {
       console.error(error);
-      setErrorMessage("Something went wrong while generating ideas.");
+      showStatus("Something went wrong while generating ideas.", "error");
       return [];
     } finally {
       setIsLoading(false);
@@ -1277,7 +681,7 @@ Prioritize activities that require the least decision-making from the child.
     const selectedActivity = getBestActivityForCurrentMoment(generatedActivities);
 
     if (!selectedActivity) {
-      setErrorMessage("I could not start an activity automatically. Try choosing one instead.");
+      showStatus("I could not start an activity automatically. Try choosing one instead.", "error");
       navigate("/quest");
       return;
     }
@@ -1288,7 +692,7 @@ Prioritize activities that require the least decision-making from the child.
     // Move the child to the activity page where the active timer panel lives.
     navigate("/quest");
 
-    setErrorMessage(`Started: "${selectedActivity.title}" because it fits right now.`);
+    showStatus(`Started: "${selectedActivity.title}" because it fits right now.`, "success");
   }
 
   function saveActivityFeedback(activity, feedbackType) {
@@ -1306,11 +710,7 @@ Prioritize activities that require the least decision-making from the child.
 
       // Activity traits.
       // These are what feedback-weighted scoring learns from later.
-      activityStyle:
-        activity.activityStyle === "simple" ||
-          activity.activityStyle === "imaginative"
-          ? activity.activityStyle
-          : "simple",
+      activityStyle: normalizeActivityStyle(activity),
 
       energy: activity.energy || "medium",
       mess: activity.mess || "low",
@@ -1330,7 +730,7 @@ Prioritize activities that require the least decision-making from the child.
     );
 
     if (alreadySaved) {
-      setErrorMessage(`"${activity.title}" is already saved.`);
+      showStatus(`"${activity.title}" is already saved.`, "error");
       return;
     }
 
@@ -1344,11 +744,7 @@ Prioritize activities that require the least decision-making from the child.
 
       // Save whether this is a simple activity or an imaginative quest.
       // This matters when replaying saved activities later.
-      activityStyle:
-        activity.activityStyle === "simple" ||
-          activity.activityStyle === "imaginative"
-          ? activity.activityStyle
-          : "simple",
+      activityStyle: normalizeActivityStyle(activity),
 
       theme: activity.theme || "",
       summary: activity.summary || "",
@@ -1387,7 +783,7 @@ Prioritize activities that require the least decision-making from the child.
     };
 
     setSavedActivities([...savedActivities, favoriteActivity]);
-    setErrorMessage(`Saved favorite: "${activity.title}".`);
+    showStatus(`Saved favorite: "${activity.title}".`, "success");
   }
 
   function removeSavedActivity(activityId) {
@@ -1395,7 +791,7 @@ Prioritize activities that require the least decision-making from the child.
       savedActivities.filter((activity) => activity.id !== activityId)
     );
 
-    setErrorMessage("Saved activity removed.");
+    showStatus("Saved activity removed.", "success");
   }
 
   function handleReplaySavedActivity(savedActivity) {
@@ -1413,11 +809,7 @@ Prioritize activities that require the least decision-making from the child.
     const activityToReplay = {
       ...savedActivity,
 
-      activityStyle:
-        savedActivity.activityStyle === "simple" ||
-          savedActivity.activityStyle === "imaginative"
-          ? savedActivity.activityStyle
-          : "simple",
+      activityStyle: normalizeActivityStyle(savedActivity),
     };
 
     // Start the saved activity using the same existing start logic.
@@ -1427,7 +819,7 @@ Prioritize activities that require the least decision-making from the child.
     // Move the user to the active quest screen.
     navigate("/quest");
 
-    setErrorMessage(`Replaying saved activity: "${savedActivity.title}".`);
+    showStatus(`Replaying saved activity: "${savedActivity.title}".`, "success");
   }
 
   function handleStartActivity(activity) {
@@ -1448,13 +840,7 @@ Prioritize activities that require the least decision-making from the child.
 
       // This tells the UI whether this is a plain simple activity
       // or an imaginative quest.
-      activityStyle:
-        activity.activityStyle === "simple" ||
-          activity.activityStyle === "imaginative"
-          ? activity.activityStyle
-          : activityMode === "simple" || activityMode === "imaginative"
-            ? activityMode
-            : "simple",
+      activityStyle: normalizeActivityStyle(activity, kidActivityStyle),
 
       theme: activity.theme || "",
       summary: activity.summary || "",
@@ -1517,11 +903,9 @@ Prioritize activities that require the least decision-making from the child.
     // Starting a new quest means the old completion screen should disappear.
     setLastCompletedQuest(null);
 
-    console.log("Activity being started:", activityToStart);
-
     setActiveActivity(activityToStart);
     saveActivityFeedback(activity, "started");
-    setErrorMessage(`Started: "${activity.title}". Timer is running.`);
+    showStatus(`Started: "${activity.title}". Timer is running.`, "success");
   }
 
   function goToNextQuestStep() {
@@ -1637,7 +1021,7 @@ Prioritize activities that require the least decision-making from the child.
   async function handleNeedStepHint() {
     // If there is no active quest, there is no step to help with.
     if (!activeActivity) {
-      setErrorMessage("Start a activity first, then ask for a hint.");
+      showStatus("Start a activity first, then ask for a hint.", "error");
       return;
     }
 
@@ -1653,7 +1037,7 @@ Prioritize activities that require the least decision-making from the child.
 
     // If there is no current step, we cannot generate a useful hint.
     if (!currentStep) {
-      setErrorMessage("This activity does not have a current step to hint at.");
+      showStatus("This activity does not have a current step to hint at.", "error");
       return;
     }
 
@@ -1661,7 +1045,7 @@ Prioritize activities that require the least decision-making from the child.
     setIsHintLoading(true);
 
     // Clear old error messages before trying.
-    setErrorMessage("");
+    showStatus("");
 
     try {
       const hintRequest = {
@@ -1686,7 +1070,7 @@ Prioritize activities that require the least decision-making from the child.
       setStepHint(hint);
     } catch (error) {
       console.error(error);
-      setErrorMessage("I could not make a hint right now.");
+      showStatus("I could not make a hint right now.", "error");
     } finally {
       setIsHintLoading(false);
     }
@@ -1704,7 +1088,7 @@ Prioritize activities that require the least decision-making from the child.
   function handleAutoPickQuest() {
     // If there are no activities yet, there is nothing to start.
     if (activities.length === 0) {
-      setErrorMessage("No activities available yet. Choose something from Kid Mode first.");
+      showStatus("No activities available yet. Choose something from Kid Mode first.", "error");
       return;
     }
 
@@ -1712,7 +1096,7 @@ Prioritize activities that require the least decision-making from the child.
     const selectedActivity = getBestActivityForCurrentMoment(activities);
 
     if (!selectedActivity) {
-      setErrorMessage("I could not pick a activity yet. Try generating again.");
+      showStatus("I could not pick a activity yet. Try generating again.", "error");
       return;
     }
 
@@ -1720,8 +1104,9 @@ Prioritize activities that require the least decision-making from the child.
     handleStartActivity(selectedActivity);
 
     // Give the user clear feedback.
-    setErrorMessage(
-      `Auto-picked: "${selectedActivity.title}" because it best fits right now.`
+    showStatus(
+      `Auto-picked: "${selectedActivity.title}" because it best fits right now.`,
+      "success"
     );
   }
 
@@ -1794,11 +1179,7 @@ Prioritize activities that require the least decision-making from the child.
       title: activeActivity.title,
 
       // Preserve whether this was a simple activity or an imaginative quest.
-      activityStyle:
-        activeActivity.activityStyle === "simple" ||
-          activeActivity.activityStyle === "imaginative"
-          ? activeActivity.activityStyle
-          : "simple",
+      activityStyle: normalizeActivityStyle(activeActivity),
 
       theme: activeActivity.theme || "",
       summary: activeActivity.summary || "",
@@ -1826,11 +1207,7 @@ Prioritize activities that require the least decision-making from the child.
       id: crypto.randomUUID(),
       title: activeActivity.title,
 
-      activityStyle:
-        activeActivity.activityStyle === "simple" ||
-          activeActivity.activityStyle === "imaginative"
-          ? activeActivity.activityStyle
-          : "simple",
+      activityStyle: normalizeActivityStyle(activeActivity),
 
       feedbackType: "finished",
       createdAt: new Date().toISOString(),
@@ -1862,8 +1239,7 @@ Prioritize activities that require the least decision-making from the child.
     setActiveActivity(null);
     setStepHint("");
 
-    setErrorMessage(`Finished: "${activeActivity.title
-      }". Nice work.`);
+    showStatus(`Finished: "${activeActivity.title}". Nice work.`, "success");
   }
 
   function cancelActiveActivity() {
@@ -1875,11 +1251,7 @@ Prioritize activities that require the least decision-making from the child.
       id: crypto.randomUUID(),
       title: activeActivity.title,
 
-      activityStyle:
-        activeActivity.activityStyle === "simple" ||
-          activeActivity.activityStyle === "imaginative"
-          ? activeActivity.activityStyle
-          : "simple",
+      activityStyle: normalizeActivityStyle(activeActivity),
 
       feedbackType: "canceled",
       createdAt: new Date().toISOString(),
@@ -1904,7 +1276,7 @@ Prioritize activities that require the least decision-making from the child.
 
     setActiveActivity(null);
     setStepHint("");
-    setErrorMessage(`Canceled: "${activeActivity.title}".`);
+    showStatus(`Canceled: "${activeActivity.title}".`, "info");
   }
 
   function handleTimerNotFinished() {
@@ -1916,11 +1288,7 @@ Prioritize activities that require the least decision-making from the child.
       id: crypto.randomUUID(),
       title: activeActivity.title,
 
-      activityStyle:
-        activeActivity.activityStyle === "simple" ||
-          activeActivity.activityStyle === "imaginative"
-          ? activeActivity.activityStyle
-          : "simple",
+      activityStyle: normalizeActivityStyle(activeActivity),
 
       feedbackType: "not-finished",
       createdAt: new Date().toISOString(),
@@ -1932,8 +1300,9 @@ Prioritize activities that require the least decision-making from the child.
 
     setActivityHistory([...activityHistory, notFinishedHistoryItem]);
     setActiveActivity(null);
-    setErrorMessage(
-      `"${activeActivity.title}" was marked not finished. We’ll use that to improve suggestions.`
+    showStatus(
+      `"${activeActivity.title}" was marked not finished. We'll use that to improve suggestions.`,
+      "info"
     );
   }
 
@@ -2025,7 +1394,7 @@ Prioritize activities that require the least decision-making from the child.
   function handleCompletedQuestMoreLikeThis() {
     // If there is no completed quest summary, we cannot use it for feedback.
     if (!lastCompletedQuest?.activity) {
-      setErrorMessage("No completed quest to use yet.");
+      showStatus("No completed quest to use yet.", "error");
       return;
     }
 
@@ -2055,7 +1424,7 @@ Prioritize activities that require the least decision-making from the child.
 
   function clearActivityHistory() {
     setActivityHistory([]);
-    setErrorMessage("Activity history cleared.");
+    showStatus("Activity history cleared.", "success");
   }
 
   function resetSavedData() {
@@ -2081,6 +1450,73 @@ Prioritize activities that require the least decision-making from the child.
     window.localStorage.removeItem("currentMoment");
     window.location.reload();
   }
+
+  const appContextValue = {
+    currentMoment,
+    activeActivity,
+    lastCompletedQuest,
+    clearLastCompletedQuest,
+    handleCompletedQuestMoreLikeThis,
+    handleCompletedQuestNeedAnotherIdea,
+    timerSecondsRemaining,
+    finishActiveActivity,
+    cancelActiveActivity,
+    handleTimerNotFinished,
+    handleTimerNeedAnotherIdea,
+    handleTimerMoreLikeThis,
+    goToNextQuestStep,
+    goToPreviousQuestStep,
+    toggleQuestStepComplete,
+    toggleShowAllQuestSteps,
+    stepHint,
+    isHintLoading,
+    handleNeedStepHint,
+    formatTimer,
+    activities,
+    scoredActivities,
+    isLoading,
+    handleStartActivity,
+    saveFavoriteActivity,
+    handleTooMessy,
+    handleTooHard,
+    handleNeedQuieter,
+    handleMoreLikeThis,
+    handleAutoPickQuest,
+    safetySettings,
+    toggleSafetySetting,
+    updateSafetySetting,
+    inventoryCategories,
+    normalizedInventory,
+    newInventoryItem,
+    setNewInventoryItem,
+    newInventoryCategory,
+    setNewInventoryCategory,
+    addInventoryItem,
+    removeInventoryItem,
+    childProfiles,
+    activeChildId,
+    setActiveChildId,
+    newChildName,
+    setNewChildName,
+    newChildAgeRange,
+    setNewChildAgeRange,
+    newChildInterests,
+    setNewChildInterests,
+    newChildNeeds,
+    setNewChildNeeds,
+    addChildProfile,
+    deleteChildProfile,
+    parentPin,
+    ParentPinForm,
+    saveParentPin,
+    savedActivities,
+    handleReplaySavedActivity,
+    removeSavedActivity,
+    activityHistory,
+    clearActivityHistory,
+    formatFeedbackLabel,
+    resetSavedData,
+  };
 
   return (
     <main className="app-shell">
@@ -2125,8 +1561,13 @@ Prioritize activities that require the least decision-making from the child.
         </NavLink>
       </nav>
 
-      {errorMessage && <p className="error-message">{errorMessage}</p>}
+      {statusMessage && (
+        <p className={`status-message status-message--${statusType}`}>
+          {statusMessage}
+        </p>
+      )}
 
+      <AppProvider value={appContextValue}>
       <Routes>
         <Route path="/" element={<Navigate to="/parent" replace />} />
 
@@ -2139,11 +1580,10 @@ Prioritize activities that require the least decision-making from the child.
               currentMoment={currentMoment}
               updateCurrentMoment={updateCurrentMoment}
               applyCurrentMomentQuickAdjust={applyCurrentMomentQuickAdjust}
-              setCurrentMoment={setCurrentMoment}
               defaultParentStatusPresets={defaultParentStatusPresets}
               customParentPresets={customParentPresets}
               applyParentStatusPreset={applyParentStatusPreset}
-              getAvailabilityLabel={getAvailabilityLabel}
+              getAvailabilityLabel={formatAvailabilityLabel}
               ParentStatusCard={ParentStatusCard}
             />
           }
@@ -2153,13 +1593,11 @@ Prioritize activities that require the least decision-making from the child.
           path="/kid"
           element={
             <KidPage
-              parentStatus={parentStatus}
               currentMoment={currentMoment}
               ParentStatusCard={ParentStatusCard}
               kidEnergyLevel={kidEnergyLevel}
               setKidEnergyLevel={setKidEnergyLevel}
               kidActivityStyle={kidActivityStyle}
-              setKidActivityStyle={setKidActivityStyle}
               handleKidQuickChoice={handleKidQuickChoice}
               handleStartSomethingForMe={handleStartSomethingForMe}
               isLoading={isLoading}
@@ -2167,87 +1605,11 @@ Prioritize activities that require the least decision-making from the child.
           }
         />
 
-        <Route
-          path="/quest"
-          element={
-            <QuestPage
-              currentMoment={currentMoment}
-              activeActivity={activeActivity}
-              lastCompletedQuest={lastCompletedQuest}
-              clearLastCompletedQuest={clearLastCompletedQuest}
-              handleCompletedQuestMoreLikeThis={handleCompletedQuestMoreLikeThis}
-              handleCompletedQuestNeedAnotherIdea={handleCompletedQuestNeedAnotherIdea}
-              timerSecondsRemaining={timerSecondsRemaining}
-              finishActiveActivity={finishActiveActivity}
-              cancelActiveActivity={cancelActiveActivity}
-              handleTimerNotFinished={handleTimerNotFinished}
-              handleTimerNeedAnotherIdea={handleTimerNeedAnotherIdea}
-              handleTimerMoreLikeThis={handleTimerMoreLikeThis}
-              goToNextQuestStep={goToNextQuestStep}
-              goToPreviousQuestStep={goToPreviousQuestStep}
-              toggleQuestStepComplete={toggleQuestStepComplete}
-              toggleShowAllQuestSteps={toggleShowAllQuestSteps}
-              stepHint={stepHint}
-              isHintLoading={isHintLoading}
-              handleNeedStepHint={handleNeedStepHint}
-              formatTimer={formatTimer}
-              activities={activities}
-              scoredActivities={scoredActivities}
-              isLoading={isLoading}
-              handleStartActivity={handleStartActivity}
-              saveFavoriteActivity={saveFavoriteActivity}
-              handleTooMessy={handleTooMessy}
-              handleTooHard={handleTooHard}
-              handleNeedQuieter={handleNeedQuieter}
-              handleMoreLikeThis={handleMoreLikeThis}
-              handleAutoPickQuest={handleAutoPickQuest}
-            />
-          }
-        />
+        <Route path="/quest" element={<QuestPage />} />
 
-        <Route
-          path="/settings"
-          element={
-            <SettingsPage
-              safetySettings={safetySettings}
-              toggleSafetySetting={toggleSafetySetting}
-              updateSafetySetting={updateSafetySetting}
-              inventoryCategories={inventoryCategories}
-              normalizedInventory={normalizedInventory}
-              newInventoryItem={newInventoryItem}
-              setNewInventoryItem={setNewInventoryItem}
-              newInventoryCategory={newInventoryCategory}
-              setNewInventoryCategory={setNewInventoryCategory}
-              addInventoryItem={addInventoryItem}
-              removeInventoryItem={removeInventoryItem}
-              childProfiles={childProfiles}
-              activeChildId={activeChildId}
-              setActiveChildId={setActiveChildId}
-              newChildName={newChildName}
-              setNewChildName={setNewChildName}
-              newChildAgeRange={newChildAgeRange}
-              setNewChildAgeRange={setNewChildAgeRange}
-              newChildInterests={newChildInterests}
-              setNewChildInterests={setNewChildInterests}
-              newChildNeeds={newChildNeeds}
-              setNewChildNeeds={setNewChildNeeds}
-              addChildProfile={addChildProfile}
-              deleteChildProfile={deleteChildProfile}
-              parentPin={parentPin}
-              ParentPinForm={ParentPinForm}
-              saveParentPin={saveParentPin}
-              savedActivities={savedActivities}
-              handleStartActivity={handleStartActivity}
-              handleReplaySavedActivity={handleReplaySavedActivity}
-              removeSavedActivity={removeSavedActivity}
-              activityHistory={activityHistory}
-              clearActivityHistory={clearActivityHistory}
-              formatFeedbackLabel={formatFeedbackLabel}
-              resetSavedData={resetSavedData}
-            />
-          }
-        />
+        <Route path="/settings" element={<SettingsPage />} />
       </Routes>
+      </AppProvider>
     </main>
   );
 }
@@ -2292,29 +1654,16 @@ function ParentStatusCard({ parentStatus }) {
     <div className={`status-card ${parentStatus.availability}`}>
       <span>Adult is currently:</span>
       <strong>{parentStatus.activity}</strong>
-      <p>{getAvailabilityMessage(parentStatus.availability)}</p>
+      <p>{formatAvailabilityMessage(parentStatus.availability)}</p>
     </div>
   );
 }
 
-function getAvailabilityLabel(availability) {
-  if (availability === "available") return "Available";
-  if (availability === "ask-first") return "Ask first";
-  if (availability === "do-not-interrupt") return "Do not interrupt";
-  if (availability === "helper-welcome") return "Helper welcome";
-
-  return "Check first";
-}
-
-function getAvailabilityMessage(availability) {
-  if (availability === "available") return "You can ask for help.";
-  if (availability === "ask-first") return "Please ask before interrupting.";
-  if (availability === "do-not-interrupt") {
-    return "Try one activity before interrupting.";
-  }
-  if (availability === "helper-welcome") return "You can ask how to help.";
-
-  return "Check before interrupting.";
+function parentStatusFromMoment(moment) {
+  return {
+    activity: moment.parentActivity,
+    availability: moment.availability,
+  };
 }
 
 function getActivitySecondsRemaining(activeActivity) {
@@ -2351,28 +1700,6 @@ function useActivityTimer(activeActivity) {
   }, [activeActivity]);
 
   return getActivitySecondsRemaining(activeActivity);
-}
-
-function formatTimer(totalSeconds) {
-  const safeSeconds = Math.max(0, Number(totalSeconds) || 0);
-  const minutes = Math.floor(safeSeconds / 60);
-  const seconds = safeSeconds % 60;
-  return `${minutes}:${String(seconds).padStart(2, "0")}`;
-}
-
-function formatFeedbackLabel(feedbackType) {
-  if (feedbackType === "started") return "Started";
-  if (feedbackType === "finished") return "Finished";
-  if (feedbackType === "canceled") return "Canceled";
-  if (feedbackType === "not-finished") return "Not finished";
-  if (feedbackType === "need-another-idea") return "Need another idea";
-  if (feedbackType === "timer-more-like-this") return "More like this";
-  if (feedbackType === "too-messy") return "Too messy";
-  if (feedbackType === "too-hard") return "Too hard";
-  if (feedbackType === "need-quieter") return "Needed quieter";
-  if (feedbackType === "more-like-this") return "More like this";
-
-  return feedbackType;
 }
 
 export default App;

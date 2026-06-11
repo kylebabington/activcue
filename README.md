@@ -1,16 +1,86 @@
-# React + Vite
+# Family Activity Helper
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A local family app that helps parents set the current moment and helps kids pick independent activities. The frontend is a React + Vite SPA; the backend is a small Express server that calls OpenAI.
 
-Currently, two official plugins are available:
+## Setup
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+1. Install dependencies:
 
-## React Compiler
+```bash
+npm install
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+2. Create your server environment file:
 
-## Expanding the ESLint configuration
+```bash
+cp server/.env.example server/.env
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+3. Add your OpenAI API key to `server/.env`:
+
+```env
+OPENAI_API_KEY=sk-...
+```
+
+Optional server flags:
+
+```env
+PORT=3001
+DEBUG_AI_RESPONSES=true
+```
+
+## Run locally
+
+Start both the API and frontend:
+
+```bash
+npm run start:all
+```
+
+- Frontend: [http://localhost:5173](http://localhost:5173)
+- Backend: [http://localhost:3001](http://localhost:3001)
+
+In development, Vite proxies `/api` requests to the backend, so the frontend can use relative API URLs.
+
+## Scripts
+
+| Command | Purpose |
+|---------|---------|
+| `npm run dev` | Start Vite frontend only |
+| `npm run server` | Start Express backend only |
+| `npm run start:all` | Start both together |
+| `npm run build` | Build frontend for production |
+| `npm run preview` | Preview production build |
+| `npm run lint` | Run ESLint |
+| `npm run test` | Run Vitest unit tests |
+
+## App flow
+
+1. **Parent** — Set what is happening right now: availability, time, space, mess, noise, and supervision.
+2. **Kid** — Pick energy level and simple vs imaginative style, or use fast start.
+3. **Quest** — Review AI suggestions, start an activity, use timers and hints, and give feedback.
+4. **Settings** — Manage inventory, safety rules, child profiles, saved activities, and history.
+
+## Project structure
+
+```text
+src/
+  App.jsx              Main state and routing shell
+  context/             Shared React context for Quest and Settings pages
+  pages/               Parent, Kid, Quest, Settings
+  components/          Activity panels and results
+  utils/               Scoring, formatting, and shared helpers
+  api/                 Frontend API client
+server/
+  index.js             Express entry point
+  routes/              API route handlers
+  prompts/             OpenAI prompt builders
+  schemas/             Structured response schemas
+  utils/               Request normalization and prompt formatting
+```
+
+## Notes
+
+- App data is stored in browser `localStorage`.
+- `server/.env` is gitignored. Never commit API keys.
+- If this repo ever exposed a real `.env` file, rotate the OpenAI key.

@@ -1,68 +1,9 @@
-function formatEstimatedMinutes(estimatedMinutes) {
-  // If estimatedMinutes is not a real number, do not show a badge.
-  if (typeof estimatedMinutes !== "number") {
-    return null;
-  }
-
-  // Avoid weird labels like "0 min".
-  if (estimatedMinutes < 1) {
-    return null;
-  }
-
-  // Round to keep the UI clean.
-  return `${Math.round(estimatedMinutes)} min quest`;
-}
-
-function formatMessLabel(mess) {
-  // Convert backend values into friendly display text.
-  if (mess === "low") {
-    return "Low mess";
-  }
-
-  if (mess === "medium") {
-    return "Medium mess";
-  }
-
-  if (mess === "high") {
-    return "Messy";
-  }
-
-  return null;
-}
-
-function formatEnergyLabel(energy) {
-  // Convert backend values into kid/parent-friendly display text.
-  if (energy === "low") {
-    return "Calm";
-  }
-
-  if (energy === "medium") {
-    return "Active";
-  }
-
-  if (energy === "high") {
-    return "High energy";
-  }
-
-  return null;
-}
-
-function formatAdultHelpLabel(adultHelp) {
-  // Convert backend values into friendly display text.
-  if (adultHelp === "none") {
-    return "No adult help";
-  }
-
-  if (adultHelp === "optional") {
-    return "Adult optional";
-  }
-
-  if (adultHelp === "needed") {
-    return "Adult needed";
-  }
-
-  return null;
-}
+import {
+  formatAdultHelpLabel,
+  formatEnergyLabel,
+  formatEstimatedMinutes,
+  formatMessLabel,
+} from "../utils/activityFormatters";
 
 function ActiveActivityPanel({
   activeActivity,
@@ -114,7 +55,8 @@ function ActiveActivityPanel({
 
   // Convert raw activity values into friendly badge labels.
   const estimatedMinutesLabel = formatEstimatedMinutes(
-    activeActivity.estimatedMinutes
+    activeActivity.estimatedMinutes,
+    { suffix: " min quest" }
   );
   const messLabel = formatMessLabel(activeActivity.mess);
   const energyLabel = formatEnergyLabel(activeActivity.energy);

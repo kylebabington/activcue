@@ -2,47 +2,48 @@
 
 import SavedActivitiesPanel from "../components/SavedActivitiesPanel";
 import ActivityHistoryPanel from "../components/ActivityHistoryPanel";
+import { useAppContext } from "../context/AppContext";
 
 // This page holds the parent setup details that should not clutter the Now Setup page.
 // Inventory, safety, child profiles, saved activities, and history all live here.
 
-function SettingsPage({
-    safetySettings,
-    toggleSafetySetting,
-    updateSafetySetting,
-    inventoryCategories,
-    normalizedInventory,
-    newInventoryItem,
-    setNewInventoryItem,
-    newInventoryCategory,
-    setNewInventoryCategory,
-    addInventoryItem,
-    removeInventoryItem,
-    childProfiles,
-    activeChildId,
-    setActiveChildId,
-    newChildName,
-    setNewChildName,
-    newChildAgeRange,
-    setNewChildAgeRange,
-    newChildInterests,
-    setNewChildInterests,
-    newChildNeeds,
-    setNewChildNeeds,
-    addChildProfile,
-    deleteChildProfile,
-    parentPin,
-    ParentPinForm,
-    saveParentPin,
-    savedActivities,
-    handleStartActivity,
-    handleReplaySavedActivity,
-    removeSavedActivity,
-    activityHistory,
-    clearActivityHistory,
-    formatFeedbackLabel,
-    resetSavedData,
-}) {
+function SettingsPage() {
+    const {
+        safetySettings,
+        toggleSafetySetting,
+        updateSafetySetting,
+        inventoryCategories,
+        normalizedInventory,
+        newInventoryItem,
+        setNewInventoryItem,
+        newInventoryCategory,
+        setNewInventoryCategory,
+        addInventoryItem,
+        removeInventoryItem,
+        childProfiles,
+        activeChildId,
+        setActiveChildId,
+        newChildName,
+        setNewChildName,
+        newChildAgeRange,
+        setNewChildAgeRange,
+        newChildInterests,
+        setNewChildInterests,
+        newChildNeeds,
+        setNewChildNeeds,
+        addChildProfile,
+        deleteChildProfile,
+        parentPin,
+        ParentPinForm,
+        saveParentPin,
+        savedActivities,
+        handleReplaySavedActivity,
+        removeSavedActivity,
+        activityHistory,
+        clearActivityHistory,
+        formatFeedbackLabel,
+        resetSavedData,
+    } = useAppContext();
     return (
         <section className="page-layout">
             <section className="hero-card">
@@ -349,7 +350,6 @@ function SettingsPage({
 
             <SavedActivitiesPanel
                 savedActivities={savedActivities}
-                handleStartActivity={handleStartActivity}
                 handleReplaySavedActivity={handleReplaySavedActivity}
                 removeSavedActivity={removeSavedActivity}
             />

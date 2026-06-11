@@ -1,6 +1,5 @@
 function SavedActivitiesPanel({
   savedActivities,
-  handleStartActivity,
   handleReplaySavedActivity,
   removeSavedActivity,
 }) {

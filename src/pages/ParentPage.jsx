@@ -13,7 +13,6 @@ function ParentPage({
     currentMoment,
     updateCurrentMoment,
     applyCurrentMomentQuickAdjust,
-    setCurrentMoment,
     defaultParentStatusPresets,
     customParentPresets,
     applyParentStatusPreset,
@@ -694,7 +693,7 @@ function ParentPage({
                         >
                             <option value="quiet">Quiet</option>
                             <option value="normal">Normal</option>
-                            <option value="active">Active / loud is okay</option>
+                            <option value="loud">Active / loud is okay</option>
                         </select>
                     </label>
 

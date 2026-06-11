@@ -1,123 +1,13 @@
 // src/components/ActivityResults.jsx
 
-// useState lets this component remember which quest card is expanded.
 import { useState } from "react";
-
-// This helper formats the estimatedMinutes value returned by the backend.
-//
-// Example:
-// 25 becomes "25 min"
-//
-// If the backend does not send a usable number,
-// this returns null so the UI can simply skip it.
-function formatEstimatedMinutes(estimatedMinutes) {
-  // The AI should return a number like 20 or 30.
-  // But because this app talks to an AI, we protect ourselves.
-  // If the value is missing or not a number, we show nothing.
-  if (typeof estimatedMinutes !== "number") {
-    return null;
-  }
-
-  // If the number is weirdly low, do not show confusing text like "0 min".
-  if (estimatedMinutes < 1) {
-    return null;
-  }
-
-  // Round the number so the UI stays clean.
-  // Example: 24.7 becomes 25.
-  return `${Math.round(estimatedMinutes)} min`;
-}
-
-// This helper converts the backend mess value into a friendly label.
-//
-// Backend values:
-// - low
-// - medium
-// - high
-function formatMessLabel(mess) {
-  // Convert backend values into friendly labels.
-  // The backend sends: low, medium, high.
-  if (mess === "low") {
-    return "Low mess";
-  }
-
-  if (mess === "medium") {
-    return "Medium mess";
-  }
-
-  if (mess === "high") {
-    return "Messy";
-  }
-
-  // If the value is missing, return null so the UI can skip it.
-  return null;
-}
-
-// This helper converts the backend energy value into a friendly label.
-//
-// Backend values:
-// - low
-// - medium
-// - high
-function formatEnergyLabel(energy) {
-  // Convert backend values into kid/parent-friendly labels.
-  // For this app, energy also roughly communicates noise/activity level.
-  if (energy === "low") {
-    return "Calm";
-  }
-
-  if (energy === "medium") {
-    return "Active";
-  }
-
-  if (energy === "high") {
-    return "High energy";
-  }
-
-  return null;
-}
-
-// This helper converts the backend adultHelp value into a friendly label.
-//
-// Backend values:
-// - none
-// - optional
-// - needed
-function formatAdultHelpLabel(adultHelp) {
-  // Convert backend values into clearer labels.
-  // The backend sends: none, optional, needed.
-  if (adultHelp === "none") {
-    return "No adult help";
-  }
-
-  if (adultHelp === "optional") {
-    return "Adult optional";
-  }
-
-  if (adultHelp === "needed") {
-    return "Adult needed";
-  }
-
-  return null;
-}
-
-function formatActivityStyleLabel(activityStyle) {
-  // This converts the backend activityStyle field into a short UI label.
-  //
-  // Backend values:
-  // - simple
-  // - imaginative
-  if (activityStyle === "simple") {
-    return "Simple";
-  }
-
-  if (activityStyle === "imaginative") {
-    return "Pretend";
-  }
-
-  // Fallback for older saved activities or older backend responses.
-  return "Activity";
-}
+import {
+  formatActivityStyleLabel,
+  formatAdultHelpLabel,
+  formatEnergyLabel,
+  formatEstimatedMinutes,
+  formatMessLabel,
+} from "../utils/activityFormatters";
 
 // This component displays the activity choices returned by the AI.
 //
