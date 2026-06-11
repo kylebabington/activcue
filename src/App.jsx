@@ -1070,7 +1070,16 @@ function App() {
         activitySpace: currentMoment.space,
 
         childAgeRange: effectiveChildAgeRange,
+
+        // This is the kid's selected style.
+        // Current values should be something like:
+        // "simple" or "imaginative"
+        activityStyle: activityMode,
+
+        // Keep activityMode too so older code still works.
+        // This prevents us from breaking anything that already depends on activityMode.
         activityMode,
+
         activeChildProfile,
         selectedChildProfiles,
 
@@ -1086,6 +1095,8 @@ function App() {
         previousActivityTitles,
       };
       const generatedActivities = await getActivitySuggestions(activityRequest);
+
+      console.log("Generated activities:", generatedActivities);
 
       setActivities(generatedActivities);
 
@@ -1116,10 +1127,49 @@ function App() {
 
   function getKidActivityStyleInstruction(activityStyle) {
     if (activityStyle === "imaginative") {
-      return "The child wants imaginative play. It can include pretend roles, a mission, a small story frame, or make-believe, while still staying practical and easy to start.";
+      return `
+The child wants imaginative play.
+
+Use playful pretend framing, roles, and mission language.
+The activity may include:
+- a pretend role
+- a small mission
+- a story frame
+- make-believe play
+
+But still keep setup easy and realistic.
+`;
     }
 
-    return "The child wants something simple. Avoid elaborate pretend-play framing. Suggest straightforward activities with clear steps, plain language, and minimal setup.";
+    return `
+The child wants a SIMPLE activity.
+
+Simple means:
+- normal real-life kid activities
+- no elaborate pretend story
+- no complicated mission
+- no long setup
+- no multi-stage project unless the item itself requires it
+- no "quest" language unless absolutely necessary
+- no made-up fantasy premise
+- 2 to 4 short steps maximum
+- something the child can understand immediately
+
+Good simple examples:
+- Draw a picture of your family.
+- Use your crystal growing kit.
+- Jump on the trampoline.
+- Build a tower with blocks.
+- Read a book in a cozy spot.
+- Sort your cards.
+- Play with Magnatiles.
+- Make a paper airplane.
+- Do a puzzle.
+- Kick a soccer ball outside.
+
+For simple activities, plain is good.
+Do not make the idea more creative than it needs to be.
+`;
   }
 
   async function handleKidQuickChoice(activityStyle) {
@@ -1141,20 +1191,43 @@ function App() {
 
     const generatedActivities = await handleGenerateActivities(
       `
-The child chose this activity style: ${activityStyle}.
+The child chose activity style: ${activityStyle}.
 ${styleInstruction}
 
-The child chose this energy level: ${kidEnergyLevel}.
+The child chose energy level: ${kidEnergyLevel}.
 ${energyInstruction}
 
-Generate 3 options that fit BOTH:
+Generate 3 activities that fit BOTH:
 1. the child's chosen style and energy level
 2. the current family moment
 
-Important:
-- If the child chose simple, do not turn every idea into a pretend quest.
-- If the child chose imaginative, make it playful but still easy to start.
-- Always obey currentMoment limits for time, mess, noise, supervision, and parent availability.
+Very important:
+If activityStyle is "simple", the activities should feel like normal things a kid might actually do at home.
+
+Simple activity targets:
+- "Draw a picture of your family"
+- "Use your crystal growing kit"
+- "Jump on the trampoline"
+- "Build with blocks"
+- "Read a book"
+- "Do a puzzle"
+- "Sort your cards"
+- "Play catch outside"
+- "Make a paper airplane"
+
+For simple activities:
+- use plain titles
+- use plain summaries
+- keep steps very short
+- avoid elaborate missions
+- avoid pretend roles
+- avoid fantasy framing
+- avoid making chores or crafts sound like quests
+- do not over-explain
+
+If activityStyle is "imaginative", playful quest language is okay.
+
+Always obey currentMoment limits for time, mess, noise, supervision, and parent availability.
 `
     );
 
@@ -1187,6 +1260,15 @@ Use the child's preferred style: ${kidActivityStyle}.
 ${getKidActivityStyleInstruction(kidActivityStyle)}
 
 Generate 3 safe, easy-to-start options that fit the current family moment.
+
+If the preferred style is "simple":
+- choose normal real-life activities
+- prefer activities like drawing, reading, building, puzzles, trampoline, kits, cards, toys, or simple outdoor play
+- avoid elaborate story framing
+- avoid complicated missions
+- avoid long lists of steps
+- avoid turning everything into pretend play
+
 Prioritize activities that require the least decision-making from the child.
 `
     );
@@ -1333,8 +1415,19 @@ Prioritize activities that require the least decision-making from the child.
       // Give this active quest a unique ID.
       id: crypto.randomUUID(),
 
-      // Basic visible quest information.
+      // Basic visible activity information.
       title: activity.title,
+
+      // This tells the UI whether this is a plain simple activity
+      // or an imaginative quest.
+      activityStyle:
+        activity.activityStyle === "simple" ||
+          activity.activityStyle === "imaginative"
+          ? activity.activityStyle
+          : activityMode === "simple" || activityMode === "imaginative"
+            ? activityMode
+            : "simple",
+
       theme: activity.theme || "",
       summary: activity.summary || "",
 

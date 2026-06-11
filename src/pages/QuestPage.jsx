@@ -3,6 +3,7 @@
 import { Link } from "react-router-dom";
 import ActiveActivityPanel from "../components/ActiveActivityPanel";
 import ActivityResults from "../components/ActivityResults";
+import SimpleActiveActivityPanel from "../components/SimpleActiveActivityPanel";
 
 function formatAvailabilityForBanner(availability) {
     // Convert internal availability values into friendly text.
@@ -225,7 +226,17 @@ function QuestPage({
                 </section>
             )}
 
-            {activeActivity && (
+            {activeActivity?.activityStyle === "simple" && (
+                <SimpleActiveActivityPanel
+                    activeActivity={activeActivity}
+                    stepHint={stepHint}
+                    handleNeedStepHint={handleNeedStepHint}
+                    completeActiveQuest={completeActiveQuest}
+                    cancelActiveQuest={cancelActiveQuest}
+                />
+            )}
+
+            {activeActivity && activeActivity.activityStyle !== "simple" && (
                 <ActiveActivityPanel
                     activeActivity={activeActivity}
                     timerSecondsRemaining={timerSecondsRemaining}

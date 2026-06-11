@@ -46,13 +46,29 @@ app.post("/api/activity-suggestions", async (req, res) => {
             locationPreference,
             activitySpace,
             childAgeRange,
+
+            // activityStyle is the new clearer field.
+            // Expected values:
+            // - "simple"
+            // - "imaginative"
+            activityStyle,
+
+            // activityMode is kept as a fallback because your app already uses it.
             activityMode,
+
             activeChildProfile,
             selectedChildProfiles,
             feedbackContext,
             previousActivityTitles,
             safetySettings,
         } = req.body;
+
+        const safeActivityStyle =
+            activityStyle === "simple" || activityStyle === "imaginative"
+                ? activityStyle
+                : activityMode === "simple" || activityMode === "imaginative"
+                    ? activityMode
+                    : "simple";
 
         const safeCurrentMoment = {
             // What the parent is doing right now.
@@ -179,9 +195,44 @@ app.post("/api/activity-suggestions", async (req, res) => {
 You are an imaginative kid-facing play guide.
 
 Your job is not to give generic activity ideas.
-Your job is to create detailed, self-starting play quests that a child can understand and begin without parent help.
+Your job is to create detailed, self-starting play activities that a child can understand and begin without parent help.
 
 The response should feel like a parent, camp counselor, or playful teacher is guiding the child directly through the screen.
+
+SIMPLE MODE RULES:
+When the user request asks for simple activities, you must produce normal, plain activities a child could start quickly.
+
+Simple activities should look like:
+- Draw a picture of your family.
+- Use your crystal growing kit.
+- Jump on the trampoline.
+- Build with blocks.
+- Read a book in a cozy spot.
+- Sort your cards.
+- Play with Magnatiles.
+- Do a puzzle.
+- Make a paper airplane.
+- Kick a soccer ball outside.
+
+For simple activities:
+- Do NOT create an elaborate pretend story.
+- Do NOT invent a fantasy mission.
+- Do NOT make the child a royal explorer, space captain, museum curator, secret agent, etc.
+- Do NOT over-theme the activity.
+- Do NOT use dramatic quest language.
+- Do NOT make the activity feel like a school assignment.
+- Use plain titles.
+- Use plain summaries.
+- Use 2 to 4 short steps.
+- The mission field may be plain, like "Draw a picture of your family."
+- The kidRole field may be plain, like "Artist", "Builder", "Reader", "Jumper", or "Player".
+- starterPrompts can be an empty array if they are not needed.
+- extensionIdeas can be simple, like "Add color", "Try another page", or "Do it again outside."
+
+IMAGINATIVE MODE RULES:
+When the user request asks for imaginative activities, playful quest language is allowed.
+Use pretend roles, missions, and story framing only in imaginative mode.
+Even imaginative activities should stay easy to start and fit the current family moment.
 
 Important:
 - Do NOT rely on the parent to set up the scene.
@@ -189,9 +240,30 @@ Important:
 - Do NOT tell the parent to hide things, prepare clues, arrange materials, or lead the activity.
 - The child should be able to start with normal visible household items from the inventory.
 - If setup is needed, make it child-doable.
-- Do NOT give broad generic activities like "paper crafts", "story writing", "treasure hunt", "drawing", or "build with blocks" unless they are transformed into a specific themed quest with a mission, role, prompts, and first moves.
--If the request asks for simple activities, avoid elaborate imaginative framing. Keep the title, summary, steps, and mission plain and practical. A simple activity may still use the same JSON fields, but the wording should feel like a normal activity, not a pretend quest.
--If the request asks for imaginative activities, use playful pretend framing, roles, and mission language, but keep the setup easy and realistic.
+Activity style rules:
+
+The requested activity style is: ${safeActivityStyle}
+
+If safeActivityStyle is "simple":
+- Set activityStyle to "simple".
+- Give plain, real-life activities.
+- Simple activities do NOT need to be transformed into pretend quests.
+- Simple activities may be normal ideas like drawing, blocks, puzzles, books, trampoline time, sorting cards, or using a toy/kit the family already owns.
+- Do NOT use fantasy framing.
+- Do NOT use mission language.
+- Do NOT use roleplay language.
+- Do NOT use words like quest, mission, adventure, challenge, hero, explorer, kingdom, secret, agent, wizard, or rescue.
+- Use a plain title.
+- Use a plain summary.
+- Use 2 to 4 short steps.
+- Keep starterPrompts, firstMoves, roles, and extensionIdeas simple and practical.
+- Simple and boring is okay if it is useful.
+
+If safeActivityStyle is "imaginative":
+- Set activityStyle to "imaginative".
+- Use playful pretend framing.
+- Roles, missions, themes, starter prompts, and first moves are allowed.
+- Keep the setup easy and realistic.
 
 Rules:
 - Treat the current family moment as the source of truth.
@@ -203,7 +275,6 @@ Rules:
 - Every activity should be able to reasonably fill the parent's requested time without exceeding it.
 - Return only valid JSON.
 - Give exactly 3 activities.
-- Each activity must be a specific themed quest, not a generic activity.
 - Use vivid theme framing.
 - Give the child a clear role or identity inside the activity.
 - Include starter prompts that help the child know what to imagine, write, build, draw, or pretend.
@@ -234,6 +305,7 @@ Rules:
 - If quiet mode is true, suggest calm low-noise activities only.
 - Respect max activity time.
 - Respect adult help allowed.
+-When the request asks for simple activities, simplicity is more important than novelty. A boring but usable idea is better than an imaginative idea that feels complicated.
 
 Quality bar:
 Bad:
@@ -271,12 +343,15 @@ Family context:
   - Name: ${activeChildProfile?.name || "Not specified"}
   - Interests: ${activeChildProfile?.interests || "Not specified"}
   - Helpful notes: ${activeChildProfile?.needs || "Not specified"}
+- Activity style requested by child: ${safeActivityStyle}
 - Activity mode: ${activityMode || "single-child"}
 - Selected child profiles: ${formatChildProfilesForPrompt(
             safeSelectedChildProfiles
         )}
 - Available toys/supplies by category: ${formatInventoryForPrompt(inventory)}
-- Output style requirement: Make every activity feel like a detailed kid-facing quest with a theme, role, mission, starter prompts, first moves, roles when useful, and enough detail that the parent does not need to explain it. Do not return generic labels like "DIY Paper Crafts", "Creative Story Writing", or "Indoor Treasure Hunt".
+- Output style requirement:
+  - If activity style is simple, make every activity feel like a plain real-world kid activity. It should be easy to understand quickly and should not feel like a quest.
+  - If activity style is imaginative, make every activity feel like a detailed kid-facing quest with a theme, role, mission, starter prompts, first moves, roles when useful, and enough detail that the parent does not need to explain it.
 - Feedback context: ${safeFeedbackContext}
 - Previous activity titles to avoid: ${safePreviousActivityTitles.join(", ")}
 - Safety settings:
@@ -288,17 +363,18 @@ Family context:
   - Max activity minutes: ${safeSafetySettings.maxActivityMinutes}
   - Adult help allowed: ${safeSafetySettings.adultHelpAllowed}
 
-Every activity object MUST include these fields: title, theme, summary, kidRole, mission, starterPrompts, firstMoves, steps, roles, extensionIdeas, uses, energy, mess, adultHelp, estimatedMinutes, whyItFits.
+Every activity object MUST include these fields: title, activityStyle, theme, summary, kidRole, mission, starterPrompts, firstMoves, steps, roles, extensionIdeas, uses, energy, mess, adultHelp, estimatedMinutes, whyItFits.
 
 Return JSON in exactly this shape:
 
 {
   "activities": [
     {
-      "title": "Specific themed quest name",
-      "theme": "A vivid one-sentence theme for the activity.",
-      "summary": "Two sentence overview written directly to the child.",
-      "kidRole": "The role the child plays in this quest.",
+  "title": "Specific activity name",
+  "activityStyle": "simple",
+  "theme": "For simple activities, keep this plain. For imaginative activities, use a vivid one-sentence theme.",
+  "summary": "Short overview written directly to the child.",
+      "kidRole": "The role the child plays in this activity.",
       "mission": "The clear goal the child is trying to complete.",
       "starterPrompts": [
         "Question or prompt that helps the child start imagining.",
@@ -352,6 +428,12 @@ Return JSON in exactly this shape:
                                     type: "object",
                                     properties: {
                                         title: { type: "string" },
+
+                                        activityStyle: {
+                                            type: "string",
+                                            enum: ["simple", "imaginative"],
+                                        },
+
                                         theme: { type: "string" },
                                         summary: { type: "string" },
                                         kidRole: { type: "string" },
@@ -399,6 +481,7 @@ Return JSON in exactly this shape:
                                     },
                                     required: [
                                         "title",
+                                        "activityStyle",
                                         "theme",
                                         "summary",
                                         "kidRole",
@@ -435,11 +518,65 @@ Return JSON in exactly this shape:
 
         const parsed = JSON.parse(rawText);
 
+        // Make sure activities is always an array.
+        // This protects the frontend from weird or incomplete responses.
+        const rawActivities = Array.isArray(parsed.activities)
+            ? parsed.activities
+            : [];
+
+        // Normalize every returned activity before sending it to the frontend.
+        const normalizedActivities = rawActivities.map((activity) => {
+            const normalizedActivityStyle =
+                activity.activityStyle === "simple" ||
+                    activity.activityStyle === "imaginative"
+                    ? activity.activityStyle
+                    : safeActivityStyle;
+
+            return {
+                ...activity,
+
+                // This is the key new field.
+                // It tells the frontend whether to render the simple UI
+                // or the imaginative quest UI.
+                activityStyle: normalizedActivityStyle,
+
+                // Keep arrays safe so React does not crash when mapping.
+                starterPrompts: Array.isArray(activity.starterPrompts)
+                    ? activity.starterPrompts
+                    : [],
+
+                firstMoves: Array.isArray(activity.firstMoves)
+                    ? activity.firstMoves
+                    : [],
+
+                steps: Array.isArray(activity.steps)
+                    ? activity.steps
+                    : [],
+
+                roles: Array.isArray(activity.roles)
+                    ? activity.roles
+                    : [],
+
+                extensionIdeas: Array.isArray(activity.extensionIdeas)
+                    ? activity.extensionIdeas
+                    : [],
+
+                uses: Array.isArray(activity.uses)
+                    ? activity.uses
+                    : [],
+            };
+        });
+
+        const normalizedResponse = {
+            ...parsed,
+            activities: normalizedActivities,
+        };
+
         // This prints the parsed JavaScript object after JSON.parse succeeds.
         console.log("PARSED AI RESPONSE:");
-        console.log(JSON.stringify(parsed, null, 2));
+        console.log(JSON.stringify(normalizedResponse, null, 2));
 
-        res.json(parsed);
+        res.json(normalizedResponse);
     } catch (error) {
         console.error("AI suggestion error:", error);
 
@@ -470,12 +607,12 @@ app.post("/api/quest-step-hint", async (req, res) => {
         const instructions = `
 You are a gentle kid-facing play coach.
 
-Your job is to give ONE small hint for the child's current quest step.
+Your job is to give ONE small hint for the child's current activity step.
 
 Rules:
 - Return only valid JSON.
 - Do not give a whole new activity.
-- Do not rewrite the quest.
+- Do not rewrite the activity.
 - Do not solve the entire step for the child.
 - Give one small nudge that helps the child keep going.
 - Use simple kid-friendly language.
