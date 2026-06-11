@@ -218,7 +218,7 @@ function QuestPage() {
                             <h2>Want the app to choose?</h2>
 
                             <p>
-                                Skip comparing options. The app will choose the quest that best fits right now.
+                                Skip comparing options. The app will choose the activity that best fits right now.
                             </p>
                         </div>
 
@@ -244,7 +244,7 @@ function QuestPage() {
 
             {!activeActivity && !lastCompletedQuest && activities.length === 0 && !isLoading && (
                 <section className="panel">
-                    <h2>No quests yet</h2>
+                    <h2>No activities yet</h2>
 
                     <p>
                         Go to Kid Mode and choose what kind of activity you want.

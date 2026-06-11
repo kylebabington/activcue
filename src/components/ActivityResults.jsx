@@ -43,7 +43,7 @@ function ActivityResults({
   if (isLoading) {
     return (
       <section className="panel loading-panel">
-        <h2>Thinking up quests...</h2>
+        <h2>Thinking up activities...</h2>
 
         <p>
           Finding something that fits your home, supplies, and the current
@@ -307,8 +307,9 @@ function ActivityResults({
 
                       {typeof score === "number" && (
                         <p className="fit-score-note">
-                          This quest scored {score} against the current family
-                          moment.
+                          {isSimpleActivity
+                            ? `This activity scored ${score} against the current family moment.`
+                            : `This quest scored ${score} against the current family moment.`}
                         </p>
                       )}
 

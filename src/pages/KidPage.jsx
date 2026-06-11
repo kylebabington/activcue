@@ -48,7 +48,7 @@ function KidPage({
                     <h2>Grown-up is busy right now.</h2>
 
                     <ol>
-                        <li>Start one quest.</li>
+                        <li>Start one activity.</li>
                         <li>Try it for at least 10 minutes.</li>
                         <li>Then ask for help if you still need it.</li>
                     </ol>

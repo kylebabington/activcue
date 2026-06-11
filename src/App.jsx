@@ -1021,7 +1021,7 @@ Prioritize activities that require the least decision-making from the child.
   async function handleNeedStepHint() {
     // If there is no active quest, there is no step to help with.
     if (!activeActivity) {
-      showStatus("Start a activity first, then ask for a hint.", "error");
+      showStatus("Start an activity first, then ask for a hint.", "error");
       return;
     }
 
@@ -1096,7 +1096,7 @@ Prioritize activities that require the least decision-making from the child.
     const selectedActivity = getBestActivityForCurrentMoment(activities);
 
     if (!selectedActivity) {
-      showStatus("I could not pick a activity yet. Try generating again.", "error");
+      showStatus("I could not pick an activity yet. Try generating again.", "error");
       return;
     }
 
@@ -1316,6 +1316,12 @@ Prioritize activities that require the least decision-making from the child.
     const anotherIdeaHistoryItem = {
       id: crypto.randomUUID(),
       title: previousTitle,
+
+      // Preserve whether the rejected activity was simple or imaginative.
+      // This helps future scoring learn patterns like:
+      // "Simple activities work better when the kid is tired."
+      activityStyle: normalizeActivityStyle(activeActivity),
+
       feedbackType: "need-another-idea",
       createdAt: new Date().toISOString(),
       kidMood,
@@ -1342,6 +1348,11 @@ Prioritize activities that require the least decision-making from the child.
     const moreLikeThisHistoryItem = {
       id: crypto.randomUUID(),
       title: previousTitle,
+
+      // Preserve whether the liked activity was simple or imaginative.
+      // This makes the feedback loop smarter later.
+      activityStyle: normalizeActivityStyle(activeActivity),
+
       feedbackType: "timer-more-like-this",
       createdAt: new Date().toISOString(),
       kidMood,
@@ -1394,7 +1405,7 @@ Prioritize activities that require the least decision-making from the child.
   function handleCompletedQuestMoreLikeThis() {
     // If there is no completed quest summary, we cannot use it for feedback.
     if (!lastCompletedQuest?.activity) {
-      showStatus("No completed quest to use yet.", "error");
+      showStatus("No completed activity to use yet.", "error");
       return;
     }
 
@@ -1403,7 +1414,7 @@ Prioritize activities that require the least decision-making from the child.
     clearLastCompletedQuest();
 
     handleGenerateActivities(
-      `The child completed "${completedTitle}" and liked it. Suggest 3 more quests with a similar feeling, but do not repeat the same title.`
+      `The child completed "${completedTitle}" and liked it. Suggest 3 more activities with a similar feeling, but do not repeat the same title.`
     );
 
     navigate("/quest");
@@ -1411,12 +1422,12 @@ Prioritize activities that require the least decision-making from the child.
 
   function handleCompletedQuestNeedAnotherIdea() {
     // If there is no completed quest summary, use a generic request.
-    const completedTitle = lastCompletedQuest?.title || "the last quest";
+    const completedTitle = lastCompletedQuest?.title || "the last activity";
 
     clearLastCompletedQuest();
 
     handleGenerateActivities(
-      `The child finished "${completedTitle}" and wants something different now. Suggest 3 fresh quests that feel different from the completed one.`
+      `The child finished "${completedTitle}" and wants something different now. Suggest 3 fresh activities that feel different from the completed one.`
     );
 
     navigate("/quest");
@@ -1527,7 +1538,7 @@ Prioritize activities that require the least decision-making from the child.
 
         <p>
           Set the current family moment, let kids choose what they need, and turn
-          “I’m bored” into an independent quest.
+          “I’m bored” into an independent activity.
         </p>
       </section>
 
@@ -1550,7 +1561,7 @@ Prioritize activities that require the least decision-making from the child.
           to="/quest"
           className={({ isActive }) => (isActive ? "active" : "")}
         >
-          Quest
+          Activity
         </NavLink>
 
         <NavLink
@@ -1568,47 +1579,47 @@ Prioritize activities that require the least decision-making from the child.
       )}
 
       <AppProvider value={appContextValue}>
-      <Routes>
-        <Route path="/" element={<Navigate to="/parent" replace />} />
+        <Routes>
+          <Route path="/" element={<Navigate to="/parent" replace />} />
 
-        <Route
-          path="/parent"
-          element={
-            <ParentPage
-              parentStatus={parentStatus}
-              setParentStatus={setParentStatus}
-              currentMoment={currentMoment}
-              updateCurrentMoment={updateCurrentMoment}
-              applyCurrentMomentQuickAdjust={applyCurrentMomentQuickAdjust}
-              defaultParentStatusPresets={defaultParentStatusPresets}
-              customParentPresets={customParentPresets}
-              applyParentStatusPreset={applyParentStatusPreset}
-              getAvailabilityLabel={formatAvailabilityLabel}
-              ParentStatusCard={ParentStatusCard}
-            />
-          }
-        />
+          <Route
+            path="/parent"
+            element={
+              <ParentPage
+                parentStatus={parentStatus}
+                setParentStatus={setParentStatus}
+                currentMoment={currentMoment}
+                updateCurrentMoment={updateCurrentMoment}
+                applyCurrentMomentQuickAdjust={applyCurrentMomentQuickAdjust}
+                defaultParentStatusPresets={defaultParentStatusPresets}
+                customParentPresets={customParentPresets}
+                applyParentStatusPreset={applyParentStatusPreset}
+                getAvailabilityLabel={formatAvailabilityLabel}
+                ParentStatusCard={ParentStatusCard}
+              />
+            }
+          />
 
-        <Route
-          path="/kid"
-          element={
-            <KidPage
-              currentMoment={currentMoment}
-              ParentStatusCard={ParentStatusCard}
-              kidEnergyLevel={kidEnergyLevel}
-              setKidEnergyLevel={setKidEnergyLevel}
-              kidActivityStyle={kidActivityStyle}
-              handleKidQuickChoice={handleKidQuickChoice}
-              handleStartSomethingForMe={handleStartSomethingForMe}
-              isLoading={isLoading}
-            />
-          }
-        />
+          <Route
+            path="/kid"
+            element={
+              <KidPage
+                currentMoment={currentMoment}
+                ParentStatusCard={ParentStatusCard}
+                kidEnergyLevel={kidEnergyLevel}
+                setKidEnergyLevel={setKidEnergyLevel}
+                kidActivityStyle={kidActivityStyle}
+                handleKidQuickChoice={handleKidQuickChoice}
+                handleStartSomethingForMe={handleStartSomethingForMe}
+                isLoading={isLoading}
+              />
+            }
+          />
 
-        <Route path="/quest" element={<QuestPage />} />
+          <Route path="/quest" element={<QuestPage />} />
 
-        <Route path="/settings" element={<SettingsPage />} />
-      </Routes>
+          <Route path="/settings" element={<SettingsPage />} />
+        </Routes>
       </AppProvider>
     </main>
   );
