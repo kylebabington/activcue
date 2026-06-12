@@ -3,14 +3,9 @@
 import { Link } from "react-router-dom";
 import ActiveActivityPanel from "../components/ActiveActivityPanel";
 import ActivityResults from "../components/ActivityResults";
+import MomentStatusBanner from "../components/MomentStatusBanner";
 import SimpleActiveActivityPanel from "../components/SimpleActiveActivityPanel";
 import { useAppContext } from "../context/AppContext";
-import {
-    formatAvailabilityLabel,
-    formatMessForBanner,
-    formatNoiseForBanner,
-    formatSupervisionForBanner,
-} from "../utils/activityFormatters";
 
 function QuestCompleteSummary({
     lastCompletedQuest,
@@ -131,9 +126,9 @@ function QuestPage() {
         handleAutoPickQuest,
     } = useAppContext();
     return (
-        <section className="page-layout">
-            <section className="hero-card compact-hero-card">
-                <p className="eyebrow">Activity Board</p>
+        <section className="page-layout page-layout--kid">
+            <section className="page-intro page-intro--kid">
+                <p className="eyebrow dark">Activity Board</p>
 
                 <h1>What should happen next?</h1>
 
@@ -142,31 +137,8 @@ function QuestPage() {
                 </p>
             </section>
 
-            {currentMoment && (
-                <section className="current-moment-banner">
-                    <div>
-                        <p className="eyebrow dark">Right now</p>
-
-                        <h2>{currentMoment.parentActivity}</h2>
-
-                        <p>Tuned for right now.</p>
-                    </div>
-
-                    <div className="moment-chip-list">
-                        <span>{formatAvailabilityLabel(currentMoment.availability)}</span>
-
-                        <span>{Number(currentMoment.timeNeededMinutes) || 20} min</span>
-
-                        <span>{currentMoment.space || "Space not set"}</span>
-
-                        <span>{formatNoiseForBanner(currentMoment.noiseLevel)}</span>
-
-                        <span>{formatMessForBanner(currentMoment.messLevel)}</span>
-
-                        <span>{formatSupervisionForBanner(currentMoment.supervisionLevel)}</span>
-                    </div>
-                </section>
-            )}
+            <div className="kid-center-column">
+                <MomentStatusBanner currentMoment={currentMoment} />
 
             {activeActivity?.activityStyle === "simple" && (
                 <SimpleActiveActivityPanel
@@ -255,6 +227,7 @@ function QuestPage() {
                     </Link>
                 </section>
             )}
+            </div>
         </section>
     );
 }

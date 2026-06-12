@@ -116,56 +116,6 @@ function ActiveActivityPanel({
         </div>
       )}
 
-      {activeActivity.kidRole && (
-        <div className="quest-box active-quest-box">
-          <h3>Your role</h3>
-          <p>{activeActivity.kidRole}</p>
-        </div>
-      )}
-
-      {activeActivity.mission && (
-        <div className="quest-box active-quest-box">
-          <h3>Your mission</h3>
-          <p>{activeActivity.mission}</p>
-        </div>
-      )}
-
-      {Array.isArray(activeActivity.starterPrompts) &&
-        activeActivity.starterPrompts.length > 0 && (
-          <div className="quest-box active-quest-box">
-            <h3>Starter prompts</h3>
-            <ul>
-              {activeActivity.starterPrompts.map((prompt) => (
-                <li key={prompt}>{prompt}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-      {Array.isArray(activeActivity.firstMoves) &&
-        activeActivity.firstMoves.length > 0 && (
-          <div className="quest-box active-quest-box">
-            <h3>First moves</h3>
-            <ol>
-              {activeActivity.firstMoves.map((move) => (
-                <li key={move}>{move}</li>
-              ))}
-            </ol>
-          </div>
-        )}
-
-      {Array.isArray(activeActivity.roles) &&
-        activeActivity.roles.length > 0 && (
-          <div className="quest-box active-quest-box">
-            <h3>Roles</h3>
-            <ul>
-              {activeActivity.roles.map((role) => (
-                <li key={role}>{role}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-
       {steps.length > 0 && (
         <div className="guided-step-panel">
           <div className="guided-step-header">
@@ -267,27 +217,95 @@ function ActiveActivityPanel({
         </div>
       )}
 
-      {Array.isArray(activeActivity.extensionIdeas) &&
-        activeActivity.extensionIdeas.length > 0 && (
-          <div className="quest-box active-quest-box">
-            <h3>Keep going</h3>
-            <ul>
-              {activeActivity.extensionIdeas.map((idea) => (
-                <li key={idea}>{idea}</li>
-              ))}
-            </ul>
+      {(activeActivity.kidRole ||
+        activeActivity.mission ||
+        (Array.isArray(activeActivity.starterPrompts) &&
+          activeActivity.starterPrompts.length > 0) ||
+        (Array.isArray(activeActivity.firstMoves) &&
+          activeActivity.firstMoves.length > 0) ||
+        (Array.isArray(activeActivity.roles) && activeActivity.roles.length > 0) ||
+        (Array.isArray(activeActivity.extensionIdeas) &&
+          activeActivity.extensionIdeas.length > 0) ||
+        activeActivity.whyItFits ||
+        uses.length > 0) && (
+        <details className="quest-more-info">
+          <summary>More info</summary>
+
+          <div className="quest-more-info-content">
+            {activeActivity.kidRole && (
+              <div className="quest-box active-quest-box">
+                <h3>Your role</h3>
+                <p>{activeActivity.kidRole}</p>
+              </div>
+            )}
+
+            {activeActivity.mission && (
+              <div className="quest-box active-quest-box">
+                <h3>Your mission</h3>
+                <p>{activeActivity.mission}</p>
+              </div>
+            )}
+
+            {Array.isArray(activeActivity.starterPrompts) &&
+              activeActivity.starterPrompts.length > 0 && (
+                <div className="quest-box active-quest-box">
+                  <h3>Starter prompts</h3>
+                  <ul>
+                    {activeActivity.starterPrompts.map((prompt) => (
+                      <li key={prompt}>{prompt}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+            {Array.isArray(activeActivity.firstMoves) &&
+              activeActivity.firstMoves.length > 0 && (
+                <div className="quest-box active-quest-box">
+                  <h3>First moves</h3>
+                  <ol>
+                    {activeActivity.firstMoves.map((move) => (
+                      <li key={move}>{move}</li>
+                    ))}
+                  </ol>
+                </div>
+              )}
+
+            {Array.isArray(activeActivity.roles) &&
+              activeActivity.roles.length > 0 && (
+                <div className="quest-box active-quest-box">
+                  <h3>Roles</h3>
+                  <ul>
+                    {activeActivity.roles.map((role) => (
+                      <li key={role}>{role}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+            {Array.isArray(activeActivity.extensionIdeas) &&
+              activeActivity.extensionIdeas.length > 0 && (
+                <div className="quest-box active-quest-box">
+                  <h3>Keep going</h3>
+                  <ul>
+                    {activeActivity.extensionIdeas.map((idea) => (
+                      <li key={idea}>{idea}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+            {activeActivity.whyItFits && (
+              <div className="quest-box active-quest-box why-it-fits-box">
+                <h3>Why this fits right now</h3>
+                <p>{activeActivity.whyItFits}</p>
+              </div>
+            )}
+
+            {uses.length > 0 && (
+              <p className="uses-list">Uses: {uses.join(", ")}</p>
+            )}
           </div>
-        )}
-
-      {activeActivity.whyItFits && (
-        <div className="quest-box active-quest-box why-it-fits-box">
-          <h3>Why this fits right now</h3>
-          <p>{activeActivity.whyItFits}</p>
-        </div>
-      )}
-
-      {uses.length > 0 && (
-        <p className="uses-list">Uses: {uses.join(", ")}</p>
+        </details>
       )}
 
       <div className="active-activity-actions">

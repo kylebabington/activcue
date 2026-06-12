@@ -1531,46 +1531,41 @@ Prioritize activities that require the least decision-making from the child.
 
   return (
     <main className="app-shell">
-      <section className="hero-card">
-        <p className="eyebrow">Family Activity Helper</p>
+      <header className="app-header">
+        <div className="app-header-brand">
+          <p className="eyebrow">Family Activity Helper</p>
+        </div>
 
-        <h1>When parents are busy, kids get a clear next move.</h1>
+        <nav className="app-nav">
+          <NavLink
+            to="/parent"
+            className={({ isActive }) => (isActive ? "active" : "")}
+          >
+            Parent
+          </NavLink>
 
-        <p>
-          Set the current family moment, let kids choose what they need, and turn
-          “I’m bored” into an independent activity.
-        </p>
-      </section>
+          <NavLink
+            to="/kid"
+            className={({ isActive }) => (isActive ? "active" : "")}
+          >
+            Kid
+          </NavLink>
 
-      <nav className="app-nav">
-        <NavLink
-          to="/parent"
-          className={({ isActive }) => (isActive ? "active" : "")}
-        >
-          Parent
-        </NavLink>
+          <NavLink
+            to="/quest"
+            className={({ isActive }) => (isActive ? "active" : "")}
+          >
+            Activity
+          </NavLink>
 
-        <NavLink
-          to="/kid"
-          className={({ isActive }) => (isActive ? "active" : "")}
-        >
-          Kid
-        </NavLink>
-
-        <NavLink
-          to="/quest"
-          className={({ isActive }) => (isActive ? "active" : "")}
-        >
-          Activity
-        </NavLink>
-
-        <NavLink
-          to="/settings"
-          className={({ isActive }) => (isActive ? "active" : "")}
-        >
-          Settings
-        </NavLink>
-      </nav>
+          <NavLink
+            to="/settings"
+            className={({ isActive }) => (isActive ? "active" : "")}
+          >
+            Settings
+          </NavLink>
+        </nav>
+      </header>
 
       {statusMessage && (
         <p className={`status-message status-message--${statusType}`}>
@@ -1595,7 +1590,6 @@ Prioritize activities that require the least decision-making from the child.
                 customParentPresets={customParentPresets}
                 applyParentStatusPreset={applyParentStatusPreset}
                 getAvailabilityLabel={formatAvailabilityLabel}
-                ParentStatusCard={ParentStatusCard}
               />
             }
           />
@@ -1605,7 +1599,6 @@ Prioritize activities that require the least decision-making from the child.
             element={
               <KidPage
                 currentMoment={currentMoment}
-                ParentStatusCard={ParentStatusCard}
                 kidEnergyLevel={kidEnergyLevel}
                 setKidEnergyLevel={setKidEnergyLevel}
                 kidActivityStyle={kidActivityStyle}

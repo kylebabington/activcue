@@ -171,10 +171,6 @@ function ActivityResults({
                     {isBestFit && (
                       <span className="best-fit-badge">Best fit right now</span>
                     )}
-
-                    {typeof score === "number" && (
-                      <span className="fit-score-badge">Fit score: {score}</span>
-                    )}
                   </div>
 
                   <h3>{activity.title}</h3>

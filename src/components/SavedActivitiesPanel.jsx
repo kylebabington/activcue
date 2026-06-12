@@ -63,7 +63,7 @@ function SavedActivitiesPanel({
 
             return (
               <article key={activity.id} className="saved-activity-item">
-                <div>
+                <div className="saved-activity-content">
                   <div className="quest-card-topline">
                     <span
                       className={
@@ -78,8 +78,6 @@ function SavedActivitiesPanel({
 
                   <h3>{activity.title}</h3>
 
-                  {/* Simple saved activities should not show theme text.
-                      Theme is mostly useful for imaginative/pretend activities. */}
                   {!isSimpleActivity && activity.theme && (
                     <p className="activity-theme">{activity.theme}</p>
                   )}
