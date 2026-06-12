@@ -44,16 +44,6 @@ function SettingsPage() {
 
   return (
     <section className="page-layout page-layout--parent">
-      <section className="page-intro">
-        <p className="eyebrow dark">Parent Settings</p>
-
-        <h1>Set up the family helper</h1>
-
-        <p>
-          Manage supplies, safety rules, child profiles, saved activities, and history.
-        </p>
-      </section>
-
       <section className="settings-cluster">
         <h2 className="settings-cluster-title">Family setup</h2>
 

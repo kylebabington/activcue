@@ -131,10 +131,6 @@ function QuestPage() {
                 <p className="eyebrow dark">Activity Board</p>
 
                 <h1>What should happen next?</h1>
-
-                <p>
-                    Start a saved activity, pick a new one, or follow what is already in progress.
-                </p>
             </section>
 
             <div className="kid-center-column">
@@ -200,20 +196,6 @@ function QuestPage() {
                     </section>
                 )}
 
-            {!activeActivity && !lastCompletedQuest && (
-                <ActivityResults
-                    activities={activities}
-                    scoredActivities={scoredActivities}
-                    isLoading={isLoading}
-                    handleStartActivity={handleStartActivity}
-                    saveFavoriteActivity={saveFavoriteActivity}
-                    handleTooMessy={handleTooMessy}
-                    handleTooHard={handleTooHard}
-                    handleNeedQuieter={handleNeedQuieter}
-                    handleMoreLikeThis={handleMoreLikeThis}
-                />
-            )}
-
             {!activeActivity && !lastCompletedQuest && activities.length === 0 && !isLoading && (
                 <section className="panel">
                     <h2>No activities yet</h2>
@@ -228,6 +210,22 @@ function QuestPage() {
                 </section>
             )}
             </div>
+
+            {!activeActivity && !lastCompletedQuest && (
+                <div className="activity-board-column">
+                    <ActivityResults
+                        activities={activities}
+                        scoredActivities={scoredActivities}
+                        isLoading={isLoading}
+                        handleStartActivity={handleStartActivity}
+                        saveFavoriteActivity={saveFavoriteActivity}
+                        handleTooMessy={handleTooMessy}
+                        handleTooHard={handleTooHard}
+                        handleNeedQuieter={handleNeedQuieter}
+                        handleMoreLikeThis={handleMoreLikeThis}
+                    />
+                </div>
+            )}
         </section>
     );
 }

@@ -7,7 +7,8 @@ function KidPage({
   kidEnergyLevel,
   setKidEnergyLevel,
   kidActivityStyle,
-  handleKidQuickChoice,
+  setKidActivityStyle,
+  handleGenerateKidActivities,
   handleStartSomethingForMe,
   isLoading,
 }) {
@@ -29,8 +30,6 @@ function KidPage({
         <p className="eyebrow dark">Kid Mode</p>
 
         <h1>What sounds good?</h1>
-
-        <p>Pick your energy, then choose simple or imaginative.</p>
       </section>
 
       <div className="kid-center-column">
@@ -51,14 +50,6 @@ function KidPage({
         )}
 
         <section className="panel kid-main-panel">
-          <button
-            className="fast-start-button"
-            onClick={handleStartSomethingForMe}
-            disabled={isLoading}
-          >
-            {isLoading ? "Finding..." : "Start for me"}
-          </button>
-
           <div className="kid-energy-picker">
             <h3>My energy is...</h3>
 
@@ -96,7 +87,7 @@ function KidPage({
             <button
               type="button"
               className={styleButtonClass("simple")}
-              onClick={() => handleKidQuickChoice("simple")}
+              onClick={() => setKidActivityStyle("simple")}
               disabled={isLoading}
             >
               <span>Simple</span>
@@ -106,13 +97,31 @@ function KidPage({
             <button
               type="button"
               className={styleButtonClass("imaginative")}
-              onClick={() => handleKidQuickChoice("imaginative")}
+              onClick={() => setKidActivityStyle("imaginative")}
               disabled={isLoading}
             >
               <span>Imaginative</span>
               <small>Pretend, mission, story play</small>
             </button>
           </div>
+
+          <button
+            type="button"
+            className="im-bored-button"
+            onClick={handleGenerateKidActivities}
+            disabled={isLoading}
+          >
+            {isLoading ? "Finding..." : "I'm Bored"}
+          </button>
+
+          <button
+            type="button"
+            className="fast-start-button fast-start-button--secondary"
+            onClick={handleStartSomethingForMe}
+            disabled={isLoading}
+          >
+            {isLoading ? "Finding..." : "Start for me"}
+          </button>
         </section>
       </div>
     </section>

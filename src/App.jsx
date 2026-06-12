@@ -59,9 +59,14 @@ function App() {
     supervisionLevel: "independent",
   });
 
-  const [customParentPresets] = useLocalStorage(
+  const [customParentPresets, setCustomParentPresets] = useLocalStorage(
     "customParentPresets",
     []
+  );
+
+  const [activePresetKey, setActivePresetKey] = useLocalStorage(
+    "activeParentPresetKey",
+    ""
   );
 
   const [inventory, setInventory] = useLocalStorage("inventory", [
@@ -243,28 +248,36 @@ function App() {
       ?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [activeActivity?.id]);
 
-  function applyParentStatusPreset(preset) {
-    // Keep the old parentStatus state updated for now.
-    // This prevents older parts of the app from breaking.
-    setParentStatus({
-      activity: preset.activity,
-      availability: preset.availability,
-    });
-
-    // Update the new currentMoment object.
-    // This is the new "source of truth" for the right-now family situation.
+  function applyMomentDraft(draft) {
     setCurrentMoment({
-      parentActivity: preset.activity,
-      availability: preset.availability,
-      timeNeededMinutes: preset.timeNeededMinutes || currentMoment.timeNeededMinutes,
-      space: preset.space || currentMoment.space,
-      messLevel: preset.messLevel || currentMoment.messLevel,
-      noiseLevel: preset.noiseLevel || currentMoment.noiseLevel,
-      supervisionLevel:
-        preset.supervisionLevel || currentMoment.supervisionLevel,
+      parentActivity: draft.parentActivity,
+      availability: draft.availability,
+      timeNeededMinutes: draft.timeNeededMinutes,
+      space: draft.space,
+      messLevel: draft.messLevel,
+      noiseLevel: draft.noiseLevel,
+      supervisionLevel: draft.supervisionLevel,
     });
+    setParentStatus(parentStatusFromMoment(draft));
+    showStatus(`Current moment set to "${draft.parentActivity}".`, "success");
+  }
 
-    showStatus(`Current moment set to "${preset.label}".`, "success");
+  function saveCustomParentPreset(label, draft) {
+    const preset = {
+      id: crypto.randomUUID(),
+      label: label.trim(),
+      activity: draft.parentActivity,
+      availability: draft.availability,
+      timeNeededMinutes: draft.timeNeededMinutes,
+      space: draft.space,
+      messLevel: draft.messLevel,
+      noiseLevel: draft.noiseLevel,
+      supervisionLevel: draft.supervisionLevel,
+    };
+
+    setCustomParentPresets([...customParentPresets, preset]);
+    showStatus(`Saved "${preset.label}".`, "success");
+    return preset;
   }
   // This helper updates one field inside currentMoment.
   //
@@ -576,20 +589,10 @@ Do not make the idea more creative than it needs to be.
 `;
   }
 
-  async function handleKidQuickChoice(activityStyle) {
-    // activityStyle is now either:
-    // - "simple"
-    // - "imaginative"
-    //
-    // The old version used choices like bored/move/make/quiet/help/surprise.
-    // This new version is intentionally simpler.
-
-    setKidActivityStyle(activityStyle);
-
-    // Keep kidMood updated for older history/scoring code.
-    // The new UI uses kidEnergyLevel, but kidMood still exists elsewhere.
+  async function handleGenerateKidActivities() {
     setKidMood(kidEnergyLevel);
 
+    const activityStyle = kidActivityStyle;
     const styleInstruction = getKidActivityStyleInstruction(activityStyle);
     const energyInstruction = getKidEnergyInstruction(kidEnergyLevel);
 
@@ -1581,15 +1584,13 @@ Prioritize activities that require the least decision-making from the child.
             path="/parent"
             element={
               <ParentPage
-                parentStatus={parentStatus}
-                setParentStatus={setParentStatus}
-                currentMoment={currentMoment}
-                updateCurrentMoment={updateCurrentMoment}
-                applyCurrentMomentQuickAdjust={applyCurrentMomentQuickAdjust}
                 defaultParentStatusPresets={defaultParentStatusPresets}
                 customParentPresets={customParentPresets}
-                applyParentStatusPreset={applyParentStatusPreset}
                 getAvailabilityLabel={formatAvailabilityLabel}
+                applyMomentDraft={applyMomentDraft}
+                saveCustomParentPreset={saveCustomParentPreset}
+                activePresetKey={activePresetKey}
+                setActivePresetKey={setActivePresetKey}
               />
             }
           />
@@ -1602,7 +1603,8 @@ Prioritize activities that require the least decision-making from the child.
                 kidEnergyLevel={kidEnergyLevel}
                 setKidEnergyLevel={setKidEnergyLevel}
                 kidActivityStyle={kidActivityStyle}
-                handleKidQuickChoice={handleKidQuickChoice}
+                setKidActivityStyle={setKidActivityStyle}
+                handleGenerateKidActivities={handleGenerateKidActivities}
                 handleStartSomethingForMe={handleStartSomethingForMe}
                 isLoading={isLoading}
               />
