@@ -57,6 +57,28 @@ export function formatAvailabilityMessage(availability) {
   return "Check before interrupting.";
 }
 
+export function formatKidMomentMessage(currentMoment) {
+  const availability = currentMoment?.availability;
+
+  if (availability === "do-not-interrupt") {
+    return "An adult can’t help right now — pick something you can start alone.";
+  }
+
+  if (availability === "ask-first") {
+    return "An adult is busy — try your activity first, then ask if you need help.";
+  }
+
+  if (availability === "helper-welcome") {
+    return "An adult is around if you want to help or ask a question.";
+  }
+
+  if (availability === "available") {
+    return "An adult can help if you need it.";
+  }
+
+  return "Pick something that fits right now.";
+}
+
 export function formatNoiseForBanner(noiseLevel) {
   if (noiseLevel === "quiet") return "Quiet";
   if (noiseLevel === "normal") return "Normal noise";

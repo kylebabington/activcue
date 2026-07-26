@@ -11,6 +11,8 @@ function ParentPage({
   getAvailabilityLabel,
   applyMomentDraft,
   saveCustomParentPreset,
+  updateCustomParentPreset,
+  deleteCustomParentPreset,
   activePresetKey,
   setActivePresetKey,
 }) {
@@ -55,10 +57,12 @@ function ParentPage({
 
   return (
     <section className="page-layout page-layout--parent parent-preset-page">
+      <section className="page-intro page-intro--minimal">
+        <h1>Pick what’s happening</h1>
+        <p>Choose a moment so kids get activities that fit.</p>
+      </section>
+
       <section className="panel parent-preset-panel">
-        <div className="panel-header">
-          <h2>Pick a moment</h2>
-        </div>
 
         <div className="preset-grid preset-grid--dense">
           {defaultParentStatusPresets.map((preset) => (
@@ -80,15 +84,24 @@ function ParentPage({
 
             <div className="preset-grid preset-grid--dense">
               {customParentPresets.map((preset) => (
-                <button
-                  key={preset.id}
-                  type="button"
-                  className={presetCardClass(preset)}
-                  onClick={() => openReviewModal(preset)}
-                >
-                  <span>{preset.label}</span>
-                  <small>{formatPresetMeta(preset)}</small>
-                </button>
+                <div key={preset.id} className="custom-preset-card-wrap">
+                  <button
+                    type="button"
+                    className={presetCardClass(preset)}
+                    onClick={() => openReviewModal(preset)}
+                  >
+                    <span>{preset.label}</span>
+                    <small>{formatPresetMeta(preset)}</small>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="ghost-button custom-preset-delete"
+                    onClick={() => deleteCustomParentPreset(preset.id)}
+                  >
+                    Delete
+                  </button>
+                </div>
               ))}
             </div>
           </>
@@ -110,6 +123,14 @@ function ParentPage({
         onClose={closeReviewModal}
         onSetMoment={handleSetMoment}
         getAvailabilityLabel={getAvailabilityLabel}
+        onUpdateCustom={
+          reviewPreset?.id
+            ? (label, draft) => {
+                updateCustomParentPreset(reviewPreset.id, label, draft);
+                closeReviewModal();
+              }
+            : null
+        }
       />
 
       <CreateMomentModal

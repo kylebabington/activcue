@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import { ActivityDetailsModal } from "./ActivityDetailsModal";
+import { getVerifiedFitFacts } from "../utils/inventoryFit";
 
 function ActivityResults({
   activities,
   scoredActivities,
   isLoading,
+  currentMoment,
   handleStartActivity,
   saveFavoriteActivity,
   handleTooMessy,
@@ -68,7 +70,6 @@ function ActivityResults({
       <section className="panel results-panel activity-board-panel">
         <div className="panel-header">
           <div>
-            <p className="eyebrow dark">Activity Board</p>
             <h2>Pick something to do</h2>
           </div>
         </div>
@@ -80,6 +81,7 @@ function ActivityResults({
             const isSimpleActivity = activity.activityStyle === "simple";
             const isBestFit = index === 0 && typeof score === "number";
             const feedbackIsOpen = feedbackActivityTitle === activity.title;
+            const fitFacts = getVerifiedFitFacts(activity, currentMoment);
 
             return (
               <article key={activity.title} className="quest-choice-card">
@@ -100,27 +102,49 @@ function ActivityResults({
                     {activity.summary && (
                       <p className="quest-short-summary">{activity.summary}</p>
                     )}
+
+                    {fitFacts.length > 0 && (
+                      <div className="fit-fact-chip-row">
+                        {fitFacts.map((fact) => (
+                          <span key={fact} className="fit-fact-chip">
+                            {fact}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   <div className="quest-choice-actions">
-                    <button type="button" onClick={() => handleStartActivity(activity)}>
+                    <button
+                      type="button"
+                      className="quest-start-button"
+                      onClick={() => handleStartActivity(activity)}
+                    >
                       Start
                     </button>
 
                     <button
                       type="button"
-                      className="secondary-action"
+                      className="text-action"
                       onClick={() => openDetails(activity.title)}
                     >
-                      See details
+                      Details
                     </button>
 
                     <button
                       type="button"
-                      className="ghost-button"
+                      className="text-action"
                       onClick={() => toggleFeedback(activity.title)}
                     >
-                      Not this one
+                      Not this
+                    </button>
+
+                    <button
+                      type="button"
+                      className="text-action"
+                      onClick={() => handleMoreLikeThis(activity)}
+                    >
+                      More like this
                     </button>
                   </div>
                 </div>
@@ -130,20 +154,25 @@ function ActivityResults({
                     <h4>Why not this one?</h4>
 
                     <div className="feedback-buttons compact-feedback-buttons">
-                      <button type="button" onClick={() => handleTooMessy(activity)}>
+                      <button
+                        type="button"
+                        onClick={() => handleTooMessy(activity)}
+                      >
                         Too messy
                       </button>
 
-                      <button type="button" onClick={() => handleTooHard(activity)}>
+                      <button
+                        type="button"
+                        onClick={() => handleTooHard(activity)}
+                      >
                         Too hard
                       </button>
 
-                      <button type="button" onClick={() => handleNeedQuieter(activity)}>
+                      <button
+                        type="button"
+                        onClick={() => handleNeedQuieter(activity)}
+                      >
                         Too loud
-                      </button>
-
-                      <button type="button" onClick={() => handleMoreLikeThis(activity)}>
-                        More like this
                       </button>
                     </div>
                   </div>
@@ -157,6 +186,7 @@ function ActivityResults({
       <ActivityDetailsModal
         activity={detailsEntry?.activity ?? null}
         score={detailsEntry?.score ?? null}
+        currentMoment={currentMoment}
         isOpen={Boolean(detailsEntry)}
         onClose={closeDetails}
         handleStartActivity={handleStartActivity}

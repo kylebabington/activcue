@@ -52,7 +52,75 @@ export function activityUsesItem(activity, itemName) {
   });
 }
 
-export function scoreActivityForCurrentMoment(activity, currentMoment) {
+export function scoreSpaceFit(activity, currentMoment) {
+  const momentSpace = normalizeTextValue(currentMoment?.space);
+
+  if (!momentSpace) {
+    return 0;
+  }
+
+  const searchableActivityText = [
+    activity?.title,
+    activity?.summary,
+    activity?.theme,
+    activity?.mission,
+    ...(Array.isArray(activity?.steps) ? activity.steps : []),
+    ...(Array.isArray(activity?.uses) ? activity.uses : []),
+  ]
+    .join(" ")
+    .toLowerCase();
+
+  if (!searchableActivityText) {
+    return 0;
+  }
+
+  if (searchableActivityText.includes(momentSpace)) {
+    return 4;
+  }
+
+  const spaceSynonyms = {
+    "living room": ["living room", "couch", "carpet", "indoor"],
+    "kitchen table": ["kitchen", "table", "indoor"],
+    bedroom: ["bedroom", "bed", "indoor"],
+    backyard: ["backyard", "yard", "outside", "outdoor"],
+    outdoors: ["outside", "outdoor", "yard", "backyard"],
+  };
+
+  const synonyms = spaceSynonyms[momentSpace] || [momentSpace];
+  const hasSynonym = synonyms.some((word) =>
+    searchableActivityText.includes(word)
+  );
+
+  if (hasSynonym) {
+    return 3;
+  }
+
+  const outdoorWords = ["outside", "outdoor", "yard", "backyard", "sidewalk"];
+  const indoorWords = ["indoor", "living room", "bedroom", "table", "couch"];
+  const momentIsOutdoor = outdoorWords.some((word) => momentSpace.includes(word));
+  const activityIsOutdoor = outdoorWords.some((word) =>
+    searchableActivityText.includes(word)
+  );
+  const activityIsIndoor = indoorWords.some((word) =>
+    searchableActivityText.includes(word)
+  );
+
+  if (momentIsOutdoor && activityIsIndoor) {
+    return -2;
+  }
+
+  if (!momentIsOutdoor && activityIsOutdoor) {
+    return -4;
+  }
+
+  return 0;
+}
+
+export function scoreActivityForCurrentMoment(
+  activity,
+  currentMoment,
+  inventory = []
+) {
   // Every activity starts at zero.
   // Good matches add points.
   // Bad matches subtract points.
@@ -262,7 +330,7 @@ export function scoreActivityForCurrentMoment(activity, currentMoment) {
   // ------------------------------------------------------------
   // 6. Supplies scoring
   // ------------------------------------------------------------
-  // Activities using known supplies are usually more actionable.
+  // Prefer activities that name supplies, then reward owned inventory matches.
   if (uses.length > 0) {
     score += 2;
   }
@@ -270,6 +338,44 @@ export function scoreActivityForCurrentMoment(activity, currentMoment) {
   if (uses.length > 3) {
     score -= 1;
   }
+
+  // Inventory match is imported lazily-safe via dynamic path avoided —
+  // callers pass inventory; we score with inline matching to avoid cycles.
+  const inventoryNames = Array.isArray(inventory)
+    ? inventory
+        .map((item) =>
+          typeof item === "string" ? item : item?.name || ""
+        )
+        .filter(Boolean)
+        .map((name) => normalizeTextValue(name))
+    : [];
+
+  if (uses.length > 0 && inventoryNames.length > 0) {
+    let matchedCount = 0;
+
+    uses.forEach((useItem) => {
+      const normalizedUse = normalizeTextValue(useItem);
+
+      const matched = inventoryNames.some(
+        (name) =>
+          normalizedUse.includes(name) || name.includes(normalizedUse)
+      );
+
+      if (matched) {
+        matchedCount += 1;
+      }
+    });
+
+    if (matchedCount === 0) {
+      score -= 8;
+    } else {
+      score += matchedCount * 4;
+    }
+  } else if (uses.length === 0) {
+    score -= 2;
+  }
+
+  score += scoreSpaceFit(activity, currentMoment);
 
   // ------------------------------------------------------------
   // 7. Extra safety penalties based on words in the activity
@@ -314,13 +420,18 @@ export function scoreActivityForCurrentMoment(activity, currentMoment) {
   return score;
 }
 
-export function scoreActivityFromHistory(activity, activityHistory) {
+export function scoreActivityFromHistory(
+  activity,
+  activityHistory,
+  options = {}
+) {
   // This function adjusts the score based on previous family feedback.
   //
   // It does NOT replace current-moment scoring.
   // It adds a memory layer on top of it.
 
   let score = 0;
+  const activeChildId = options.activeChildId || "";
 
   // If there is no history yet, there is nothing to learn from.
   if (!Array.isArray(activityHistory) || activityHistory.length === 0) {
@@ -337,7 +448,15 @@ export function scoreActivityFromHistory(activity, activityHistory) {
 
   // Look at recent history only.
   // We do not want old feedback from months ago dominating forever.
-  const recentHistory = activityHistory.slice(-30);
+  // When an active child is set, prefer that child's history for learning.
+  const scopedHistory = activeChildId
+    ? activityHistory.filter(
+        (historyItem) =>
+          !historyItem.childId || historyItem.childId === activeChildId
+      )
+    : activityHistory;
+
+  const recentHistory = scopedHistory.slice(-30);
 
   // Count feedback types.
   const tooMessyCount = recentHistory.filter(
@@ -365,6 +484,14 @@ export function scoreActivityFromHistory(activity, activityHistory) {
   const canceledItems = recentHistory.filter(
     (historyItem) => historyItem.feedbackType === "canceled"
   );
+
+  const needAnotherIdeaCount = recentHistory.filter(
+    (historyItem) => historyItem.feedbackType === "need-another-idea"
+  ).length;
+
+  const notFinishedCount = recentHistory.filter(
+    (historyItem) => historyItem.feedbackType === "not-finished"
+  ).length;
 
   // ------------------------------------------------------------
   // Mess learning
@@ -457,6 +584,19 @@ export function scoreActivityFromHistory(activity, activityHistory) {
     ) {
       score += 1;
     }
+
+    const historyTheme = normalizeTextValue(historyItem.theme);
+    const activityTheme = normalizeTextValue(activity.theme);
+    const historyStyle = normalizeTextValue(historyItem.activityStyle);
+    const activityStyle = normalizeTextValue(activity.activityStyle);
+
+    if (historyTheme && activityTheme && historyTheme === activityTheme) {
+      score += 2;
+    }
+
+    if (historyStyle && activityStyle && historyStyle === activityStyle) {
+      score += 1;
+    }
   });
 
   // ------------------------------------------------------------
@@ -474,6 +614,24 @@ export function scoreActivityFromHistory(activity, activityHistory) {
   });
 
   // ------------------------------------------------------------
+  // Need another idea / not finished
+  // ------------------------------------------------------------
+  // Prefer shorter, easier-to-start activities after abandoned or skipped ones.
+  if (needAnotherIdeaCount >= 2 || notFinishedCount >= 2) {
+    if (steps.length > 0 && steps.length <= 4) {
+      score += 2;
+    }
+
+    if (steps.length > 5) {
+      score -= 2;
+    }
+
+    if (activityAdultHelp === "needed") {
+      score -= 2;
+    }
+  }
+
+  // ------------------------------------------------------------
   // Supply sanity bonus
   // ------------------------------------------------------------
   // If the activity uses at least one item, give a tiny boost.
@@ -485,16 +643,85 @@ export function scoreActivityFromHistory(activity, activityHistory) {
   return score;
 }
 
-export function getTotalActivityScore(activity, currentMoment, activityHistory) {
+export function getTotalActivityScore(
+  activity,
+  currentMoment,
+  activityHistory,
+  options = {}
+) {
   const currentMomentScore = scoreActivityForCurrentMoment(
     activity,
-    currentMoment
+    currentMoment,
+    options.inventory
   );
-  const historyScore = scoreActivityFromHistory(activity, activityHistory);
+  const historyScore = scoreActivityFromHistory(
+    activity,
+    activityHistory,
+    options
+  );
   return currentMomentScore + historyScore;
 }
 
-export function logActivityScoreTable(scoredOptions, currentMoment, activityHistory) {
+export function buildStructuredPreferenceContext(activityHistory, options = {}) {
+  const activeChildId = options.activeChildId || "";
+  const recentHistory = (
+    activeChildId
+      ? activityHistory.filter(
+          (item) => !item.childId || item.childId === activeChildId
+        )
+      : activityHistory
+  ).slice(-30);
+
+  const liked = recentHistory.filter(
+    (item) =>
+      item.feedbackType === "finished" ||
+      item.feedbackType === "more-like-this" ||
+      item.feedbackType === "timer-more-like-this"
+  );
+
+  const likedUses = [
+    ...new Set(
+      liked.flatMap((item) => (Array.isArray(item.uses) ? item.uses : []))
+    ),
+  ].slice(0, 8);
+
+  const likedThemes = [
+    ...new Set(
+      liked.map((item) => item.theme).filter((theme) => Boolean(theme))
+    ),
+  ].slice(0, 5);
+
+  const likedStyles = [
+    ...new Set(
+      liked
+        .map((item) => item.activityStyle)
+        .filter((style) => Boolean(style))
+    ),
+  ];
+
+  if (
+    likedUses.length === 0 &&
+    likedThemes.length === 0 &&
+    likedStyles.length === 0
+  ) {
+    return "";
+  }
+
+  return `
+Recent preferences for this child/family:
+- Liked supplies: ${likedUses.join(", ") || "none noted"}
+- Liked themes: ${likedThemes.join(", ") || "none noted"}
+- Liked styles: ${likedStyles.join(", ") || "none noted"}
+Prefer suggestions that lean into these when they still fit the current moment.
+`.trim();
+}
+
+export function logActivityScoreTable(
+  scoredOptions,
+  currentMoment,
+  activityHistory,
+  options = {}
+) {
   if (!import.meta.env.DEV) {
     return;
   }
@@ -510,9 +737,14 @@ export function logActivityScoreTable(scoredOptions, currentMoment, activityHist
         totalScore: item.score,
         currentMomentScore: scoreActivityForCurrentMoment(
           item.activity,
-          currentMoment
+          currentMoment,
+          options.inventory
         ),
-        historyScore: scoreActivityFromHistory(item.activity, activityHistory),
+        historyScore: scoreActivityFromHistory(
+          item.activity,
+          activityHistory,
+          options
+        ),
         estimatedMinutes: item.activity.estimatedMinutes,
         mess: item.activity.mess,
         energy: item.activity.energy,

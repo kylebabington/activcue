@@ -17,6 +17,8 @@ export default function createQuestStepHintRouter(client) {
         currentStepNumber,
         totalSteps,
         currentMoment,
+        activeChildProfile,
+        inventory,
       } = req.body;
 
       if (!activeActivity || !currentStep) {
@@ -33,6 +35,8 @@ export default function createQuestStepHintRouter(client) {
         currentStepNumber,
         totalSteps,
         safeCurrentMoment,
+        activeChildProfile,
+        inventory,
       });
 
       const rawText = await createStructuredResponse(client, {

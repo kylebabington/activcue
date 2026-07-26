@@ -1,6 +1,7 @@
 // src/pages/KidPage.jsx
 
-import MomentStatusBanner from "../components/MomentStatusBanner";
+import { Link } from "react-router-dom";
+import { formatKidMomentMessage } from "../utils/activityFormatters";
 
 function KidPage({
   currentMoment,
@@ -11,6 +12,11 @@ function KidPage({
   handleGenerateKidActivities,
   handleStartSomethingForMe,
   isLoading,
+  loadingIntent,
+  activeChildProfile,
+  activityMode,
+  savedActivities,
+  handleReplaySavedActivity,
 }) {
   function energyChipClass(energyLevel) {
     return kidEnergyLevel === energyLevel
@@ -24,34 +30,54 @@ function KidPage({
       : `kid-style-button kid-style-button--${activityStyle}`;
   }
 
+  const recentSaved = Array.isArray(savedActivities)
+    ? savedActivities.slice(-3).reverse()
+    : [];
+
+  const boredLabel =
+    loadingIntent === "board"
+      ? "Finding activities..."
+      : loadingIntent === "quick"
+        ? "Quick ideas..."
+        : "I'm Bored";
+
+  const startForMeLabel =
+    loadingIntent === "auto-start" ? "Picking one for you..." : "Start for me";
+
+  const profileLabel =
+    activityMode === "family"
+      ? "Playing together"
+      : activeChildProfile
+        ? `Playing as ${activeChildProfile.name}`
+        : null;
+
+  const busyNote =
+    currentMoment?.availability === "do-not-interrupt"
+      ? "Try one activity for about 10 minutes before asking for help."
+      : null;
+
   return (
     <section className="page-layout page-layout--kid">
-      <section className="page-intro page-intro--kid">
-        <p className="eyebrow dark">Kid Mode</p>
-
+      <section className="page-intro page-intro--kid page-intro--minimal">
         <h1>What sounds good?</h1>
       </section>
 
       <div className="kid-center-column">
-        <MomentStatusBanner currentMoment={currentMoment} />
-
-        {currentMoment?.availability === "do-not-interrupt" && (
-          <section className="panel try-first-panel">
-            <p className="eyebrow dark">Try this first</p>
-
-            <h2>Grown-up is busy right now.</h2>
-
-            <ol>
-              <li>Start one activity.</li>
-              <li>Try it for at least 10 minutes.</li>
-              <li>Then ask for help if you still need it.</li>
-            </ol>
-          </section>
-        )}
+        <div className="kid-status-strip">
+          {profileLabel && (
+            <span className="kid-status-strip-profile">{profileLabel}</span>
+          )}
+          {currentMoment && (
+            <p className="kid-status-strip-message">
+              {formatKidMomentMessage(currentMoment)}
+            </p>
+          )}
+          {busyNote && <p className="kid-status-strip-note">{busyNote}</p>}
+        </div>
 
         <section className="panel kid-main-panel">
           <div className="kid-energy-picker">
-            <h3>My energy is...</h3>
+            <h3>My energy</h3>
 
             <div className="kid-energy-row chip-grid">
               <button
@@ -69,7 +95,7 @@ function KidPage({
                 onClick={() => setKidEnergyLevel("neutral")}
                 disabled={isLoading}
               >
-                Neutral
+                In-between
               </button>
 
               <button
@@ -78,7 +104,7 @@ function KidPage({
                 onClick={() => setKidEnergyLevel("energetic")}
                 disabled={isLoading}
               >
-                Energetic
+                Bouncy
               </button>
             </div>
           </div>
@@ -91,7 +117,7 @@ function KidPage({
               disabled={isLoading}
             >
               <span>Simple</span>
-              <small>Easy, clear, no big story</small>
+              <small>Easy and clear</small>
             </button>
 
             <button
@@ -100,29 +126,74 @@ function KidPage({
               onClick={() => setKidActivityStyle("imaginative")}
               disabled={isLoading}
             >
-              <span>Imaginative</span>
-              <small>Pretend, mission, story play</small>
+              <span>Pretend</span>
+              <small>Story play</small>
             </button>
           </div>
 
           <button
             type="button"
             className="im-bored-button"
-            onClick={handleGenerateKidActivities}
+            onClick={() => handleGenerateKidActivities()}
             disabled={isLoading}
           >
-            {isLoading ? "Finding..." : "I'm Bored"}
+            {isLoading && loadingIntent !== "auto-start"
+              ? boredLabel
+              : "I'm Bored"}
           </button>
 
-          <button
-            type="button"
-            className="fast-start-button fast-start-button--secondary"
-            onClick={handleStartSomethingForMe}
-            disabled={isLoading}
-          >
-            {isLoading ? "Finding..." : "Start for me"}
-          </button>
+          <div className="kid-secondary-actions">
+            {kidActivityStyle === "simple" && (
+              <button
+                type="button"
+                className="text-action"
+                onClick={() =>
+                  handleGenerateKidActivities({ preferSimpleTemplates: true })
+                }
+                disabled={isLoading}
+              >
+                {loadingIntent === "quick" && isLoading
+                  ? "Quick ideas..."
+                  : "Quick ideas"}
+              </button>
+            )}
+
+            <button
+              type="button"
+              className="text-action"
+              onClick={handleStartSomethingForMe}
+              disabled={isLoading}
+            >
+              {isLoading && loadingIntent === "auto-start"
+                ? startForMeLabel
+                : "Start for me"}
+            </button>
+          </div>
         </section>
+
+        {recentSaved.length > 0 && (
+          <section className="kid-replay-quiet">
+            <p className="kid-replay-quiet-label">Play again</p>
+
+            <div className="kid-replay-list">
+              {recentSaved.map((activity) => (
+                <button
+                  key={activity.id}
+                  type="button"
+                  className="kid-replay-button"
+                  onClick={() => handleReplaySavedActivity(activity)}
+                  disabled={isLoading}
+                >
+                  {activity.title}
+                </button>
+              ))}
+            </div>
+
+            <Link className="secondary-link" to="/settings">
+              All saved
+            </Link>
+          </section>
+        )}
       </div>
     </section>
   );

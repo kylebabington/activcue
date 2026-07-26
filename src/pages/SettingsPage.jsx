@@ -1,7 +1,9 @@
 // src/pages/SettingsPage.jsx
 
+import { useState } from "react";
 import SavedActivitiesPanel from "../components/SavedActivitiesPanel";
 import ActivityHistoryPanel from "../components/ActivityHistoryPanel";
+import ThemeSwitcher from "../components/ThemeSwitcher";
 import { useAppContext } from "../context/AppContext";
 
 function SettingsPage() {
@@ -10,7 +12,10 @@ function SettingsPage() {
     toggleSafetySetting,
     updateSafetySetting,
     inventoryCategories,
-    normalizedInventory,
+    inventoryPresets,
+    customInventoryItems,
+    isInventoryItemSelected,
+    toggleInventoryPreset,
     newInventoryItem,
     setNewInventoryItem,
     newInventoryCategory,
@@ -20,6 +25,8 @@ function SettingsPage() {
     childProfiles,
     activeChildId,
     setActiveChildId,
+    activityMode,
+    setActivityMode,
     newChildName,
     setNewChildName,
     newChildAgeRange,
@@ -28,6 +35,9 @@ function SettingsPage() {
     setNewChildInterests,
     newChildNeeds,
     setNewChildNeeds,
+    editingChildId,
+    startEditingChildProfile,
+    cancelEditingChildProfile,
     addChildProfile,
     deleteChildProfile,
     parentPin,
@@ -40,7 +50,29 @@ function SettingsPage() {
     clearActivityHistory,
     formatFeedbackLabel,
     resetSavedData,
+    uiTheme,
+    setUiTheme,
+    uiThemes,
   } = useAppContext();
+
+  const [inventorySearch, setInventorySearch] = useState("");
+  const [showSelectedOnly, setShowSelectedOnly] = useState(false);
+
+  const normalizedSearch = inventorySearch.trim().toLowerCase();
+
+  function presetMatchesFilters(preset) {
+    const isSelected = isInventoryItemSelected(preset.name);
+
+    if (showSelectedOnly && !isSelected) {
+      return false;
+    }
+
+    if (!normalizedSearch) {
+      return true;
+    }
+
+    return preset.name.toLowerCase().includes(normalizedSearch);
+  }
 
   return (
     <section className="page-layout page-layout--parent">
@@ -53,6 +85,9 @@ function SettingsPage() {
               <div>
                 <h2>Safety Settings</h2>
                 <p>These rules tell the AI what not to suggest.</p>
+                <p className="settings-note">
+                  Current moment can tighten time and quiet while it is active.
+                </p>
               </div>
             </div>
 
@@ -163,10 +198,123 @@ function SettingsPage() {
           <section className="panel">
             <div className="panel-header">
               <div>
-                <h2>Toy & Supply Inventory</h2>
-                <p>Add things once. The app remembers them after refresh.</p>
+                <h2>Who is playing?</h2>
+                <p>Choose one child or family mode for shared activities.</p>
               </div>
             </div>
+
+            <div className="activity-mode-toggle">
+              <button
+                type="button"
+                className={activityMode === "single-child" ? "enabled" : ""}
+                onClick={() => setActivityMode("single-child")}
+              >
+                <span>One child</span>
+                <small>Uses the active child profile</small>
+              </button>
+
+              <button
+                type="button"
+                className={activityMode === "family" ? "enabled" : ""}
+                onClick={() => setActivityMode("family")}
+              >
+                <span>Family / siblings</span>
+                <small>Ideas for everyone together</small>
+              </button>
+            </div>
+          </section>
+        </div>
+
+        <section className="panel inventory-panel">
+          <div className="panel-header">
+            <div>
+              <h2>Toy & Supply Inventory</h2>
+              <p>
+                Tap what you have at home. No typing needed — pick from common
+                toys, craft supplies, and play items.
+              </p>
+            </div>
+          </div>
+
+          <div className="inventory-filter-row">
+            <input
+              value={inventorySearch}
+              onChange={(event) => setInventorySearch(event.target.value)}
+              placeholder="Search supplies"
+              aria-label="Search supplies"
+            />
+
+            <button
+              type="button"
+              className={showSelectedOnly ? "enabled" : "secondary-action"}
+              onClick={() => setShowSelectedOnly((current) => !current)}
+            >
+              {showSelectedOnly ? "Showing selected" : "Show selected only"}
+            </button>
+          </div>
+
+          <div className="inventory-preset-list">
+            {inventoryCategories.map((category) => {
+              const presetsInCategory = inventoryPresets.filter(
+                (preset) =>
+                  preset.category === category && presetMatchesFilters(preset)
+              );
+
+              if (presetsInCategory.length === 0) {
+                return null;
+              }
+
+              return (
+                <section key={category} className="inventory-category-group">
+                  <h3>{category}</h3>
+
+                  <div className="chip-list inventory-preset-grid">
+                    {presetsInCategory.map((preset) => {
+                      const isSelected = isInventoryItemSelected(preset.name);
+
+                      return (
+                        <button
+                          key={preset.name}
+                          type="button"
+                          className={
+                            isSelected
+                              ? "chip inventory-preset-chip selected"
+                              : "chip inventory-preset-chip"
+                          }
+                          aria-pressed={isSelected}
+                          onClick={() => toggleInventoryPreset(preset)}
+                        >
+                          {preset.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </section>
+              );
+            })}
+          </div>
+
+          {customInventoryItems.length > 0 && (
+            <section className="inventory-category-group inventory-custom-group">
+              <h3>Custom items</h3>
+
+              <div className="chip-list">
+                {customInventoryItems.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className="chip inventory-preset-chip selected"
+                    onClick={() => removeInventoryItem(item.id)}
+                  >
+                    {item.name} ×
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+
+          <details className="inventory-custom-add">
+            <summary>Add something not listed</summary>
 
             <div className="inventory-add-grid">
               <input
@@ -175,12 +323,14 @@ function SettingsPage() {
                 onKeyDown={(event) => {
                   if (event.key === "Enter") addInventoryItem();
                 }}
-                placeholder="Example: chalk, blocks, cards"
+                placeholder="Example: marble collection, ukulele"
               />
 
               <select
                 value={newInventoryCategory}
-                onChange={(event) => setNewInventoryCategory(event.target.value)}
+                onChange={(event) =>
+                  setNewInventoryCategory(event.target.value)
+                }
               >
                 {inventoryCategories.map((category) => (
                   <option key={category} value={category}>
@@ -189,40 +339,12 @@ function SettingsPage() {
                 ))}
               </select>
 
-              <button onClick={addInventoryItem}>Add</button>
+              <button type="button" onClick={addInventoryItem}>
+                Add
+              </button>
             </div>
-
-            <div className="categorized-inventory-list">
-              {inventoryCategories.map((category) => {
-                const itemsInCategory = normalizedInventory.filter(
-                  (item) => item.category === category
-                );
-
-                if (itemsInCategory.length === 0) {
-                  return null;
-                }
-
-                return (
-                  <section key={category} className="inventory-category-group">
-                    <h3>{category}</h3>
-
-                    <div className="chip-list">
-                      {itemsInCategory.map((item) => (
-                        <button
-                          key={item.id}
-                          className="chip"
-                          onClick={() => removeInventoryItem(item.id)}
-                        >
-                          {item.name} ×
-                        </button>
-                      ))}
-                    </div>
-                  </section>
-                );
-              })}
-            </div>
-          </section>
-        </div>
+          </details>
+        </section>
 
         <section className="panel child-profile-panel">
           <div className="panel-header">
@@ -276,9 +398,21 @@ function SettingsPage() {
               />
             </label>
 
-            <button type="button" onClick={addChildProfile}>
-              Add child profile
-            </button>
+            <div className="child-profile-form-actions">
+              <button type="button" onClick={addChildProfile}>
+                {editingChildId ? "Save profile" : "Add child profile"}
+              </button>
+
+              {editingChildId && (
+                <button
+                  type="button"
+                  className="ghost-button"
+                  onClick={cancelEditingChildProfile}
+                >
+                  Cancel edit
+                </button>
+              )}
+            </div>
           </div>
 
           {childProfiles.length === 0 ? (
@@ -303,8 +437,19 @@ function SettingsPage() {
                   </div>
 
                   <div className="child-profile-actions">
-                    <button type="button" onClick={() => setActiveChildId(child.id)}>
+                    <button
+                      type="button"
+                      onClick={() => setActiveChildId(child.id)}
+                    >
                       Use profile
+                    </button>
+
+                    <button
+                      type="button"
+                      className="secondary-action"
+                      onClick={() => startEditingChildProfile(child)}
+                    >
+                      Edit
                     </button>
 
                     <button
@@ -323,7 +468,7 @@ function SettingsPage() {
       </section>
 
       <section className="settings-cluster">
-        <h2 className="settings-cluster-title">Supplies & history</h2>
+        <h2 className="settings-cluster-title">Saved & history</h2>
 
         <SavedActivitiesPanel
           savedActivities={savedActivities}
@@ -341,13 +486,31 @@ function SettingsPage() {
       <section className="settings-cluster">
         <h2 className="settings-cluster-title">Account</h2>
 
+        <section className="panel theme-settings-panel">
+          <div className="panel-header">
+            <div>
+              <h2>Look & feel</h2>
+              <p>
+                Switch themes anytime. Compare Playroom, Workshop, and Storybook
+                to find what fits your family.
+              </p>
+            </div>
+          </div>
+
+          <ThemeSwitcher
+            theme={uiTheme}
+            onChange={setUiTheme}
+            themes={uiThemes}
+          />
+        </section>
+
         <section className="panel pin-settings-panel">
           <div className="panel-header">
             <div>
               <h2>Parent PIN</h2>
               <p>
-                This locks Parent Setup from Kid Mode. MVP-level protection, not real
-                account security.
+                When set, Parent and Settings stay locked until unlocked for this
+                session. MVP-level protection, not real account security.
               </p>
             </div>
           </div>

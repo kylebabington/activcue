@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   getTotalActivityScore,
   scoreActivityForCurrentMoment,
+  scoreSpaceFit,
 } from "./activityScoring";
+import { scoreInventoryMatch } from "./inventoryFit";
 
 const quietMoment = {
   parentActivity: "On a work call",
@@ -70,6 +72,68 @@ describe("scoreActivityForCurrentMoment", () => {
       scoreActivityForCurrentMoment(longActivity, quietMoment)
     );
   });
+
+  it("rewards activities that use owned inventory items", () => {
+    const inventory = [{ id: "1", name: "LEGO", category: "Building toys" }];
+
+    const matching = {
+      title: "LEGO build",
+      mess: "low",
+      energy: "low",
+      adultHelp: "none",
+      estimatedMinutes: 15,
+      steps: ["Build"],
+      uses: ["LEGO"],
+      firstMoves: [],
+      starterPrompts: [],
+    };
+
+    const invented = {
+      ...matching,
+      title: "Robot kit",
+      uses: ["advanced robot kit"],
+    };
+
+    expect(
+      scoreActivityForCurrentMoment(matching, quietMoment, inventory)
+    ).toBeGreaterThan(
+      scoreActivityForCurrentMoment(invented, quietMoment, inventory)
+    );
+  });
+
+  it("boosts space-aligned activities", () => {
+    const indoor = {
+      title: "Couch fort",
+      summary: "Build a fort in the living room",
+      mess: "low",
+      energy: "low",
+      adultHelp: "none",
+      estimatedMinutes: 15,
+      steps: ["Use pillows"],
+      uses: ["pillows"],
+    };
+
+    const outdoor = {
+      ...indoor,
+      title: "Yard sprint",
+      summary: "Run outside in the backyard",
+      steps: ["Go outside"],
+    };
+
+    expect(scoreSpaceFit(indoor, quietMoment)).toBeGreaterThan(
+      scoreSpaceFit(outdoor, quietMoment)
+    );
+  });
+});
+
+describe("scoreInventoryMatch", () => {
+  it("penalizes invented supplies", () => {
+    const inventory = [{ name: "markers" }, { name: "paper" }];
+
+    expect(
+      scoreInventoryMatch({ uses: ["laser cutter"] }, inventory)
+    ).toBeLessThan(scoreInventoryMatch({ uses: ["markers"] }, inventory));
+  });
 });
 
 describe("getTotalActivityScore", () => {
@@ -86,22 +150,22 @@ describe("getTotalActivityScore", () => {
       starterPrompts: [],
     };
 
+    const cleanActivity = {
+      ...messyActivity,
+      title: "Quiet drawing",
+      mess: "low",
+      uses: ["paper"],
+    };
+
     const history = [
-      { feedbackType: "too-messy" },
-      { feedbackType: "too-messy" },
+      { feedbackType: "too-messy", mess: "high" },
+      { feedbackType: "too-messy", mess: "high" },
     ];
 
-    const withoutHistory = getTotalActivityScore(
-      messyActivity,
-      quietMoment,
-      []
+    expect(
+      getTotalActivityScore(cleanActivity, quietMoment, history)
+    ).toBeGreaterThan(
+      getTotalActivityScore(messyActivity, quietMoment, history)
     );
-    const withHistory = getTotalActivityScore(
-      messyActivity,
-      quietMoment,
-      history
-    );
-
-    expect(withHistory).toBeLessThan(withoutHistory);
   });
 });

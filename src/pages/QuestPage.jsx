@@ -20,11 +20,8 @@ function QuestCompleteSummary({
     const completedStepCount = Number(lastCompletedQuest.completedStepCount) || 0;
     const totalStepCount = Number(lastCompletedQuest.totalStepCount) || 0;
 
+    const completionLabel = "Activity complete";
     const isSimpleActivity = lastCompletedQuest.activityStyle === "simple";
-
-    const completionLabel = isSimpleActivity
-        ? "Activity complete"
-        : "Quest complete";
 
     const progressText =
         totalStepCount > 0
@@ -33,7 +30,7 @@ function QuestCompleteSummary({
 
     return (
         <section className="panel quest-complete-summary">
-            <p className="eyebrow dark">{completionLabel}</p>
+            <p className="completion-kicker">{completionLabel}</p>
 
             <h2>{lastCompletedQuest.title}</h2>
 
@@ -127,19 +124,19 @@ function QuestPage() {
     } = useAppContext();
     return (
         <section className="page-layout page-layout--kid">
-            <section className="page-intro page-intro--kid">
-                <p className="eyebrow dark">Activity Board</p>
-
+            <section className="page-intro page-intro--kid page-intro--minimal">
                 <h1>What should happen next?</h1>
             </section>
 
             <div className="kid-center-column">
-                <MomentStatusBanner currentMoment={currentMoment} />
+                <MomentStatusBanner currentMoment={currentMoment} kidFacing />
 
             {activeActivity?.activityStyle === "simple" && (
                 <SimpleActiveActivityPanel
                     activeActivity={activeActivity}
+                    currentMoment={currentMoment}
                     stepHint={stepHint}
+                    isHintLoading={isHintLoading}
                     handleNeedStepHint={handleNeedStepHint}
                     finishActiveActivity={finishActiveActivity}
                     cancelActiveActivity={cancelActiveActivity}
@@ -149,6 +146,7 @@ function QuestPage() {
             {activeActivity && activeActivity.activityStyle !== "simple" && (
                 <ActiveActivityPanel
                     activeActivity={activeActivity}
+                    currentMoment={currentMoment}
                     timerSecondsRemaining={timerSecondsRemaining}
                     finishActiveActivity={finishActiveActivity}
                     cancelActiveActivity={cancelActiveActivity}
@@ -181,8 +179,6 @@ function QuestPage() {
                 !isLoading && (
                     <section className="panel auto-pick-panel">
                         <div>
-                            <p className="eyebrow dark">Decision helper</p>
-
                             <h2>Want the app to choose?</h2>
 
                             <p>
@@ -217,6 +213,7 @@ function QuestPage() {
                         activities={activities}
                         scoredActivities={scoredActivities}
                         isLoading={isLoading}
+                        currentMoment={currentMoment}
                         handleStartActivity={handleStartActivity}
                         saveFavoriteActivity={saveFavoriteActivity}
                         handleTooMessy={handleTooMessy}

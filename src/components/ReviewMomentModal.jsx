@@ -9,6 +9,7 @@ function ReviewMomentModal({
   presetKey,
   onClose,
   onSetMoment,
+  onUpdateCustom,
   getAvailabilityLabel,
 }) {
   const [draft, setDraft] = useState(null);
@@ -35,11 +36,29 @@ function ReviewMomentModal({
     onClose();
   }
 
+  function handleSaveChanges() {
+    if (!onUpdateCustom) {
+      return;
+    }
+
+    onUpdateCustom(preset.label, draft);
+  }
+
   const footer = (
     <>
       <button type="button" className="ghost-button" onClick={onClose}>
         Cancel
       </button>
+
+      {onUpdateCustom && (
+        <button
+          type="button"
+          className="secondary-action"
+          onClick={handleSaveChanges}
+        >
+          Save changes
+        </button>
+      )}
 
       <button type="button" onClick={handleSetMoment}>
         Set moment

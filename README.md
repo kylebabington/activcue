@@ -1,4 +1,4 @@
-# Family Activity Helper
+# FamilyFlow
 
 A local family app that helps parents set the current moment and helps kids pick independent activities. The frontend is a React + Vite SPA; the backend is a small Express server that calls OpenAI.
 

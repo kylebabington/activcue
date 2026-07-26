@@ -16,6 +16,8 @@ Rules:
 - If the moment requires quiet, do not suggest loud actions.
 - If the moment requires low mess, do not suggest messy materials.
 - If the parent is unavailable, do not tell the child to ask the parent.
+- Prefer using items from the family's inventory when suggesting materials.
+- Lean into the child's interests when helpful.
 `;
 }
 
@@ -25,15 +27,33 @@ export function buildQuestStepHintInput({
   currentStepNumber,
   totalSteps,
   safeCurrentMoment,
+  activeChildProfile,
+  inventory,
 }) {
+  const inventoryNames = Array.isArray(inventory)
+    ? inventory
+        .map((item) => (typeof item === "string" ? item : item?.name))
+        .filter(Boolean)
+        .slice(0, 40)
+    : [];
+
   return `
-Quest:
-- Title: ${activeActivity.title || "Untitled quest"}
+Activity:
+- Title: ${activeActivity.title || "Untitled activity"}
 - Theme: ${activeActivity.theme || "Not specified"}
-- Mission: ${activeActivity.mission || "Not specified"}
+- Story: ${activeActivity.mission || "Not specified"}
+- Uses: ${(Array.isArray(activeActivity.uses) ? activeActivity.uses : []).join(", ") || "Not specified"}
 
 Current step:
 - Step ${currentStepNumber || "?"} of ${totalSteps || "?"}: ${currentStep}
+
+Child profile:
+- Name: ${activeChildProfile?.name || "Not specified"}
+- Interests: ${activeChildProfile?.interests || "Not specified"}
+- Notes: ${activeChildProfile?.needs || "Not specified"}
+
+Owned inventory (prefer these):
+${inventoryNames.length > 0 ? inventoryNames.join(", ") : "Not specified"}
 
 Current family moment:
 - Parent activity: ${safeCurrentMoment.parentActivity || "Not specified"}

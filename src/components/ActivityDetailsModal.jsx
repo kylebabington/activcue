@@ -5,9 +5,10 @@ import {
   formatEstimatedMinutes,
   formatMessLabel,
 } from "../utils/activityFormatters";
+import { getVerifiedFitFacts } from "../utils/inventoryFit";
 import Modal from "./Modal";
 
-function ActivityDetailsContent({ activity, score }) {
+function ActivityDetailsContent({ activity, score, currentMoment }) {
   const isSimpleActivity = activity.activityStyle === "simple";
   const steps = Array.isArray(activity.steps) ? activity.steps : [];
   const uses = Array.isArray(activity.uses) ? activity.uses : [];
@@ -15,10 +16,13 @@ function ActivityDetailsContent({ activity, score }) {
   const starterPrompts = Array.isArray(activity.starterPrompts)
     ? activity.starterPrompts
     : [];
-  const firstMoves = Array.isArray(activity.firstMoves) ? activity.firstMoves : [];
+  const firstMoves = Array.isArray(activity.firstMoves)
+    ? activity.firstMoves
+    : [];
   const extensionIdeas = Array.isArray(activity.extensionIdeas)
     ? activity.extensionIdeas
     : [];
+  const fitFacts = getVerifiedFitFacts(activity, currentMoment);
 
   return (
     <div className="activity-details-content">
@@ -38,7 +42,19 @@ function ActivityDetailsContent({ activity, score }) {
         <p className="activity-theme">{activity.theme}</p>
       )}
 
-      {activity.summary && <p className="quest-short-summary">{activity.summary}</p>}
+      {activity.summary && (
+        <p className="quest-short-summary">{activity.summary}</p>
+      )}
+
+      {fitFacts.length > 0 && (
+        <div className="fit-fact-chip-row">
+          {fitFacts.map((fact) => (
+            <span key={fact} className="fit-fact-chip">
+              {fact}
+            </span>
+          ))}
+        </div>
+      )}
 
       <div className="activity-meta compact-meta activity-details-meta">
         {formatEstimatedMinutes(activity.estimatedMinutes) && (
@@ -68,7 +84,7 @@ function ActivityDetailsContent({ activity, score }) {
 
       {!isSimpleActivity && activity.mission && (
         <div className="quest-box mission-box">
-          <h4>Your mission</h4>
+          <h4>Your story</h4>
           <p>{activity.mission}</p>
         </div>
       )}
@@ -108,7 +124,7 @@ function ActivityDetailsContent({ activity, score }) {
 
       {steps.length > 0 && (
         <div className="quest-box">
-          <h4>{isSimpleActivity ? "Steps" : "Quest steps"}</h4>
+          <h4>Steps</h4>
           <ol>
             {steps.map((step) => (
               <li key={step}>{step}</li>
@@ -130,12 +146,10 @@ function ActivityDetailsContent({ activity, score }) {
 
       {activity.whyItFits && (
         <div className="quest-box why-it-fits-box">
-          <h4>Why this fits right now</h4>
+          <h4>Why this might fit</h4>
           {typeof score === "number" && (
             <p className="fit-score-note">
-              {isSimpleActivity
-                ? `This activity scored ${score} against the current family moment.`
-                : `This quest scored ${score} against the current family moment.`}
+              Fit score {score} against the current family moment.
             </p>
           )}
           <p>{activity.whyItFits}</p>
@@ -148,6 +162,7 @@ function ActivityDetailsContent({ activity, score }) {
 function ActivityDetailsModal({
   activity,
   score,
+  currentMoment,
   isOpen,
   onClose,
   handleStartActivity,
@@ -156,8 +171,6 @@ function ActivityDetailsModal({
   if (!activity) {
     return null;
   }
-
-  const isSimpleActivity = activity.activityStyle === "simple";
 
   function handleStart() {
     handleStartActivity(activity);
@@ -179,7 +192,7 @@ function ActivityDetailsModal({
       </button>
 
       <button type="button" onClick={handleStart}>
-        {isSimpleActivity ? "Start this activity" : "Start this quest"}
+        Start this activity
       </button>
     </>
   );
@@ -192,7 +205,11 @@ function ActivityDetailsModal({
       footer={footer}
       fullPage
     >
-      <ActivityDetailsContent activity={activity} score={score} />
+      <ActivityDetailsContent
+        activity={activity}
+        score={score}
+        currentMoment={currentMoment}
+      />
     </Modal>
   );
 }

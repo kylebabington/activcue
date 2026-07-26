@@ -5,7 +5,7 @@ const router = Router();
 router.get("/health", (req, res) => {
   res.json({
     status: "ok",
-    message: "Family Activity Helper backend is running.",
+    message: "FamilyFlow backend is running.",
   });
 });
 

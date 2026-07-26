@@ -4,18 +4,35 @@ import { Navigate, NavLink, Route, Routes, useNavigate } from "react-router-dom"
 import { useEffect, useState } from "react";
 import { getActivitySuggestions, getQuestStepHint } from "./api/activityApi";
 import { useLocalStorage } from "./hooks/useLocalStorage";
+import { useUiTheme } from "./hooks/useUiTheme";
 import ParentPage from "./pages/ParentPage";
 import KidPage from "./pages/KidPage";
 import QuestPage from "./pages/QuestPage";
 import SettingsPage from "./pages/SettingsPage";
+import ParentPinGate from "./components/ParentPinGate";
+import ThemeSwitcher from "./components/ThemeSwitcher";
 import { AppProvider } from "./context/AppContext";
 import "./App.css";
 import { defaultParentStatusPresets, inventoryCategories } from "./constants/presets";
-import { getTotalActivityScore, logActivityScoreTable } from "./utils/activityScoring";
+import {
+  buildDefaultInventory,
+  inventoryPresets,
+  isPresetInventoryItem,
+} from "./constants/inventoryPresets";
+import {
+  buildStructuredPreferenceContext,
+  getTotalActivityScore,
+  logActivityScoreTable,
+} from "./utils/activityScoring";
+import {
+  activityPassesInventorySoftCheck,
+  buildInventoryOnlyFeedback,
+  normalizeActivitiesToInventory,
+} from "./utils/inventoryFit";
+import { buildSimpleActivitiesFromTemplates } from "./utils/simpleActivityTemplates";
 import { normalizeActivityStyle } from "./utils/activityStyle";
 import {
   formatAvailabilityLabel,
-  formatAvailabilityMessage,
   formatFeedbackLabel,
   formatTimer,
 } from "./utils/activityFormatters";
@@ -24,12 +41,16 @@ import {
 function App() {
   const navigate = useNavigate();
 
+  const { theme: uiTheme, setTheme: setUiTheme, themes: uiThemes } =
+    useUiTheme();
+
   // This is the parent PIN.
   // For MVP, we save it in localStorage.
   // Later, real accounts should move this server-side.
   const [parentPin, setParentPin] = useLocalStorage("parentPin", "");
+  const [parentAreaUnlocked, setParentAreaUnlocked] = useState(false);
 
-  const [parentStatus, setParentStatus] = useLocalStorage("parentStatus", {
+  const [, setParentStatus] = useLocalStorage("parentStatus", {
     activity: "Cleaning the kitchen",
     availability: "helper-welcome",
   });
@@ -69,45 +90,17 @@ function App() {
     ""
   );
 
-  const [inventory, setInventory] = useLocalStorage("inventory", [
-    {
-      id: crypto.randomUUID(),
-      name: "LEGO",
-      category: "Building toys",
-    },
-    {
-      id: crypto.randomUUID(),
-      name: "markers",
-      category: "Art supplies",
-    },
-    {
-      id: crypto.randomUUID(),
-      name: "paper",
-      category: "Art supplies",
-    },
-    {
-      id: crypto.randomUUID(),
-      name: "blankets",
-      category: "Household-safe items",
-    },
-    {
-      id: crypto.randomUUID(),
-      name: "stuffed animals",
-      category: "Pretend play",
-    },
-    {
-      id: crypto.randomUUID(),
-      name: "soccer ball",
-      category: "Outdoor gear",
-    },
-  ]);
+  const [inventory, setInventory] = useLocalStorage(
+    "inventory",
+    buildDefaultInventory()
+  );
 
   const [newInventoryItem, setNewInventoryItem] = useState("");
 
   const [newInventoryCategory, setNewInventoryCategory] =
     useState("Building toys");
 
-  const [activityMode] = useLocalStorage(
+  const [activityMode, setActivityMode] = useLocalStorage(
     "activityMode",
     "single-child"
   );
@@ -145,6 +138,7 @@ function App() {
   const [newChildAgeRange, setNewChildAgeRange] = useState("6-9");
   const [newChildInterests, setNewChildInterests] = useState("");
   const [newChildNeeds, setNewChildNeeds] = useState("");
+  const [editingChildId, setEditingChildId] = useState("");
 
   const [safetySettings, setSafetySettings] = useLocalStorage("safetySettings", {
     screenFreeOnly: true,
@@ -173,11 +167,21 @@ function App() {
     []
   );
 
+  const scoringOptions = {
+    inventory,
+    activeChildId: activityMode === "family" ? "" : activeChildId || "",
+  };
+
   const scoredActivities = activities
     .map((activity) => {
       return {
         activity,
-        score: getTotalActivityScore(activity, currentMoment, activityHistory),
+        score: getTotalActivityScore(
+          activity,
+          currentMoment,
+          activityHistory,
+          scoringOptions
+        ),
       };
     })
     .sort((a, b) => {
@@ -189,15 +193,24 @@ function App() {
       return;
     }
 
-    const scored = activities
-      .map((activity) => ({
-        activity,
-        score: getTotalActivityScore(activity, currentMoment, activityHistory),
-      }))
-      .sort((a, b) => b.score - a.score);
-
-    logActivityScoreTable(scored, currentMoment, activityHistory);
-  }, [activities, currentMoment, activityHistory]);
+    logActivityScoreTable(
+      scoredActivities,
+      currentMoment,
+      activityHistory,
+      {
+        inventory,
+        activeChildId: activityMode === "family" ? "" : activeChildId || "",
+      }
+    );
+  }, [
+    activities.length,
+    scoredActivities,
+    currentMoment,
+    activityHistory,
+    inventory,
+    activityMode,
+    activeChildId,
+  ]);
 
   const timerSecondsRemaining = useActivityTimer(activeActivity);
 
@@ -207,6 +220,7 @@ function App() {
   );
 
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingIntent, setLoadingIntent] = useState(null);
   const [statusMessage, setStatusMessage] = useState("");
   const [statusType, setStatusType] = useState("info");
 
@@ -259,7 +273,10 @@ function App() {
       supervisionLevel: draft.supervisionLevel,
     });
     setParentStatus(parentStatusFromMoment(draft));
-    showStatus(`Current moment set to "${draft.parentActivity}".`, "success");
+    showStatus(
+      `Live for kids now: "${draft.parentActivity}".`,
+      "success"
+    );
   }
 
   function saveCustomParentPreset(label, draft) {
@@ -279,6 +296,55 @@ function App() {
     showStatus(`Saved "${preset.label}".`, "success");
     return preset;
   }
+
+  function updateCustomParentPreset(presetId, label, draft) {
+    const updatedPresets = customParentPresets.map((preset) => {
+      if (preset.id !== presetId) {
+        return preset;
+      }
+
+      return {
+        ...preset,
+        label: label.trim() || preset.label,
+        activity: draft.parentActivity,
+        availability: draft.availability,
+        timeNeededMinutes: draft.timeNeededMinutes,
+        space: draft.space,
+        messLevel: draft.messLevel,
+        noiseLevel: draft.noiseLevel,
+        supervisionLevel: draft.supervisionLevel,
+      };
+    });
+
+    setCustomParentPresets(updatedPresets);
+    showStatus("Custom moment updated.", "success");
+  }
+
+  function deleteCustomParentPreset(presetId) {
+    const preset = customParentPresets.find((item) => item.id === presetId);
+    const confirmed = window.confirm(
+      preset
+        ? `Delete custom moment "${preset.label}"?`
+        : "Delete this custom moment?"
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setCustomParentPresets(
+      customParentPresets.filter((item) => item.id !== presetId)
+    );
+
+    if (activePresetKey === presetId) {
+      setActivePresetKey("");
+    }
+
+    showStatus(
+      preset ? `Deleted "${preset.label}".` : "Custom moment deleted.",
+      "success"
+    );
+  }
   // This helper updates one field inside currentMoment.
   //
   // Example:
@@ -286,36 +352,6 @@ function App() {
   //
   // That keeps the rest of currentMoment the same,
   // but changes only the space field.
-  function updateCurrentMoment(fieldName, newValue) {
-    const nextMoment = {
-      ...currentMoment,
-      [fieldName]: newValue,
-    };
-    setCurrentMoment(nextMoment);
-    setParentStatus(parentStatusFromMoment(nextMoment));
-  }
-
-  function applyCurrentMomentQuickAdjust(adjustment) {
-    // adjustment is an object containing one or more currentMoment fields.
-    //
-    // Example:
-    // {
-    //   noiseLevel: "quiet",
-    //   supervisionLevel: "independent"
-    // }
-    //
-    // We spread currentMoment first, then adjustment second.
-    // That means adjustment overwrites only the fields it contains.
-    const nextMoment = {
-      ...currentMoment,
-      ...adjustment,
-    };
-    setCurrentMoment(nextMoment);
-    setParentStatus(parentStatusFromMoment(nextMoment));
-
-    showStatus("Current moment updated.", "success");
-  }
-
   function updateSafetySetting(settingName, newValue) {
     setSafetySettings({
       ...safetySettings,
@@ -341,11 +377,38 @@ function App() {
     }
 
     const duplicateChild = childProfiles.some(
-      (child) => child.name.toLowerCase() === cleanedName.toLowerCase()
+      (child) =>
+        child.name.toLowerCase() === cleanedName.toLowerCase() &&
+        child.id !== editingChildId
     );
 
     if (duplicateChild) {
       showStatus("A child with that name already exists.", "error");
+      return;
+    }
+
+    if (editingChildId) {
+      const updatedChildren = childProfiles.map((child) => {
+        if (child.id !== editingChildId) {
+          return child;
+        }
+
+        return {
+          ...child,
+          name: cleanedName,
+          ageRange: newChildAgeRange,
+          interests: cleanedInterests,
+          needs: cleanedNeeds,
+        };
+      });
+
+      setChildProfiles(updatedChildren);
+      setEditingChildId("");
+      setNewChildName("");
+      setNewChildAgeRange("6-9");
+      setNewChildInterests("");
+      setNewChildNeeds("");
+      showStatus(`Updated child profile for ${cleanedName}.`, "success");
       return;
     }
 
@@ -371,10 +434,36 @@ function App() {
     showStatus(`Added child profile for ${cleanedName}.`, "success");
   }
 
+  function startEditingChildProfile(child) {
+    setEditingChildId(child.id);
+    setNewChildName(child.name || "");
+    setNewChildAgeRange(child.ageRange || "6-9");
+    setNewChildInterests(child.interests || "");
+    setNewChildNeeds(child.needs || "");
+  }
+
+  function cancelEditingChildProfile() {
+    setEditingChildId("");
+    setNewChildName("");
+    setNewChildAgeRange("6-9");
+    setNewChildInterests("");
+    setNewChildNeeds("");
+  }
+
   function deleteChildProfile(childIdToDelete) {
     const childToDelete = childProfiles.find(
       (child) => child.id === childIdToDelete
     );
+
+    const confirmed = window.confirm(
+      childToDelete
+        ? `Delete child profile for ${childToDelete.name}?`
+        : "Delete this child profile?"
+    );
+
+    if (!confirmed) {
+      return;
+    }
 
     setChildProfiles(
       childProfiles.filter((child) => child.id !== childIdToDelete)
@@ -382,6 +471,10 @@ function App() {
 
     if (activeChildId === childIdToDelete) {
       setActiveChildId("");
+    }
+
+    if (editingChildId === childIdToDelete) {
+      cancelEditingChildProfile();
     }
 
     showStatus(
@@ -446,6 +539,36 @@ function App() {
     );
   }
 
+  function isInventoryItemSelected(itemName) {
+    return normalizedInventory.some(
+      (item) => item.name.toLowerCase() === itemName.toLowerCase()
+    );
+  }
+
+  function toggleInventoryPreset(preset) {
+    const existingItem = normalizedInventory.find(
+      (item) => item.name.toLowerCase() === preset.name.toLowerCase()
+    );
+
+    if (existingItem) {
+      removeInventoryItem(existingItem.id);
+      return;
+    }
+
+    setInventory([
+      ...normalizedInventory,
+      {
+        id: crypto.randomUUID(),
+        name: preset.name,
+        category: preset.category,
+      },
+    ]);
+  }
+
+  const customInventoryItems = normalizedInventory.filter(
+    (item) => !isPresetInventoryItem(item.name)
+  );
+
   function saveParentPin(newPin) {
     const cleanedPin = newPin.trim();
 
@@ -458,75 +581,137 @@ function App() {
     showStatus("Parent PIN saved.", "success");
   }
 
-  async function handleGenerateActivities(customFeedbackContext = "") {
+  async function handleGenerateActivities(
+    customFeedbackContext = "",
+    options = {}
+  ) {
+    const {
+      allowOfflineFallback = false,
+      preferSimpleTemplates = false,
+    } = options;
+
     setIsLoading(true);
     showStatus("");
     setActivities([]);
 
-    try {
+    const preferenceContext = buildStructuredPreferenceContext(
+      activityHistory,
+      {
+        activeChildId:
+          activityMode === "family" ? "" : activeChildId || "",
+      }
+    );
+
+    const combinedFeedback = [customFeedbackContext, preferenceContext]
+      .filter(Boolean)
+      .join("\n\n");
+
+    async function requestActivities(feedbackContext) {
       const previousActivityTitles = activityHistory
         .slice(-10)
         .map((historyItem) => historyItem.title);
 
       const activityRequest = {
-        // New currentMoment fields.
-        //
-        // These are now the best description of what is happening right now.
         currentMoment,
-
-        // Keep these old fields too for backend compatibility.
-        //
-        // This means the backend will still work even if it has not been updated
-        // to fully understand currentMoment yet.
         parentActivity: currentMoment.parentActivity,
         parentAvailability: currentMoment.availability,
         inventory,
         kidMood,
-
-        // Use currentMoment as the source of truth for mess and space.
         messLevel: currentMoment.messLevel,
-        locationPreference,
         activitySpace: currentMoment.space,
-
         childAgeRange: effectiveChildAgeRange,
-
-        // This is the kid's selected style.
-        // Current values should be something like:
-        // "simple" or "imaginative"
         activityStyle: kidActivityStyle,
-
-        // Keep activityMode too so older code still works.
-        // This prevents us from breaking anything that already depends on activityMode.
         activityMode,
-
         activeChildProfile,
         selectedChildProfiles,
-
-        // Safety settings still matter.
-        // But currentMoment.timeNeededMinutes should now guide activity duration.
         safetySettings: {
           ...safetySettings,
           maxActivityMinutes: currentMoment.timeNeededMinutes,
           quietMode: currentMoment.noiseLevel === "quiet",
         },
-
-        feedbackContext: customFeedbackContext,
+        feedbackContext,
         previousActivityTitles,
       };
-      const generatedActivities = await getActivitySuggestions(activityRequest);
 
-      setActivities(generatedActivities);
+      return getActivitySuggestions(activityRequest);
+    }
 
-      // Return the generated activities so other workflows can use them immediately.
-      // This matters for "Start something for me", because we want to generate,
-      // score, and start without waiting for React state to update.
-      return generatedActivities;
+    function finalizeActivities(rawActivities) {
+      const normalized = normalizeActivitiesToInventory(
+        rawActivities,
+        inventory
+      );
+      setActivities(normalized);
+      return normalized;
+    }
+
+    try {
+      if (preferSimpleTemplates && kidActivityStyle === "simple") {
+        const templateActivities = buildSimpleActivitiesFromTemplates({
+          inventory,
+          currentMoment,
+          count: 3,
+        });
+
+        if (templateActivities.length > 0) {
+          showStatus("Quick ideas ready — no wait.", "success");
+          return finalizeActivities(templateActivities);
+        }
+      }
+
+      let generatedActivities = await requestActivities(combinedFeedback);
+      let normalized = normalizeActivitiesToInventory(
+        generatedActivities,
+        inventory
+      );
+
+      const allFailedInventoryCheck =
+        normalized.length > 0 &&
+        normalized.every(
+          (activity) => !activityPassesInventorySoftCheck(activity, inventory)
+        );
+
+      if (allFailedInventoryCheck) {
+        const strongerFeedback = [
+          combinedFeedback,
+          buildInventoryOnlyFeedback(inventory),
+        ]
+          .filter(Boolean)
+          .join("\n\n");
+
+        generatedActivities = await requestActivities(strongerFeedback);
+        normalized = normalizeActivitiesToInventory(
+          generatedActivities,
+          inventory
+        );
+      }
+
+      setActivities(normalized);
+      return normalized;
     } catch (error) {
       console.error(error);
+
+      if (allowOfflineFallback || kidActivityStyle === "simple") {
+        const templateActivities = buildSimpleActivitiesFromTemplates({
+          inventory,
+          currentMoment,
+          count: 3,
+        });
+
+        if (templateActivities.length > 0) {
+          showStatus(
+            "Couldn’t reach the idea server — showing quick simple ideas from your supplies.",
+            "info"
+          );
+          return finalizeActivities(templateActivities);
+        }
+      }
+
       showStatus("Something went wrong while generating ideas.", "error");
       return [];
     } finally {
       setIsLoading(false);
+      setLoadingIntent(null);
     }
   }
 
@@ -589,8 +774,9 @@ Do not make the idea more creative than it needs to be.
 `;
   }
 
-  async function handleGenerateKidActivities() {
+  async function handleGenerateKidActivities(options = {}) {
     setKidMood(kidEnergyLevel);
+    setLoadingIntent(options.preferSimpleTemplates ? "quick" : "board");
 
     const activityStyle = kidActivityStyle;
     const styleInstruction = getKidActivityStyleInstruction(activityStyle);
@@ -635,7 +821,11 @@ For simple activities:
 If activityStyle is "imaginative", playful quest language is okay.
 
 Always obey currentMoment limits for time, mess, noise, supervision, and parent availability.
-`
+`,
+      {
+        allowOfflineFallback: true,
+        preferSimpleTemplates: Boolean(options.preferSimpleTemplates),
+      }
     );
 
     if (generatedActivities.length === 0) {
@@ -650,6 +840,7 @@ Always obey currentMoment limits for time, mess, noise, supervision, and parent 
     // Set the kid mood to surprise because this button means:
     // "I do not want to choose. Just give me something that works."
     setKidMood(kidEnergyLevel);
+    setLoadingIntent("auto-start");
 
     // Clear any old active quest before starting a fresh one.
     setActiveActivity(null);
@@ -677,7 +868,8 @@ If the preferred style is "simple":
 - avoid turning everything into pretend play
 
 Prioritize activities that require the least decision-making from the child.
-`
+`,
+      { allowOfflineFallback: true }
     );
 
     // Pick the best option using the same scoring system as auto-pick.
@@ -707,13 +899,15 @@ Prioritize activities that require the least decision-making from the child.
 
       // Context at the time of feedback.
       kidMood,
-      messLevel,
-      locationPreference,
       childAgeRange: effectiveChildAgeRange,
+      childId: activeChildProfile?.id || "",
+      childName: activeChildProfile?.name || "",
+      activityMode,
 
       // Activity traits.
       // These are what feedback-weighted scoring learns from later.
       activityStyle: normalizeActivityStyle(activity),
+      theme: activity.theme || "",
 
       energy: activity.energy || "medium",
       mess: activity.mess || "low",
@@ -1063,9 +1257,10 @@ Prioritize activities that require the least decision-making from the child.
         totalSteps: steps.length,
 
         // The current family moment keeps the hint appropriate.
-        // Example:
-        // If the moment says quiet, the hint should not suggest shouting.
         currentMoment,
+
+        activeChildProfile,
+        inventory,
       };
 
       const hint = await getQuestStepHint(hintRequest);
@@ -1078,16 +1273,7 @@ Prioritize activities that require the least decision-making from the child.
       setIsHintLoading(false);
     }
   }
-  // This starts one of the generated activities automatically.
-  //
-  // For now, we choose the first activity in the list.
-  // Later, we can make this smarter by scoring activities based on:
-  // - currentMoment
-  // - mess level
-  // - noise level
-  // - adultHelp
-  // - previous feedback
-  // - child profile
+  // Starts the best-scoring activity from the current suggestion list.
   function handleAutoPickQuest() {
     // If there are no activities yet, there is nothing to start.
     if (activities.length === 0) {
@@ -1108,7 +1294,7 @@ Prioritize activities that require the least decision-making from the child.
 
     // Give the user clear feedback.
     showStatus(
-      `Auto-picked: "${selectedActivity.title}" because it best fits right now.`,
+      `Picked for you: "${selectedActivity.title}" because it best fits right now.`,
       "success"
     );
   }
@@ -1123,7 +1309,12 @@ Prioritize activities that require the least decision-making from the child.
     const scoredOptions = activityOptions.map((activity) => {
       return {
         activity,
-        score: getTotalActivityScore(activity, currentMoment, activityHistory),
+        score: getTotalActivityScore(
+          activity,
+          currentMoment,
+          activityHistory,
+          scoringOptions
+        ),
       };
     });
 
@@ -1437,18 +1628,37 @@ Prioritize activities that require the least decision-making from the child.
   }
 
   function clearActivityHistory() {
+    const confirmed = window.confirm(
+      "Clear all activity history? This cannot be undone."
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
     setActivityHistory([]);
     showStatus("Activity history cleared.", "success");
   }
 
   function resetSavedData() {
+    const confirmed = window.confirm(
+      "Reset all saved data in this browser? This cannot be undone."
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
     window.localStorage.removeItem("appMode");
     window.localStorage.removeItem("parentPin");
     window.localStorage.removeItem("parentStatus");
     window.localStorage.removeItem("customParentPresets");
+    window.localStorage.removeItem("activeParentPresetKey");
     window.localStorage.removeItem("inventory");
     window.localStorage.removeItem("activityMode");
     window.localStorage.removeItem("kidMood");
+    window.localStorage.removeItem("kidEnergyLevel");
+    window.localStorage.removeItem("kidActivityStyle");
     window.localStorage.removeItem("messLevel");
     window.localStorage.removeItem("locationPreference");
     window.localStorage.removeItem("activitySpace");
@@ -1462,8 +1672,13 @@ Prioritize activities that require the least decision-making from the child.
     window.localStorage.removeItem("activeActivity");
     window.localStorage.removeItem("lastCompletedQuest");
     window.localStorage.removeItem("currentMoment");
+    window.localStorage.removeItem("uiTheme");
     window.location.reload();
   }
+
+  const parentAreasLocked = Boolean(parentPin) && !parentAreaUnlocked;
+  const defaultHomePath =
+    parentPin && inventory.length > 0 ? "/kid" : "/parent";
 
   const appContextValue = {
     currentMoment,
@@ -1500,7 +1715,11 @@ Prioritize activities that require the least decision-making from the child.
     toggleSafetySetting,
     updateSafetySetting,
     inventoryCategories,
+    inventoryPresets,
     normalizedInventory,
+    customInventoryItems,
+    isInventoryItemSelected,
+    toggleInventoryPreset,
     newInventoryItem,
     setNewInventoryItem,
     newInventoryCategory,
@@ -1510,6 +1729,9 @@ Prioritize activities that require the least decision-making from the child.
     childProfiles,
     activeChildId,
     setActiveChildId,
+    activeChildProfile,
+    activityMode,
+    setActivityMode,
     newChildName,
     setNewChildName,
     newChildAgeRange,
@@ -1518,6 +1740,9 @@ Prioritize activities that require the least decision-making from the child.
     setNewChildInterests,
     newChildNeeds,
     setNewChildNeeds,
+    editingChildId,
+    startEditingChildProfile,
+    cancelEditingChildProfile,
     addChildProfile,
     deleteChildProfile,
     parentPin,
@@ -1530,21 +1755,31 @@ Prioritize activities that require the least decision-making from the child.
     clearActivityHistory,
     formatFeedbackLabel,
     resetSavedData,
+    uiTheme,
+    setUiTheme,
+    uiThemes,
   };
 
   return (
     <main className="app-shell">
       <header className="app-header">
         <div className="app-header-brand">
-          <p className="eyebrow">Family Activity Helper</p>
+          <p className="app-brand-name">FamilyFlow</p>
         </div>
 
         <nav className="app-nav">
           <NavLink
             to="/parent"
             className={({ isActive }) => (isActive ? "active" : "")}
+            title={parentAreasLocked ? "Parent area is locked" : undefined}
+            aria-label={parentAreasLocked ? "Parent (locked)" : "Parent"}
           >
             Parent
+            {parentAreasLocked && (
+              <span className="nav-lock-mark" aria-hidden="true">
+                ·
+              </span>
+            )}
           </NavLink>
 
           <NavLink
@@ -1563,35 +1798,61 @@ Prioritize activities that require the least decision-making from the child.
 
           <NavLink
             to="/settings"
-            className={({ isActive }) => (isActive ? "active" : "")}
+            className={({ isActive }) =>
+              isActive ? "active" : parentAreasLocked ? "nav-muted" : ""
+            }
+            title={parentAreasLocked ? "Settings are locked" : undefined}
           >
             Settings
           </NavLink>
         </nav>
+
+        <ThemeSwitcher
+          theme={uiTheme}
+          onChange={setUiTheme}
+          themes={uiThemes}
+          compact
+        />
       </header>
 
       {statusMessage && (
-        <p className={`status-message status-message--${statusType}`}>
+        <p
+          className={`status-message status-message--${statusType}`}
+          role="status"
+          aria-live="polite"
+        >
           {statusMessage}
         </p>
       )}
 
       <AppProvider value={appContextValue}>
         <Routes>
-          <Route path="/" element={<Navigate to="/parent" replace />} />
+          <Route
+            path="/"
+            element={<Navigate to={defaultHomePath} replace />}
+          />
 
           <Route
             path="/parent"
             element={
-              <ParentPage
-                defaultParentStatusPresets={defaultParentStatusPresets}
-                customParentPresets={customParentPresets}
-                getAvailabilityLabel={formatAvailabilityLabel}
-                applyMomentDraft={applyMomentDraft}
-                saveCustomParentPreset={saveCustomParentPreset}
-                activePresetKey={activePresetKey}
-                setActivePresetKey={setActivePresetKey}
-              />
+              parentAreasLocked ? (
+                <ParentPinGate
+                  parentPin={parentPin}
+                  onUnlock={() => setParentAreaUnlocked(true)}
+                />
+              ) : (
+                <ParentPage
+                  defaultParentStatusPresets={defaultParentStatusPresets}
+                  customParentPresets={customParentPresets}
+                  getAvailabilityLabel={formatAvailabilityLabel}
+                  applyMomentDraft={applyMomentDraft}
+                  saveCustomParentPreset={saveCustomParentPreset}
+                  updateCustomParentPreset={updateCustomParentPreset}
+                  deleteCustomParentPreset={deleteCustomParentPreset}
+                  activePresetKey={activePresetKey}
+                  setActivePresetKey={setActivePresetKey}
+                />
+              )
             }
           />
 
@@ -1607,13 +1868,30 @@ Prioritize activities that require the least decision-making from the child.
                 handleGenerateKidActivities={handleGenerateKidActivities}
                 handleStartSomethingForMe={handleStartSomethingForMe}
                 isLoading={isLoading}
+                loadingIntent={loadingIntent}
+                activeChildProfile={activeChildProfile}
+                activityMode={activityMode}
+                savedActivities={savedActivities}
+                handleReplaySavedActivity={handleReplaySavedActivity}
               />
             }
           />
 
           <Route path="/quest" element={<QuestPage />} />
 
-          <Route path="/settings" element={<SettingsPage />} />
+          <Route
+            path="/settings"
+            element={
+              parentAreasLocked ? (
+                <ParentPinGate
+                  parentPin={parentPin}
+                  onUnlock={() => setParentAreaUnlocked(true)}
+                />
+              ) : (
+                <SettingsPage />
+              )
+            }
+          />
         </Routes>
       </AppProvider>
     </main>
@@ -1651,16 +1929,6 @@ function ParentPinForm({ parentPin, saveParentPin }) {
 
         <button onClick={handleSavePin}>Save PIN</button>
       </div>
-    </div>
-  );
-}
-
-function ParentStatusCard({ parentStatus }) {
-  return (
-    <div className={`status-card ${parentStatus.availability}`}>
-      <span>Adult is currently:</span>
-      <strong>{parentStatus.activity}</strong>
-      <p>{formatAvailabilityMessage(parentStatus.availability)}</p>
     </div>
   );
 }

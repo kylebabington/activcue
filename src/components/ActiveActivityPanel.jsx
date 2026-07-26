@@ -1,12 +1,8 @@
-import {
-  formatAdultHelpLabel,
-  formatEnergyLabel,
-  formatEstimatedMinutes,
-  formatMessLabel,
-} from "../utils/activityFormatters";
+import { getVerifiedFitFacts } from "../utils/inventoryFit";
 
 function ActiveActivityPanel({
   activeActivity,
+  currentMoment,
   timerSecondsRemaining,
   finishActiveActivity,
   cancelActiveActivity,
@@ -22,123 +18,57 @@ function ActiveActivityPanel({
   handleNeedStepHint,
   formatTimer,
 }) {
-  // Make sure uses is always an array before rendering it.
   const uses = Array.isArray(activeActivity.uses) ? activeActivity.uses : [];
-
-  // Make sure steps is always an array before using it.
   const steps = Array.isArray(activeActivity.steps) ? activeActivity.steps : [];
-
-  // Make sure completedStepIndexes is always an array.
-  // This allows older saved active quests to keep working.
   const completedStepIndexes = Array.isArray(activeActivity.completedStepIndexes)
     ? activeActivity.completedStepIndexes
     : [];
-
-  // The timer is done when seconds remaining hits zero or below.
   const timerDone = timerSecondsRemaining <= 0;
-
-  // currentStepIndex tells us which step the kid is currently viewing.
   const currentStepIndex = Number(activeActivity.currentStepIndex) || 0;
-
-  // currentStep is the actual instruction text for the current step.
   const currentStep = steps[currentStepIndex];
-
-  // totalSteps is used for labels like "Step 2 of 5".
   const totalSteps = steps.length;
-
-  // These booleans help us enable/disable navigation buttons.
   const isFirstStep = currentStepIndex === 0;
   const isLastStep = currentStepIndex === totalSteps - 1;
-
-  // This tells us whether the current step has been marked complete.
   const currentStepIsComplete = completedStepIndexes.includes(currentStepIndex);
-
-  // Convert raw activity values into friendly badge labels.
-  const estimatedMinutesLabel = formatEstimatedMinutes(
-    activeActivity.estimatedMinutes,
-    { suffix: " min quest" }
-  );
-  const messLabel = formatMessLabel(activeActivity.mess);
-  const energyLabel = formatEnergyLabel(activeActivity.energy);
-  const adultHelpLabel = formatAdultHelpLabel(activeActivity.adultHelp);
+  const fitFacts = getVerifiedFitFacts(activeActivity, currentMoment);
 
   return (
     <section
       id="active-activity-panel"
-      className="panel active-activity-panel"
+      className="panel active-activity-panel pretend-active-panel"
     >
-      <div className="active-activity-header">
-        <div>
-          <p className="eyebrow dark">Current Quest</p>
-          <h2>{activeActivity.title}</h2>
+      <p className="simple-active-eyebrow">Pretend activity</p>
+      <h1 className="simple-active-title">{activeActivity.title}</h1>
 
-          {activeActivity.theme && (
-            <p className="activity-theme">{activeActivity.theme}</p>
-          )}
+      {activeActivity.theme && (
+        <p className="activity-theme">{activeActivity.theme}</p>
+      )}
 
-          {activeActivity.summary && <p>{activeActivity.summary}</p>}
+      {activeActivity.summary && (
+        <p className="simple-active-summary">{activeActivity.summary}</p>
+      )}
 
-          <div className="active-fit-badges">
-            {estimatedMinutesLabel && <span>{estimatedMinutesLabel}</span>}
-
-            {messLabel && <span>{messLabel}</span>}
-
-            {energyLabel && <span>{energyLabel}</span>}
-
-            {adultHelpLabel && <span>{adultHelpLabel}</span>}
-
-            {uses.length > 0 && <span>Uses: {uses.slice(0, 3).join(", ")}</span>}
-          </div>
-        </div>
-
-        <div
-          className={timerDone ? "timer-badge done" : "timer-badge"}
-          aria-live="polite"
-          aria-label={
-            timerDone
-              ? "Activity timer finished"
-              : `Time left: ${formatTimer(timerSecondsRemaining)}`
-          }
-        >
-          <span className="timer-label">
-            {timerDone ? "Timer" : "Time left"}
-          </span>
-          <span className="timer-value">
-            {timerDone ? "Done!" : formatTimer(timerSecondsRemaining)}
-          </span>
-        </div>
-      </div>
-
-      {activeActivity.kidMission && (
-        <div className="kid-mission-box active-mission-box">
-          <h3>Kid mission</h3>
-          <p>{activeActivity.kidMission}</p>
+      {fitFacts.length > 0 && (
+        <div className="fit-fact-chip-row">
+          {fitFacts.map((fact) => (
+            <span key={fact} className="fit-fact-chip">
+              {fact}
+            </span>
+          ))}
         </div>
       )}
 
       {steps.length > 0 && (
-        <div className="guided-step-panel">
-          <div className="guided-step-header">
-            <div>
-              <p className="eyebrow dark">Guided step</p>
-
-              <h3>
-                Step {currentStepIndex + 1} of {totalSteps}
-              </h3>
-            </div>
-
-            <button
-              className="secondary-action"
-              onClick={toggleShowAllQuestSteps}
-            >
-              {activeActivity.showAllSteps ? "Hide all steps" : "Show all steps"}
-            </button>
-          </div>
+        <div className="simple-active-section guided-step-panel">
+          <h2>
+            Step {currentStepIndex + 1} of {totalSteps}
+          </h2>
 
           <p className="guided-step-text">{currentStep}</p>
 
-          <div className="guided-step-actions">
+          <div className="guided-step-actions pretend-step-nav">
             <button
+              type="button"
               className="secondary-action"
               onClick={goToPreviousQuestStep}
               disabled={isFirstStep}
@@ -147,194 +77,146 @@ function ActiveActivityPanel({
             </button>
 
             <button
-              className="secondary-action"
-              onClick={handleNeedStepHint}
-              disabled={isHintLoading}
-            >
-              {isHintLoading ? "Thinking..." : "Need a hint"}
-            </button>
-
-            <button
+              type="button"
               className={currentStepIsComplete ? "secondary-action" : ""}
               onClick={() => toggleQuestStepComplete(currentStepIndex)}
             >
-              {currentStepIsComplete ? "Mark not done" : "Mark step done"}
+              {currentStepIsComplete ? "Undo step" : "Mark step done"}
             </button>
 
-            <button onClick={goToNextQuestStep} disabled={isLastStep}>
+            <button
+              type="button"
+              onClick={goToNextQuestStep}
+              disabled={isLastStep}
+            >
               {isLastStep ? "Last step" : "Next step"}
             </button>
           </div>
 
           {stepHint && (
-            <div className="step-hint-box">
-              <p className="eyebrow dark">Hint</p>
+            <div className="simple-active-hint">
+              <h2>Hint</h2>
               <p>{stepHint}</p>
-            </div>
-          )}
-
-
-
-          {activeActivity.showAllSteps && (
-            <div className="mission-steps all-steps-list">
-              <h3>All quest steps</h3>
-
-              <ol className="tracked-step-list">
-                {steps.map((step, index) => {
-                  const stepIsComplete = completedStepIndexes.includes(index);
-                  const stepIsCurrent = index === currentStepIndex;
-
-                  return (
-                    <li
-                      key={step}
-                      className={[
-                        stepIsCurrent ? "current-step-item" : "",
-                        stepIsComplete ? "completed-step-item" : "",
-                      ]
-                        .filter(Boolean)
-                        .join(" ")}
-                    >
-                      <button
-                        type="button"
-                        className="step-complete-toggle"
-                        onClick={() => toggleQuestStepComplete(index)}
-                        aria-label={
-                          stepIsComplete
-                            ? `Mark step ${index + 1} not done`
-                            : `Mark step ${index + 1} done`
-                        }
-                      >
-                        {stepIsComplete ? "✅" : "⬜"}
-                      </button>
-
-                      <span>{step}</span>
-                    </li>
-                  );
-                })}
-              </ol>
             </div>
           )}
         </div>
       )}
 
-      {(activeActivity.kidRole ||
-        activeActivity.mission ||
-        (Array.isArray(activeActivity.starterPrompts) &&
-          activeActivity.starterPrompts.length > 0) ||
-        (Array.isArray(activeActivity.firstMoves) &&
-          activeActivity.firstMoves.length > 0) ||
-        (Array.isArray(activeActivity.roles) && activeActivity.roles.length > 0) ||
-        (Array.isArray(activeActivity.extensionIdeas) &&
-          activeActivity.extensionIdeas.length > 0) ||
-        activeActivity.whyItFits ||
-        uses.length > 0) && (
-        <details className="quest-more-info">
-          <summary>More info</summary>
+      <div className="simple-active-actions">
+        <button
+          type="button"
+          onClick={handleNeedStepHint}
+          disabled={isHintLoading}
+        >
+          {isHintLoading ? "Thinking..." : "Need a hint"}
+        </button>
 
-          <div className="quest-more-info-content">
-            {activeActivity.kidRole && (
-              <div className="quest-box active-quest-box">
-                <h3>Your role</h3>
-                <p>{activeActivity.kidRole}</p>
-              </div>
-            )}
+        <button type="button" onClick={finishActiveActivity}>
+          Done
+        </button>
 
-            {activeActivity.mission && (
-              <div className="quest-box active-quest-box">
-                <h3>Your mission</h3>
-                <p>{activeActivity.mission}</p>
-              </div>
-            )}
-
-            {Array.isArray(activeActivity.starterPrompts) &&
-              activeActivity.starterPrompts.length > 0 && (
-                <div className="quest-box active-quest-box">
-                  <h3>Starter prompts</h3>
-                  <ul>
-                    {activeActivity.starterPrompts.map((prompt) => (
-                      <li key={prompt}>{prompt}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-            {Array.isArray(activeActivity.firstMoves) &&
-              activeActivity.firstMoves.length > 0 && (
-                <div className="quest-box active-quest-box">
-                  <h3>First moves</h3>
-                  <ol>
-                    {activeActivity.firstMoves.map((move) => (
-                      <li key={move}>{move}</li>
-                    ))}
-                  </ol>
-                </div>
-              )}
-
-            {Array.isArray(activeActivity.roles) &&
-              activeActivity.roles.length > 0 && (
-                <div className="quest-box active-quest-box">
-                  <h3>Roles</h3>
-                  <ul>
-                    {activeActivity.roles.map((role) => (
-                      <li key={role}>{role}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-            {Array.isArray(activeActivity.extensionIdeas) &&
-              activeActivity.extensionIdeas.length > 0 && (
-                <div className="quest-box active-quest-box">
-                  <h3>Keep going</h3>
-                  <ul>
-                    {activeActivity.extensionIdeas.map((idea) => (
-                      <li key={idea}>{idea}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-            {activeActivity.whyItFits && (
-              <div className="quest-box active-quest-box why-it-fits-box">
-                <h3>Why this fits right now</h3>
-                <p>{activeActivity.whyItFits}</p>
-              </div>
-            )}
-
-            {uses.length > 0 && (
-              <p className="uses-list">Uses: {uses.join(", ")}</p>
-            )}
-          </div>
-        </details>
-      )}
-
-      <div className="active-activity-actions">
-        {!timerDone ? (
-          <>
-            <button onClick={finishActiveActivity}>Finished Early</button>
-
-            <button className="danger-button" onClick={cancelActiveActivity}>
-              Cancel Mission
-            </button>
-          </>
-        ) : (
-          <>
-            <button onClick={finishActiveActivity}>Yes, finished</button>
-
-            <button className="secondary-action" onClick={handleTimerNotFinished}>
-              Not really
-            </button>
-
-            <button className="secondary-action" onClick={handleTimerNeedAnotherIdea}>
-              Need another idea
-            </button>
-
-            <button className="secondary-action" onClick={handleTimerMoreLikeThis}>
-              More like this
-            </button>
-          </>
-        )}
+        <button type="button" onClick={cancelActiveActivity}>
+          Stop
+        </button>
       </div>
+
+      <details className="quest-more-info">
+        <summary>More</summary>
+
+        <div className="quest-more-info-content">
+          <div
+            className={timerDone ? "timer-badge done" : "timer-badge"}
+            aria-live="polite"
+          >
+            <span className="timer-label">
+              {timerDone ? "Timer" : "Time left"}
+            </span>
+            <span className="timer-value">
+              {timerDone ? "Done!" : formatTimer(timerSecondsRemaining)}
+            </span>
+          </div>
+
+          {uses.length > 0 && (
+            <p className="uses-list">Uses: {uses.join(", ")}</p>
+          )}
+
+          {activeActivity.kidRole && (
+            <div className="quest-box active-quest-box">
+              <h3>Your role</h3>
+              <p>{activeActivity.kidRole}</p>
+            </div>
+          )}
+
+          {activeActivity.mission && (
+            <div className="quest-box active-quest-box">
+              <h3>Your story</h3>
+              <p>{activeActivity.mission}</p>
+            </div>
+          )}
+
+          <button
+            type="button"
+            className="secondary-action"
+            onClick={toggleShowAllQuestSteps}
+          >
+            {activeActivity.showAllSteps ? "Hide all steps" : "Show all steps"}
+          </button>
+
+          {activeActivity.showAllSteps && steps.length > 0 && (
+            <ol className="tracked-step-list">
+              {steps.map((step, index) => {
+                const stepIsComplete = completedStepIndexes.includes(index);
+
+                return (
+                  <li key={`${step}-${index}`}>
+                    <button
+                      type="button"
+                      className={
+                        stepIsComplete
+                          ? "step-complete-toggle done"
+                          : "step-complete-toggle"
+                      }
+                      onClick={() => toggleQuestStepComplete(index)}
+                    >
+                      {stepIsComplete ? "Done" : "To do"}
+                    </button>
+                    <span>{step}</span>
+                  </li>
+                );
+              })}
+            </ol>
+          )}
+
+          {timerDone && (
+            <div className="active-activity-actions">
+              <button type="button" onClick={finishActiveActivity}>
+                Yes, finished
+              </button>
+              <button
+                type="button"
+                className="secondary-action"
+                onClick={handleTimerNotFinished}
+              >
+                Not really
+              </button>
+              <button
+                type="button"
+                className="secondary-action"
+                onClick={handleTimerNeedAnotherIdea}
+              >
+                Need another idea
+              </button>
+              <button
+                type="button"
+                className="secondary-action"
+                onClick={handleTimerMoreLikeThis}
+              >
+                More like this
+              </button>
+            </div>
+          )}
+        </div>
+      </details>
     </section>
   );
 }
