@@ -1,0 +1,84 @@
+# .github/workflows/ci.yml
+
+# This is the name displayed in the GitHub Actions tab.
+name: CI
+
+# Decide when GitHub should run this workflow.
+on:
+  # Run when someone opens or updates a pull request targeting main.
+  pull_request:
+    branches:
+      - main
+
+  # Run again after code is merged or pushed into main.
+  push:
+    branches:
+      - main
+
+# The workflow only needs permission to read the repository's contents.
+# It does not need permission to edit code, create releases, or write issues.
+permissions:
+  contents: read
+
+# Prevent multiple outdated CI runs for the same branch from wasting time.
+#
+# For example:
+# 1. You push commit A.
+# 2. CI begins.
+# 3. You quickly push commit B.
+# 4. GitHub cancels the outdated commit A run and tests commit B instead.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # "test" is the internal identifier for this job.
+  test:
+    # This is the user-facing check name displayed on the pull request.
+    name: Test, lint, and build
+
+    # GitHub creates a temporary Linux machine for this job.
+    runs-on: ubuntu-latest
+
+    # Stop the workflow if something unexpectedly hangs.
+    timeout-minutes: 10
+
+    steps:
+      # Step 1:
+      # Copy the repository's code onto the temporary GitHub runner.
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      # Step 2:
+      # Install the same major Node version you use locally.
+      #
+      # cache: npm tells setup-node to cache downloaded npm packages.
+      # This can make later workflow runs faster.
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+
+      # Step 3:
+      # Install the exact dependency versions stored in package-lock.json.
+      #
+      # npm ci is designed for clean, repeatable automated installations.
+      # It fails when package.json and package-lock.json disagree.
+      - name: Install dependencies
+        run: npm ci
+
+      # Step 4:
+      # Check the repository for ESLint errors.
+      - name: Run lint
+        run: npm run lint
+
+      # Step 5:
+      # Run the Vitest test suite one time.
+      - name: Run tests
+        run: npm test
+
+      # Step 6:
+      # Confirm that Vite can create the production React build.
+      - name: Build production application
+        run: npm run build
