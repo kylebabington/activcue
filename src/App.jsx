@@ -1282,6 +1282,16 @@ Prioritize activities that require the least decision-making from the child.
       setStepHint(hint);
     } catch (error) {
       console.error(error);
+
+      if (error instanceof AuthenticationError) {
+        showStatus(
+          error.message ||
+            "Your secure session could not be verified. Refresh and try again.",
+          "error"
+        );
+        return;
+      }
+
       showStatus("I could not make a hint right now.", "error");
     } finally {
       setIsHintLoading(false);
