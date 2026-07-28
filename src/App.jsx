@@ -3,6 +3,7 @@
 import { Navigate, NavLink, Route, Routes, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { getActivitySuggestions, getQuestStepHint } from "./api/activityApi";
+import { AuthenticationError } from "./api/apiClient";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import { useUiTheme } from "./hooks/useUiTheme";
 import ParentPage from "./pages/ParentPage";
@@ -691,6 +692,19 @@ function App() {
     } catch (error) {
       console.error(error);
 
+      /*
+       * Auth failures are not an offline/server-unreachable case. Do not
+       * substitute local templates — that hides the real session problem.
+       */
+      if (error instanceof AuthenticationError) {
+        showStatus(
+          error.message ||
+            "Your secure session could not be verified. Refresh and try again.",
+          "error"
+        );
+        return [];
+      }
+
       if (allowOfflineFallback || kidActivityStyle === "simple") {
         const templateActivities = buildSimpleActivitiesFromTemplates({
           inventory,
@@ -1268,6 +1282,16 @@ Prioritize activities that require the least decision-making from the child.
       setStepHint(hint);
     } catch (error) {
       console.error(error);
+
+      if (error instanceof AuthenticationError) {
+        showStatus(
+          error.message ||
+            "Your secure session could not be verified. Refresh and try again.",
+          "error"
+        );
+        return;
+      }
+
       showStatus("I could not make a hint right now.", "error");
     } finally {
       setIsHintLoading(false);
@@ -1764,6 +1788,13 @@ Prioritize activities that require the least decision-making from the child.
     <main className="app-shell">
       <header className="app-header">
         <div className="app-header-brand">
+          <img
+            className="app-brand-mark"
+            src="/logo.svg"
+            alt=""
+            width="28"
+            height="28"
+          />
           <p className="app-brand-name">FamilyFlow</p>
         </div>
 

@@ -28,7 +28,18 @@
 }
 
 .app-header-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
   flex: 0 0 auto;
+}
+
+.app-brand-mark {
+  display: block;
+  width: 1.75rem;
+  height: 1.75rem;
+  flex-shrink: 0;
+  border-radius: 0.4rem;
 }
 
 .app-brand-name {
