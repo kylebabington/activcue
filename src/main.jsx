@@ -13,6 +13,9 @@ import { BrowserRouter } from "react-router-dom";
 // App is our main application component.
 import App from "./App.jsx";
 
+// AuthProvider creates or restores the anonymous Supabase session on load.
+import { AuthProvider } from "./context/AuthProvider.jsx";
+
 // This imports the global CSS file created by Vite.
 import "./index.css";
 
@@ -22,7 +25,9 @@ ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     {/* BrowserRouter gives routing power to everything inside App. */}
     <BrowserRouter>
-      <App />
+      <AuthProvider>
+        <App />
+      </AuthProvider>
     </BrowserRouter>
   </React.StrictMode>
 );

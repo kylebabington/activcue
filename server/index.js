@@ -9,6 +9,7 @@ import { fileURLToPath } from "url";
 
 import { createOpenAIClient } from "./lib/openaiClient.js";
 import healthRouter from "./routes/health.js";
+import authRouter from "./routes/auth.js";
 import createActivitySuggestionsRouter from "./routes/activitySuggestions.js";
 import createQuestStepHintRouter from "./routes/questStepHint.js";
 
@@ -139,7 +140,25 @@ app.use(express.json());
  *
  * Every backend route must be registered before the React frontend fallback.
  */
+/*
+ * Public API route.
+ *
+ * The health endpoint must remain accessible to Railway without a user token.
+ */
 app.use("/api", healthRouter);
+
+/*
+ * Authentication inspection route.
+ *
+ * The router itself applies requireAuthenticatedUser to /auth/me.
+ */
+app.use("/api", authRouter);
+
+/*
+ * Protected OpenAI routes.
+ *
+ * Their route files apply requireAuthenticatedUser before calling OpenAI.
+ */
 app.use("/api", createActivitySuggestionsRouter(client));
 app.use("/api", createQuestStepHintRouter(client));
 
