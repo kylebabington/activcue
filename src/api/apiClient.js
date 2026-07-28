@@ -10,6 +10,19 @@ import { supabase } from "../lib/supabaseClient";
 const API_BASE_URL = import.meta.env.VITE_API_URL || "";
 
 /*
+ * Thrown when a request cannot proceed because the Supabase session is
+ * missing, unreadable, or rejected by the server.
+ *
+ * Callers should treat this as an auth problem, not a network outage.
+ */
+export class AuthenticationError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = "AuthenticationError";
+    }
+}
+
+/*
  * Extract the current access-token JWT from the browser's Supabase session.
  */
 async function getAccessToken() {
@@ -19,7 +32,7 @@ async function getAccessToken() {
     } = await supabase.auth.getSession();
 
     if (sessionError) {
-        throw new Error(
+        throw new AuthenticationError(
             `Could not read the current authentication session: ${sessionError.message}`
         );
     }
@@ -27,7 +40,7 @@ async function getAccessToken() {
     const accessToken = sessionData.session?.access_token;
 
     if (!accessToken) {
-        throw new Error(
+        throw new AuthenticationError(
             "No authenticated session is available. Refresh the page and try again."
         );
     }
@@ -87,6 +100,10 @@ export async function authenticatedRequest(path, options = {}) {
             response,
             fallbackMessage
         );
+
+        if (response.status === 401) {
+            throw new AuthenticationError(errorMessage);
+        }
 
         throw new Error(errorMessage);
     }

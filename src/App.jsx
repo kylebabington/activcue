@@ -3,6 +3,7 @@
 import { Navigate, NavLink, Route, Routes, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { getActivitySuggestions, getQuestStepHint } from "./api/activityApi";
+import { AuthenticationError } from "./api/apiClient";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import { useUiTheme } from "./hooks/useUiTheme";
 import ParentPage from "./pages/ParentPage";
@@ -690,6 +691,19 @@ function App() {
       return normalized;
     } catch (error) {
       console.error(error);
+
+      /*
+       * Auth failures are not an offline/server-unreachable case. Do not
+       * substitute local templates — that hides the real session problem.
+       */
+      if (error instanceof AuthenticationError) {
+        showStatus(
+          error.message ||
+            "Your secure session could not be verified. Refresh and try again.",
+          "error"
+        );
+        return [];
+      }
 
       if (allowOfflineFallback || kidActivityStyle === "simple") {
         const templateActivities = buildSimpleActivitiesFromTemplates({

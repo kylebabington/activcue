@@ -1,8 +1,11 @@
 // src/context/AuthProvider.jsx
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { AuthContext } from "./AuthContext";
+
+const SESSION_ENDED_MESSAGE =
+    "Your secure session ended. Refresh the page to continue.";
 
 /*
  * React StrictMode intentionally runs effects more than once during local
@@ -81,6 +84,13 @@ export function AuthProvider({ children }) {
     const [user, setUser] = useState(null);
     const [isAuthReady, setIsAuthReady] = useState(false);
     const [authError, setAuthError] = useState("");
+    /*
+     * Tracks whether we have successfully established a session at least once.
+     *
+     * onAuthStateChange can emit a null session during early bootstrap
+     * (INITIAL_SESSION). That must not look like a post-login sign-out.
+     */
+    const hasEstablishedSessionRef = useRef(false);
 
     useEffect(() => {
         let isMounted = true;
@@ -102,6 +112,21 @@ export function AuthProvider({ children }) {
 
             setSession(nextSession);
             setUser(nextSession?.user || null);
+
+            if (nextSession) {
+                hasEstablishedSessionRef.current = true;
+                setAuthError("");
+                return;
+            }
+
+            /*
+             * Session cleared after we already had one (sign-out, refresh
+             * failure, or cleared storage). Block the app instead of letting
+             * API calls fail later without a Bearer token.
+             */
+            if (hasEstablishedSessionRef.current) {
+                setAuthError(SESSION_ENDED_MESSAGE);
+            }
         });
 
         async function initializeAuthentication() {
@@ -112,6 +137,7 @@ export function AuthProvider({ children }) {
                     return;
                 }
 
+                hasEstablishedSessionRef.current = true;
                 setSession(activeSession);
                 setUser(activeSession.user);
                 setAuthError("");
@@ -183,8 +209,11 @@ export function AuthProvider({ children }) {
     /*
      * Show a visible configuration/authentication failure instead of rendering
      * an application that cannot successfully call its backend.
+     *
+     * After init, a missing session is also treated as a hard stop even if
+     * authError has not been set yet (e.g. a late onAuthStateChange clear).
      */
-    if (authError) {
+    if (authError || !session) {
         return (
             <main
                 role="alert"
@@ -199,7 +228,7 @@ export function AuthProvider({ children }) {
                 <section>
                     <h1>We could not start your session</h1>
 
-                    <p>{authError}</p>
+                    <p>{authError || SESSION_ENDED_MESSAGE}</p>
 
                     <button type="button" onClick={() => window.location.reload()}>
                         Try again
