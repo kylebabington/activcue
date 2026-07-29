@@ -6,19 +6,20 @@ import {
   getActivitySuggestions,
   getPresetActivities,
   getQuestStepHint,
+  unlockPresetActivity,
 } from "./api/activityApi";
+import { getCurrentAuthenticatedUser } from "./api/authApi";
 import { ApiRequestError, AuthenticationError } from "./api/apiClient";
 import { useLocalStorage } from "./hooks/useLocalStorage";
+import { useAuth } from "./hooks/useAuth";
 import { useUiTheme } from "./hooks/useUiTheme";
 import ParentPage from "./pages/ParentPage";
 import KidPage from "./pages/KidPage";
 import QuestPage from "./pages/QuestPage";
 import SettingsPage from "./pages/SettingsPage";
-import DemoPresetsPage from "./pages/DemoPresetsPage";
 import ParentPinGate from "./components/ParentPinGate";
 import ThemeSwitcher from "./components/ThemeSwitcher";
 import { AppProvider } from "./context/AppContext";
-import { useAuth } from "./hooks/useAuth";
 import "./App.css";
 import { defaultParentStatusPresets, inventoryCategories } from "./constants/presets";
 import {
@@ -43,11 +44,17 @@ import {
   formatFeedbackLabel,
   formatTimer,
 } from "./utils/activityFormatters";
+import {
+  getEligiblePresets,
+  isFreeImaginativeUnlockUsed,
+  takeRotatedOne,
+  takeRotatedSlice,
+} from "./utils/presetDemo";
 
 
 function App() {
   const navigate = useNavigate();
-  const { isAnonymous } = useAuth();
+  const { user } = useAuth();
 
   const { theme: uiTheme, setTheme: setUiTheme, themes: uiThemes } =
     useUiTheme();
@@ -232,14 +239,107 @@ function App() {
   const [statusMessage, setStatusMessage] = useState("");
   const [statusType, setStatusType] = useState("info");
 
-  // Temporary until frontend milestone loads real entitlement from /api/auth/me.
-  const [entitlement] = useState({
+  // Entitlement comes from /api/auth/me; freeImaginativeActivityId is also
+  // refreshed from preset list/unlock responses.
+  const [entitlement, setEntitlement] = useState({
     isPaid: false,
     canGenerateWithAi: false,
     canUseAiHints: false,
     subscriptionStatus: "inactive",
     freeImaginativeActivityId: null,
   });
+  const [entitlementHydrated, setEntitlementHydrated] = useState(false);
+
+  const [presetRotationIndex, setPresetRotationIndex] = useState({
+    simple: 0,
+    imaginative: 0,
+  });
+
+  // Until /api/auth/me succeeds, do not treat the session as unpaid demo —
+  // otherwise a failed preset hydrate would trap Plus users on the sample path.
+  const isDemoMode =
+    entitlementHydrated && !entitlement.canGenerateWithAi;
+  const freeImaginativeUnlockUsed = isFreeImaginativeUnlockUsed(entitlement);
+  const imBoredDisabled = isDemoMode && freeImaginativeUnlockUsed;
+
+  function mergePresetEntitlement(nextEntitlement) {
+    if (!nextEntitlement || typeof nextEntitlement !== "object") {
+      return;
+    }
+
+    setEntitlement((current) => ({
+      ...current,
+      isPaid: Boolean(nextEntitlement.isPaid),
+      canGenerateWithAi: Boolean(nextEntitlement.canGenerateWithAi),
+      canUseAiHints: Boolean(nextEntitlement.canUseAiHints),
+      subscriptionStatus:
+        nextEntitlement.subscriptionStatus || current.subscriptionStatus,
+      // Honor explicit null from the server (no unlock on this account).
+      // `??` would incorrectly keep the previous session's unlock id.
+      freeImaginativeActivityId:
+        "freeImaginativeActivityId" in nextEntitlement
+          ? nextEntitlement.freeImaginativeActivityId ?? null
+          : current.freeImaginativeActivityId,
+    }));
+  }
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function hydrateEntitlement() {
+      setEntitlementHydrated(false);
+
+      try {
+        const me = await getCurrentAuthenticatedUser();
+        if (!isMounted) {
+          return;
+        }
+
+        mergePresetEntitlement({
+          ...me.entitlement,
+          freeImaginativeActivityId:
+            me.entitlement?.freeImaginativeActivityId ??
+            me.profile?.freeImaginativeActivityId ??
+            null,
+        });
+        setEntitlementHydrated(true);
+      } catch (error) {
+        console.warn("Could not hydrate entitlement from /api/auth/me:", error);
+
+        try {
+          const payload = await getPresetActivities();
+          if (!isMounted) {
+            return;
+          }
+          mergePresetEntitlement(payload.entitlement);
+          setEntitlementHydrated(true);
+        } catch (fallbackError) {
+          console.warn(
+            "Could not hydrate entitlement from presets either:",
+            fallbackError
+          );
+          if (isMounted) {
+            // Complete as unpaid so local Quick ideas (and demo UI) still work.
+            // Paid AI remains gated by the API if the session/plan is broken.
+            mergePresetEntitlement({
+              isPaid: false,
+              canGenerateWithAi: false,
+              canUseAiHints: false,
+              subscriptionStatus: "inactive",
+              freeImaginativeActivityId: null,
+            });
+            setEntitlementHydrated(true);
+          }
+        }
+      }
+    }
+
+    hydrateEntitlement();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user?.id]);
 
   function showStatus(message, type = "info") {
     if (!message) {
@@ -849,6 +949,211 @@ Do not make the idea more creative than it needs to be.
     setKidMood(kidEnergyLevel);
     setLoadingIntent(options.preferSimpleTemplates ? "quick" : "board");
 
+    const preferSimpleTemplates = Boolean(options.preferSimpleTemplates);
+
+    /*
+     * Local Quick ideas templates do not need /api/auth/me or presets.
+     * Allow them even while plan hydrate is in flight or if it failed.
+     */
+    if (!entitlementHydrated && preferSimpleTemplates) {
+      setIsLoading(true);
+      showStatus("");
+
+      try {
+        const templateActivities = buildSimpleActivitiesFromTemplates({
+          inventory,
+          currentMoment,
+          count: 3,
+        });
+
+        if (templateActivities.length > 0) {
+          const normalized = normalizeActivitiesToInventory(
+            templateActivities,
+            inventory
+          );
+          setActivities(normalized);
+          showStatus("Quick ideas ready — no wait.", "success");
+          navigate("/quest");
+          return;
+        }
+
+        showStatus(
+          "Still checking your plan. Try again in a moment.",
+          "info"
+        );
+      } finally {
+        setIsLoading(false);
+        setLoadingIntent(null);
+      }
+
+      return;
+    }
+
+    if (!entitlementHydrated) {
+      showStatus(
+        "Still checking your plan. Try again in a moment.",
+        "info"
+      );
+      setIsLoading(false);
+      setLoadingIntent(null);
+      return;
+    }
+
+    /*
+     * Unpaid / demo: never call OpenAI. Use curated presets (and local
+     * templates for Quick ideas). After the free imaginative unlock is used,
+     * I'm Bored is disabled until Plus.
+     */
+    if (isDemoMode) {
+      if (!preferSimpleTemplates && imBoredDisabled) {
+        showStatus(
+          "You used your free pretend sample. I'm Bored needs FamilyFlow Plus for more ideas.",
+          "info"
+        );
+        setIsLoading(false);
+        setLoadingIntent(null);
+        return;
+      }
+
+      setIsLoading(true);
+      showStatus("");
+
+      try {
+        if (preferSimpleTemplates || kidActivityStyle === "simple") {
+          if (preferSimpleTemplates) {
+            const templateActivities = buildSimpleActivitiesFromTemplates({
+              inventory,
+              currentMoment,
+              count: 3,
+            });
+
+            if (templateActivities.length > 0) {
+              const normalized = normalizeActivitiesToInventory(
+                templateActivities,
+                inventory
+              );
+              setActivities(normalized);
+              showStatus("Quick ideas ready — no wait.", "success");
+              navigate("/quest");
+              return;
+            }
+          }
+
+          const payload = await getPresetActivities({ style: "simple" });
+          mergePresetEntitlement(payload.entitlement);
+          const eligible = getEligiblePresets(
+            payload.activities,
+            "simple",
+            {
+              ...entitlement,
+              ...payload.entitlement,
+            }
+          );
+
+          if (preferSimpleTemplates) {
+            const slice = eligible.slice(0, 3);
+            if (slice.length === 0) {
+              showStatus(
+                "No quick ideas available right now. Try again in a moment.",
+                "info"
+              );
+              setActivities([]);
+              navigate("/quest");
+              return;
+            }
+
+            const normalized = normalizeActivitiesToInventory(slice, inventory);
+            setActivities(normalized);
+            showStatus(
+              "Sample presets — Plus personalizes to this moment.",
+              "success"
+            );
+            navigate("/quest");
+            return;
+          }
+
+          const { slice, nextIndex } = takeRotatedSlice(
+            eligible,
+            presetRotationIndex.simple,
+            3
+          );
+          setPresetRotationIndex((current) => ({
+            ...current,
+            simple: nextIndex,
+          }));
+
+          if (slice.length === 0) {
+            showStatus("No sample activities available right now.", "info");
+            setActivities([]);
+            navigate("/quest");
+            return;
+          }
+
+          const normalized = normalizeActivitiesToInventory(slice, inventory);
+          setActivities(normalized);
+          showStatus(
+            "Showing sample presets — Plus personalizes to this moment.",
+            "success"
+          );
+          navigate("/quest");
+          return;
+        }
+
+        // Imaginative I'm Bored (only while unlock unused — gated above).
+        const payload = await getPresetActivities({ style: "imaginative" });
+        mergePresetEntitlement(payload.entitlement);
+        const mergedEntitlement = {
+          ...entitlement,
+          ...payload.entitlement,
+        };
+        const eligible = getEligiblePresets(
+          payload.activities,
+          "imaginative",
+          mergedEntitlement
+        );
+
+        const { slice, nextIndex } = takeRotatedSlice(
+          eligible,
+          presetRotationIndex.imaginative,
+          3
+        );
+        setPresetRotationIndex((current) => ({
+          ...current,
+          imaginative: nextIndex,
+        }));
+
+        if (slice.length === 0) {
+          showStatus("No pretend samples available right now.", "info");
+          setActivities([]);
+          navigate("/quest");
+          return;
+        }
+
+        const normalized = normalizeActivitiesToInventory(slice, inventory);
+        setActivities(normalized);
+        showStatus(
+          "Showing sample presets — Plus personalizes to this moment. Unlock one pretend quest free when you start.",
+          "success"
+        );
+        navigate("/quest");
+      } catch (error) {
+        console.error("Demo preset generation failed:", error);
+        showStatus(
+          error instanceof Error
+            ? error.message
+            : "Could not load sample activities.",
+          "error"
+        );
+        setActivities([]);
+        navigate("/quest");
+      } finally {
+        setIsLoading(false);
+        setLoadingIntent(null);
+      }
+
+      return;
+    }
+
     const activityStyle = kidActivityStyle;
     const styleInstruction = getKidActivityStyleInstruction(activityStyle);
     const energyInstruction = getKidEnergyInstruction(kidEnergyLevel);
@@ -895,7 +1200,7 @@ Always obey currentMoment limits for time, mess, noise, supervision, and parent 
 `,
       {
         allowOfflineFallback: true,
-        preferSimpleTemplates: Boolean(options.preferSimpleTemplates),
+        preferSimpleTemplates,
       }
     );
 
@@ -908,16 +1213,122 @@ Always obey currentMoment limits for time, mess, noise, supervision, and parent 
   }
 
   async function handleStartSomethingForMe() {
-    // Set the kid mood to surprise because this button means:
-    // "I do not want to choose. Just give me something that works."
     setKidMood(kidEnergyLevel);
     setLoadingIntent("auto-start");
-
-    // Clear any old active quest before starting a fresh one.
     setActiveActivity(null);
 
-    // Generate activities and wait for the API response.
-    // We use the returned activities directly instead of waiting for React state.
+    if (!entitlementHydrated) {
+      showStatus(
+        "Still checking your plan. Try again in a moment.",
+        "info"
+      );
+      setIsLoading(false);
+      setLoadingIntent(null);
+      return;
+    }
+
+    if (isDemoMode) {
+      setIsLoading(true);
+      showStatus("");
+
+      try {
+        const style = kidActivityStyle === "imaginative" ? "imaginative" : "simple";
+
+        if (
+          style === "imaginative" &&
+          freeImaginativeUnlockUsed
+        ) {
+          const payload = await getPresetActivities({ style: "imaginative" });
+          mergePresetEntitlement(payload.entitlement);
+          const mergedEntitlement = {
+            ...entitlement,
+            ...payload.entitlement,
+          };
+          const eligible = getEligiblePresets(
+            payload.activities,
+            "imaginative",
+            mergedEntitlement
+          );
+          const unlocked = eligible[0];
+
+          if (!unlocked) {
+            showStatus(
+              "Your free pretend sample is used. Switch to Simple, or get Plus for more ideas.",
+              "info"
+            );
+            navigate("/quest");
+            return;
+          }
+
+          await startPresetActivity(unlocked);
+          navigate("/quest");
+          showStatus(`Started: "${unlocked.title}".`, "success");
+          return;
+        }
+
+        const payload = await getPresetActivities({ style });
+        mergePresetEntitlement(payload.entitlement);
+        const mergedEntitlement = {
+          ...entitlement,
+          ...payload.entitlement,
+        };
+        const eligible = getEligiblePresets(
+          payload.activities,
+          style,
+          mergedEntitlement
+        );
+        const rotationKey = style;
+        const { activity, nextIndex } = takeRotatedOne(
+          eligible,
+          presetRotationIndex[rotationKey]
+        );
+        setPresetRotationIndex((current) => ({
+          ...current,
+          [rotationKey]: nextIndex,
+        }));
+
+        if (!activity) {
+          showStatus(
+            "I could not start a sample activity. Try I'm Bored instead.",
+            "error"
+          );
+          navigate("/quest");
+          return;
+        }
+
+        await startPresetActivity(activity);
+        navigate("/quest");
+        showStatus(
+          `Started sample: "${activity.title}". Plus personalizes to this moment.`,
+          "success"
+        );
+      } catch (error) {
+        console.error("Demo auto-start failed:", error);
+        const code =
+          error instanceof ApiRequestError ? error.code : "";
+
+        if (code === "FREE_IMAGINATIVE_UNLOCK_USED") {
+          showStatus(
+            "Your free pretend sample is already used. Try a simple activity, or get Plus.",
+            "info"
+          );
+        } else {
+          showStatus(
+            error instanceof Error
+              ? error.message
+              : "Could not start a sample activity.",
+            "error"
+          );
+        }
+        navigate("/quest");
+      } finally {
+        setIsLoading(false);
+        setLoadingIntent(null);
+      }
+
+      return;
+    }
+
     const generatedActivities = await handleGenerateActivities(
       `
 The child wants the app to choose and start something automatically.
@@ -943,13 +1354,11 @@ Prioritize activities that require the least decision-making from the child.
       { allowOfflineFallback: true }
     );
 
-    // Auth / subscription blocks already set status — do not overwrite it.
     if (generatedActivities === null) {
       navigate("/quest");
       return;
     }
 
-    // Pick the best option using the same scoring system as auto-pick.
     const selectedActivity = getBestActivityForCurrentMoment(generatedActivities);
 
     if (!selectedActivity) {
@@ -958,13 +1367,29 @@ Prioritize activities that require the least decision-making from the child.
       return;
     }
 
-    // Start the activity immediately.
     handleStartActivity(selectedActivity);
-
-    // Move the child to the activity page where the active timer panel lives.
     navigate("/quest");
-
     showStatus(`Started: "${selectedActivity.title}" because it fits right now.`, "success");
+  }
+
+  async function startPresetActivity(activity) {
+    let readyActivity = activity;
+
+    if (activity?.isLocked) {
+      const payload = await unlockPresetActivity(activity.id);
+      mergePresetEntitlement(payload.entitlement);
+      readyActivity = payload.activity;
+
+      if (readyActivity?.isLocked) {
+        throw new ApiRequestError(
+          "This pretend activity is still locked.",
+          { code: "PRESET_STILL_LOCKED" }
+        );
+      }
+    }
+
+    handleStartActivity(readyActivity);
+    return readyActivity;
   }
 
   function saveActivityFeedback(activity, feedbackType) {
@@ -1182,6 +1607,41 @@ Prioritize activities that require the least decision-making from the child.
     showStatus(`Started: "${activity.title}". Timer is running.`, "success");
   }
 
+  async function handleStartActivityFromUi(activity) {
+    if (!activity?.isLocked) {
+      handleStartActivity(activity);
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const ready = await startPresetActivity(activity);
+      showStatus(
+        `Unlocked and started: "${ready.title}". I'm Bored needs Plus for more ideas.`,
+        "success"
+      );
+    } catch (error) {
+      const code =
+        error instanceof ApiRequestError ? error.code : "";
+
+      if (code === "FREE_IMAGINATIVE_UNLOCK_USED") {
+        showStatus(
+          "Your free pretend sample is already used. Try a simple activity, or get Plus.",
+          "info"
+        );
+      } else {
+        showStatus(
+          error instanceof Error
+            ? error.message
+            : "Could not unlock that activity.",
+          "error"
+        );
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   function goToNextQuestStep() {
     // If there is no active quest, there is nothing to update.
     if (!activeActivity) {
@@ -1372,29 +1832,61 @@ Prioritize activities that require the least decision-making from the child.
     }
   }
   // Starts the best-scoring activity from the current suggestion list.
-  function handleAutoPickQuest() {
+  async function handleAutoPickQuest() {
     // If there are no activities yet, there is nothing to start.
     if (activities.length === 0) {
       showStatus("No activities available yet. Choose something from Kid Mode first.", "error");
       return;
     }
 
+    // After the free imaginative unlock is used, locked samples on the board
+    // cannot be started — score only startable options.
+    const candidates = freeImaginativeUnlockUsed
+      ? activities.filter((activity) => activity && !activity.isLocked)
+      : activities;
+
     // Use the shared helper so auto-pick and fast-start choose the same way.
-    const selectedActivity = getBestActivityForCurrentMoment(activities);
+    const selectedActivity = getBestActivityForCurrentMoment(candidates);
 
     if (!selectedActivity) {
-      showStatus("I could not pick an activity yet. Try generating again.", "error");
+      showStatus(
+        freeImaginativeUnlockUsed
+          ? "Your free pretend sample is already used. Pick an unlocked activity, or get Plus."
+          : "I could not pick an activity yet. Try generating again.",
+        freeImaginativeUnlockUsed ? "info" : "error"
+      );
       return;
     }
 
-    // Start the selected activity using the existing start logic.
-    handleStartActivity(selectedActivity);
+    try {
+      setIsLoading(true);
+      // Unlock through the same path as Start / Unlock free so locked
+      // imaginative presets cannot bypass the one-free-unlock rule.
+      const ready = await startPresetActivity(selectedActivity);
+      showStatus(
+        `Picked for you: "${ready.title}" because it best fits right now.`,
+        "success"
+      );
+    } catch (error) {
+      const code =
+        error instanceof ApiRequestError ? error.code : "";
 
-    // Give the user clear feedback.
-    showStatus(
-      `Picked for you: "${selectedActivity.title}" because it best fits right now.`,
-      "success"
-    );
+      if (code === "FREE_IMAGINATIVE_UNLOCK_USED") {
+        showStatus(
+          "Your free pretend sample is already used. Try a simple activity, or get Plus.",
+          "info"
+        );
+      } else {
+        showStatus(
+          error instanceof Error
+            ? error.message
+            : "Could not start that activity.",
+          "error"
+        );
+      }
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   function getBestActivityForCurrentMoment(activityOptions) {
@@ -1775,11 +2267,8 @@ Prioritize activities that require the least decision-making from the child.
   }
 
   const parentAreasLocked = Boolean(parentPin) && !parentAreaUnlocked;
-  const defaultHomePath = isAnonymous
-    ? "/demo"
-    : parentPin && inventory.length > 0
-      ? "/kid"
-      : "/parent";
+  const defaultHomePath =
+    parentPin && inventory.length > 0 ? "/kid" : "/parent";
 
   const appContextValue = {
     currentMoment,
@@ -1805,7 +2294,7 @@ Prioritize activities that require the least decision-making from the child.
     activities,
     scoredActivities,
     isLoading,
-    handleStartActivity,
+    handleStartActivity: handleStartActivityFromUi,
     saveFavoriteActivity,
     handleTooMessy,
     handleTooHard,
@@ -1879,15 +2368,6 @@ Prioritize activities that require the least decision-making from the child.
         </div>
 
         <nav className="app-nav">
-          {isAnonymous ? (
-            <NavLink
-              to="/demo"
-              className={({ isActive }) => (isActive ? "active" : "")}
-            >
-              Samples
-            </NavLink>
-          ) : null}
-
           <NavLink
             to="/parent"
             className={({ isActive }) => (isActive ? "active" : "")}
@@ -1952,7 +2432,7 @@ Prioritize activities that require the least decision-making from the child.
             element={<Navigate to={defaultHomePath} replace />}
           />
 
-          <Route path="/demo" element={<DemoPresetsPage />} />
+          <Route path="/demo" element={<Navigate to="/parent" replace />} />
 
           <Route
             path="/parent"
@@ -1995,6 +2475,8 @@ Prioritize activities that require the least decision-making from the child.
                 activityMode={activityMode}
                 savedActivities={savedActivities}
                 handleReplaySavedActivity={handleReplaySavedActivity}
+                isDemoMode={isDemoMode}
+                imBoredDisabled={imBoredDisabled}
               />
             }
           />

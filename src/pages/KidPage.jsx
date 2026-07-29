@@ -17,6 +17,8 @@ function KidPage({
   activityMode,
   savedActivities,
   handleReplaySavedActivity,
+  isDemoMode = false,
+  imBoredDisabled = false,
 }) {
   function energyChipClass(energyLevel) {
     return kidEnergyLevel === energyLevel
@@ -63,6 +65,27 @@ function KidPage({
       </section>
 
       <div className="kid-center-column">
+        {isDemoMode ? (
+          <div
+            className={`kid-demo-banner${imBoredDisabled ? " kid-demo-banner--exhausted" : ""}`}
+            role="status"
+          >
+            {imBoredDisabled ? (
+              <p>
+                Free pretend sample used. <strong>I&apos;m Bored</strong> needs{" "}
+                <Link to="/signup">FamilyFlow Plus</Link> for more ideas.
+                Simple Quick ideas still work.
+              </p>
+            ) : (
+              <p>
+                These are <strong>sample presets</strong> so you can try the full
+                flow. <strong>FamilyFlow Plus</strong> will tailor activities to
+                the current parent moment, kid energy/style, and supplies.
+              </p>
+            )}
+          </div>
+        ) : null}
+
         <div className="kid-status-strip">
           {profileLabel && (
             <span className="kid-status-strip-profile">{profileLabel}</span>
@@ -135,11 +158,18 @@ function KidPage({
             type="button"
             className="im-bored-button"
             onClick={() => handleGenerateKidActivities()}
-            disabled={isLoading}
+            disabled={isLoading || imBoredDisabled}
+            title={
+              imBoredDisabled
+                ? "Free pretend sample used — Plus unlocks more I'm Bored ideas"
+                : undefined
+            }
           >
             {isLoading && loadingIntent !== "auto-start"
               ? boredLabel
-              : "I'm Bored"}
+              : imBoredDisabled
+                ? "I'm Bored (needs Plus)"
+                : "I'm Bored"}
           </button>
 
           <div className="kid-secondary-actions">
@@ -178,7 +208,7 @@ function KidPage({
             <div className="kid-replay-list">
               {recentSaved.map((activity) => (
                 <button
-                  key={activity.id}
+                  key={activity.id || activity.title}
                   type="button"
                   className="kid-replay-button"
                   onClick={() => handleReplaySavedActivity(activity)}
@@ -188,10 +218,6 @@ function KidPage({
                 </button>
               ))}
             </div>
-
-            <Link className="secondary-link" to="/settings">
-              All saved
-            </Link>
           </section>
         )}
       </div>

@@ -120,7 +120,7 @@ function ActivityResults({
                       className="quest-start-button"
                       onClick={() => handleStartActivity(activity)}
                     >
-                      Start
+                      {activity.isLocked ? "Unlock free" : "Start"}
                     </button>
 
                     <button
