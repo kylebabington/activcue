@@ -34,6 +34,18 @@
   flex: 0 0 auto;
 }
 
+.app-header-brand-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  text-decoration: none;
+  color: inherit;
+}
+
+.app-header-brand-link:hover .app-brand-name {
+  color: var(--accent);
+}
+
 .app-brand-mark {
   display: block;
   width: 1.75rem;
