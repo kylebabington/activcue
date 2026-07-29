@@ -7,17 +7,10 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
+import { resolvePresetMigrationPath } from "./resolvePresetMigrationPath.mjs";
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const migration = fs.readFileSync(
-  path.join(
-    __dirname,
-    "..",
-    "supabase",
-    "migrations",
-    "20260728_001_create_preset_activity_library.sql"
-  ),
-  "utf8"
-);
+const migration = fs.readFileSync(resolvePresetMigrationPath(), "utf8");
 
 const requiredFullContent = [
   "kidRole",

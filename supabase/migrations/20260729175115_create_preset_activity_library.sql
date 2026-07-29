@@ -1,284 +1,454 @@
--- supabase/migrations/20260728_001_create_preset_activity_library.sql
 
-/*
- * FAMILYFLOW PRESET ACTIVITY LIBRARY
- * ==================================
- *
- * This migration creates:
- *
- * 1. profiles
- *    Stores one application profile for each Supabase Auth user.
- *
- * 2. preset_activities
- *    Stores the 9 simple and 9 imaginative preset activities.
- *
- * 3. subscriptions
- *    Stores trusted subscription status.
- *
- * Anonymous users may:
- *
- * - use every simple preset
- * - unlock one imaginative preset
- *
- * Only paid users may:
- *
- * - use every imaginative preset
- * - call OpenAI-backed routes
- */
 
-begin;
 
-/*
- * Supabase normally includes pgcrypto, but this ensures
- * gen_random_uuid() is available.
- */
-create extension if not exists pgcrypto;
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+SET check_function_bodies = false;
+SET xmloption = content;
+SET client_min_messages = warning;
+SET row_security = off;
 
-/*
- * PROFILES
- * --------
- *
- * user_id matches the user's UUID in auth.users.
- *
- * free_imaginative_activity_id is the one imaginative preset
- * selected by an unpaid user.
- */
-create table if not exists public.profiles (
-  user_id uuid primary key
-    references auth.users(id)
-    on delete cascade,
 
-  is_anonymous boolean not null default true,
+COMMENT ON SCHEMA "public" IS 'standard public schema';
 
-  free_imaginative_activity_id uuid null,
 
-  stripe_customer_id text unique null,
 
-  created_at timestamptz not null default now(),
+CREATE EXTENSION IF NOT EXISTS "pg_stat_statements" WITH SCHEMA "extensions";
 
-  updated_at timestamptz not null default now()
-);
 
-/*
- * These ALTER statements make the migration safer if an earlier version
- * of the profiles table was already created.
- */
-alter table public.profiles
-  add column if not exists is_anonymous boolean not null default true;
 
-alter table public.profiles
-  add column if not exists free_imaginative_activity_id uuid null;
 
-alter table public.profiles
-  add column if not exists stripe_customer_id text null;
 
-alter table public.profiles
-  add column if not exists created_at timestamptz not null default now();
 
-alter table public.profiles
-  add column if not exists updated_at timestamptz not null default now();
+CREATE EXTENSION IF NOT EXISTS "pgcrypto" WITH SCHEMA "extensions";
 
-/*
- * PRESET ACTIVITIES
- * -----------------
- *
- * Preview-safe information lives in normal columns.
- *
- * Locked instructions live in full_content so Express can decide whether
- * the current user is allowed to receive them.
- */
-create table if not exists public.preset_activities (
-  id uuid primary key default gen_random_uuid(),
 
-  slug text not null unique,
 
-  title text not null,
 
-  summary text not null,
 
-  theme text not null default '',
 
-  estimated_minutes integer not null
-    check (
-      estimated_minutes >= 1
-      and estimated_minutes <= 480
-    ),
+CREATE EXTENSION IF NOT EXISTS "supabase_vault" WITH SCHEMA "vault";
 
-  activity_style text not null
-    check (
-      activity_style in ('simple', 'imaginative')
-    ),
 
-  full_content jsonb not null,
 
-  is_active boolean not null default true,
 
-  display_order integer not null default 0,
 
-  created_at timestamptz not null default now(),
 
-  updated_at timestamptz not null default now()
-);
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA "extensions";
 
-/*
- * Add the profile's free-activity foreign key after preset_activities exists.
- */
-do $$
-begin
-  if not exists (
-    select 1
-    from pg_constraint
-    where conname = 'profiles_free_imaginative_activity_id_fkey'
-  ) then
-    alter table public.profiles
-      add constraint profiles_free_imaginative_activity_id_fkey
-      foreign key (free_imaginative_activity_id)
-      references public.preset_activities(id)
-      on delete set null;
-  end if;
-end
-$$;
 
-/*
- * SUBSCRIPTIONS
- * -------------
- *
- * Later, verified Stripe webhooks will update this table.
- *
- * user_id references auth.users (not profiles) so a trusted writer can
- * record paid status before the lazy profiles row is created on first
- * Express request.
- *
- * The browser must never directly change subscription status.
- */
-create table if not exists public.subscriptions (
-  user_id uuid primary key
-    references auth.users(id)
-    on delete cascade,
 
-  stripe_customer_id text unique null,
 
-  stripe_subscription_id text unique null,
 
-  stripe_price_id text null,
 
-  status text not null default 'inactive'
-    check (
-      status in (
-        'inactive',
-        'incomplete',
-        'incomplete_expired',
-        'trialing',
-        'active',
-        'past_due',
-        'canceled',
-        'unpaid',
-        'paused'
-      )
-    ),
-
-  current_period_end timestamptz null,
-
-  created_at timestamptz not null default now(),
-
-  updated_at timestamptz not null default now()
-);
-
-/*
- * INDEXES
- */
-create index if not exists preset_activities_style_active_idx
-  on public.preset_activities(
-    activity_style,
-    is_active,
-    display_order
-  );
-
-create index if not exists subscriptions_status_idx
-  on public.subscriptions(status);
-
-/*
- * UPDATED_AT TRIGGER
- */
-create or replace function public.set_updated_at()
-returns trigger
-language plpgsql
-set search_path = public
-as $$
+CREATE OR REPLACE FUNCTION "public"."set_updated_at"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    SET "search_path" TO 'public'
+    AS $$
 begin
   new.updated_at = now();
   return new;
 end;
 $$;
 
-drop trigger if exists profiles_set_updated_at
-  on public.profiles;
 
-create trigger profiles_set_updated_at
-before update on public.profiles
-for each row
-execute function public.set_updated_at();
+ALTER FUNCTION "public"."set_updated_at"() OWNER TO "postgres";
 
-drop trigger if exists preset_activities_set_updated_at
-  on public.preset_activities;
+SET default_tablespace = '';
 
-create trigger preset_activities_set_updated_at
-before update on public.preset_activities
-for each row
-execute function public.set_updated_at();
+SET default_table_access_method = "heap";
 
-drop trigger if exists subscriptions_set_updated_at
-  on public.subscriptions;
 
-create trigger subscriptions_set_updated_at
-before update on public.subscriptions
-for each row
-execute function public.set_updated_at();
+CREATE TABLE IF NOT EXISTS "public"."preset_activities" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "slug" "text" NOT NULL,
+    "title" "text" NOT NULL,
+    "summary" "text" NOT NULL,
+    "theme" "text" DEFAULT ''::"text" NOT NULL,
+    "estimated_minutes" integer NOT NULL,
+    "activity_style" "text" NOT NULL,
+    "full_content" "jsonb" NOT NULL,
+    "is_active" boolean DEFAULT true NOT NULL,
+    "display_order" integer DEFAULT 0 NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    CONSTRAINT "preset_activities_activity_style_check" CHECK (("activity_style" = ANY (ARRAY['simple'::"text", 'imaginative'::"text"]))),
+    CONSTRAINT "preset_activities_estimated_minutes_check" CHECK ((("estimated_minutes" >= 1) AND ("estimated_minutes" <= 480)))
+);
 
-/*
- * ROW LEVEL SECURITY
- *
- * React will not read these tables directly.
- *
- * React talks to Express.
- * Express checks authorization.
- * Express uses the server-only secret key for trusted database access.
- */
-alter table public.profiles
-  enable row level security;
 
-alter table public.preset_activities
-  enable row level security;
+ALTER TABLE "public"."preset_activities" OWNER TO "postgres";
 
-alter table public.subscriptions
-  enable row level security;
 
-/*
- * Remove direct browser table permissions.
- *
- * Anonymous Supabase Auth users use the authenticated Postgres role,
- * not the unauthenticated anon role.
- */
-revoke all on table public.profiles
-  from anon, authenticated;
+CREATE TABLE IF NOT EXISTS "public"."profiles" (
+    "user_id" "uuid" NOT NULL,
+    "is_anonymous" boolean DEFAULT true NOT NULL,
+    "free_imaginative_activity_id" "uuid",
+    "stripe_customer_id" "text",
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL
+);
 
-revoke all on table public.preset_activities
-  from anon, authenticated;
 
-revoke all on table public.subscriptions
-  from anon, authenticated;
+ALTER TABLE "public"."profiles" OWNER TO "postgres";
 
-/*
- * The trusted backend role receives access.
- */
-grant all on table public.profiles
-  to service_role;
 
-grant all on table public.preset_activities
-  to service_role;
+CREATE TABLE IF NOT EXISTS "public"."subscriptions" (
+    "user_id" "uuid" NOT NULL,
+    "stripe_customer_id" "text",
+    "stripe_subscription_id" "text",
+    "stripe_price_id" "text",
+    "status" "text" DEFAULT 'inactive'::"text" NOT NULL,
+    "current_period_end" timestamp with time zone,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    CONSTRAINT "subscriptions_status_check" CHECK (("status" = ANY (ARRAY['inactive'::"text", 'incomplete'::"text", 'incomplete_expired'::"text", 'trialing'::"text", 'active'::"text", 'past_due'::"text", 'canceled'::"text", 'unpaid'::"text", 'paused'::"text"])))
+);
 
-grant all on table public.subscriptions
-  to service_role;
+
+ALTER TABLE "public"."subscriptions" OWNER TO "postgres";
+
+
+ALTER TABLE ONLY "public"."preset_activities"
+    ADD CONSTRAINT "preset_activities_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."preset_activities"
+    ADD CONSTRAINT "preset_activities_slug_key" UNIQUE ("slug");
+
+
+
+ALTER TABLE ONLY "public"."profiles"
+    ADD CONSTRAINT "profiles_pkey" PRIMARY KEY ("user_id");
+
+
+
+ALTER TABLE ONLY "public"."profiles"
+    ADD CONSTRAINT "profiles_stripe_customer_id_key" UNIQUE ("stripe_customer_id");
+
+
+
+ALTER TABLE ONLY "public"."subscriptions"
+    ADD CONSTRAINT "subscriptions_pkey" PRIMARY KEY ("user_id");
+
+
+
+ALTER TABLE ONLY "public"."subscriptions"
+    ADD CONSTRAINT "subscriptions_stripe_customer_id_key" UNIQUE ("stripe_customer_id");
+
+
+
+ALTER TABLE ONLY "public"."subscriptions"
+    ADD CONSTRAINT "subscriptions_stripe_subscription_id_key" UNIQUE ("stripe_subscription_id");
+
+
+
+CREATE INDEX "preset_activities_style_active_idx" ON "public"."preset_activities" USING "btree" ("activity_style", "is_active", "display_order");
+
+
+
+CREATE INDEX "subscriptions_status_idx" ON "public"."subscriptions" USING "btree" ("status");
+
+
+
+CREATE OR REPLACE TRIGGER "preset_activities_set_updated_at" BEFORE UPDATE ON "public"."preset_activities" FOR EACH ROW EXECUTE FUNCTION "public"."set_updated_at"();
+
+
+
+CREATE OR REPLACE TRIGGER "profiles_set_updated_at" BEFORE UPDATE ON "public"."profiles" FOR EACH ROW EXECUTE FUNCTION "public"."set_updated_at"();
+
+
+
+CREATE OR REPLACE TRIGGER "subscriptions_set_updated_at" BEFORE UPDATE ON "public"."subscriptions" FOR EACH ROW EXECUTE FUNCTION "public"."set_updated_at"();
+
+
+
+ALTER TABLE ONLY "public"."profiles"
+    ADD CONSTRAINT "profiles_free_imaginative_activity_id_fkey" FOREIGN KEY ("free_imaginative_activity_id") REFERENCES "public"."preset_activities"("id") ON DELETE SET NULL;
+
+
+
+ALTER TABLE ONLY "public"."profiles"
+    ADD CONSTRAINT "profiles_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."subscriptions"
+    ADD CONSTRAINT "subscriptions_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE "public"."preset_activities" ENABLE ROW LEVEL SECURITY;
+
+
+ALTER TABLE "public"."profiles" ENABLE ROW LEVEL SECURITY;
+
+
+ALTER TABLE "public"."subscriptions" ENABLE ROW LEVEL SECURITY;
+
+
+
+
+ALTER PUBLICATION "supabase_realtime" OWNER TO "postgres";
+
+
+GRANT USAGE ON SCHEMA "public" TO "postgres";
+GRANT USAGE ON SCHEMA "public" TO "anon";
+GRANT USAGE ON SCHEMA "public" TO "authenticated";
+GRANT USAGE ON SCHEMA "public" TO "service_role";
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+GRANT ALL ON FUNCTION "public"."set_updated_at"() TO "anon";
+GRANT ALL ON FUNCTION "public"."set_updated_at"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."set_updated_at"() TO "service_role";
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+GRANT ALL ON TABLE "public"."preset_activities" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."profiles" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."subscriptions" TO "service_role";
+
+
+
+
+
+
+
+
+
+ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "postgres";
+ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "anon";
+ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "authenticated";
+ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "service_role";
+
+
+
+
+
+
+ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUNCTIONS TO "postgres";
+ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUNCTIONS TO "anon";
+ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUNCTIONS TO "authenticated";
+ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUNCTIONS TO "service_role";
+
+
+
+
+
+
+ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "postgres";
+ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "anon";
+ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "authenticated";
+ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "service_role";
+revoke references on table "public"."preset_activities" from "anon";
+
+revoke trigger on table "public"."preset_activities" from "anon";
+
+revoke truncate on table "public"."preset_activities" from "anon";
+
+revoke references on table "public"."preset_activities" from "authenticated";
+
+revoke trigger on table "public"."preset_activities" from "authenticated";
+
+revoke truncate on table "public"."preset_activities" from "authenticated";
+
+revoke references on table "public"."profiles" from "anon";
+
+revoke trigger on table "public"."profiles" from "anon";
+
+revoke truncate on table "public"."profiles" from "anon";
+
+revoke references on table "public"."profiles" from "authenticated";
+
+revoke trigger on table "public"."profiles" from "authenticated";
+
+revoke truncate on table "public"."profiles" from "authenticated";
+
+revoke references on table "public"."subscriptions" from "anon";
+
+revoke trigger on table "public"."subscriptions" from "anon";
+
+revoke truncate on table "public"."subscriptions" from "anon";
+
+revoke references on table "public"."subscriptions" from "authenticated";
+
+revoke trigger on table "public"."subscriptions" from "authenticated";
+
+revoke truncate on table "public"."subscriptions" from "authenticated";
 
 /*
  * SIMPLE PRESET ACTIVITIES
@@ -1111,5 +1281,3 @@ do update set
   is_active = excluded.is_active,
   display_order = excluded.display_order,
   updated_at = now();
-
-commit;

@@ -2,14 +2,11 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
+import { resolvePresetMigrationPath } from "./resolvePresetMigrationPath.mjs";
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, "..");
-const migrationPath = path.join(
-  root,
-  "supabase",
-  "migrations",
-  "20260728_001_create_preset_activity_library.sql"
-);
+const migrationPath = resolvePresetMigrationPath(root);
 
 const simpleSql = fs.readFileSync(
   path.join(__dirname, "generated", "simple-presets.sql"),
@@ -81,7 +78,7 @@ const body =
   ) +
   imaginativeSql +
   upsert +
-  "\ncommit;\n";
+  "\n";
 
 fs.writeFileSync(migrationPath, header + body, "utf8");
 console.log("Updated", migrationPath);
