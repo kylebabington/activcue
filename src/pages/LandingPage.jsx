@@ -19,9 +19,14 @@ function LandingPage() {
             <span className="landing-brand-name">FamilyFlow</span>
           </a>
 
-          <Link className="landing-topbar-cta" to="/app">
-            Try free
-          </Link>
+          <div className="landing-topbar-actions">
+            <Link className="landing-topbar-link" to="/login">
+              Log in
+            </Link>
+            <Link className="landing-topbar-cta" to="/signup">
+              Sign up
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -37,12 +42,12 @@ function LandingPage() {
             quests—without a long planning session.
           </p>
           <div className="landing-hero-actions">
-            <Link className="landing-btn landing-btn--primary" to="/app">
-              Try free
+            <Link className="landing-btn landing-btn--primary" to="/demo">
+              Try sample activities
             </Link>
-            <a className="landing-btn landing-btn--ghost" href="#plus">
-              See what’s included
-            </a>
+            <Link className="landing-btn landing-btn--ghost" to="/login">
+              Log in
+            </Link>
           </div>
         </div>
       </section>
@@ -80,15 +85,15 @@ function LandingPage() {
         <div className="landing-section-inner">
           <h2 id="try-free-title">Try free</h2>
           <p className="landing-section-lead">
-            Explore sample simple and pretend ideas. Unlock one pretend quest to
-            see how a guided adventure feels.
+            No account needed. Browse sample simple and pretend ideas, then unlock
+            one pretend quest to feel a guided adventure.
           </p>
           <ul className="landing-perk-list">
             <li>Browse preset simple activities</li>
             <li>Browse preset imaginative quests</li>
             <li>Start one pretend quest free</li>
           </ul>
-          <Link className="landing-btn landing-btn--primary" to="/app">
+          <Link className="landing-btn landing-btn--primary" to="/demo">
             Start trying free
           </Link>
         </div>
@@ -112,12 +117,15 @@ function LandingPage() {
             <li>Favorites and history that grow with your family</li>
           </ul>
           <p className="landing-plus-note">
-            Checkout is coming soon. Try the free experience today.
+            Checkout is coming soon. Create a free account today so you are ready.
           </p>
           <div className="landing-hero-actions">
-            <Link className="landing-btn landing-btn--primary" to="/app">
-              Try free
+            <Link className="landing-btn landing-btn--primary" to="/signup">
+              Sign up free
             </Link>
+            <a className="landing-btn landing-btn--ghost" href="#top">
+              Back to top
+            </a>
           </div>
         </div>
       </section>

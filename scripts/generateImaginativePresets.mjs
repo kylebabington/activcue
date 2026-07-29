@@ -522,11 +522,14 @@ async function main() {
       }
 
       console.log(`Regenerating ${lane.id} for diversity (pass ${pass + 1})...`);
+      // themesUsed stores `activity.theme || lane.lane`, so drop by that value
+      // (or by index) — filtering only `last.theme` misses empty themes.
+      const lastThemeUsed = last.theme || lane.lane;
       const result = await generateForLane(
         client,
         lane,
         previousTitles.filter((t) => t !== last.title),
-        themesUsed.filter((t) => t !== last.theme),
+        themesUsed.filter((t) => t !== lastThemeUsed),
         pass + 2
       );
       const replacement = {

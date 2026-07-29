@@ -2,7 +2,11 @@
 
 import { Link, Navigate, NavLink, Route, Routes, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { getActivitySuggestions, getQuestStepHint } from "./api/activityApi";
+import {
+  getActivitySuggestions,
+  getPresetActivities,
+  getQuestStepHint,
+} from "./api/activityApi";
 import { ApiRequestError, AuthenticationError } from "./api/apiClient";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import { useUiTheme } from "./hooks/useUiTheme";
@@ -10,9 +14,11 @@ import ParentPage from "./pages/ParentPage";
 import KidPage from "./pages/KidPage";
 import QuestPage from "./pages/QuestPage";
 import SettingsPage from "./pages/SettingsPage";
+import DemoPresetsPage from "./pages/DemoPresetsPage";
 import ParentPinGate from "./components/ParentPinGate";
 import ThemeSwitcher from "./components/ThemeSwitcher";
 import { AppProvider } from "./context/AppContext";
+import { useAuth } from "./hooks/useAuth";
 import "./App.css";
 import { defaultParentStatusPresets, inventoryCategories } from "./constants/presets";
 import {
@@ -41,6 +47,7 @@ import {
 
 function App() {
   const navigate = useNavigate();
+  const { isAnonymous } = useAuth();
 
   const { theme: uiTheme, setTheme: setUiTheme, themes: uiThemes } =
     useUiTheme();
@@ -657,6 +664,10 @@ function App() {
 
     try {
       if (preferSimpleTemplates && kidActivityStyle === "simple") {
+        /*
+         * Quick Ideas is a free path. Prefer local templates, then curated
+         * simple presets — never call the subscription-gated AI endpoint.
+         */
         const templateActivities = buildSimpleActivitiesFromTemplates({
           inventory,
           currentMoment,
@@ -667,6 +678,24 @@ function App() {
           showStatus("Quick ideas ready — no wait.", "success");
           return finalizeActivities(templateActivities);
         }
+
+        const { activities: presetActivities } = await getPresetActivities({
+          style: "simple",
+        });
+        const unlockedPresets = presetActivities
+          .filter((activity) => activity && !activity.isLocked)
+          .slice(0, 3);
+
+        if (unlockedPresets.length > 0) {
+          showStatus("Quick ideas from the free library.", "success");
+          return finalizeActivities(unlockedPresets);
+        }
+
+        showStatus(
+          "No quick ideas fit this moment. Try adjusting supplies or the parent moment.",
+          "info"
+        );
+        return [];
       }
 
       let generatedActivities = await requestActivities(combinedFeedback);
@@ -1746,8 +1775,11 @@ Prioritize activities that require the least decision-making from the child.
   }
 
   const parentAreasLocked = Boolean(parentPin) && !parentAreaUnlocked;
-  const defaultHomePath =
-    parentPin && inventory.length > 0 ? "/kid" : "/parent";
+  const defaultHomePath = isAnonymous
+    ? "/demo"
+    : parentPin && inventory.length > 0
+      ? "/kid"
+      : "/parent";
 
   const appContextValue = {
     currentMoment,
@@ -1834,7 +1866,7 @@ Prioritize activities that require the least decision-making from the child.
     <main className="app-shell">
       <header className="app-header">
         <div className="app-header-brand">
-          <Link to="/app" className="app-header-brand-link" aria-label="FamilyFlow home">
+          <Link to="/" className="app-header-brand-link" aria-label="FamilyFlow home">
             <img
               className="app-brand-mark"
               src="/logo.svg"
@@ -1847,6 +1879,15 @@ Prioritize activities that require the least decision-making from the child.
         </div>
 
         <nav className="app-nav">
+          {isAnonymous ? (
+            <NavLink
+              to="/demo"
+              className={({ isActive }) => (isActive ? "active" : "")}
+            >
+              Samples
+            </NavLink>
+          ) : null}
+
           <NavLink
             to="/parent"
             className={({ isActive }) => (isActive ? "active" : "")}
@@ -1910,6 +1951,8 @@ Prioritize activities that require the least decision-making from the child.
             path="/app"
             element={<Navigate to={defaultHomePath} replace />}
           />
+
+          <Route path="/demo" element={<DemoPresetsPage />} />
 
           <Route
             path="/parent"

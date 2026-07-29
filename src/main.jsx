@@ -6,6 +6,8 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 
 import App from "./App.jsx";
 import LandingPage from "./pages/LandingPage.jsx";
+import LoginPage from "./pages/LoginPage.jsx";
+import SignupPage from "./pages/SignupPage.jsx";
 import { AuthProvider } from "./context/AuthProvider.jsx";
 
 import "./index.css";
@@ -14,10 +16,12 @@ ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <BrowserRouter>
       <Routes>
-        {/* Marketing is public — no Supabase session required. */}
+        {/* Marketing + account entry — no anonymous session yet. */}
         <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignupPage />} />
 
-        {/* In-app routes establish (or restore) an anonymous session first. */}
+        {/* In-app routes establish (or restore) a session first. */}
         <Route
           path="*"
           element={
