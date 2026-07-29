@@ -1386,6 +1386,16 @@ Prioritize activities that require the least decision-making from the child.
           { code: "PRESET_STILL_LOCKED" }
         );
       }
+
+      // Keep the quest board in sync: entitlement alone is not enough —
+      // auto-pick filters on isLocked, and Start labels read the same flag.
+      setActivities((current) =>
+        current.map((item) =>
+          item?.id === readyActivity.id
+            ? { ...item, ...readyActivity, isLocked: false }
+            : item
+        )
+      );
     }
 
     handleStartActivity(readyActivity);
@@ -1840,9 +1850,17 @@ Prioritize activities that require the least decision-making from the child.
     }
 
     // After the free imaginative unlock is used, locked samples on the board
-    // cannot be started — score only startable options.
+    // cannot be started — score only startable options. Include the redeemed
+    // id even if the board card is still stale-locked (unlock updates
+    // entitlement immediately; activities may lag until setActivities runs).
+    const unlockedId = entitlement.freeImaginativeActivityId;
     const candidates = freeImaginativeUnlockUsed
-      ? activities.filter((activity) => activity && !activity.isLocked)
+      ? activities.filter(
+          (activity) =>
+            activity &&
+            (!activity.isLocked ||
+              (unlockedId && activity.id === unlockedId))
+        )
       : activities;
 
     // Use the shared helper so auto-pick and fast-start choose the same way.
