@@ -43,7 +43,7 @@ function LandingPage() {
           </p>
           <div className="landing-hero-actions">
             <Link className="landing-btn landing-btn--primary" to="/app">
-              Try sample activities
+              Try the free flow
             </Link>
             <Link className="landing-btn landing-btn--ghost" to="/login">
               Log in
@@ -85,13 +85,18 @@ function LandingPage() {
         <div className="landing-section-inner">
           <h2 id="try-free-title">Try free</h2>
           <p className="landing-section-lead">
-            No account needed. Browse sample simple and pretend ideas, then unlock
-            one pretend quest to feel a guided adventure.
+            No account needed. Open the full app with sample ideas—set a moment,
+            pick kid energy, and run a guided quest. Unlock one pretend adventure
+            free.
           </p>
           <ul className="landing-perk-list">
-            <li>Browse preset simple activities</li>
-            <li>Browse preset imaginative quests</li>
-            <li>Start one pretend quest free</li>
+            <li>Set a parent moment and kid energy or style</li>
+            <li>Get sample Quick ideas and I&apos;m Bored presets</li>
+            <li>Unlock one pretend quest free and follow the steps</li>
+            <li>
+              After that unlock, more pretend needs Plus—simple Quick ideas still
+              work
+            </li>
           </ul>
           <Link className="landing-btn landing-btn--primary" to="/app">
             Start trying free
@@ -107,8 +112,9 @@ function LandingPage() {
         <div className="landing-section-inner">
           <h2 id="plus-title">With FamilyFlow Plus</h2>
           <p className="landing-section-lead">
-            When the presets are not enough, Plus keeps ideas fresh for your
-            supplies and your moment.
+            Free lets you try the full flow with samples. Plus personalizes
+            unlimited AI ideas to your supplies, kid energy, and the moment
+            you are in.
           </p>
           <ul className="landing-perk-list landing-perk-list--plus">
             <li>Unlimited AI ideas tailored to inventory and the current moment</li>
