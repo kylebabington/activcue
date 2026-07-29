@@ -110,7 +110,7 @@ function LoginPage() {
           <p className="landing-auth-footer">
             New here? <Link to="/signup">Create an account</Link>
             {" · "}
-            <Link to="/demo">Try sample activities</Link>
+            <Link to="/app">Try sample activities</Link>
           </p>
         </div>
       </section>

@@ -125,7 +125,7 @@ function SignupPage() {
           <p className="landing-auth-footer">
             Already have an account? <Link to="/login">Log in</Link>
             {" · "}
-            <Link to="/demo">Try without signing up</Link>
+            <Link to="/app">Try without signing up</Link>
           </p>
         </div>
       </section>

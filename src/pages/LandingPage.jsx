@@ -42,7 +42,7 @@ function LandingPage() {
             quests—without a long planning session.
           </p>
           <div className="landing-hero-actions">
-            <Link className="landing-btn landing-btn--primary" to="/demo">
+            <Link className="landing-btn landing-btn--primary" to="/app">
               Try sample activities
             </Link>
             <Link className="landing-btn landing-btn--ghost" to="/login">
@@ -93,7 +93,7 @@ function LandingPage() {
             <li>Browse preset imaginative quests</li>
             <li>Start one pretend quest free</li>
           </ul>
-          <Link className="landing-btn landing-btn--primary" to="/demo">
+          <Link className="landing-btn landing-btn--primary" to="/app">
             Start trying free
           </Link>
         </div>
