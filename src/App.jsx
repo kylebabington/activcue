@@ -1782,7 +1782,7 @@ Prioritize activities that require the least decision-making from the child.
     }
   }
   // Starts the best-scoring activity from the current suggestion list.
-  function handleAutoPickQuest() {
+  async function handleAutoPickQuest() {
     // If there are no activities yet, there is nothing to start.
     if (activities.length === 0) {
       showStatus("No activities available yet. Choose something from Kid Mode first.", "error");
@@ -1797,14 +1797,35 @@ Prioritize activities that require the least decision-making from the child.
       return;
     }
 
-    // Start the selected activity using the existing start logic.
-    handleStartActivity(selectedActivity);
+    try {
+      setIsLoading(true);
+      // Unlock through the same path as Start / Unlock free so locked
+      // imaginative presets cannot bypass the one-free-unlock rule.
+      const ready = await startPresetActivity(selectedActivity);
+      showStatus(
+        `Picked for you: "${ready.title}" because it best fits right now.`,
+        "success"
+      );
+    } catch (error) {
+      const code =
+        error instanceof ApiRequestError ? error.code : "";
 
-    // Give the user clear feedback.
-    showStatus(
-      `Picked for you: "${selectedActivity.title}" because it best fits right now.`,
-      "success"
-    );
+      if (code === "FREE_IMAGINATIVE_UNLOCK_USED") {
+        showStatus(
+          "Your free pretend sample is already used. Try a simple activity, or get Plus.",
+          "info"
+        );
+      } else {
+        showStatus(
+          error instanceof Error
+            ? error.message
+            : "Could not start that activity.",
+          "error"
+        );
+      }
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   function getBestActivityForCurrentMoment(activityOptions) {
