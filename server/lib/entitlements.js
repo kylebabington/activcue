@@ -9,7 +9,7 @@ const PAID_SUBSCRIPTION_STATUSES = new Set([
 
 function periodHasNotExpired(currentPeriodEnd) {
     if (!currentPeriodEnd) {
-        return true;
+        return false;
     }
 
     const expirationTime = new Date(currentPeriodEnd).getTime();

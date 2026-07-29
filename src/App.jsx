@@ -1318,6 +1318,17 @@ Prioritize activities that require the least decision-making from the child.
         return;
       }
 
+      if (
+        error instanceof ApiRequestError &&
+        error.code === "SUBSCRIPTION_REQUIRED"
+      ) {
+        showStatus(
+          "AI hints require a paid subscription.",
+          "info"
+        );
+        return;
+      }
+
       showStatus("I could not make a hint right now.", "error");
     } finally {
       setIsHintLoading(false);
