@@ -210,7 +210,7 @@ function KidPage({
                 <button
                   key={activity.id || activity.title}
                   type="button"
-                  className="kid-replay-chip"
+                  className="kid-replay-button"
                   onClick={() => handleReplaySavedActivity(activity)}
                   disabled={isLoading}
                 >

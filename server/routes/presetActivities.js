@@ -14,33 +14,6 @@ const VALID_ACTIVITY_STYLES = new Set([
 ]);
 
 /*
- * Return a new shuffled copy without modifying the original array.
- */
-function shuffleActivities(activities) {
-    const shuffled = [...activities];
-
-    for (
-        let currentIndex = shuffled.length - 1;
-        currentIndex > 0;
-        currentIndex -= 1
-    ) {
-        const randomIndex = Math.floor(
-            Math.random() * (currentIndex + 1)
-        );
-
-        [
-            shuffled[currentIndex],
-            shuffled[randomIndex],
-        ] = [
-                shuffled[randomIndex],
-                shuffled[currentIndex],
-            ];
-    }
-
-    return shuffled;
-}
-
-/*
  * Determine whether this specific activity's complete instructions
  * may be returned to the current user.
  */
@@ -200,10 +173,9 @@ router.get(
                     )
             );
 
+            // Keep display_order so clients can rotate a stable curated sequence.
             return res.json({
-                activities: shuffleActivities(
-                    formattedActivities
-                ),
+                activities: formattedActivities,
                 entitlement: buildEntitlementResponse(
                     req,
                     entitlement

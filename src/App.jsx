@@ -8,8 +8,10 @@ import {
   getQuestStepHint,
   unlockPresetActivity,
 } from "./api/activityApi";
+import { getCurrentAuthenticatedUser } from "./api/authApi";
 import { ApiRequestError, AuthenticationError } from "./api/apiClient";
 import { useLocalStorage } from "./hooks/useLocalStorage";
+import { useAuth } from "./hooks/useAuth";
 import { useUiTheme } from "./hooks/useUiTheme";
 import ParentPage from "./pages/ParentPage";
 import KidPage from "./pages/KidPage";
@@ -52,6 +54,7 @@ import {
 
 function App() {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const { theme: uiTheme, setTheme: setUiTheme, themes: uiThemes } =
     useUiTheme();
@@ -236,8 +239,8 @@ function App() {
   const [statusMessage, setStatusMessage] = useState("");
   const [statusType, setStatusType] = useState("info");
 
-  // Temporary until frontend milestone loads real entitlement from /api/auth/me.
-  // freeImaginativeActivityId is refreshed from preset list/unlock responses.
+  // Entitlement comes from /api/auth/me; freeImaginativeActivityId is also
+  // refreshed from preset list/unlock responses.
   const [entitlement, setEntitlement] = useState({
     isPaid: false,
     canGenerateWithAi: false,
@@ -245,13 +248,17 @@ function App() {
     subscriptionStatus: "inactive",
     freeImaginativeActivityId: null,
   });
+  const [entitlementHydrated, setEntitlementHydrated] = useState(false);
 
   const [presetRotationIndex, setPresetRotationIndex] = useState({
     simple: 0,
     imaginative: 0,
   });
 
-  const isDemoMode = !entitlement.canGenerateWithAi;
+  // Until /api/auth/me succeeds, do not treat the session as unpaid demo —
+  // otherwise a failed preset hydrate would trap Plus users on the sample path.
+  const isDemoMode =
+    entitlementHydrated && !entitlement.canGenerateWithAi;
   const freeImaginativeUnlockUsed = isFreeImaginativeUnlockUsed(entitlement);
   const imBoredDisabled = isDemoMode && freeImaginativeUnlockUsed;
 
@@ -276,24 +283,51 @@ function App() {
   useEffect(() => {
     let isMounted = true;
 
-    async function hydrateDemoEntitlement() {
+    async function hydrateEntitlement() {
+      setEntitlementHydrated(false);
+
       try {
-        const payload = await getPresetActivities();
+        const me = await getCurrentAuthenticatedUser();
         if (!isMounted) {
           return;
         }
-        mergePresetEntitlement(payload.entitlement);
+
+        mergePresetEntitlement({
+          ...me.entitlement,
+          freeImaginativeActivityId:
+            me.entitlement?.freeImaginativeActivityId ??
+            me.profile?.freeImaginativeActivityId ??
+            null,
+        });
+        setEntitlementHydrated(true);
       } catch (error) {
-        console.warn("Could not hydrate preset entitlement:", error);
+        console.warn("Could not hydrate entitlement from /api/auth/me:", error);
+
+        try {
+          const payload = await getPresetActivities();
+          if (!isMounted) {
+            return;
+          }
+          mergePresetEntitlement(payload.entitlement);
+          setEntitlementHydrated(true);
+        } catch (fallbackError) {
+          console.warn(
+            "Could not hydrate entitlement from presets either:",
+            fallbackError
+          );
+          if (isMounted) {
+            setEntitlementHydrated(false);
+          }
+        }
       }
     }
 
-    hydrateDemoEntitlement();
+    hydrateEntitlement();
 
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [user?.id]);
 
   function showStatus(message, type = "info") {
     if (!message) {
@@ -905,6 +939,16 @@ Do not make the idea more creative than it needs to be.
 
     const preferSimpleTemplates = Boolean(options.preferSimpleTemplates);
 
+    if (!entitlementHydrated) {
+      showStatus(
+        "Still checking your plan. Try again in a moment.",
+        "info"
+      );
+      setIsLoading(false);
+      setLoadingIntent(null);
+      return;
+    }
+
     /*
      * Unpaid / demo: never call OpenAI. Use curated presets (and local
      * templates for Quick ideas). After the free imaginative unlock is used,
@@ -1122,6 +1166,16 @@ Always obey currentMoment limits for time, mess, noise, supervision, and parent 
     setKidMood(kidEnergyLevel);
     setLoadingIntent("auto-start");
     setActiveActivity(null);
+
+    if (!entitlementHydrated) {
+      showStatus(
+        "Still checking your plan. Try again in a moment.",
+        "info"
+      );
+      setIsLoading(false);
+      setLoadingIntent(null);
+      return;
+    }
 
     if (isDemoMode) {
       setIsLoading(true);
