@@ -1,0 +1,1612 @@
+{
+  "generatedAt": "2026-07-29T14:43:30.765Z",
+  "activities": [
+    {
+      "title": "The Lost Shell Signal",
+      "activityStyle": "imaginative",
+      "theme": "A calm underwater search for lost shell signals and hidden sea clues.",
+      "summary": "You are listening for shell signals in the deep ocean. Move quietly around the room, find the clues, and send back your discovery report.",
+      "kidRole": "Sea Signal Finder",
+      "mission": "Search the undersea stations, find the hidden clues, and report what the ocean is telling you.",
+      "starterPrompts": [
+        "What kind of signal are you listening for?",
+        "Which place in the room feels like a sea station?",
+        "What do you think the ocean clue will be?"
+      ],
+      "firstMoves": [
+        "Hide three paper clues or pictures around the room before you start, or place them in open sight.",
+        "Choose a stuffed animal to be your listening partner.",
+        "Move to the first station on tiptoe or with slow swimming steps.",
+        "Pick up each clue and say what ocean thing it reminds you of."
+      ],
+      "steps": [
+        "Travel from one station to the next using slow, quiet movement.",
+        "At each station, pretend to listen to the sea and find the clue.",
+        "Name the clue and make up a tiny ocean message for it.",
+        "When all clues are found, sit at base camp and tell the full story of the deep-sea signal."
+      ],
+      "roles": [
+        "Sea Signal Finder"
+      ],
+      "extensionIdeas": [
+        "Draw the three clues you found.",
+        "Make up a new signal path and follow it again.",
+        "Retell the adventure using your stuffed animal as the captain."
+      ],
+      "uses": [
+        "paper",
+        "crayons",
+        "stuffed animals",
+        "blankets",
+        "pillows"
+      ],
+      "energy": "medium",
+      "mess": "low",
+      "adultHelp": "none",
+      "estimatedMinutes": 18,
+      "whyItFits": "This fits do-not-interrupt time because the child can start it alone, keep it quiet, and stay in the living room. It uses no water, no small objects, and no screens, while still feeling like a real undersea exploration story with movement and clear missions.",
+      "_laneId": "undersea",
+      "_playMode": "movement-with-story",
+      "slug": "the-lost-shell-signal"
+    },
+    {
+      "title": "Tiny Bakery Counter",
+      "activityStyle": "imaginative",
+      "theme": "A cozy kitchen-table bakery where you take orders, build treats, and serve customers with toy dishes and paper menus.",
+      "summary": "You are the baker at your own little bakery. Take orders, make pretend treats, and serve them at the table.",
+      "kidRole": "Baker and server",
+      "mission": "Bake pretend treats, fill customer orders, and serve them neatly at the kitchen table.",
+      "starterPrompts": [
+        "What kind of bakery are you running today?",
+        "What treat does your first customer want?",
+        "What should you do if the bakery gets busy?"
+      ],
+      "firstMoves": [
+        "Put on the apron or drape a towel like a bakery apron.",
+        "Set out toy dishes and paper on the kitchen table.",
+        "Draw 2 or 3 pretend menu items on paper.",
+        "Choose your first customer order and start making it with Play-Doh."
+      ],
+      "steps": [
+        "Make a simple menu with 3 pretend treats, like a cookie, cupcake, and pie.",
+        "Take one order at a time and shape the treat with Play-Doh or draw it on paper.",
+        "Put each finished treat on a toy dish and say, 'Order ready!'",
+        "After serving, clean the counter and start a new order."
+      ],
+      "roles": [
+        "Baker",
+        "Server"
+      ],
+      "extensionIdeas": [
+        "Make a new menu with different treats.",
+        "Open a second round of orders for more customers."
+      ],
+      "uses": [
+        "Play-Doh",
+        "paper",
+        "markers",
+        "toy dishes",
+        "apron or towel"
+      ],
+      "energy": "low",
+      "mess": "low",
+      "adultHelp": "optional",
+      "estimatedMinutes": 20,
+      "whyItFits": "This matches the child's interest in bakery and restaurant play, stays at the kitchen table, uses only the items on hand, and works well while a parent is cooking. It is imaginative but calm, low-mess, and independent for ages 5–8.",
+      "_laneId": "bakery",
+      "_playMode": "restaurant/shop",
+      "slug": "tiny-bakery-counter"
+    },
+    {
+      "title": "The Quiet Clue Room",
+      "activityStyle": "imaginative",
+      "theme": "A calm living-room mystery where everyday objects become clues in a tiny case to solve.",
+      "summary": "You are the detective in charge of finding out which object does not belong and how it moved.",
+      "kidRole": "Detective",
+      "mission": "Look at the clues, figure out the odd object, and explain your answer like a real detective.",
+      "starterPrompts": [
+        "Which object looks the most different from the others?",
+        "What small detail makes you think that?",
+        "If that clue could talk, what would it say?"
+      ],
+      "firstMoves": [
+        "Pick three safe household objects and place them on the floor or couch.",
+        "Use the flashlight or magnifying glass to look closely at each one.",
+        "Choose one object to be the odd clue and one to be the helper clue.",
+        "Draw a quick note on paper showing your guess."
+      ],
+      "steps": [
+        "Set up a small clue scene with three safe household objects in the living room.",
+        "Study the clues quietly and notice size, shape, color, and where each item is placed.",
+        "Make your best detective guess and say why each clue matters.",
+        "Check your guess by changing one object and seeing if the story still makes sense."
+      ],
+      "roles": [
+        "Detective"
+      ],
+      "extensionIdeas": [
+        "Switch the odd object and solve it again.",
+        "Make a second clue scene with a new rule, like biggest, softest, or roundest."
+      ],
+      "uses": [
+        "paper",
+        "pencil",
+        "flashlight or phone light",
+        "magnifying glass or empty toilet paper tube",
+        "three safe household objects"
+      ],
+      "energy": "low",
+      "mess": "low",
+      "adultHelp": "none",
+      "estimatedMinutes": 20,
+      "whyItFits": "This matches the child's love of detective mystery play, stays quiet and low-mess in the living room, uses only ordinary household items, and can be started independently while the parent pays bills.",
+      "_laneId": "detective",
+      "_playMode": "mystery/investigation",
+      "slug": "the-quiet-clue-room"
+    },
+    {
+      "title": "Downtown Map Maker",
+      "activityStyle": "imaginative",
+      "theme": "A living-room planning desk where you map out roads, buildings, and city signs for a tiny downtown.",
+      "summary": "You are the map maker. Draw a simple city plan, then build the parts you drew.",
+      "kidRole": "City Planner",
+      "mission": "Make a downtown map on paper and build the main parts in blocks.",
+      "starterPrompts": [
+        "What should go on your downtown map first?",
+        "Where will the roads go?",
+        "Which building should be the tallest?"
+      ],
+      "firstMoves": [
+        "Take a sheet of paper and a crayon.",
+        "Draw a few roads, one park, and three building spots.",
+        "Build the first building with blocks or magnet tiles.",
+        "Place a toy car on the road and follow the map."
+      ],
+      "steps": [
+        "Draw a simple top-down map with roads and labeled spots.",
+        "Build the map in real life with blocks and tiles.",
+        "Add city details like a bridge, a parking area, or a crosswalk.",
+        "Move the car around and see if the roads make sense."
+      ],
+      "roles": [
+        "City Planner"
+      ],
+      "extensionIdeas": [
+        "Make a new neighborhood on another sheet of paper.",
+        "Add one special building like a library, store, or fire station.",
+        "Change the road layout and rebuild the map."
+      ],
+      "uses": [
+        "paper",
+        "crayon",
+        "wooden blocks",
+        "magnet tiles",
+        "toy cars"
+      ],
+      "energy": "medium",
+      "mess": "low",
+      "adultHelp": "optional",
+      "estimatedMinutes": 20,
+      "whyItFits": "This gives the child a clear planning job, uses the living room as a build-and-draw space, keeps setup simple, and fits the requested construction/city planner theme with no small or messy materials.",
+      "_laneId": "construction",
+      "_playMode": "build",
+      "slug": "downtown-map-maker"
+    },
+    {
+      "title": "Stuffed Pet Clinic",
+      "activityStyle": "imaginative",
+      "theme": "A quiet bedroom clinic where stuffed animals come in for gentle checkups, bandages, and comfort.",
+      "summary": "You are the pet doctor in your cozy bedroom clinic. Your stuffed animals come one by one for careful checkups, stickers, and kind care.",
+      "kidRole": "Pet Doctor",
+      "mission": "Take care of your stuffed animals by checking how they feel, giving them a bandage or sticker if needed, and writing a tiny care note for each one.",
+      "starterPrompts": [
+        "Which stuffed animal is first in line?",
+        "What seems to be wrong: a hurt paw, a sad face, or a sleepy tail?",
+        "What kind of care will help this pet feel better?"
+      ],
+      "firstMoves": [
+        "Lay a blanket on the bed as your clinic bed.",
+        "Pick one stuffed animal to be your first patient.",
+        "Look closely and decide what kind of care it needs.",
+        "Get a paper and crayon ready for your care notes."
+      ],
+      "steps": [
+        "Check each stuffed animal gently and say what you notice.",
+        "Choose a sticker or bandage for any pet that needs extra care.",
+        "Draw a tiny care card for each pet with its name and what helped it feel better."
+      ],
+      "roles": [
+        "Pet Doctor",
+        "Pet Nurse",
+        "Pet Keeper"
+      ],
+      "extensionIdeas": [
+        "Make a waiting line of stuffed animals and call them in one at a time.",
+        "Give each pet a follow-up visit and say how they are feeling now."
+      ],
+      "uses": [
+        "stuffed animals",
+        "blanket",
+        "bandaids or stickers",
+        "paper",
+        "crayons"
+      ],
+      "energy": "low",
+      "mess": "low",
+      "adultHelp": "none",
+      "estimatedMinutes": 25,
+      "whyItFits": "This fits the child’s love of pet care, stays quiet and low-mess in the bedroom, and can be started independently with only stuffed animals, blanket, bandages or stickers, paper, and crayons.",
+      "_laneId": "vet",
+      "_playMode": "care/nurture",
+      "slug": "stuffed-pet-clinic"
+    },
+    {
+      "title": "Museum of Lost Exhibits",
+      "activityStyle": "imaginative",
+      "theme": "A time-travel museum in the living room has three missing exhibits, and you must find them and return them to the museum shelf.",
+      "summary": "You are the museum finder. Search the living room for three lost exhibits, bring each one back, and place it on the museum shelf.",
+      "kidRole": "Museum Finder",
+      "mission": "Find the three lost exhibits hidden around the living room and return them to the museum shelf before the museum opens again.",
+      "starterPrompts": [
+        "Which exhibit do you want to hunt for first: the oldest, the shiniest, or the oddest?",
+        "What clue will help you remember where each exhibit was found?",
+        "When you bring one back, will you give it a name tag or a museum spot?"
+      ],
+      "firstMoves": [
+        "Pick three safe household objects to be the lost exhibits.",
+        "Choose one chair or table as the museum shelf.",
+        "Hide the three exhibits in different easy spots in the living room.",
+        "Start searching for the first exhibit and carry it back carefully."
+      ],
+      "steps": [
+        "Search the living room for one lost exhibit at a time.",
+        "Each time you find one, bring it to the museum shelf and place it in a special spot.",
+        "Keep going until all three exhibits are returned, then give the museum a final check to make sure nothing is missing."
+      ],
+      "roles": [],
+      "extensionIdeas": [
+        "Time yourself and try to beat your own return time.",
+        "Draw a small museum sign for each exhibit on paper.",
+        "Hide the three exhibits again in new spots for another round."
+      ],
+      "uses": [
+        "three safe household objects",
+        "chair or table",
+        "paper",
+        "markers"
+      ],
+      "energy": "medium",
+      "mess": "low",
+      "adultHelp": "none",
+      "estimatedMinutes": 20,
+      "whyItFits": "This matches the child’s love of time-travel museum scavenger hunts and keeps the main play as finding and returning lost exhibits. It works in the living room, needs only safe household objects plus paper and markers, stays low mess, and can be done mostly independently while the parent handles errands.",
+      "_laneId": "museum",
+      "_playMode": "hunt",
+      "slug": "museum-of-lost-exhibits"
+    },
+    {
+      "title": "Nature Magic Weather Map",
+      "activityStyle": "imaginative",
+      "theme": "A cozy map-making lab where you chart a magical garden sky and tiny weather spots.",
+      "summary": "You are drawing a magic weather map for a little nature world.",
+      "kidRole": "Map Maker",
+      "mission": "Create a map with three weather spots and decide what kind of nature magic lives in each one.",
+      "starterPrompts": [
+        "What places will be on your magic map?",
+        "Which spot has sun, clouds, wind, or rain?",
+        "What tiny nature magic lives there?"
+      ],
+      "firstMoves": [
+        "Place a sheet of paper on the table.",
+        "Draw a simple map shape with a path, hill, tree, or garden square.",
+        "Pick three weather spots and mark them with colors or symbols.",
+        "Write or say a tiny name for each spot."
+      ],
+      "steps": [
+        "Make a cloud hill, a windy path, and a sunny garden corner on your map.",
+        "Add one nature magic detail to each place, like sparkling leaves, sleepy flowers, or breezy grass.",
+        "Draw arrows or swirls to show how the weather moves across the map.",
+        "Walk your finger around the map and tell the story of what happens in each place."
+      ],
+      "roles": [],
+      "extensionIdeas": [
+        "Add a fourth spot if you still want to play.",
+        "Make a second map for a different season.",
+        "Tell the map story from the point of view of the wind."
+      ],
+      "uses": [
+        "paper",
+        "crayons",
+        "markers"
+      ],
+      "energy": "low",
+      "mess": "low",
+      "adultHelp": "none",
+      "estimatedMinutes": 25,
+      "whyItFits": "This is a calm craft-story activity that matches the kitchen table, quiet mode, and low-mess rules. It uses only paper and drawing tools, gives the child a clear imaginative role, and keeps the play independent and focused on weather and nature magic.",
+      "_laneId": "weather",
+      "_playMode": "craft-story",
+      "slug": "nature-magic-weather-map"
+    },
+    {
+      "title": "Living Room Circus Show",
+      "activityStyle": "imaginative",
+      "theme": "A bright circus stage in the living room where one performer gets ready for a big show.",
+      "summary": "You are the star of your own circus show. Pick your acts, get dressed up, and perform for the living room audience.",
+      "kidRole": "Ringmaster Performer",
+      "mission": "Put on a 3-part circus show with an opening pose, a main act, and a big final bow.",
+      "starterPrompts": [
+        "What is your circus name?",
+        "Will your first act be dancing, balancing, or funny faces?",
+        "What is your big final pose?"
+      ],
+      "firstMoves": [
+        "Choose a scarf or dress-up piece for your costume.",
+        "Clear a small space in the living room as your stage.",
+        "Stand at one end and announce your show to the room.",
+        "Practice one strong opening pose."
+      ],
+      "steps": [
+        "Create your circus name and costume.",
+        "Perform three short acts: a dance, a pose, and a silly or dramatic ending.",
+        "Take a bow and freeze for applause at the end.",
+        "If you want, repeat the show with a new costume or new acts."
+      ],
+      "roles": [
+        "Performer"
+      ],
+      "extensionIdeas": [
+        "Make a second show with a different name.",
+        "Add one new act and perform the whole show again."
+      ],
+      "uses": [
+        "dress-up clothes or scarf",
+        "blankets"
+      ],
+      "energy": "high",
+      "mess": "low",
+      "adultHelp": "optional",
+      "estimatedMinutes": 25,
+      "whyItFits": "This matches the child's interest in circus and stage performance, uses the living room, stays screen-free and low-mess, and works well with independent play while the parent is busy nearby doing yard work.",
+      "_laneId": "circus",
+      "_playMode": "performance/show",
+      "slug": "living-room-circus-show"
+    },
+    {
+      "title": "Hallway Map Courier",
+      "activityStyle": "imaginative",
+      "theme": "A cozy indoor route where you study a simple map, follow stops around the living room, and deliver tiny packages in order.",
+      "summary": "You are the route courier. Read your map, follow the stops, and deliver each package to the right place in the living room.",
+      "kidRole": "Map Courier",
+      "mission": "Deliver the three packages to their correct stops by following your indoor map without mixing up the route.",
+      "starterPrompts": [
+        "Where is your start point on the map?",
+        "Which stop should come first: sofa, chair, or table?",
+        "What will you say when a delivery is complete?"
+      ],
+      "firstMoves": [
+        "Draw a simple living-room map on paper.",
+        "Mark a start spot and three delivery stops with little symbols.",
+        "Place one safe package in the small box or bag.",
+        "Walk the route once with your finger before you carry the package."
+      ],
+      "steps": [
+        "Look at the map and choose the first stop.",
+        "Carry one package to that stop and place it down.",
+        "Return to the map, find the next stop, and repeat until all packages are delivered."
+      ],
+      "roles": [
+        "You are the courier and map reader."
+      ],
+      "extensionIdeas": [
+        "Add one more stop and redraw the route.",
+        "Make a return route back to the start.",
+        "Deliver the packages in reverse order the second time."
+      ],
+      "uses": [
+        "paper",
+        "crayon or pencil",
+        "small box or bag",
+        "three small safe objects as packages"
+      ],
+      "energy": "medium",
+      "mess": "low",
+      "adultHelp": "optional",
+      "estimatedMinutes": 20,
+      "whyItFits": "This fits the child's love of delivery routes and indoor map play, uses only the living room, stays mostly independent, and works with the paper and safe package items already available. It is screen-free, low-mess, and easy to do while a parent is cleaning nearby.",
+      "_laneId": "courier",
+      "_playMode": "map/navigation",
+      "slug": "hallway-map-courier"
+    }
+  ],
+  "rawByLane": {
+    "undersea": [
+      {
+        "title": "Coral Cave Swim",
+        "activityStyle": "imaginative",
+        "theme": "A quiet underwater cave mission where you swim through coral tunnels and find hidden sea animals.",
+        "summary": "You are a brave sea explorer swimming through a soft coral cave. Move from spot to spot, spot sea creatures, and finish your mission before you surface.",
+        "kidRole": "Undersea Explorer",
+        "mission": "Travel through the living room coral cave, find the sea animals, and bring back three underwater facts from your imagination.",
+        "starterPrompts": [
+          "What kind of sea explorer are you today?",
+          "Which room spot is the first coral tunnel?",
+          "What sea creature do you spot first?"
+        ],
+        "firstMoves": [
+          "Spread two blankets or pillows to make a cave entrance.",
+          "Pick one stuffed animal to be your sea buddy.",
+          "Start at the cave entrance and move slowly like a swimmer.",
+          "Look around and name one sea creature at each stop."
+        ],
+        "steps": [
+          "Swim slowly from one pillow island to the next.",
+          "At each stop, pretend to shine your explorer light and find a sea animal.",
+          "Tell a tiny report about what you found: color, shape, or sound.",
+          "When you reach the end, swim back through the cave and visit the spots again."
+        ],
+        "roles": [
+          "Undersea Explorer"
+        ],
+        "extensionIdeas": [
+          "Draw the sea animal you found most interesting.",
+          "Make a second cave route and travel it again more slowly.",
+          "Add a new stuffed animal as a deep-sea friend."
+        ],
+        "uses": [
+          "blankets",
+          "pillows",
+          "stuffed animals",
+          "paper",
+          "crayons"
+        ],
+        "energy": "medium",
+        "mess": "low",
+        "adultHelp": "none",
+        "estimatedMinutes": 20,
+        "whyItFits": "This is a quiet, screen-free, independent pretend game that stays in the living room and uses only blankets, pillows, stuffed animals, paper, and crayons. It matches Alex’s interest in undersea exploration, gives clear steps, and keeps movement gentle enough for quiet mode while filling about 25 minutes."
+      },
+      {
+        "title": "Deep Sea Map Walk",
+        "activityStyle": "imaginative",
+        "theme": "A living-room ocean map where each spot is a new part of the deep sea to explore.",
+        "summary": "You are making and walking a map of the ocean floor. Step carefully from place to place and discover what lives in each deep-sea zone.",
+        "kidRole": "Ocean Mapper",
+        "mission": "Travel across your map, visit every ocean zone, and chart what you see along the way.",
+        "starterPrompts": [
+          "What will your ocean map name be?",
+          "Which blanket island is the shallow water?",
+          "What is hiding in the deepest part?"
+        ],
+        "firstMoves": [
+          "Use paper and crayons to make a simple ocean map.",
+          "Place pillows or blankets as map stops around the living room.",
+          "Choose a stuffed animal to be your diving buddy.",
+          "Start at the shallow water spot and move to the next mark on your map."
+        ],
+        "steps": [
+          "Draw three or four ocean zones on paper.",
+          "Walk your map one zone at a time, pausing at each stop.",
+          "At each zone, say what you see, who lives there, or what the water feels like.",
+          "Finish by tracing your route with a finger and telling the whole journey from start to end."
+        ],
+        "roles": [
+          "Ocean Mapper"
+        ],
+        "extensionIdeas": [
+          "Add a pretend treasure cave on your map.",
+          "Make a second map with a longer route.",
+          "Draw one sea creature for each zone you visited."
+        ],
+        "uses": [
+          "paper",
+          "crayons",
+          "blankets",
+          "pillows",
+          "stuffed animals"
+        ],
+        "energy": "medium",
+        "mess": "low",
+        "adultHelp": "none",
+        "estimatedMinutes": 25,
+        "whyItFits": "This keeps the play in one quiet room and lets Alex use movement-with-story without needing adult setup. It is independent, low-mess, and undersea-themed, with simple household items already available and enough structure to last close to the requested time."
+      },
+      {
+        "title": "The Lost Shell Signal",
+        "activityStyle": "imaginative",
+        "theme": "A calm underwater search for lost shell signals and hidden sea clues.",
+        "summary": "You are listening for shell signals in the deep ocean. Move quietly around the room, find the clues, and send back your discovery report.",
+        "kidRole": "Sea Signal Finder",
+        "mission": "Search the undersea stations, find the hidden clues, and report what the ocean is telling you.",
+        "starterPrompts": [
+          "What kind of signal are you listening for?",
+          "Which place in the room feels like a sea station?",
+          "What do you think the ocean clue will be?"
+        ],
+        "firstMoves": [
+          "Hide three paper clues or pictures around the room before you start, or place them in open sight.",
+          "Choose a stuffed animal to be your listening partner.",
+          "Move to the first station on tiptoe or with slow swimming steps.",
+          "Pick up each clue and say what ocean thing it reminds you of."
+        ],
+        "steps": [
+          "Travel from one station to the next using slow, quiet movement.",
+          "At each station, pretend to listen to the sea and find the clue.",
+          "Name the clue and make up a tiny ocean message for it.",
+          "When all clues are found, sit at base camp and tell the full story of the deep-sea signal."
+        ],
+        "roles": [
+          "Sea Signal Finder"
+        ],
+        "extensionIdeas": [
+          "Draw the three clues you found.",
+          "Make up a new signal path and follow it again.",
+          "Retell the adventure using your stuffed animal as the captain."
+        ],
+        "uses": [
+          "paper",
+          "crayons",
+          "stuffed animals",
+          "blankets",
+          "pillows"
+        ],
+        "energy": "medium",
+        "mess": "low",
+        "adultHelp": "none",
+        "estimatedMinutes": 18,
+        "whyItFits": "This fits do-not-interrupt time because Alex can start it alone, keep it quiet, and stay in the living room. It uses no water, no small objects, and no screens, while still feeling like a real undersea exploration story with movement and clear missions."
+      }
+    ],
+    "bakery": [
+      {
+        "title": "Alex’s Tiny Bakery Counter",
+        "activityStyle": "imaginative",
+        "theme": "A cozy kitchen-table bakery where you take orders, build treats, and serve customers with toy dishes and paper menus.",
+        "summary": "You are the baker at your own little bakery. Take orders, make pretend treats, and serve them at the table.",
+        "kidRole": "Baker and server",
+        "mission": "Bake pretend treats, fill customer orders, and serve them neatly at the kitchen table.",
+        "starterPrompts": [
+          "What kind of bakery are you running today?",
+          "What treat does your first customer want?",
+          "What should you do if the bakery gets busy?"
+        ],
+        "firstMoves": [
+          "Put on the apron or drape a towel like a bakery apron.",
+          "Set out toy dishes and paper on the kitchen table.",
+          "Draw 2 or 3 pretend menu items on paper.",
+          "Choose your first customer order and start making it with Play-Doh."
+        ],
+        "steps": [
+          "Make a simple menu with 3 pretend treats, like a cookie, cupcake, and pie.",
+          "Take one order at a time and shape the treat with Play-Doh or draw it on paper.",
+          "Put each finished treat on a toy dish and say, 'Order ready!'",
+          "After serving, clean the counter and start a new order."
+        ],
+        "roles": [
+          "Baker",
+          "Server"
+        ],
+        "extensionIdeas": [
+          "Make a new menu with different treats.",
+          "Open a second round of orders for more customers."
+        ],
+        "uses": [
+          "Play-Doh",
+          "paper",
+          "markers",
+          "toy dishes",
+          "apron or towel"
+        ],
+        "energy": "low",
+        "mess": "low",
+        "adultHelp": "optional",
+        "estimatedMinutes": 20,
+        "whyItFits": "This matches Alex’s interest in bakery and restaurant play, stays at the kitchen table, uses only the items on hand, and works well while a parent is cooking. It is imaginative but calm, low-mess, and independent for ages 5–8."
+      },
+      {
+        "title": "Order Up at the Snack Shop",
+        "activityStyle": "imaginative",
+        "theme": "A small restaurant shop where you welcome customers, write orders, and serve pretend meals on toy dishes.",
+        "summary": "You run a tiny shop and help each customer get the right order.",
+        "kidRole": "Restaurant server",
+        "mission": "Take pretend orders, make the meals, and deliver them to the right customer.",
+        "starterPrompts": [
+          "Who is your first customer today?",
+          "What meal are they ordering?",
+          "How will you remember each order?"
+        ],
+        "firstMoves": [
+          "Lay out paper, markers, and toy dishes on the table.",
+          "Make 3 simple order cards with pictures or words.",
+          "Pick one order card and repeat it out loud.",
+          "Build the meal with Play-Doh or draw it on paper, then serve it on a dish."
+        ],
+        "steps": [
+          "Create a few order cards for pretend customers.",
+          "Pick an order, make the item, and place it on a toy dish.",
+          "Say the customer's name and hand over the order.",
+          "Repeat with the next order until the shop is closed."
+        ],
+        "roles": [
+          "Order taker",
+          "Cook",
+          "Server"
+        ],
+        "extensionIdeas": [
+          "Add a special of the day.",
+          "Make the orders a little more detailed, like 'one big cupcake with sprinkles.'"
+        ],
+        "uses": [
+          "paper",
+          "markers",
+          "Play-Doh",
+          "toy dishes"
+        ],
+        "energy": "low",
+        "mess": "low",
+        "adultHelp": "optional",
+        "estimatedMinutes": 25,
+        "whyItFits": "This is a restaurant-style pretend activity with clear steps and a simple setup. It fits the kitchen table, uses quiet independent play, and keeps mess low with paper, markers, Play-Doh, and toy dishes."
+      },
+      {
+        "title": "The Dinner Table Cafe",
+        "activityStyle": "imaginative",
+        "theme": "A calm cafe at the kitchen table where you seat customers, make menus, and bring out pretend meals.",
+        "summary": "You are the helper at a cozy cafe. Seat the customers, take their orders, and serve the food with care.",
+        "kidRole": "Cafe helper",
+        "mission": "Run the cafe smoothly by greeting customers, taking orders, and serving each meal.",
+        "starterPrompts": [
+          "What does your cafe look like today?",
+          "What is on the menu?",
+          "Who comes in first?"
+        ],
+        "firstMoves": [
+          "Set a towel or apron on yourself and arrange the toy dishes.",
+          "Draw a small menu with 3 menu choices on paper.",
+          "Choose a customer and greet them politely.",
+          "Make the order with Play-Doh or draw it, then place it on a dish."
+        ],
+        "steps": [
+          "Welcome each customer and offer them the menu.",
+          "Take the order and make the matching pretend meal.",
+          "Serve it neatly and say a cafe phrase like 'Here you go.'",
+          "Close the cafe by counting how many customers you served."
+        ],
+        "roles": [
+          "Cafe helper",
+          "Customer"
+        ],
+        "extensionIdeas": [
+          "Add a special dessert menu.",
+          "Switch and let the customer order something new."
+        ],
+        "uses": [
+          "apron or towel",
+          "toy dishes",
+          "paper",
+          "markers",
+          "Play-Doh"
+        ],
+        "energy": "low",
+        "mess": "low",
+        "adultHelp": "optional",
+        "estimatedMinutes": 20,
+        "whyItFits": "This activity stays in the bakery/restaurant lane the family wants, uses ordinary kitchen-table supplies, and gives Alex clear imaginative roles with low energy and low mess. It is easy to start without adult setup while the parent cooks nearby."
+      }
+    ],
+    "detective": [
+      {
+        "title": "The Quiet Clue Room",
+        "activityStyle": "imaginative",
+        "theme": "A calm living-room mystery where everyday objects become clues in a tiny case to solve.",
+        "summary": "You are the detective in charge of finding out which object does not belong and how it moved.",
+        "kidRole": "Detective",
+        "mission": "Look at the clues, figure out the odd object, and explain your answer like a real detective.",
+        "starterPrompts": [
+          "Which object looks the most different from the others?",
+          "What small detail makes you think that?",
+          "If that clue could talk, what would it say?"
+        ],
+        "firstMoves": [
+          "Pick three safe household objects and place them on the floor or couch.",
+          "Use the flashlight or magnifying glass to look closely at each one.",
+          "Choose one object to be the odd clue and one to be the helper clue.",
+          "Draw a quick note on paper showing your guess."
+        ],
+        "steps": [
+          "Set up a small clue scene with three safe household objects in the living room.",
+          "Study the clues quietly and notice size, shape, color, and where each item is placed.",
+          "Make your best detective guess and say why each clue matters.",
+          "Check your guess by changing one object and seeing if the story still makes sense."
+        ],
+        "roles": [
+          "Detective"
+        ],
+        "extensionIdeas": [
+          "Switch the odd object and solve it again.",
+          "Make a second clue scene with a new rule, like biggest, softest, or roundest."
+        ],
+        "uses": [
+          "paper",
+          "pencil",
+          "flashlight or phone light",
+          "magnifying glass or empty toilet paper tube",
+          "three safe household objects"
+        ],
+        "energy": "low",
+        "mess": "low",
+        "adultHelp": "none",
+        "estimatedMinutes": 20,
+        "whyItFits": "This matches Alex’s love of detective mystery play, stays quiet and low-mess in the living room, uses only ordinary household items, and can be started independently while the parent pays bills."
+      },
+      {
+        "title": "The Missing Thing Case",
+        "activityStyle": "imaginative",
+        "theme": "A small living-room mystery where one ordinary object has gone missing and the clues point to where it hid.",
+        "summary": "You are solving a missing-object case by studying signs, making guesses, and testing them.",
+        "kidRole": "Clue Detective",
+        "mission": "Find the missing object by following the clues and telling the story of what happened.",
+        "starterPrompts": [
+          "What object do you want to be missing?",
+          "Where might it have gone first?",
+          "What clue would help you solve it?"
+        ],
+        "firstMoves": [
+          "Choose one of the three safe household objects to hide somewhere visible in the living room.",
+          "Look at the empty spot and think about what changed.",
+          "Use the flashlight or magnifying glass to inspect nearby places.",
+          "Write down two guesses on paper and circle the one you like best."
+        ],
+        "steps": [
+          "Hide one object in an easy spot and let yourself notice the empty place.",
+          "Search the living room slowly and quietly, checking one area at a time.",
+          "Use clues from shape, size, and location to make a detective guess.",
+          "Reveal the hiding place and tell the full case story from start to finish."
+        ],
+        "roles": [
+          "Clue Detective"
+        ],
+        "extensionIdeas": [
+          "Hide a different object and solve a new case.",
+          "Make the hiding spot a little trickier, but still easy to find quietly."
+        ],
+        "uses": [
+          "paper",
+          "pencil",
+          "flashlight or phone light",
+          "magnifying glass or empty toilet paper tube",
+          "three safe household objects"
+        ],
+        "energy": "low",
+        "mess": "low",
+        "adultHelp": "none",
+        "estimatedMinutes": 25,
+        "whyItFits": "This is a calm, independent mystery for a 5–8 year old, fits the quiet living-room setting, uses low-mess household items, and gives clear detective-style play without needing adult setup."
+      },
+      {
+        "title": "The Three Clue Inspection",
+        "activityStyle": "imaginative",
+        "theme": "A careful detective inspection where three ordinary objects each give a clue about a hidden answer.",
+        "summary": "You are the inspector who listens to clues, compares objects, and solves the mystery one step at a time.",
+        "kidRole": "Inspector",
+        "mission": "Inspect three objects, decide which one fits the mystery best, and explain your reason.",
+        "starterPrompts": [
+          "Which object feels most like the first clue?",
+          "Which one looks the most helpful?",
+          "What do you notice that others might miss?"
+        ],
+        "firstMoves": [
+          "Place the three safe household objects in a row.",
+          "Give each object a close look with the magnifying glass or toilet paper tube.",
+          "Pick one object to be the main clue and one to be the backup clue.",
+          "Draw simple symbols on paper for each object."
+        ],
+        "steps": [
+          "Line up the three objects in the living room and look at them one by one.",
+          "Describe each clue out loud or on paper using simple words like round, tall, soft, or bright.",
+          "Decide which object best solves the mystery and explain your thinking.",
+          "Change the clue order and see if you can still solve it the same way."
+        ],
+        "roles": [
+          "Inspector"
+        ],
+        "extensionIdeas": [
+          "Turn the inspection into a second round with new object positions.",
+          "Try making one clue about color and one clue about shape."
+        ],
+        "uses": [
+          "paper",
+          "pencil",
+          "magnifying glass or empty toilet paper tube",
+          "three safe household objects",
+          "flashlight or phone light"
+        ],
+        "energy": "low",
+        "mess": "low",
+        "adultHelp": "none",
+        "estimatedMinutes": 18,
+        "whyItFits": "This activity stays in the detective-investigation lane, is quiet and low mess, works well with the listed simple supplies, and gives Alex a clear role plus structured steps for independent play."
+      }
+    ],
+    "construction": [
+      {
+        "title": "Build the City Block",
+        "activityStyle": "imaginative",
+        "theme": "A calm city corner where you design one block with roads, buildings, and parking spaces.",
+        "summary": "You are the city builder. Make a tiny city block with roads, towers, and places for cars to stop.",
+        "kidRole": "City Builder",
+        "mission": "Build one city block that has a road, at least two buildings, and a place for toy cars to park.",
+        "starterPrompts": [
+          "What kind of city block do you want to build first?",
+          "What buildings need to go on your block?",
+          "Where will the cars drive and park?"
+        ],
+        "firstMoves": [
+          "Pick a space on the living room floor or table area.",
+          "Lay out a road with paper strips or by lining up blocks.",
+          "Build two buildings with wooden blocks or magnet tiles.",
+          "Park a toy car beside the road to test your block."
+        ],
+        "steps": [
+          "Choose your city name and decide what kind of block it is: busy, calm, or downtown.",
+          "Build the road first, then place buildings on each side.",
+          "Add a parking spot, a crosswalk, or a small plaza with blocks.",
+          "Drive the toy cars slowly through the block and change anything that does not fit."
+        ],
+        "roles": [
+          "City Builder"
+        ],
+        "extensionIdeas": [
+          "Add a second block next to the first one.",
+          "Make one building taller than the others.",
+          "Draw a simple city sign on paper and place it by the road."
+        ],
+        "uses": [
+          "wooden blocks",
+          "magnet tiles",
+          "toy cars",
+          "paper",
+          "crayon"
+        ],
+        "energy": "medium",
+        "mess": "low",
+        "adultHelp": "optional",
+        "estimatedMinutes": 25,
+        "whyItFits": "This matches Alex’s interest in construction and city planning, stays in the living room, uses only the listed low-mess supplies, and works well for independent play while the parent cleans nearby."
+      },
+      {
+        "title": "Downtown Map Maker",
+        "activityStyle": "imaginative",
+        "theme": "A living-room planning desk where you map out roads, buildings, and city signs for a tiny downtown.",
+        "summary": "You are the map maker. Draw a simple city plan, then build the parts you drew.",
+        "kidRole": "City Planner",
+        "mission": "Make a downtown map on paper and build the main parts in blocks.",
+        "starterPrompts": [
+          "What should go on your downtown map first?",
+          "Where will the roads go?",
+          "Which building should be the tallest?"
+        ],
+        "firstMoves": [
+          "Take a sheet of paper and a crayon.",
+          "Draw a few roads, one park, and three building spots.",
+          "Build the first building with blocks or magnet tiles.",
+          "Place a toy car on the road and follow the map."
+        ],
+        "steps": [
+          "Draw a simple top-down map with roads and labeled spots.",
+          "Build the map in real life with blocks and tiles.",
+          "Add city details like a bridge, a parking area, or a crosswalk.",
+          "Move the car around and see if the roads make sense."
+        ],
+        "roles": [
+          "City Planner"
+        ],
+        "extensionIdeas": [
+          "Make a new neighborhood on another sheet of paper.",
+          "Add one special building like a library, store, or fire station.",
+          "Change the road layout and rebuild the map."
+        ],
+        "uses": [
+          "paper",
+          "crayon",
+          "wooden blocks",
+          "magnet tiles",
+          "toy cars"
+        ],
+        "energy": "medium",
+        "mess": "low",
+        "adultHelp": "optional",
+        "estimatedMinutes": 20,
+        "whyItFits": "This gives Alex a clear planning job, uses the living room as a build-and-draw space, keeps setup simple, and fits the requested construction/city planner theme with no small or messy materials."
+      },
+      {
+        "title": "Road Crew Build Day",
+        "activityStyle": "imaginative",
+        "theme": "A busy work site where you design roads and buildings for a brand-new neighborhood.",
+        "summary": "You are the road crew leader. Build a neighborhood with strong roads, tall buildings, and spaces for cars.",
+        "kidRole": "Road Crew Leader",
+        "mission": "Build a neighborhood with a main road, a turn, and three places where buildings can stand.",
+        "starterPrompts": [
+          "What should the main road look like?",
+          "Do you want your neighborhood to have tall buildings or short ones?",
+          "Where should the cars turn around?"
+        ],
+        "firstMoves": [
+          "Gather blocks and tiles into one building spot.",
+          "Make a long road with blocks laid in a line or paper as road signs.",
+          "Build three building spots along the road.",
+          "Drive a toy car along the road and check for open space."
+        ],
+        "steps": [
+          "Start with the main road and decide where it bends or ends.",
+          "Build houses or tall buildings beside the road.",
+          "Add a parking spot, a corner store, or a tiny plaza.",
+          "Play test-driver and adjust the city until it feels complete."
+        ],
+        "roles": [
+          "Road Crew Leader"
+        ],
+        "extensionIdeas": [
+          "Build a second road that connects to the first.",
+          "Make a tower, a school, or a garage.",
+          "Rename the neighborhood and make a sign for it."
+        ],
+        "uses": [
+          "wooden blocks",
+          "magnet tiles",
+          "toy cars",
+          "paper",
+          "crayon"
+        ],
+        "energy": "medium",
+        "mess": "low",
+        "adultHelp": "optional",
+        "estimatedMinutes": 30,
+        "whyItFits": "This is a strong pretend construction activity for a child who likes clear steps and independent play, uses the available building toys and paper in the living room, stays low mess, and can easily fill about 30 minutes."
+      }
+    ],
+    "vet": [
+      {
+        "title": "Stuffed Pet Clinic",
+        "activityStyle": "imaginative",
+        "theme": "A quiet bedroom clinic where stuffed animals come in for gentle checkups, bandages, and comfort.",
+        "summary": "You are the pet doctor in your cozy bedroom clinic. Your stuffed animals come one by one for careful checkups, stickers, and kind care.",
+        "kidRole": "Pet Doctor",
+        "mission": "Take care of your stuffed animals by checking how they feel, giving them a bandage or sticker if needed, and writing a tiny care note for each one.",
+        "starterPrompts": [
+          "Which stuffed animal is first in line?",
+          "What seems to be wrong: a hurt paw, a sad face, or a sleepy tail?",
+          "What kind of care will help this pet feel better?"
+        ],
+        "firstMoves": [
+          "Lay a blanket on the bed as your clinic bed.",
+          "Pick one stuffed animal to be your first patient.",
+          "Look closely and decide what kind of care it needs.",
+          "Get a paper and crayon ready for your care notes."
+        ],
+        "steps": [
+          "Check each stuffed animal gently and say what you notice.",
+          "Choose a sticker or bandage for any pet that needs extra care.",
+          "Draw a tiny care card for each pet with its name and what helped it feel better."
+        ],
+        "roles": [
+          "Pet Doctor",
+          "Pet Nurse",
+          "Pet Keeper"
+        ],
+        "extensionIdeas": [
+          "Make a waiting line of stuffed animals and call them in one at a time.",
+          "Give each pet a follow-up visit and say how they are feeling now."
+        ],
+        "uses": [
+          "stuffed animals",
+          "blanket",
+          "bandaids or stickers",
+          "paper",
+          "crayons"
+        ],
+        "energy": "low",
+        "mess": "low",
+        "adultHelp": "none",
+        "estimatedMinutes": 25,
+        "whyItFits": "This fits the child’s love of pet care, stays quiet and low-mess in the bedroom, and can be started independently with only stuffed animals, blanket, bandages or stickers, paper, and crayons."
+      },
+      {
+        "title": "Emergency Pet Checkup",
+        "activityStyle": "imaginative",
+        "theme": "A calm home clinic where your stuffed animals arrive with little problems and you help them feel safe again.",
+        "summary": "Your bedroom turns into a gentle pet clinic. You will listen, check, comfort, and give each stuffed animal the care it needs.",
+        "kidRole": "Clinic Helper",
+        "mission": "Help every stuffed animal get a checkup, choose the right care, and rest on a soft blanket after their visit.",
+        "starterPrompts": [
+          "Which pet needs help first?",
+          "Does this pet need comfort, a bandage, or a rest break?",
+          "What would you say to help the pet feel calm?"
+        ],
+        "firstMoves": [
+          "Spread a blanket on the floor or bed for the clinic space.",
+          "Line up 3 to 5 stuffed animals as patients.",
+          "Pick one pet and give it a careful checkup.",
+          "Place a paper beside the clinic to keep simple notes."
+        ],
+        "steps": [
+          "Ask each pet how it is feeling and decide what help it needs.",
+          "Use a sticker or bandage as the pet’s treatment tag.",
+          "Write or draw a one-line note for each pet, like 'feeling better' or 'needs rest.'"
+        ],
+        "roles": [
+          "Clinic Helper",
+          "Comfort Helper",
+          "Note Taker"
+        ],
+        "extensionIdeas": [
+          "Do a second round where the pets come back feeling much better.",
+          "Sort the pets into groups like 'sleepy,' 'brave,' and 'needs cuddles.'"
+        ],
+        "uses": [
+          "stuffed animals",
+          "blanket",
+          "bandaids or stickers",
+          "paper",
+          "crayons"
+        ],
+        "energy": "low",
+        "mess": "low",
+        "adultHelp": "none",
+        "estimatedMinutes": 30,
+        "whyItFits": "It matches the requested veterinary theme, supports gentle nurture play, stays quiet in the bedroom, uses only safe listed items, and does not need adult setup."
+      },
+      {
+        "title": "Pet Care Notebook",
+        "activityStyle": "imaginative",
+        "theme": "A cozy animal-care desk where you keep records for every stuffed pet in your bedroom clinic.",
+        "summary": "You are making a special notebook for your stuffed animals. Each pet gets a page with its name, feelings, and the care it received today.",
+        "kidRole": "Pet Record Keeper",
+        "mission": "Create a pet care notebook and use it to keep track of how each stuffed animal is doing.",
+        "starterPrompts": [
+          "What is your clinic called?",
+          "Which stuffed animal should get the first page?",
+          "What does that pet need today: rest, a bandage, or kind words?"
+        ],
+        "firstMoves": [
+          "Get paper and crayons ready beside your bed or on the floor.",
+          "Choose one stuffed animal and give it a page.",
+          "Draw the pet’s picture at the top of the page.",
+          "Add one simple note about how you helped it."
+        ],
+        "steps": [
+          "Make one page for each stuffed animal patient.",
+          "Draw or write what the pet needed and what care it got.",
+          "Review the pages at the end and tell each pet it is doing well."
+        ],
+        "roles": [
+          "Pet Record Keeper",
+          "Pet Doctor",
+          "Comfort Assistant"
+        ],
+        "extensionIdeas": [
+          "Add a second page for a follow-up visit.",
+          "Make tiny pet badges with stickers for the pets that were extra brave."
+        ],
+        "uses": [
+          "stuffed animals",
+          "paper",
+          "crayons",
+          "bandaids or stickers"
+        ],
+        "energy": "low",
+        "mess": "low",
+        "adultHelp": "none",
+        "estimatedMinutes": 20,
+        "whyItFits": "This is a calm, independent pretend clinic activity in the bedroom with very low mess and noise, and it uses the child’s favorite stuffed-animal pet care theme plus simple supplies already available."
+      }
+    ],
+    "museum": [
+      {
+        "title": "Museum of Lost Exhibits",
+        "activityStyle": "imaginative",
+        "theme": "A time-travel museum in the living room has three missing exhibits, and you must find them and return them to the museum shelf.",
+        "summary": "You are the museum finder. Search the living room for three lost exhibits, bring each one back, and place it on the museum shelf.",
+        "kidRole": "Museum Finder",
+        "mission": "Find the three lost exhibits hidden around the living room and return them to the museum shelf before the museum opens again.",
+        "starterPrompts": [
+          "Which exhibit do you want to hunt for first: the oldest, the shiniest, or the oddest?",
+          "What clue will help you remember where each exhibit was found?",
+          "When you bring one back, will you give it a name tag or a museum spot?"
+        ],
+        "firstMoves": [
+          "Pick three safe household objects to be the lost exhibits.",
+          "Choose one chair or table as the museum shelf.",
+          "Hide the three exhibits in different easy spots in the living room.",
+          "Start searching for the first exhibit and carry it back carefully."
+        ],
+        "steps": [
+          "Search the living room for one lost exhibit at a time.",
+          "Each time you find one, bring it to the museum shelf and place it in a special spot.",
+          "Keep going until all three exhibits are returned, then give the museum a final check to make sure nothing is missing."
+        ],
+        "roles": [],
+        "extensionIdeas": [
+          "Time yourself and try to beat your own return time.",
+          "Draw a small museum sign for each exhibit on paper.",
+          "Hide the three exhibits again in new spots for another round."
+        ],
+        "uses": [
+          "three safe household objects",
+          "chair or table",
+          "paper",
+          "markers"
+        ],
+        "energy": "medium",
+        "mess": "low",
+        "adultHelp": "none",
+        "estimatedMinutes": 20,
+        "whyItFits": "This matches the child’s love of time-travel museum scavenger hunts and keeps the main play as finding and returning lost exhibits. It works in the living room, needs only safe household objects plus paper and markers, stays low mess, and can be done mostly independently while the parent handles errands."
+      },
+      {
+        "title": "Three Exhibit Time Chase",
+        "activityStyle": "imaginative",
+        "theme": "Three museum exhibits have slipped into different time periods around the living room, and you must bring them back before the museum doors close.",
+        "summary": "Run the living room museum hunt: find three lost exhibits, collect them, and return them to the shelf before time runs out.",
+        "kidRole": "Time Museum Hunter",
+        "mission": "Find all three lost exhibits hidden around the room and return them to the museum shelf in the right order.",
+        "starterPrompts": [
+          "Which exhibit do you think is the hardest to find?",
+          "Will you collect them in age order or just find them as fast as you can?",
+          "What will you say when an exhibit is safely back on the shelf?"
+        ],
+        "firstMoves": [
+          "Choose three safe household items to be the exhibits.",
+          "Set a chair or table as the museum shelf.",
+          "Hide the exhibits in three different living room spots.",
+          "Start the hunt and bring the first exhibit back."
+        ],
+        "steps": [
+          "Look around the living room until you spot one exhibit.",
+          "Pick it up carefully and place it on the museum shelf.",
+          "Keep hunting until all three are back, then do one slow museum walk to admire the display."
+        ],
+        "roles": [],
+        "extensionIdeas": [
+          "Draw quick exhibit cards on paper after each find.",
+          "Hide the exhibits in a different order and play again.",
+          "Make the final museum shelf look neat and special with marker labels."
+        ],
+        "uses": [
+          "three safe household objects",
+          "chair or table",
+          "paper",
+          "markers"
+        ],
+        "energy": "medium",
+        "mess": "low",
+        "adultHelp": "optional",
+        "estimatedMinutes": 20,
+        "whyItFits": "This is a direct pretend scavenger hunt for lost exhibits, exactly in the requested theme lane. It is simple to start, calm enough for mostly-independent play, stays inside the living room, and uses only safe items already available."
+      },
+      {
+        "title": "Exhibit Rescue Route",
+        "activityStyle": "imaginative",
+        "theme": "A museum timeline has cracked open in the living room, and three exhibits must be found, matched, and returned to their display spots.",
+        "summary": "Follow the clues, find the missing exhibits, and put each one back where it belongs on the museum shelf.",
+        "kidRole": "Exhibit Rescuer",
+        "mission": "Track down the missing exhibits in the living room and return them to the correct museum spots.",
+        "starterPrompts": [
+          "Which exhibit is from the oldest time, middle time, or newest time?",
+          "What clue can help you remember where you found each one?",
+          "What names will you give the three museum spots?"
+        ],
+        "firstMoves": [
+          "Set up one chair or table as the museum display area.",
+          "Place three paper labels on the shelf with simple names like Old, Middle, and New.",
+          "Hide the three safe objects around the room.",
+          "Search for one exhibit, then return it to the matching spot."
+        ],
+        "steps": [
+          "Find the first exhibit and decide which time it belongs to.",
+          "Carry it back and place it on the matching museum spot.",
+          "Repeat for the other two exhibits, then walk the route one more time to check that every exhibit is home."
+        ],
+        "roles": [],
+        "extensionIdeas": [
+          "Add marker marks on paper labels to make the museum look more real.",
+          "Make a second round with the hides a little trickier.",
+          "Tell the story of how one exhibit traveled through time before it got lost."
+        ],
+        "uses": [
+          "three safe household objects",
+          "paper",
+          "markers",
+          "chair or table"
+        ],
+        "energy": "medium",
+        "mess": "low",
+        "adultHelp": "none",
+        "estimatedMinutes": 25,
+        "whyItFits": "This keeps the child in a museum scavenger-hunt play pattern with clear hide-and-find action, which fits the request exactly. It uses only living-room-safe supplies, avoids small objects and screens, and is easy for one child to run alone within the 25-minute window."
+      }
+    ],
+    "weather": [
+      {
+        "title": "Cloud Lab Messages",
+        "activityStyle": "imaginative",
+        "theme": "A quiet kitchen-table weather lab where you study clouds, wind, and tiny sky signs.",
+        "summary": "You are a cloud scientist making special weather messages for the sky.",
+        "kidRole": "Cloud Scientist",
+        "mission": "Make three weather messages: one about clouds, one about wind, and one about tomorrow’s sky.",
+        "starterPrompts": [
+          "What kind of clouds do you want to study today?",
+          "Should your sky message feel calm, windy, or rainy?",
+          "What will your final weather report say?"
+        ],
+        "firstMoves": [
+          "Put paper and crayons on the table.",
+          "Draw three boxes or circles on the page for three weather messages.",
+          "Choose a weather sign to start with, like cloud, sun, wind, or rain.",
+          "Add one color or symbol to each weather message."
+        ],
+        "steps": [
+          "Draw a cloud message card and give it a name, like fluffy, sleepy, or growing.",
+          "Draw a wind message card and show how the wind moves with lines or swirls.",
+          "Draw a tomorrow sky card and decide what weather the sky might send next.",
+          "If you want, tell the weather report out loud in a quiet voice or whisper it to yourself."
+        ],
+        "roles": [],
+        "extensionIdeas": [
+          "Make a second set for a different day.",
+          "Add a little weather symbol in each corner.",
+          "Turn the cards into a tiny weather report book."
+        ],
+        "uses": [
+          "paper",
+          "crayons",
+          "markers"
+        ],
+        "energy": "low",
+        "mess": "low",
+        "adultHelp": "none",
+        "estimatedMinutes": 20,
+        "whyItFits": "This stays quiet, screen-free, and low mess at the kitchen table. It uses only paper and crayons or markers, fits Alex’s love of weather and nature magic lab play, and works well for mostly-independent play while the parent is helping someone else."
+      },
+      {
+        "title": "Nature Magic Weather Map",
+        "activityStyle": "imaginative",
+        "theme": "A cozy map-making lab where you chart a magical garden sky and tiny weather spots.",
+        "summary": "You are drawing a magic weather map for a little nature world.",
+        "kidRole": "Map Maker",
+        "mission": "Create a map with three weather spots and decide what kind of nature magic lives in each one.",
+        "starterPrompts": [
+          "What places will be on your magic map?",
+          "Which spot has sun, clouds, wind, or rain?",
+          "What tiny nature magic lives there?"
+        ],
+        "firstMoves": [
+          "Place a sheet of paper on the table.",
+          "Draw a simple map shape with a path, hill, tree, or garden square.",
+          "Pick three weather spots and mark them with colors or symbols.",
+          "Write or say a tiny name for each spot."
+        ],
+        "steps": [
+          "Make a cloud hill, a windy path, and a sunny garden corner on your map.",
+          "Add one nature magic detail to each place, like sparkling leaves, sleepy flowers, or breezy grass.",
+          "Draw arrows or swirls to show how the weather moves across the map.",
+          "Walk your finger around the map and tell the story of what happens in each place."
+        ],
+        "roles": [],
+        "extensionIdeas": [
+          "Add a fourth spot if you still want to play.",
+          "Make a second map for a different season.",
+          "Tell the map story from the point of view of the wind."
+        ],
+        "uses": [
+          "paper",
+          "crayons",
+          "markers"
+        ],
+        "energy": "low",
+        "mess": "low",
+        "adultHelp": "none",
+        "estimatedMinutes": 25,
+        "whyItFits": "This is a calm craft-story activity that matches the kitchen table, quiet mode, and low-mess rules. It uses only paper and drawing tools, gives Alex a clear imaginative role, and keeps the play independent and focused on weather and nature magic."
+      },
+      {
+        "title": "Cloud Creature Forecast Studio",
+        "activityStyle": "imaginative",
+        "theme": "A tiny forecast studio where cloud creatures help decide the weather of a made-up nature world.",
+        "summary": "You are making pretend weather helpers from clouds and drawing their forecasts.",
+        "kidRole": "Forecast Artist",
+        "mission": "Invent three cloud creatures and draw what weather each one brings.",
+        "starterPrompts": [
+          "What does your first cloud creature look like?",
+          "Does it bring sun, rain, wind, or mist?",
+          "Which creature is the calmest, and which one is the wildest?"
+        ],
+        "firstMoves": [
+          "Put a paper on the kitchen table.",
+          "Use cotton balls or tissues to make one cloud shape on the page.",
+          "Draw eyes, mouths, or swirls on the cloud to give it a weather job.",
+          "Make two more cloud creatures with different weather jobs."
+        ],
+        "steps": [
+          "Give each cloud creature a name and a special weather power.",
+          "Draw the kind of sky or nature scene each creature visits.",
+          "Add a tiny forecast line under each one, like windy later or soft rain soon.",
+          "Choose your favorite creature and tell its weather story quietly."
+        ],
+        "roles": [],
+        "extensionIdeas": [
+          "Draw a cloud family with a baby cloud and a grand cloud.",
+          "Make one creature change weather by the end of the story.",
+          "Use colors to show morning, afternoon, and evening weather."
+        ],
+        "uses": [
+          "paper",
+          "crayons",
+          "markers",
+          "cotton balls or tissues"
+        ],
+        "energy": "low",
+        "mess": "low",
+        "adultHelp": "optional",
+        "estimatedMinutes": 20,
+        "whyItFits": "This keeps the play at the kitchen table, quiet, and mostly independent. It uses simple household items already listed, avoids water and small pieces, and gives Alex a playful weather-lab story with clear steps and gentle craft-story play."
+      }
+    ],
+    "circus": [
+      {
+        "title": "Living Room Circus Show",
+        "activityStyle": "imaginative",
+        "theme": "A bright circus stage in the living room where one performer gets ready for a big show.",
+        "summary": "You are the star of your own circus show. Pick your acts, get dressed up, and perform for the living room audience.",
+        "kidRole": "Ringmaster Performer",
+        "mission": "Put on a 3-part circus show with an opening pose, a main act, and a big final bow.",
+        "starterPrompts": [
+          "What is your circus name?",
+          "Will your first act be dancing, balancing, or funny faces?",
+          "What is your big final pose?"
+        ],
+        "firstMoves": [
+          "Choose a scarf or dress-up piece for your costume.",
+          "Clear a small space in the living room as your stage.",
+          "Stand at one end and announce your show to the room.",
+          "Practice one strong opening pose."
+        ],
+        "steps": [
+          "Create your circus name and costume.",
+          "Perform three short acts: a dance, a pose, and a silly or dramatic ending.",
+          "Take a bow and freeze for applause at the end.",
+          "If you want, repeat the show with a new costume or new acts."
+        ],
+        "roles": [
+          "Performer"
+        ],
+        "extensionIdeas": [
+          "Make a second show with a different name.",
+          "Add one new act and perform the whole show again."
+        ],
+        "uses": [
+          "dress-up clothes or scarf",
+          "blankets"
+        ],
+        "energy": "high",
+        "mess": "low",
+        "adultHelp": "optional",
+        "estimatedMinutes": 25,
+        "whyItFits": "This matches Alex’s interest in circus and stage performance, uses the living room, stays screen-free and low-mess, and works well with independent play while the parent is busy nearby doing yard work."
+      },
+      {
+        "title": "The Curtain Call Parade",
+        "activityStyle": "imaginative",
+        "theme": "A living-room parade show where the performer travels from one curtain call to the next.",
+        "summary": "March, pose, spin, and bow in a mini parade show around the room.",
+        "kidRole": "Parade Star",
+        "mission": "Move through 4 performance stops in the room and end with a grand curtain call.",
+        "starterPrompts": [
+          "What will your parade star name be?",
+          "Which stop will you begin with: march, spin, clap, or freeze?",
+          "What makes the crowd cheer at the end?"
+        ],
+        "firstMoves": [
+          "Lay a blanket on the floor as the main stage spot.",
+          "Put on a scarf or costume piece.",
+          "Choose four places in the living room as performance stops.",
+          "Practice a marching entrance from one spot to another."
+        ],
+        "steps": [
+          "Go to each stop and do one short performance move there.",
+          "Change the move each time: marching, tiptoeing, spinning, or a big pose.",
+          "At the last stop, bow slowly and hold still for applause.",
+          "If you still want more, start again with a new parade name or new moves."
+        ],
+        "roles": [
+          "Parade Star"
+        ],
+        "extensionIdeas": [
+          "Add a pretend crowd cheer after each stop.",
+          "Do a slower version, then a faster version."
+        ],
+        "uses": [
+          "blankets",
+          "pillows",
+          "dress-up clothes or scarf"
+        ],
+        "energy": "high",
+        "mess": "low",
+        "adultHelp": "optional",
+        "estimatedMinutes": 20,
+        "whyItFits": "It keeps the play in the living room, fits a high-energy performance style, uses only safe household items, and gives Alex clear steps for independent pretend play with a circus feel."
+      },
+      {
+        "title": "Backstage Star School",
+        "activityStyle": "imaginative",
+        "theme": "A pretend backstage area where the performer gets ready for a stage show with costumes, poses, and practice runs.",
+        "summary": "Get ready like a real show star, practice your acts, and then perform your final number.",
+        "kidRole": "Backstage Star",
+        "mission": "Prepare for a show by making a costume, practicing one act, and performing a final scene.",
+        "starterPrompts": [
+          "What is your show called?",
+          "What kind of performer are you today?",
+          "What will you practice first: a dance, a dramatic pose, or a funny entrance?"
+        ],
+        "firstMoves": [
+          "Pick a blanket, scarf, or dress-up piece for your costume.",
+          "Make a backstage corner with a pillow or two.",
+          "Choose one act to practice first.",
+          "Walk out from backstage as if the crowd is waiting."
+        ],
+        "steps": [
+          "Get ready backstage and put on your costume.",
+          "Practice your main act two or three times.",
+          "Step into the stage space and perform the whole show.",
+          "Finish with a bow, then reset for a new show if you want."
+        ],
+        "roles": [
+          "Backstage Star"
+        ],
+        "extensionIdeas": [
+          "Make a new costume and perform again.",
+          "Add a second act like a freeze pose or a silly walk."
+        ],
+        "uses": [
+          "blankets",
+          "pillows",
+          "dress-up clothes or scarf",
+          "paper",
+          "markers"
+        ],
+        "energy": "high",
+        "mess": "low",
+        "adultHelp": "optional",
+        "estimatedMinutes": 25,
+        "whyItFits": "This is a full imaginative performance activity in the circus/stage lane, uses the living room and simple inventory, stays low-mess and screen-free, and gives Alex clear, independent steps that match their love of performance."
+      }
+    ],
+    "courier": [
+      {
+        "title": "Living Room Delivery Map Run",
+        "activityStyle": "imaginative",
+        "theme": "A cozy indoor courier route where you map the living room and deliver tiny packages to marked stops.",
+        "summary": "You are the route planner and delivery runner. Draw a simple map of the living room, then carry three safe packages along your route and drop them at the right stops.",
+        "kidRole": "Courier Navigator",
+        "mission": "Use your map to deliver all three packages to the correct spots in the living room.",
+        "starterPrompts": [
+          "What places should be on your route: couch, chair, table, rug, doorway?",
+          "Which package goes to the first stop on your map?",
+          "How will you know you reached the right spot?"
+        ],
+        "firstMoves": [
+          "Draw a quick map of the living room on paper.",
+          "Put 3 dots or symbols on the map for delivery stops.",
+          "Place one safe package in the small box or bag.",
+          "Walk the route once without delivering anything, just checking the map."
+        ],
+        "steps": [
+          "Look at your map and choose your first stop. Carry the package there carefully and place it down.",
+          "Go back to your starting spot, pick up the next package, and follow the map to the next stop.",
+          "Deliver the last package, then check your map to see if every stop got a package."
+        ],
+        "roles": [],
+        "extensionIdeas": [
+          "Draw a better map with more furniture signs.",
+          "Time yourself and try the same route again.",
+          "Make a second route with the stops in a new order."
+        ],
+        "uses": [
+          "paper",
+          "crayon or pencil",
+          "small box or bag",
+          "three small safe objects as packages"
+        ],
+        "energy": "medium",
+        "mess": "low",
+        "adultHelp": "none",
+        "estimatedMinutes": 25,
+        "whyItFits": "This matches Alex’s love of delivery routes and indoor maps, stays in the living room, uses only simple low-mess supplies, and can be done mostly independently while the parent cleans."
+      },
+      {
+        "title": "Apartment Mail Route",
+        "activityStyle": "imaginative",
+        "theme": "A quiet mail carrier route through the living room where you sort letters and bring them to each stop on your map.",
+        "summary": "You are the mail carrier for the living room. Make a map, mark each delivery stop, and bring each package to the right place.",
+        "kidRole": "Mail Carrier",
+        "mission": "Deliver every package to the correct stop using your own indoor map.",
+        "starterPrompts": [
+          "What should your route start with: the couch, the rug, or the chair?",
+          "Which stop looks easiest to reach first?",
+          "What symbol will you use for each stop on the map?"
+        ],
+        "firstMoves": [
+          "Draw the living room on paper with a few simple furniture shapes.",
+          "Write or draw a symbol for each package stop.",
+          "Put the three packages in one spot to begin.",
+          "Point to each stop on the map and say the route aloud once."
+        ],
+        "steps": [
+          "Take the first package and follow your map to the matching stop.",
+          "Return to the start and deliver the second package.",
+          "Finish with the third package, then check your map against the room."
+        ],
+        "roles": [],
+        "extensionIdeas": [
+          "Add a pretend mailbox spot to one stop.",
+          "Make a new route that goes the long way around the room.",
+          "Add an extra package and one more stop."
+        ],
+        "uses": [
+          "paper",
+          "crayon or pencil",
+          "small box or bag",
+          "three small safe objects as packages"
+        ],
+        "energy": "medium",
+        "mess": "low",
+        "adultHelp": "none",
+        "estimatedMinutes": 20,
+        "whyItFits": "It keeps the play focused on mapping and navigation, fits a living-room setting, stays screen-free and low mess, and gives clear independent steps for a 5–8 year old."
+      },
+      {
+        "title": "Package Path Planner",
+        "activityStyle": "imaginative",
+        "theme": "A simple route-planning game where you draw paths between living-room landmarks and deliver packages in the right order.",
+        "summary": "You are planning the best path for a package run. Draw the route, choose the order of stops, and deliver each package by following your map.",
+        "kidRole": "Route Planner",
+        "mission": "Plan the best path and deliver all packages without missing a stop.",
+        "starterPrompts": [
+          "Which living-room spots should be on your map?",
+          "Should the route go left to right or around the room?",
+          "Which package should be delivered first?"
+        ],
+        "firstMoves": [
+          "Draw a starting point on your paper map.",
+          "Add three stops that match places in the living room.",
+          "Choose one safe object to be your first package.",
+          "Trace the route with your finger before you walk it."
+        ],
+        "steps": [
+          "Carry the first package from the start to the first stop.",
+          "Pick up the next package and follow the same route to the next stop.",
+          "Deliver the last package, then trace the whole route again on your map."
+        ],
+        "roles": [],
+        "extensionIdeas": [
+          "Make a second map with different stop order.",
+          "Draw arrows on the map to make the route clearer.",
+          "Try a longer route that visits all the stops in a new pattern."
+        ],
+        "uses": [
+          "paper",
+          "crayon or pencil",
+          "small box or bag",
+          "three small safe objects as packages"
+        ],
+        "energy": "medium",
+        "mess": "low",
+        "adultHelp": "none",
+        "estimatedMinutes": 25,
+        "whyItFits": "This gives Alex a clear map-navigation play task with an indoor route, uses only the items already available, keeps to the living room, and works well as mostly independent imaginative play."
+      }
+    ]
+  },
+  "diversityIssues": [],
+  "source": "openai-live"
+}

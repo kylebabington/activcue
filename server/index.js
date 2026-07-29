@@ -10,6 +10,7 @@ import { fileURLToPath } from "url";
 import { createOpenAIClient } from "./lib/openaiClient.js";
 import healthRouter from "./routes/health.js";
 import authRouter from "./routes/auth.js";
+import presetActivitiesRouter from "./routes/presetActivities.js";
 import createActivitySuggestionsRouter from "./routes/activitySuggestions.js";
 import createQuestStepHintRouter from "./routes/questStepHint.js";
 
@@ -97,9 +98,36 @@ if (process.env.NODE_ENV !== "production") {
  * Production:
  *   Add OPENAI_API_KEY in Railway or Render's environment-variable settings.
  */
-if (!process.env.OPENAI_API_KEY) {
+
+/*
+ * Validate all server runtime variables before accepting requests.
+ */
+const requiredServerEnvironmentVariables = [
+  "OPENAI_API_KEY",
+  "SUPABASE_URL",
+  "SUPABASE_PUBLISHABLE_KEY",
+  "SUPABASE_SECRET_KEY",
+];
+
+const missingServerEnvironmentVariables =
+  requiredServerEnvironmentVariables.filter(
+    (variableName) =>
+      !process.env[variableName]
+  );
+
+if (
+  missingServerEnvironmentVariables.length > 0
+) {
   console.error(
-    "OPENAI_API_KEY is not set. Add it to server/.env locally or the hosting environment in production."
+    [
+      "The server cannot start because required environment variables are missing:",
+      ...missingServerEnvironmentVariables.map(
+        (variableName) =>
+          `- ${variableName}`
+      ),
+      "",
+      "Add them to server/.env locally or to Railway in production.",
+    ].join("\n")
   );
 
   process.exit(1);
@@ -153,6 +181,14 @@ app.use("/api", healthRouter);
  * The router itself applies requireAuthenticatedUser to /auth/me.
  */
 app.use("/api", authRouter);
+
+/*
+ * Preset activity browsing and unlock routes.
+ *
+ * These require a valid Supabase user but do not call OpenAI.
+ */
+app.use("/api", presetActivitiesRouter);
+
 
 /*
  * Protected OpenAI routes.

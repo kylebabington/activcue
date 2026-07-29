@@ -1,6 +1,8 @@
 import { Router } from "express";
 import { createStructuredResponse } from "../lib/openaiClient.js";
 import { requireAuthenticatedUser } from "../middleware/requireAuthenticatedUser.js";
+import { ensureUserProfile } from "../middleware/ensureUserProfile.js";
+import { requirePaidSubscription } from "../middleware/requirePaidSubscription.js";
 import {
   buildQuestStepHintInput,
   buildQuestStepHintInstructions,
@@ -13,6 +15,8 @@ export default function createQuestStepHintRouter(client) {
   router.post(
     "/quest-step-hint",
     requireAuthenticatedUser,
+    ensureUserProfile,
+    requirePaidSubscription,
     async (req, res) => {
       try {
         const {

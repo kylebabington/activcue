@@ -1,6 +1,8 @@
 import { Router } from "express";
 import { createStructuredResponse } from "../lib/openaiClient.js";
 import { requireAuthenticatedUser } from "../middleware/requireAuthenticatedUser.js";
+import { ensureUserProfile } from "../middleware/ensureUserProfile.js";
+import { requirePaidSubscription } from "../middleware/requirePaidSubscription.js";
 import {
   buildActivitySuggestionsInput,
   buildActivitySuggestionsInstructions,
@@ -20,6 +22,8 @@ export default function createActivitySuggestionsRouter(client) {
   router.post(
     "/activity-suggestions",
     requireAuthenticatedUser,
+    ensureUserProfile,
+    requirePaidSubscription,
     async (req, res) => {
       try {
         const {

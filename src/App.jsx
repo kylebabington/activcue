@@ -2,17 +2,23 @@
 
 import { Link, Navigate, NavLink, Route, Routes, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { getActivitySuggestions, getQuestStepHint } from "./api/activityApi";
-import { AuthenticationError } from "./api/apiClient";
+import {
+  getActivitySuggestions,
+  getPresetActivities,
+  getQuestStepHint,
+} from "./api/activityApi";
+import { ApiRequestError, AuthenticationError } from "./api/apiClient";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import { useUiTheme } from "./hooks/useUiTheme";
 import ParentPage from "./pages/ParentPage";
 import KidPage from "./pages/KidPage";
 import QuestPage from "./pages/QuestPage";
 import SettingsPage from "./pages/SettingsPage";
+import DemoPresetsPage from "./pages/DemoPresetsPage";
 import ParentPinGate from "./components/ParentPinGate";
 import ThemeSwitcher from "./components/ThemeSwitcher";
 import { AppProvider } from "./context/AppContext";
+import { useAuth } from "./hooks/useAuth";
 import "./App.css";
 import { defaultParentStatusPresets, inventoryCategories } from "./constants/presets";
 import {
@@ -41,6 +47,7 @@ import {
 
 function App() {
   const navigate = useNavigate();
+  const { isAnonymous } = useAuth();
 
   const { theme: uiTheme, setTheme: setUiTheme, themes: uiThemes } =
     useUiTheme();
@@ -224,6 +231,15 @@ function App() {
   const [loadingIntent, setLoadingIntent] = useState(null);
   const [statusMessage, setStatusMessage] = useState("");
   const [statusType, setStatusType] = useState("info");
+
+  // Temporary until frontend milestone loads real entitlement from /api/auth/me.
+  const [entitlement] = useState({
+    isPaid: false,
+    canGenerateWithAi: false,
+    canUseAiHints: false,
+    subscriptionStatus: "inactive",
+    freeImaginativeActivityId: null,
+  });
 
   function showStatus(message, type = "info") {
     if (!message) {
@@ -648,6 +664,10 @@ function App() {
 
     try {
       if (preferSimpleTemplates && kidActivityStyle === "simple") {
+        /*
+         * Quick Ideas is a free path. Prefer local templates, then curated
+         * simple presets — never call the subscription-gated AI endpoint.
+         */
         const templateActivities = buildSimpleActivitiesFromTemplates({
           inventory,
           currentMoment,
@@ -658,6 +678,24 @@ function App() {
           showStatus("Quick ideas ready — no wait.", "success");
           return finalizeActivities(templateActivities);
         }
+
+        const { activities: presetActivities } = await getPresetActivities({
+          style: "simple",
+        });
+        const unlockedPresets = presetActivities
+          .filter((activity) => activity && !activity.isLocked)
+          .slice(0, 3);
+
+        if (unlockedPresets.length > 0) {
+          showStatus("Quick ideas from the free library.", "success");
+          return finalizeActivities(unlockedPresets);
+        }
+
+        showStatus(
+          "No quick ideas fit this moment. Try adjusting supplies or the parent moment.",
+          "info"
+        );
+        return [];
       }
 
       let generatedActivities = await requestActivities(combinedFeedback);
@@ -702,7 +740,26 @@ function App() {
             "Your secure session could not be verified. Refresh and try again.",
           "error"
         );
-        return [];
+        // null signals an intentional block so callers keep this status.
+        return null;
+      }
+
+      /*
+       * A subscription rejection is intentional.
+       *
+       * Never replace it with local activity templates because unpaid users
+       * are limited to the curated preset library.
+       */
+      if (
+        error instanceof ApiRequestError &&
+        error.code === "SUBSCRIPTION_REQUIRED"
+      ) {
+        showStatus(
+          "Personalized AI activities require a paid subscription.",
+          "info"
+        );
+        // null signals an intentional block so callers keep this status.
+        return null;
       }
 
       if (allowOfflineFallback || kidActivityStyle === "simple") {
@@ -842,7 +899,7 @@ Always obey currentMoment limits for time, mess, noise, supervision, and parent 
       }
     );
 
-    if (generatedActivities.length === 0) {
+    if (!generatedActivities?.length) {
       navigate("/quest");
       return;
     }
@@ -885,6 +942,12 @@ Prioritize activities that require the least decision-making from the child.
 `,
       { allowOfflineFallback: true }
     );
+
+    // Auth / subscription blocks already set status — do not overwrite it.
+    if (generatedActivities === null) {
+      navigate("/quest");
+      return;
+    }
 
     // Pick the best option using the same scoring system as auto-pick.
     const selectedActivity = getBestActivityForCurrentMoment(generatedActivities);
@@ -1288,6 +1351,17 @@ Prioritize activities that require the least decision-making from the child.
           error.message ||
             "Your secure session could not be verified. Refresh and try again.",
           "error"
+        );
+        return;
+      }
+
+      if (
+        error instanceof ApiRequestError &&
+        error.code === "SUBSCRIPTION_REQUIRED"
+      ) {
+        showStatus(
+          "AI hints require a paid subscription.",
+          "info"
         );
         return;
       }
@@ -1701,8 +1775,11 @@ Prioritize activities that require the least decision-making from the child.
   }
 
   const parentAreasLocked = Boolean(parentPin) && !parentAreaUnlocked;
-  const defaultHomePath =
-    parentPin && inventory.length > 0 ? "/kid" : "/parent";
+  const defaultHomePath = isAnonymous
+    ? "/demo"
+    : parentPin && inventory.length > 0
+      ? "/kid"
+      : "/parent";
 
   const appContextValue = {
     currentMoment,
@@ -1735,6 +1812,7 @@ Prioritize activities that require the least decision-making from the child.
     handleNeedQuieter,
     handleMoreLikeThis,
     handleAutoPickQuest,
+    entitlement,
     safetySettings,
     toggleSafetySetting,
     updateSafetySetting,
@@ -1788,7 +1866,7 @@ Prioritize activities that require the least decision-making from the child.
     <main className="app-shell">
       <header className="app-header">
         <div className="app-header-brand">
-          <Link to="/app" className="app-header-brand-link" aria-label="FamilyFlow home">
+          <Link to="/" className="app-header-brand-link" aria-label="FamilyFlow home">
             <img
               className="app-brand-mark"
               src="/logo.svg"
@@ -1801,6 +1879,15 @@ Prioritize activities that require the least decision-making from the child.
         </div>
 
         <nav className="app-nav">
+          {isAnonymous ? (
+            <NavLink
+              to="/demo"
+              className={({ isActive }) => (isActive ? "active" : "")}
+            >
+              Samples
+            </NavLink>
+          ) : null}
+
           <NavLink
             to="/parent"
             className={({ isActive }) => (isActive ? "active" : "")}
@@ -1864,6 +1951,8 @@ Prioritize activities that require the least decision-making from the child.
             path="/app"
             element={<Navigate to={defaultHomePath} replace />}
           />
+
+          <Route path="/demo" element={<DemoPresetsPage />} />
 
           <Route
             path="/parent"
