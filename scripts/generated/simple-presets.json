@@ -1,0 +1,179 @@
+[
+  {
+    "slug": "draw-a-picture",
+    "title": "Draw a picture",
+    "summary": "Get paper and draw whatever you feel like.",
+    "estimatedMinutes": 20,
+    "steps": [
+      "Get paper and something to draw with.",
+      "Draw whatever you feel like.",
+      "Hang it up or show someone later."
+    ],
+    "uses": [
+      "paper",
+      "markers",
+      "crayons"
+    ],
+    "energy": "low",
+    "mess": "low",
+    "adultHelp": "none",
+    "whyItFits": "It is quiet, familiar, and needs very little setup."
+  },
+  {
+    "slug": "color-a-page",
+    "title": "Color a page",
+    "summary": "Pick a coloring page and fill it in section by section.",
+    "estimatedMinutes": 20,
+    "steps": [
+      "Pick a coloring page.",
+      "Color one section at a time.",
+      "Fill in details if you want."
+    ],
+    "uses": [
+      "coloring books",
+      "crayons",
+      "markers"
+    ],
+    "energy": "low",
+    "mess": "low",
+    "adultHelp": "none",
+    "whyItFits": "It is calm, clear, and uses art supplies you already have."
+  },
+  {
+    "slug": "build-a-tower",
+    "title": "Build a tower",
+    "summary": "Dump out your blocks and build the tallest tower you can.",
+    "estimatedMinutes": 20,
+    "steps": [
+      "Dump out your blocks.",
+      "Build the tallest tower you can.",
+      "See if you can add one more piece."
+    ],
+    "uses": [
+      "wooden blocks",
+      "LEGO",
+      "magnet tiles"
+    ],
+    "energy": "medium",
+    "mess": "low",
+    "adultHelp": "none",
+    "whyItFits": "It is easy to begin and uses a familiar building toy."
+  },
+  {
+    "slug": "do-a-puzzle",
+    "title": "Do a puzzle",
+    "summary": "Dump the pieces, find the edges, and fill in the middle.",
+    "estimatedMinutes": 20,
+    "steps": [
+      "Dump the pieces.",
+      "Find edge pieces first.",
+      "Fill in the middle."
+    ],
+    "uses": [
+      "jigsaw puzzles"
+    ],
+    "energy": "low",
+    "mess": "low",
+    "adultHelp": "none",
+    "whyItFits": "It is structured, screen-free, and easy to understand."
+  },
+  {
+    "slug": "make-a-reading-nook",
+    "title": "Make a reading nook",
+    "summary": "Pick a book, make a comfy spot, and read for a little while.",
+    "estimatedMinutes": 20,
+    "steps": [
+      "Pick a book.",
+      "Make a comfy spot with pillows.",
+      "Read for a little while."
+    ],
+    "uses": [
+      "picture books",
+      "pillows",
+      "blankets"
+    ],
+    "energy": "low",
+    "mess": "low",
+    "adultHelp": "none",
+    "whyItFits": "It gives a calm activity that can last as long as needed."
+  },
+  {
+    "slug": "play-a-simple-card-game",
+    "title": "Play a simple card game",
+    "summary": "Get your cards, shuffle and deal, and play one round.",
+    "estimatedMinutes": 20,
+    "steps": [
+      "Get your cards.",
+      "Shuffle and deal.",
+      "Play one round."
+    ],
+    "uses": [
+      "playing cards",
+      "Uno",
+      "memory game"
+    ],
+    "energy": "low",
+    "mess": "low",
+    "adultHelp": "optional",
+    "whyItFits": "It uses an existing collection and provides a clear task."
+  },
+  {
+    "slug": "build-a-cozy-fort",
+    "title": "Build a cozy fort",
+    "summary": "Gather blankets and pillows and make a cozy fort to crawl into.",
+    "estimatedMinutes": 20,
+    "steps": [
+      "Gather blankets and pillows.",
+      "Drape a blanket over chairs or the couch.",
+      "Crawl inside and get cozy."
+    ],
+    "uses": [
+      "blankets",
+      "pillows",
+      "couch cushions"
+    ],
+    "energy": "medium",
+    "mess": "medium",
+    "adultHelp": "optional",
+    "whyItFits": "It turns ordinary household items into a clear building project."
+  },
+  {
+    "slug": "make-play-doh-shapes",
+    "title": "Make Play-Doh shapes",
+    "summary": "Open your Play-Doh and make balls, snakes, cookies, or one finished shape.",
+    "estimatedMinutes": 20,
+    "steps": [
+      "Open your Play-Doh.",
+      "Roll balls, snakes, or cookies.",
+      "Make one finished shape."
+    ],
+    "uses": [
+      "Play-Doh",
+      "Play-Doh tools"
+    ],
+    "energy": "low",
+    "mess": "medium",
+    "adultHelp": "none",
+    "whyItFits": "It is hands-on, contained, and easy to start alone."
+  },
+  {
+    "slug": "ball-play-outside",
+    "title": "Ball play outside",
+    "summary": "Grab a ball, go to a safe play space, and kick, throw, or bounce.",
+    "estimatedMinutes": 20,
+    "steps": [
+      "Grab a ball.",
+      "Go to a safe play space.",
+      "Kick, throw, or bounce for a while."
+    ],
+    "uses": [
+      "soccer ball",
+      "basketball",
+      "tennis ball"
+    ],
+    "energy": "high",
+    "mess": "low",
+    "adultHelp": "none",
+    "whyItFits": "It gives an energetic child a simple activity with clear boundaries."
+  }
+]

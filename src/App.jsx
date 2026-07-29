@@ -3,7 +3,7 @@
 import { Navigate, NavLink, Route, Routes, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { getActivitySuggestions, getQuestStepHint } from "./api/activityApi";
-import { AuthenticationError } from "./api/apiClient";
+import { ApiRequestError, AuthenticationError } from "./api/apiClient";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import { useUiTheme } from "./hooks/useUiTheme";
 import ParentPage from "./pages/ParentPage";
@@ -224,6 +224,15 @@ function App() {
   const [loadingIntent, setLoadingIntent] = useState(null);
   const [statusMessage, setStatusMessage] = useState("");
   const [statusType, setStatusType] = useState("info");
+
+  // Temporary until frontend milestone loads real entitlement from /api/auth/me.
+  const [entitlement] = useState({
+    isPaid: false,
+    canGenerateWithAi: false,
+    canUseAiHints: false,
+    subscriptionStatus: "inactive",
+    freeImaginativeActivityId: null,
+  });
 
   function showStatus(message, type = "info") {
     if (!message) {
@@ -701,6 +710,23 @@ function App() {
           error.message ||
             "Your secure session could not be verified. Refresh and try again.",
           "error"
+        );
+        return [];
+      }
+
+      /*
+       * A subscription rejection is intentional.
+       *
+       * Never replace it with local activity templates because unpaid users
+       * are limited to the curated preset library.
+       */
+      if (
+        error instanceof ApiRequestError &&
+        error.code === "SUBSCRIPTION_REQUIRED"
+      ) {
+        showStatus(
+          "Personalized AI activities require a paid subscription.",
+          "info"
         );
         return [];
       }
@@ -1735,6 +1761,7 @@ Prioritize activities that require the least decision-making from the child.
     handleNeedQuieter,
     handleMoreLikeThis,
     handleAutoPickQuest,
+    entitlement,
     safetySettings,
     toggleSafetySetting,
     updateSafetySetting,
