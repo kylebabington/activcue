@@ -155,6 +155,10 @@ const SIMPLE_PRESETS = [
 
 function formatJsonbDollar(obj) {
   const pretty = JSON.stringify(obj, null, 2);
+  // Prefer $$ quoting; if content contains $$, fall back to escaped string.
+  if (pretty.includes("$$")) {
+    return `'${pretty.replace(/'/g, "''")}'::jsonb`;
+  }
   return `$$\n  ${pretty.replace(/\n/g, "\n  ")}\n  $$::jsonb`;
 }
 

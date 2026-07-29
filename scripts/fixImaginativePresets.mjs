@@ -187,6 +187,13 @@ console.log("Picked:", best.title);
 const museumIndex = data.activities.findIndex(
   (activity) => activity._laneId === "museum"
 );
+
+if (museumIndex < 0) {
+  throw new Error(
+    'No activity with _laneId "museum" found in imaginative-presets.json'
+  );
+}
+
 data.activities[museumIndex] = best;
 data.rawByLane.museum = normalized;
 

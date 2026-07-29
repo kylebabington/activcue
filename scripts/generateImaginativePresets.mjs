@@ -513,6 +513,14 @@ async function main() {
     for (let pass = 0; pass < 2 && issues.length > 0; pass += 1) {
       const last = selected[selected.length - 1];
       const lane = THEME_LANES.find((l) => l.id === last._laneId);
+
+      if (!lane) {
+        console.warn(
+          `Skipping diversity retry: no THEME_LANES entry for "${last?._laneId}".`
+        );
+        break;
+      }
+
       console.log(`Regenerating ${lane.id} for diversity (pass ${pass + 1})...`);
       const result = await generateForLane(
         client,

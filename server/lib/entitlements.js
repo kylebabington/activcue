@@ -8,8 +8,13 @@ const PAID_SUBSCRIPTION_STATUSES = new Set([
 ]);
 
 function periodHasNotExpired(currentPeriodEnd) {
+    /*
+     * No recorded end date: trust subscription status alone.
+     * Stripe-backed rows always include current_period_end; when a date is
+     * present it must still be in the future.
+     */
     if (!currentPeriodEnd) {
-        return false;
+        return true;
     }
 
     const expirationTime = new Date(currentPeriodEnd).getTime();
