@@ -145,11 +145,15 @@ $$;
  *
  * Later, verified Stripe webhooks will update this table.
  *
+ * user_id references auth.users (not profiles) so a trusted writer can
+ * record paid status before the lazy profiles row is created on first
+ * Express request.
+ *
  * The browser must never directly change subscription status.
  */
 create table if not exists public.subscriptions (
   user_id uuid primary key
-    references public.profiles(user_id)
+    references auth.users(id)
     on delete cascade,
 
   stripe_customer_id text unique null,

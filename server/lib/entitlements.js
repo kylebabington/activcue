@@ -2,7 +2,7 @@
 
 import { getSupabaseAdminClient } from "./supabaseAdminClient.js";
 
-const PAID_SUBSCRIPTION_STATUSES = new Set([
+const ACTIVE_SUBSCRIPTION_STATUSES = new Set([
     "active",
     "trialing",
 ]);
@@ -24,6 +24,26 @@ function periodHasNotExpired(currentPeriodEnd) {
     }
 
     return expirationTime > Date.now();
+}
+
+function isPaidSubscription(subscription) {
+    const status = subscription?.status || "inactive";
+    const currentPeriodEnd = subscription?.current_period_end;
+
+    if (ACTIVE_SUBSCRIPTION_STATUSES.has(status)) {
+        return periodHasNotExpired(currentPeriodEnd);
+    }
+
+    /*
+     * Stripe often stores status as "canceled" while access continues until
+     * current_period_end. Require a future end date so a canceled row with
+     * no period does not grant open-ended access.
+     */
+    if (status === "canceled") {
+        return Boolean(currentPeriodEnd) && periodHasNotExpired(currentPeriodEnd);
+    }
+
+    return false;
 }
 
 /*
@@ -54,9 +74,7 @@ export async function getUserEntitlement(userId) {
     const subscriptionStatus =
         subscription?.status || "inactive";
 
-    const isPaid =
-        PAID_SUBSCRIPTION_STATUSES.has(subscriptionStatus) &&
-        periodHasNotExpired(subscription?.current_period_end);
+    const isPaid = isPaidSubscription(subscription);
 
     return {
         isPaid,

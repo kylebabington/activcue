@@ -3,8 +3,8 @@
 import { getUserEntitlement } from "../lib/entitlements.js";
 
 /*
- * Block every OpenAI-backed route unless the user has an active
- * or trialing subscription.
+ * Block every OpenAI-backed route unless the user has paid access
+ * (active/trialing, or canceled with a remaining current_period_end).
  */
 export async function requirePaidSubscription(req, res, next) {
     if (!req.auth?.userId) {

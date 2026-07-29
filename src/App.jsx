@@ -711,7 +711,8 @@ function App() {
             "Your secure session could not be verified. Refresh and try again.",
           "error"
         );
-        return [];
+        // null signals an intentional block so callers keep this status.
+        return null;
       }
 
       /*
@@ -728,7 +729,8 @@ function App() {
           "Personalized AI activities require a paid subscription.",
           "info"
         );
-        return [];
+        // null signals an intentional block so callers keep this status.
+        return null;
       }
 
       if (allowOfflineFallback || kidActivityStyle === "simple") {
@@ -868,7 +870,7 @@ Always obey currentMoment limits for time, mess, noise, supervision, and parent 
       }
     );
 
-    if (generatedActivities.length === 0) {
+    if (!generatedActivities?.length) {
       navigate("/quest");
       return;
     }
@@ -911,6 +913,12 @@ Prioritize activities that require the least decision-making from the child.
 `,
       { allowOfflineFallback: true }
     );
+
+    // Auth / subscription blocks already set status — do not overwrite it.
+    if (generatedActivities === null) {
+      navigate("/quest");
+      return;
+    }
 
     // Pick the best option using the same scoring system as auto-pick.
     const selectedActivity = getBestActivityForCurrentMoment(generatedActivities);
