@@ -274,9 +274,12 @@ function App() {
       canUseAiHints: Boolean(nextEntitlement.canUseAiHints),
       subscriptionStatus:
         nextEntitlement.subscriptionStatus || current.subscriptionStatus,
+      // Honor explicit null from the server (no unlock on this account).
+      // `??` would incorrectly keep the previous session's unlock id.
       freeImaginativeActivityId:
-        nextEntitlement.freeImaginativeActivityId ??
-        current.freeImaginativeActivityId,
+        "freeImaginativeActivityId" in nextEntitlement
+          ? nextEntitlement.freeImaginativeActivityId ?? null
+          : current.freeImaginativeActivityId,
     }));
   }
 
@@ -1789,11 +1792,22 @@ Prioritize activities that require the least decision-making from the child.
       return;
     }
 
+    // After the free imaginative unlock is used, locked samples on the board
+    // cannot be started — score only startable options.
+    const candidates = freeImaginativeUnlockUsed
+      ? activities.filter((activity) => activity && !activity.isLocked)
+      : activities;
+
     // Use the shared helper so auto-pick and fast-start choose the same way.
-    const selectedActivity = getBestActivityForCurrentMoment(activities);
+    const selectedActivity = getBestActivityForCurrentMoment(candidates);
 
     if (!selectedActivity) {
-      showStatus("I could not pick an activity yet. Try generating again.", "error");
+      showStatus(
+        freeImaginativeUnlockUsed
+          ? "Your free pretend sample is already used. Pick an unlocked activity, or get Plus."
+          : "I could not pick an activity yet. Try generating again.",
+        freeImaginativeUnlockUsed ? "info" : "error"
+      );
       return;
     }
 
