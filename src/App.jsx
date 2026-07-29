@@ -1788,7 +1788,7 @@ Prioritize activities that require the least decision-making from the child.
     <main className="app-shell">
       <header className="app-header">
         <div className="app-header-brand">
-          <Link to="/" className="app-header-brand-link" aria-label="FamilyFlow home">
+          <Link to="/app" className="app-header-brand-link" aria-label="FamilyFlow home">
             <img
               className="app-brand-mark"
               src="/logo.svg"
