@@ -2,37 +2,66 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
-import { resolvePresetMigrationPath } from "./resolvePresetMigrationPath.mjs";
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const root = path.join(__dirname, "..");
-const migrationPath = resolvePresetMigrationPath(root);
-
-const simpleSql = fs.readFileSync(
-  path.join(__dirname, "generated", "simple-presets.sql"),
-  "utf8"
-);
-const imaginativeSql = fs.readFileSync(
-  path.join(__dirname, "generated", "imaginative-presets.sql"),
-  "utf8"
+const projectRoot = path.resolve(__dirname, "..");
+const migrationsDirectory = path.join(
+  projectRoot,
+  "supabase",
+  "migrations"
 );
 
-const migration = fs.readFileSync(migrationPath, "utf8");
-const marker = "SIMPLE PRESET ACTIVITIES";
-const idx = migration.indexOf(marker);
-if (idx < 0) {
-  throw new Error("simple marker not found");
+const generatedDirectory = path.join(
+  projectRoot,
+  "scripts",
+  "generated"
+);
+
+/**
+ * Find the newest migration created with:
+ *
+ * npx supabase migration new seed_preset_activities
+ *
+ * The Supabase CLI generates filenames similar to:
+ *
+ * 20260729184500_seed_preset_activities.sql
+ */
+function findSeedMigration() {
+  if (!fs.existsSync(migrationsDirectory)) {
+    throw new Error(
+      `Migrations directory does not exist: ${migrationsDirectory}`
+    );
+  }
+
+  const matchingFiles = fs
+    .readdirSync(migrationsDirectory)
+    .filter((fileName) =>
+      /^\d+_seed_preset_activities\.sql$/.test(fileName)
+    )
+    .sort();
+
+  if (matchingFiles.length === 0) {
+    throw new Error(
+      [
+        "No seed_preset_activities migration was found.",
+        "",
+        "Create it first by running:",
+        "",
+        "npx supabase migration new seed_preset_activities",
+      ].join("\n")
+    );
+  }
+
+  const newestFileName = matchingFiles.at(-1);
+
+  return path.join(migrationsDirectory, newestFileName);
 }
 
-// Back up to the start of the comment block that contains the marker.
-const commentStart = migration.lastIndexOf("/*", idx);
-if (commentStart < 0) {
-  throw new Error("comment start not found");
-}
-
-const header = migration.slice(0, commentStart);
-
-function insertHeader(label, underline) {
+/**
+ * Build the opening portion of each INSERT statement.
+ */
+function buildInsertHeader(label, underline) {
   return `/*
  * ${label}
  * ${underline}
@@ -53,7 +82,13 @@ values
 `;
 }
 
-const upsert = `
+/**
+ * Both activity collections use an upsert.
+ *
+ * This makes the migration safe if the same activity slug already exists.
+ * Existing rows are updated instead of duplicated.
+ */
+const upsertSql = `
 on conflict (slug)
 do update set
   title = excluded.title,
@@ -67,18 +102,70 @@ do update set
   updated_at = now();
 `;
 
-const body =
-  insertHeader("SIMPLE PRESET ACTIVITIES", "========================") +
-  simpleSql +
-  upsert +
-  "\n" +
-  insertHeader(
-    "IMAGINATIVE PRESET ACTIVITIES",
-    "============================="
-  ) +
-  imaginativeSql +
-  upsert +
-  "\n";
+const simpleSqlPath = path.join(
+  generatedDirectory,
+  "simple-presets.sql"
+);
 
-fs.writeFileSync(migrationPath, header + body, "utf8");
-console.log("Updated", migrationPath);
+const imaginativeSqlPath = path.join(
+  generatedDirectory,
+  "imaginative-presets.sql"
+);
+
+if (!fs.existsSync(simpleSqlPath)) {
+  throw new Error(`Missing generated SQL file: ${simpleSqlPath}`);
+}
+
+if (!fs.existsSync(imaginativeSqlPath)) {
+  throw new Error(`Missing generated SQL file: ${imaginativeSqlPath}`);
+}
+
+const simpleSql = fs.readFileSync(simpleSqlPath, "utf8").trim();
+const imaginativeSql = fs
+  .readFileSync(imaginativeSqlPath, "utf8")
+  .trim();
+
+const seedMigrationPath = findSeedMigration();
+
+const relativeMigrationPath = path
+  .relative(projectRoot, seedMigrationPath)
+  .replaceAll("\\", "/");
+
+const migrationContents = `-- ${relativeMigrationPath}
+
+/*
+ * FAMILYFLOW PRESET ACTIVITY SEED
+ * =================================
+ *
+ * This migration installs the application's canonical activity library:
+ *
+ * - 9 simple preset activities
+ * - 9 imaginative preset activities
+ *
+ * These rows are required application data, not disposable test data.
+ *
+ * The ON CONFLICT clauses make the migration idempotent by updating
+ * an existing activity with the same slug rather than creating a duplicate.
+ */
+
+begin;
+
+${buildInsertHeader(
+  "SIMPLE PRESET ACTIVITIES",
+  "========================"
+)}${simpleSql}
+${upsertSql}
+
+${buildInsertHeader(
+  "IMAGINATIVE PRESET ACTIVITIES",
+  "============================="
+)}${imaginativeSql}
+${upsertSql}
+
+commit;
+`;
+
+fs.writeFileSync(seedMigrationPath, migrationContents, "utf8");
+
+console.log("Preset seed migration updated:");
+console.log(` - ${relativeMigrationPath}`);
