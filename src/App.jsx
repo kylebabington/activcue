@@ -319,7 +319,16 @@ function App() {
             fallbackError
           );
           if (isMounted) {
-            setEntitlementHydrated(false);
+            // Complete as unpaid so local Quick ideas (and demo UI) still work.
+            // Paid AI remains gated by the API if the session/plan is broken.
+            mergePresetEntitlement({
+              isPaid: false,
+              canGenerateWithAi: false,
+              canUseAiHints: false,
+              subscriptionStatus: "inactive",
+              freeImaginativeActivityId: null,
+            });
+            setEntitlementHydrated(true);
           }
         }
       }
@@ -941,6 +950,44 @@ Do not make the idea more creative than it needs to be.
     setLoadingIntent(options.preferSimpleTemplates ? "quick" : "board");
 
     const preferSimpleTemplates = Boolean(options.preferSimpleTemplates);
+
+    /*
+     * Local Quick ideas templates do not need /api/auth/me or presets.
+     * Allow them even while plan hydrate is in flight or if it failed.
+     */
+    if (!entitlementHydrated && preferSimpleTemplates) {
+      setIsLoading(true);
+      showStatus("");
+
+      try {
+        const templateActivities = buildSimpleActivitiesFromTemplates({
+          inventory,
+          currentMoment,
+          count: 3,
+        });
+
+        if (templateActivities.length > 0) {
+          const normalized = normalizeActivitiesToInventory(
+            templateActivities,
+            inventory
+          );
+          setActivities(normalized);
+          showStatus("Quick ideas ready — no wait.", "success");
+          navigate("/quest");
+          return;
+        }
+
+        showStatus(
+          "Still checking your plan. Try again in a moment.",
+          "info"
+        );
+      } finally {
+        setIsLoading(false);
+        setLoadingIntent(null);
+      }
+
+      return;
+    }
 
     if (!entitlementHydrated) {
       showStatus(
