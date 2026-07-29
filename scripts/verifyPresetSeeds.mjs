@@ -1,18 +1,76 @@
 /**
- * Validate seeded presets against the activity suggestion field shape.
- * Usage: node scripts/verifyPresetSeeds.mjs
+ * Validate the canonical preset activity seed migration.
+ *
+ * Usage:
+ *
+ * node scripts/verifyPresetSeeds.mjs
  */
 
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
-import { resolvePresetMigrationPath } from "./resolvePresetMigrationPath.mjs";
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const migration = fs.readFileSync(resolvePresetMigrationPath(), "utf8");
+const projectRoot = path.resolve(__dirname, "..");
 
-const requiredFullContent = [
+const migrationsDirectory = path.join(
+  projectRoot,
+  "supabase",
+  "migrations"
+);
+
+const generatedDirectory = path.join(
+  projectRoot,
+  "scripts",
+  "generated"
+);
+
+/**
+ * Locate the newest generated preset seed migration.
+ */
+function findSeedMigration() {
+  if (!fs.existsSync(migrationsDirectory)) {
+    throw new Error(
+      `Migrations directory does not exist: ${migrationsDirectory}`
+    );
+  }
+
+  const matchingFiles = fs
+    .readdirSync(migrationsDirectory)
+    .filter((fileName) =>
+      /^\d+_seed_preset_activities\.sql$/.test(fileName)
+    )
+    .sort();
+
+  if (matchingFiles.length === 0) {
+    throw new Error(
+      [
+        "No seed_preset_activities migration was found.",
+        "",
+        "Create and populate it first:",
+        "",
+        "npx supabase migration new seed_preset_activities",
+        "node scripts/splicePresetMigration.mjs",
+      ].join("\n")
+    );
+  }
+
+  return path.join(
+    migrationsDirectory,
+    matchingFiles.at(-1)
+  );
+}
+
+const seedMigrationPath = findSeedMigration();
+
+const migration = fs.readFileSync(
+  seedMigrationPath,
+  "utf8"
+);
+
+const requiredFullContentFields = [
   "kidRole",
   "mission",
   "starterPrompts",
@@ -27,83 +85,211 @@ const requiredFullContent = [
   "whyItFits",
 ];
 
-const jsonbBlocks = [...migration.matchAll(/\$\$\s*(\{[\s\S]*?\})\s*\$\$::jsonb/g)].map(
-  (match) => JSON.parse(match[1])
-);
+/**
+ * Extract every JSON object surrounded by:
+ *
+ * $$ { ... } $$::jsonb
+ */
+const jsonbBlocks = [
+  ...migration.matchAll(
+    /\$\$\s*(\{[\s\S]*?\})\s*\$\$::jsonb/g
+  ),
+].map((match) => JSON.parse(match[1]));
 
-const slugMatches = [
-  ...migration.matchAll(/\(\s*'([a-z0-9-]+)',\s*'([^']+)',\s*'([^']*)',\s*'([^']*)',\s*(\d+),\s*'(simple|imaginative)'/g),
+/**
+ * Extract activity metadata from each SQL value tuple.
+ *
+ * Capture groups:
+ *
+ * 1. slug
+ * 2. title
+ * 3. summary
+ * 4. theme
+ * 5. estimated minutes
+ * 6. activity style
+ */
+const activityMatches = [
+  ...migration.matchAll(
+    /\(\s*'([a-z0-9-]+)',\s*'([^']+)',\s*'([^']*)',\s*'([^']*)',\s*(\d+),\s*'(simple|imaginative)'/g
+  ),
 ];
 
-const simple = slugMatches.filter((m) => m[6] === "simple");
-const imaginative = slugMatches.filter((m) => m[6] === "imaginative");
+const simpleActivities = activityMatches.filter(
+  (match) => match[6] === "simple"
+);
+
+const imaginativeActivities = activityMatches.filter(
+  (match) => match[6] === "imaginative"
+);
 
 const errors = [];
 
-if (simple.length !== 9) errors.push(`Expected 9 simple, got ${simple.length}`);
-if (imaginative.length !== 9)
-  errors.push(`Expected 9 imaginative, got ${imaginative.length}`);
-if (jsonbBlocks.length !== 18)
-  errors.push(`Expected 18 full_content blocks, got ${jsonbBlocks.length}`);
+if (simpleActivities.length !== 9) {
+  errors.push(
+    `Expected 9 simple activities, got ${simpleActivities.length}`
+  );
+}
+
+if (imaginativeActivities.length !== 9) {
+  errors.push(
+    `Expected 9 imaginative activities, got ${imaginativeActivities.length}`
+  );
+}
+
+if (jsonbBlocks.length !== 18) {
+  errors.push(
+    `Expected 18 full_content JSON blocks, got ${jsonbBlocks.length}`
+  );
+}
+
+const slugs = activityMatches.map((match) => match[1]);
+const uniqueSlugs = new Set(slugs);
+
+if (uniqueSlugs.size !== 18) {
+  errors.push(
+    `Expected 18 unique slugs, got ${uniqueSlugs.size}`
+  );
+}
 
 jsonbBlocks.forEach((block, index) => {
-  requiredFullContent.forEach((key) => {
-    if (!(key in block)) {
-      errors.push(`Block ${index} missing ${key}`);
+  requiredFullContentFields.forEach((field) => {
+    if (!(field in block)) {
+      errors.push(
+        `Activity JSON block ${index + 1} is missing ${field}`
+      );
     }
   });
 });
 
-const simpleTemplates = JSON.parse(
-  fs.readFileSync(path.join(__dirname, "generated", "simple-presets.json"), "utf8")
+const simpleTemplatesPath = path.join(
+  generatedDirectory,
+  "simple-presets.json"
 );
+
+const simpleTemplates = JSON.parse(
+  fs.readFileSync(simpleTemplatesPath, "utf8")
+);
+
 simpleTemplates.forEach((template) => {
-  const found = simple.find((m) => m[2] === template.title);
-  if (!found) errors.push(`Missing simple title from template: ${template.title}`);
+  const matchingActivity = simpleActivities.find(
+    (match) => match[2] === template.title
+  );
+
+  if (!matchingActivity) {
+    errors.push(
+      `Missing simple activity title: ${template.title}`
+    );
+  }
 });
 
+const imaginativePresetsPath = path.join(
+  generatedDirectory,
+  "imaginative-presets.json"
+);
+
 const imaginativeJson = JSON.parse(
-  fs.readFileSync(
-    path.join(__dirname, "generated", "imaginative-presets.json"),
-    "utf8"
+  fs.readFileSync(imaginativePresetsPath, "utf8")
+);
+
+const playModes = new Set(
+  imaginativeJson.activities.map(
+    (activity) => activity._playMode
   )
 );
-const playModes = new Set(
-  imaginativeJson.activities.map((activity) => activity._playMode)
-);
+
 const laneIds = new Set(
-  imaginativeJson.activities.map((activity) => activity._laneId)
+  imaginativeJson.activities.map(
+    (activity) => activity._laneId
+  )
 );
+
 if (playModes.size !== 9) {
-  errors.push(`Expected 9 unique play modes, got ${playModes.size}`);
+  errors.push(
+    `Expected 9 unique play modes, got ${playModes.size}`
+  );
 }
+
 if (laneIds.size !== 9) {
-  errors.push(`Expected 9 unique lanes, got ${laneIds.size}`);
+  errors.push(
+    `Expected 9 unique imaginative lanes, got ${laneIds.size}`
+  );
 }
 
 imaginativeJson.activities.forEach((activity) => {
-  if (!activity.kidRole) errors.push(`${activity.title} missing kidRole`);
-  if (!activity.mission) errors.push(`${activity.title} missing mission`);
-  if (!activity.starterPrompts?.length)
-    errors.push(`${activity.title} missing starterPrompts`);
+  if (!activity.kidRole) {
+    errors.push(`${activity.title} is missing kidRole`);
+  }
+
+  if (!activity.mission) {
+    errors.push(`${activity.title} is missing mission`);
+  }
+
+  if (!activity.starterPrompts?.length) {
+    errors.push(
+      `${activity.title} is missing starterPrompts`
+    );
+  }
 });
 
-const energies = imaginativeJson.activities.map((a) => a.energy);
-const low = energies.filter((e) => e === "low").length;
-const medium = energies.filter((e) => e === "medium").length;
-const high = energies.filter((e) => e === "high").length;
-if (low < 2) errors.push(`Need >=2 low energy, got ${low}`);
-if (medium < 2) errors.push(`Need >=2 medium energy, got ${medium}`);
-if (high < 1) errors.push(`Need >=1 high energy, got ${high}`);
+const energies = imaginativeJson.activities.map(
+  (activity) => activity.energy
+);
 
-if (errors.length) {
-  console.error("Verification FAILED:");
-  errors.forEach((error) => console.error(` - ${error}`));
+const lowEnergyCount = energies.filter(
+  (energy) => energy === "low"
+).length;
+
+const mediumEnergyCount = energies.filter(
+  (energy) => energy === "medium"
+).length;
+
+const highEnergyCount = energies.filter(
+  (energy) => energy === "high"
+).length;
+
+if (lowEnergyCount < 2) {
+  errors.push(
+    `Need at least 2 low-energy activities, got ${lowEnergyCount}`
+  );
+}
+
+if (mediumEnergyCount < 2) {
+  errors.push(
+    `Need at least 2 medium-energy activities, got ${mediumEnergyCount}`
+  );
+}
+
+if (highEnergyCount < 1) {
+  errors.push(
+    `Need at least 1 high-energy activity, got ${highEnergyCount}`
+  );
+}
+
+if (errors.length > 0) {
+  console.error("Preset verification FAILED:");
+
+  errors.forEach((error) => {
+    console.error(` - ${error}`);
+  });
+
   process.exit(1);
 }
 
-console.log("Verification passed:");
-console.log(` - ${simple.length} simple presets`);
-console.log(` - ${imaginative.length} imaginative presets`);
-console.log(` - play modes: ${[...playModes].join(", ")}`);
-console.log(` - energy mix: low=${low}, medium=${medium}, high=${high}`);
+const relativeMigrationPath = path
+  .relative(projectRoot, seedMigrationPath)
+  .replaceAll("\\", "/");
+
+console.log("Preset verification passed:");
+console.log(` - migration: ${relativeMigrationPath}`);
+console.log(` - simple activities: ${simpleActivities.length}`);
+console.log(
+  ` - imaginative activities: ${imaginativeActivities.length}`
+);
+console.log(` - full_content blocks: ${jsonbBlocks.length}`);
+console.log(` - unique slugs: ${uniqueSlugs.size}`);
+console.log(
+  ` - play modes: ${[...playModes].join(", ")}`
+);
+console.log(
+  ` - energy mix: low=${lowEnergyCount}, medium=${mediumEnergyCount}, high=${highEnergyCount}`
+);
