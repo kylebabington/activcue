@@ -1,6 +1,6 @@
 // src/App.jsx
 
-import { Navigate, NavLink, Route, Routes, useNavigate } from "react-router-dom";
+import { Link, Navigate, NavLink, Route, Routes, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { getActivitySuggestions, getQuestStepHint } from "./api/activityApi";
 import { AuthenticationError } from "./api/apiClient";
@@ -1788,14 +1788,16 @@ Prioritize activities that require the least decision-making from the child.
     <main className="app-shell">
       <header className="app-header">
         <div className="app-header-brand">
-          <img
-            className="app-brand-mark"
-            src="/logo.svg"
-            alt=""
-            width="28"
-            height="28"
-          />
-          <p className="app-brand-name">FamilyFlow</p>
+          <Link to="/" className="app-header-brand-link" aria-label="FamilyFlow home">
+            <img
+              className="app-brand-mark"
+              src="/logo.svg"
+              alt=""
+              width="28"
+              height="28"
+            />
+            <p className="app-brand-name">FamilyFlow</p>
+          </Link>
         </div>
 
         <nav className="app-nav">
@@ -1859,7 +1861,7 @@ Prioritize activities that require the least decision-making from the child.
       <AppProvider value={appContextValue}>
         <Routes>
           <Route
-            path="/"
+            path="/app"
             element={<Navigate to={defaultHomePath} replace />}
           />
 
