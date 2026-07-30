@@ -2,26 +2,82 @@
 
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import {
+  BrowserRouter,
+  Route,
+  Routes,
+} from "react-router-dom";
 
 import App from "./App.jsx";
+import { AuthProvider } from "./context/AuthProvider.jsx";
+import CompleteSignupPage from "./pages/CompleteSignupPage.jsx";
 import LandingPage from "./pages/LandingPage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import SignupPage from "./pages/SignupPage.jsx";
-import { AuthProvider } from "./context/AuthProvider.jsx";
 
 import "./index.css";
 
-ReactDOM.createRoot(document.getElementById("root")).render(
+ReactDOM.createRoot(
+  document.getElementById("root")
+).render(
   <React.StrictMode>
     <BrowserRouter>
       <Routes>
-        {/* Marketing + account entry — no anonymous session yet. */}
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/signup" element={<SignupPage />} />
+        {/*
+         * Public marketing page.
+         *
+         * Merely viewing the landing page does not create an anonymous
+         * Supabase user.
+         */}
+        <Route
+          path="/"
+          element={<LandingPage />}
+        />
 
-        {/* In-app routes establish (or restore) a session first. */}
+        {/*
+         * Existing users log in directly.
+         *
+         * signInWithPassword establishes its own permanent session, so this
+         * page does not need AuthProvider to create an anonymous session first.
+         */}
+        <Route
+          path="/login"
+          element={<LoginPage />}
+        />
+
+        {/*
+         * Signup means converting the current visitor into a permanent user.
+         *
+         * AuthProvider restores an existing anonymous session or creates one
+         * before SignupPage runs.
+         */}
+        <Route
+          path="/signup"
+          element={
+            <AuthProvider>
+              <SignupPage />
+            </AuthProvider>
+          }
+        />
+
+        {/*
+         * Supabase redirects email confirmation links here.
+         *
+         * AuthProvider restores the confirmed session before the user chooses
+         * a password.
+         */}
+        <Route
+          path="/complete-signup"
+          element={
+            <AuthProvider>
+              <CompleteSignupPage />
+            </AuthProvider>
+          }
+        />
+
+        {/*
+         * All FamilyFlow application routes require a Supabase session.
+         */}
         <Route
           path="*"
           element={
