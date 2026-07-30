@@ -81,6 +81,7 @@ server/
 
 ## Notes
 
-- App data is stored in browser `localStorage`.
+- Family settings (children, inventory, safety, current moment, parent presets) sync to Supabase for the signed-in user (anonymous or permanent).
+- Quest history, saved favorites, the active quest, parent PIN, and UI theme still live in browser `localStorage` for now.
 - `server/.env` is gitignored. Never commit API keys.
 - If this repo ever exposed a real `.env` file, rotate the OpenAI key.
