@@ -346,15 +346,43 @@ function App() {
         return;
       }
 
+      const hydrateUserId = user.id;
+
       setFamilySettingsReady(false);
       setFamilySettingsError("");
       skipNextFamilySettingsSaveRef.current = true;
-      familySettingsHydrateUserIdRef.current = user.id;
+      familySettingsHydrateUserIdRef.current = hydrateUserId;
+
+      function isCurrentHydrate() {
+        return (
+          isMounted &&
+          familySettingsHydrateUserIdRef.current ===
+            hydrateUserId
+        );
+      }
+
+      function abandonStaleHydrate() {
+        /*
+         * A newer hydrate for a different user started. Drop legacy keys so
+         * that account cannot import this browser document. Same-user
+         * StrictMode remounts keep the same hydrateUserId on the ref, so
+         * keys are left for the remounted effect to finish importing.
+         */
+        if (
+          familySettingsHydrateUserIdRef.current !==
+          hydrateUserId
+        ) {
+          clearFamilySettingsLocalStorage();
+        }
+      }
 
       try {
-        const response = await getFamilySettings();
+        const response = await getFamilySettings({
+          expectedUserId: hydrateUserId,
+        });
 
-        if (!isMounted) {
+        if (!isCurrentHydrate()) {
+          abandonStaleHydrate();
           return;
         }
 
@@ -362,15 +390,41 @@ function App() {
           applyFamilySettingsDocument(response.settings);
         } else {
           const imported = readFamilySettingsFromLocalStorage();
-          const saved = await saveFamilySettings(imported);
 
-          if (!isMounted) {
+          /*
+           * Re-check before the import PUT. authenticatedRequest also refuses
+           * to send if the live Supabase session user no longer matches, so
+           * localStorage from user A cannot be written under user B's token.
+           */
+          if (!isCurrentHydrate()) {
+            abandonStaleHydrate();
+            return;
+          }
+
+          const saved = await saveFamilySettings(imported, {
+            expectedUserId: hydrateUserId,
+          });
+
+          /*
+           * Clear legacy keys as soon as the import PUT succeeds for this
+           * hydrate user — even if the effect already unmounted — so a later
+           * sign-in cannot re-import them. Only apply React state when this
+           * hydrate is still current.
+           */
+          clearFamilySettingsLocalStorage();
+
+          if (!isCurrentHydrate()) {
             return;
           }
 
           applyFamilySettingsDocument(
             saved.settings || imported
           );
+        }
+
+        if (!isCurrentHydrate()) {
+          abandonStaleHydrate();
+          return;
         }
 
         /*
@@ -384,7 +438,14 @@ function App() {
       } catch (error) {
         console.error("Could not hydrate family settings:", error);
 
-        if (!isMounted) {
+        if (
+          error instanceof AuthenticationError &&
+          error.code === "AUTH_SESSION_CHANGED"
+        ) {
+          clearFamilySettingsLocalStorage();
+        }
+
+        if (!isCurrentHydrate()) {
           return;
         }
 
@@ -435,6 +496,8 @@ function App() {
       customParentPresets,
     });
 
+    const saveUserId = user.id;
+
     familySettingsSaveTimeoutRef.current = window.setTimeout(() => {
       familySettingsSaveTimeoutRef.current = null;
 
@@ -442,7 +505,13 @@ function App() {
         return;
       }
 
-      const savePromise = saveFamilySettings(payload).catch((error) => {
+      if (familySettingsHydrateUserIdRef.current !== saveUserId) {
+        return;
+      }
+
+      const savePromise = saveFamilySettings(payload, {
+        expectedUserId: saveUserId,
+      }).catch((error) => {
         console.error("Could not save family settings:", error);
       });
 
@@ -2388,8 +2457,8 @@ Prioritize activities that require the least decision-making from the child.
     }
 
     /*
-     * Stop debounced autosaves and wait out any in-flight PUT so an older
-     * payload cannot overwrite the reset defaults on the server.
+     * Stop debounced autosaves and drain in-flight PUTs so an older payload
+     * cannot overwrite the reset defaults on the server after we write them.
      */
     suppressFamilySettingsSavesRef.current = true;
 
@@ -2398,12 +2467,26 @@ Prioritize activities that require the least decision-making from the child.
       familySettingsSaveTimeoutRef.current = null;
     }
 
-    if (familySettingsSaveInFlightRef.current.size > 0) {
-      await Promise.all([...familySettingsSaveInFlightRef.current]);
+    while (familySettingsSaveInFlightRef.current.size > 0) {
+      await Promise.all([
+        ...familySettingsSaveInFlightRef.current,
+      ]);
+    }
+
+    /*
+     * A timer callback may have been queued before clearTimeout took effect.
+     * Suppress keeps it from starting a PUT; clear again before we write
+     * defaults in case one was rescheduled somehow.
+     */
+    if (familySettingsSaveTimeoutRef.current !== null) {
+      window.clearTimeout(familySettingsSaveTimeoutRef.current);
+      familySettingsSaveTimeoutRef.current = null;
     }
 
     try {
-      await saveFamilySettings(buildDefaultFamilySettings());
+      await saveFamilySettings(buildDefaultFamilySettings(), {
+        expectedUserId: user?.id,
+      });
     } catch (error) {
       console.error("Could not reset server family settings:", error);
       suppressFamilySettingsSavesRef.current = false;
