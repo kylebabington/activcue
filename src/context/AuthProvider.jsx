@@ -8,75 +8,84 @@ const SESSION_ENDED_MESSAGE =
     "Your secure session ended. Refresh the page to continue.";
 
 /*
- * React StrictMode intentionally runs effects more than once during local
- * development.
+ * React StrictMode intentionally mounts, unmounts, and mounts components
+ * again during local development.
  *
- * Without this shared promise, two overlapping initialization effects could
- * both try to create an anonymous user.
+ * Without a shared in-flight promise, two AuthProvider instances could both
+ * discover that no session exists and create two anonymous users.
  *
- * Keeping the promise outside the component ensures all initialization
- * attempts share one Supabase request.
+ * The promise is shared only while initialization is happening. It is cleared
+ * after success or failure so future mounts re-read the current Supabase
+ * session rather than reusing an old session object.
  */
 let authInitializationPromise = null;
 
 /*
- * Restore an existing Supabase session or create one anonymous user.
+ * Read the current browser session.
+ *
+ * When no session exists, create one anonymous authenticated user.
+ */
+async function restoreOrCreateSession() {
+    const {
+        data: sessionData,
+        error: sessionError,
+    } = await supabase.auth.getSession();
+
+    if (sessionError) {
+        throw sessionError;
+    }
+
+    if (sessionData.session) {
+        return sessionData.session;
+    }
+
+    const {
+        data: anonymousData,
+        error: anonymousError,
+    } = await supabase.auth.signInAnonymously();
+
+    if (anonymousError) {
+        throw anonymousError;
+    }
+
+    if (!anonymousData.session) {
+        throw new Error(
+            "Supabase created no usable session for the anonymous user."
+        );
+    }
+
+    return anonymousData.session;
+}
+
+/*
+ * Share one initialization request while it is in progress.
+ *
+ * Once it finishes, clear the shared reference. A later provider mount must
+ * inspect Supabase again because the user may have:
+ *
+ * - confirmed an email
+ * - converted from anonymous to permanent
+ * - logged into another account
+ * - refreshed their session
  */
 async function getOrCreateSession() {
     if (!authInitializationPromise) {
-        authInitializationPromise = (async () => {
-            /*
-             * First, check whether Supabase already has a saved session for this
-             * browser.
-             */
-            const {
-                data: sessionData,
-                error: sessionError,
-            } = await supabase.auth.getSession();
-
-            if (sessionError) {
-                throw sessionError;
-            }
-
-            if (sessionData.session) {
-                return sessionData.session;
-            }
-
-            /*
-             * No saved session exists, so create an anonymous authenticated user.
-             *
-             * Supabase will return:
-             * - a user object
-             * - an access-token JWT
-             * - a refresh token
-             */
-            const {
-                data: anonymousData,
-                error: anonymousError,
-            } = await supabase.auth.signInAnonymously();
-
-            if (anonymousError) {
-                throw anonymousError;
-            }
-
-            if (!anonymousData.session) {
-                throw new Error(
-                    "Supabase created no usable session for the anonymous user."
-                );
-            }
-
-            return anonymousData.session;
-        })().catch((error) => {
-            /*
-             * Clear a failed promise so a future reload can try initialization
-             * again instead of permanently reusing the rejected promise.
-             */
-            authInitializationPromise = null;
-            throw error;
-        });
+        authInitializationPromise = restoreOrCreateSession();
     }
 
-    return authInitializationPromise;
+    const pendingInitialization = authInitializationPromise;
+
+    try {
+        return await pendingInitialization;
+    } finally {
+        /*
+         * Only clear the global reference if it still points at the promise this
+         * call used. This protects against accidentally clearing a newer request.
+         */
+        if (authInitializationPromise === pendingInitialization) {
+            authInitializationPromise = null;
+        }
+    }
 }
 
 export function AuthProvider({ children }) {
@@ -84,11 +93,12 @@ export function AuthProvider({ children }) {
     const [user, setUser] = useState(null);
     const [isAuthReady, setIsAuthReady] = useState(false);
     const [authError, setAuthError] = useState("");
+
     /*
-     * Tracks whether we have successfully established a session at least once.
+     * Tracks whether this provider established a valid session at least once.
      *
-     * onAuthStateChange can emit a null session during early bootstrap
-     * (INITIAL_SESSION). That must not look like a post-login sign-out.
+     * Supabase may emit INITIAL_SESSION with no session while authentication is
+     * still bootstrapping. That early event should not be treated like a logout.
      */
     const hasEstablishedSessionRef = useRef(false);
 
@@ -96,12 +106,15 @@ export function AuthProvider({ children }) {
         let isMounted = true;
 
         /*
-         * Listen for future authentication changes:
+         * Listen for all future Supabase Auth changes:
          *
          * - anonymous sign-in
-         * - token refresh
+         * - email confirmation
          * - permanent account conversion
-         * - sign-out
+         * - password setup
+         * - token refresh
+         * - login
+         * - logout
          */
         const {
             data: { subscription },
@@ -120,9 +133,8 @@ export function AuthProvider({ children }) {
             }
 
             /*
-             * Session cleared after we already had one (sign-out, refresh
-             * failure, or cleared storage). Block the app instead of letting
-             * API calls fail later without a Bearer token.
+             * A null session after a valid session existed means the session was
+             * cleared, expired beyond recovery, or explicitly signed out.
              */
             if (hasEstablishedSessionRef.current) {
                 setAuthError(SESSION_ENDED_MESSAGE);
@@ -142,7 +154,10 @@ export function AuthProvider({ children }) {
                 setUser(activeSession.user);
                 setAuthError("");
             } catch (error) {
-                console.error("Supabase authentication initialization failed:", error);
+                console.error(
+                    "Supabase authentication initialization failed:",
+                    error
+                );
 
                 if (!isMounted) {
                     return;
@@ -169,8 +184,8 @@ export function AuthProvider({ children }) {
     }, []);
 
     /*
-     * Memoizing the context value prevents consumers from receiving a new
-     * object on every unrelated render.
+     * Memoizing prevents every unrelated render from creating a new context
+     * object and rerendering all auth consumers.
      */
     const contextValue = useMemo(
         () => ({
@@ -185,9 +200,8 @@ export function AuthProvider({ children }) {
     );
 
     /*
-     * Do not render the main application until identity initialization has
-     * completed. This prevents the user from clicking Generate before an
-     * access token exists.
+     * Do not render protected account or app pages until a usable Supabase
+     * session has been restored or created.
      */
     if (!isAuthReady) {
         return (
@@ -207,11 +221,9 @@ export function AuthProvider({ children }) {
     }
 
     /*
-     * Show a visible configuration/authentication failure instead of rendering
-     * an application that cannot successfully call its backend.
-     *
-     * After init, a missing session is also treated as a hard stop even if
-     * authError has not been set yet (e.g. a late onAuthStateChange clear).
+     * Stop rendering protected content when authentication cannot be
+     * established. This is safer than letting later API calls fail without an
+     * access token.
      */
     if (authError || !session) {
         return (
@@ -230,7 +242,10 @@ export function AuthProvider({ children }) {
 
                     <p>{authError || SESSION_ENDED_MESSAGE}</p>
 
-                    <button type="button" onClick={() => window.location.reload()}>
+                    <button
+                        type="button"
+                        onClick={() => window.location.reload()}
+                    >
                         Try again
                     </button>
                 </section>

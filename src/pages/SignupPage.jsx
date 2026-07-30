@@ -1,58 +1,172 @@
 // src/pages/SignupPage.jsx
 
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
 import { supabase } from "../lib/supabaseClient";
 import "../styles/landing.css";
 
+const PENDING_SIGNUP_EMAIL_KEY =
+  "familyflow.pendingSignupEmail";
+
 function SignupPage() {
-  const navigate = useNavigate();
+  const { user, isAnonymous } = useAuth();
+
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [infoMessage, setInfoMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function handleSubmit(event) {
     event.preventDefault();
+
     setErrorMessage("");
     setInfoMessage("");
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    if (!normalizedEmail) {
+      setErrorMessage("Enter the email address you want to use.");
+      return;
+    }
+
+    /*
+     * This page converts an anonymous user. It must not create a second Auth
+     * user with signUp().
+     */
+    if (!isAnonymous) {
+      setErrorMessage(
+        "This session is already connected to a permanent account."
+      );
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email: email.trim(),
-        password,
-      });
+      const emailRedirectTo =
+        `${window.location.origin}/complete-signup`;
+
+      /*
+       * Add an email identity to the current anonymous Supabase user.
+       *
+       * The existing user UUID remains the same. That means:
+       *
+       * - profiles.user_id stays the same
+       * - the free imaginative unlock stays attached
+       * - a future Stripe customer stays attached
+       */
+      const { error } = await supabase.auth.updateUser(
+        {
+          email: normalizedEmail,
+        },
+        {
+          emailRedirectTo,
+        }
+      );
 
       if (error) {
         throw error;
       }
 
-      if (data.session) {
-        navigate("/app", { replace: true });
-        return;
-      }
+      /*
+       * This is only used to display the email on the password-completion
+       * page. It is not trusted for authentication or authorization.
+       */
+      window.sessionStorage.setItem(
+        PENDING_SIGNUP_EMAIL_KEY,
+        normalizedEmail
+      );
 
       setInfoMessage(
-        "Check your email to confirm your account, then log in."
+        `We sent a confirmation link to ${normalizedEmail}. Open that email and click the link to finish creating your account.`
       );
     } catch (error) {
-      setErrorMessage(
+      const message =
         error instanceof Error
           ? error.message
-          : "Could not create your account. Try again."
-      );
+          : "Could not connect this email to your account.";
+
+      if (
+        message.toLowerCase().includes("already") ||
+        message.toLowerCase().includes("registered") ||
+        message.toLowerCase().includes("exists")
+      ) {
+        setErrorMessage(
+          "That email may already belong to an account. Log in instead, or use a different email."
+        );
+      } else {
+        setErrorMessage(message);
+      }
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  /*
+   * A permanent user does not need to run the conversion flow again.
+   */
+  if (!isAnonymous) {
+    return (
+      <div className="landing landing--auth">
+        <header className="landing-topbar">
+          <div className="landing-topbar-inner">
+            <Link
+              className="landing-brand"
+              to="/"
+              aria-label="FamilyFlow home"
+            >
+              <img
+                className="landing-brand-mark"
+                src="/logo.svg"
+                alt=""
+                width="36"
+                height="36"
+              />
+              <span className="landing-brand-name">
+                FamilyFlow
+              </span>
+            </Link>
+
+            <Link className="landing-topbar-link" to="/app">
+              Open app
+            </Link>
+          </div>
+        </header>
+
+        <section
+          className="landing-auth"
+          aria-labelledby="signup-title"
+        >
+          <div className="landing-auth-panel">
+            <h1 id="signup-title">Account connected</h1>
+
+            <p className="landing-auth-lead">
+              This session is already connected to{" "}
+              <strong>{user?.email || "a permanent account"}</strong>.
+            </p>
+
+            <Link
+              className="landing-btn landing-btn--primary"
+              to="/app"
+            >
+              Continue to FamilyFlow
+            </Link>
+          </div>
+        </section>
+      </div>
+    );
   }
 
   return (
     <div className="landing landing--auth">
       <header className="landing-topbar">
         <div className="landing-topbar-inner">
-          <Link className="landing-brand" to="/" aria-label="FamilyFlow home">
+          <Link
+            className="landing-brand"
+            to="/"
+            aria-label="FamilyFlow home"
+          >
             <img
               className="landing-brand-mark"
               src="/logo.svg"
@@ -60,44 +174,47 @@ function SignupPage() {
               width="36"
               height="36"
             />
-            <span className="landing-brand-name">FamilyFlow</span>
+            <span className="landing-brand-name">
+              FamilyFlow
+            </span>
           </Link>
+
           <Link className="landing-topbar-link" to="/login">
             Log in
           </Link>
         </div>
       </header>
 
-      <section className="landing-auth" aria-labelledby="signup-title">
+      <section
+        className="landing-auth"
+        aria-labelledby="signup-title"
+      >
         <div className="landing-auth-panel">
-          <h1 id="signup-title">Sign up</h1>
+          <p className="landing-eyebrow">Step 1 of 2</p>
+
+          <h1 id="signup-title">Save your FamilyFlow account</h1>
+
           <p className="landing-auth-lead">
-            Create a family account to save progress and unlock Plus later.
+            Add an email to keep your free activity unlock and
+            protect future Plus access.
           </p>
 
-          <form className="landing-auth-form" onSubmit={handleSubmit}>
+          <form
+            className="landing-auth-form"
+            onSubmit={handleSubmit}
+          >
             <label className="landing-auth-field">
               <span>Email</span>
+
               <input
                 type="email"
                 name="email"
                 autoComplete="email"
                 required
                 value={email}
-                onChange={(event) => setEmail(event.target.value)}
-              />
-            </label>
-
-            <label className="landing-auth-field">
-              <span>Password</span>
-              <input
-                type="password"
-                name="password"
-                autoComplete="new-password"
-                required
-                minLength={6}
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
+                onChange={(event) =>
+                  setEmail(event.target.value)
+                }
               />
             </label>
 
@@ -118,14 +235,17 @@ function SignupPage() {
               type="submit"
               disabled={isSubmitting}
             >
-              {isSubmitting ? "Creating account…" : "Create account"}
+              {isSubmitting
+                ? "Sending confirmation…"
+                : "Send confirmation email"}
             </button>
           </form>
 
           <p className="landing-auth-footer">
-            Already have an account? <Link to="/login">Log in</Link>
+            Already have an account?{" "}
+            <Link to="/login">Log in</Link>
             {" · "}
-            <Link to="/app">Try without signing up</Link>
+            <Link to="/app">Return to the app</Link>
           </p>
         </div>
       </section>
