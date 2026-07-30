@@ -11,6 +11,7 @@ import { createOpenAIClient } from "./lib/openaiClient.js";
 import healthRouter from "./routes/health.js";
 import authRouter from "./routes/auth.js";
 import presetActivitiesRouter from "./routes/presetActivities.js";
+import familySettingsRouter from "./routes/familySettings.js";
 import createActivitySuggestionsRouter from "./routes/activitySuggestions.js";
 import createQuestStepHintRouter from "./routes/questStepHint.js";
 
@@ -188,6 +189,13 @@ app.use("/api", authRouter);
  * These require a valid Supabase user but do not call OpenAI.
  */
 app.use("/api", presetActivitiesRouter);
+
+/*
+ * Durable family settings (children, inventory, safety, moment, presets).
+ *
+ * Synced for anonymous and permanent users. Does not call OpenAI.
+ */
+app.use("/api", familySettingsRouter);
 
 
 /*

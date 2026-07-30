@@ -1,7 +1,7 @@
 // src/App.jsx
 
 import { Link, Navigate, NavLink, Route, Routes, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   getActivitySuggestions,
   getPresetActivities,
@@ -9,6 +9,10 @@ import {
   unlockPresetActivity,
 } from "./api/activityApi";
 import { getCurrentAuthenticatedUser } from "./api/authApi";
+import {
+  getFamilySettings,
+  saveFamilySettings,
+} from "./api/familySettingsApi";
 import { ApiRequestError, AuthenticationError } from "./api/apiClient";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import { useAuth } from "./hooks/useAuth";
@@ -23,10 +27,16 @@ import { AppProvider } from "./context/AppContext";
 import "./App.css";
 import { defaultParentStatusPresets, inventoryCategories } from "./constants/presets";
 import {
-  buildDefaultInventory,
   inventoryPresets,
   isPresetInventoryItem,
 } from "./constants/inventoryPresets";
+import {
+  buildDefaultFamilySettings,
+  clearFamilySettingsLocalStorage,
+  familySettingsPayloadFromState,
+  normalizeFamilySettingsDocument,
+  readFamilySettingsFromLocalStorage,
+} from "./constants/familySettingsDefaults";
 import {
   buildStructuredPreferenceContext,
   getTotalActivityScore,
@@ -70,44 +80,21 @@ function App() {
     availability: "helper-welcome",
   });
 
-  // currentMoment stores the full "right now" family situation.
-  //
-  // This is different from parentStatus.
-  // parentStatus only knows:
-  // - what the parent is doing
-  // - whether kids can interrupt
-  //
-  // currentMoment knows more:
-  // - what the parent is doing
-  // - whether kids can interrupt
-  // - how much time the parent needs
-  // - where the kid should play
-  // - how messy the activity can be
-  // - how noisy the activity can be
-  // - how much supervision is available
-  const [currentMoment, setCurrentMoment] = useLocalStorage("currentMoment", {
-    parentActivity: "Cleaning the kitchen",
-    availability: "helper-welcome",
-    timeNeededMinutes: 20,
-    space: "Living room",
-    messLevel: "low",
-    noiseLevel: "normal",
-    supervisionLevel: "independent",
-  });
-
-  const [customParentPresets, setCustomParentPresets] = useLocalStorage(
-    "customParentPresets",
-    []
+  /*
+   * Durable family settings live in Supabase (via Express).
+   * React state is hydrated once from the server (or a one-time localStorage
+   * import), then changes are debounced back with PUT.
+   */
+  const [currentMoment, setCurrentMoment] = useState(
+    () => buildDefaultFamilySettings().currentMoment
   );
 
-  const [activePresetKey, setActivePresetKey] = useLocalStorage(
-    "activeParentPresetKey",
-    ""
-  );
+  const [customParentPresets, setCustomParentPresets] = useState([]);
 
-  const [inventory, setInventory] = useLocalStorage(
-    "inventory",
-    buildDefaultInventory()
+  const [activePresetKey, setActivePresetKey] = useState("");
+
+  const [inventory, setInventory] = useState(
+    () => buildDefaultFamilySettings().inventory
   );
 
   const [newInventoryItem, setNewInventoryItem] = useState("");
@@ -115,10 +102,7 @@ function App() {
   const [newInventoryCategory, setNewInventoryCategory] =
     useState("Building toys");
 
-  const [activityMode, setActivityMode] = useLocalStorage(
-    "activityMode",
-    "single-child"
-  );
+  const [activityMode, setActivityMode] = useState("single-child");
 
   const [kidMood, setKidMood] = useLocalStorage("kidMood", "neutral");
   const [kidEnergyLevel, setKidEnergyLevel] = useLocalStorage(
@@ -142,12 +126,9 @@ function App() {
     "6-9"
   );
 
-  const [childProfiles, setChildProfiles] = useLocalStorage("childProfiles", []);
+  const [childProfiles, setChildProfiles] = useState([]);
 
-  const [activeChildId, setActiveChildId] = useLocalStorage(
-    "activeChildId",
-    ""
-  );
+  const [activeChildId, setActiveChildId] = useState("");
 
   const [newChildName, setNewChildName] = useState("");
   const [newChildAgeRange, setNewChildAgeRange] = useState("6-9");
@@ -155,15 +136,19 @@ function App() {
   const [newChildNeeds, setNewChildNeeds] = useState("");
   const [editingChildId, setEditingChildId] = useState("");
 
-  const [safetySettings, setSafetySettings] = useLocalStorage("safetySettings", {
-    screenFreeOnly: true,
-    noFoodActivities: false,
-    noWaterPlay: true,
-    noSmallObjects: true,
-    quietMode: false,
-    maxActivityMinutes: 30,
-    adultHelpAllowed: "optional",
-  });
+  const [safetySettings, setSafetySettings] = useState(
+    () => buildDefaultFamilySettings().safetySettings
+  );
+
+  const [familySettingsReady, setFamilySettingsReady] = useState(false);
+  const [familySettingsError, setFamilySettingsError] = useState("");
+  const [familySettingsSaveStatus, setFamilySettingsSaveStatus] =
+    useState("saved");
+  const skipNextFamilySettingsSaveRef = useRef(true);
+  const familySettingsHydrateUserIdRef = useRef(null);
+  const familySettingsSaveTimeoutRef = useRef(null);
+  const familySettingsSaveChainRef = useRef(Promise.resolve());
+  const suppressFamilySettingsSavesRef = useRef(false);
 
   const [activities, setActivities] = useState([]);
 
@@ -340,6 +325,284 @@ function App() {
       isMounted = false;
     };
   }, [user?.id]);
+
+  function applyFamilySettingsDocument(settings) {
+    const normalized = normalizeFamilySettingsDocument(settings);
+
+    setActivityMode(normalized.activityMode);
+    setActiveChildId(normalized.activeChildId);
+    setActivePresetKey(normalized.activeParentPresetKey);
+    setChildProfiles(normalized.childProfiles);
+    setInventory(normalized.inventory);
+    setSafetySettings(normalized.safetySettings);
+    setCurrentMoment(normalized.currentMoment);
+    setCustomParentPresets(normalized.customParentPresets);
+    setParentStatus(parentStatusFromMoment(normalized.currentMoment));
+  }
+
+  /*
+   * Serialize family-settings PUTs so an older in-flight request cannot
+   * overwrite a newer payload when the server upserts unconditionally.
+   */
+  function queueFamilySettingsSave(payload, userId) {
+    const savePromise = familySettingsSaveChainRef.current
+      .catch(() => {
+        // Allow the queue to continue after an earlier failure.
+      })
+      .then(async () => {
+        if (suppressFamilySettingsSavesRef.current) {
+          return;
+        }
+
+        if (familySettingsHydrateUserIdRef.current !== userId) {
+          return;
+        }
+
+        setFamilySettingsSaveStatus("saving");
+
+        try {
+          await saveFamilySettings(payload, {
+            expectedUserId: userId,
+          });
+
+          if (familySettingsHydrateUserIdRef.current !== userId) {
+            return;
+          }
+
+          setFamilySettingsSaveStatus("saved");
+        } catch (error) {
+          console.error("Could not save family settings:", error);
+
+          if (familySettingsHydrateUserIdRef.current !== userId) {
+            return;
+          }
+
+          setFamilySettingsSaveStatus("error");
+          throw error;
+        }
+      });
+
+    familySettingsSaveChainRef.current = savePromise;
+
+    return savePromise;
+  }
+
+  function buildCurrentFamilySettingsPayload() {
+    return familySettingsPayloadFromState({
+      activityMode,
+      activeChildId,
+      activeParentPresetKey: activePresetKey,
+      childProfiles,
+      inventory,
+      safetySettings,
+      currentMoment,
+      customParentPresets,
+    });
+  }
+
+  function retryFamilySettingsSave() {
+    if (!user?.id || suppressFamilySettingsSavesRef.current) {
+      return;
+    }
+
+    queueFamilySettingsSave(
+      buildCurrentFamilySettingsPayload(),
+      user.id
+    );
+  }
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function hydrateFamilySettings() {
+      if (!user?.id) {
+        return;
+      }
+
+      const hydrateUserId = user.id;
+
+      setFamilySettingsReady(false);
+      setFamilySettingsError("");
+      setFamilySettingsSaveStatus("saved");
+      skipNextFamilySettingsSaveRef.current = true;
+      familySettingsHydrateUserIdRef.current = hydrateUserId;
+
+      function isCurrentHydrate() {
+        return (
+          isMounted &&
+          familySettingsHydrateUserIdRef.current ===
+            hydrateUserId
+        );
+      }
+
+      function abandonStaleHydrate() {
+        /*
+         * A newer hydrate for a different user started. Drop legacy keys so
+         * that account cannot import this browser document. Same-user
+         * StrictMode remounts keep the same hydrateUserId on the ref, so
+         * keys are left for the remounted effect to finish importing.
+         */
+        if (
+          familySettingsHydrateUserIdRef.current !==
+          hydrateUserId
+        ) {
+          clearFamilySettingsLocalStorage();
+        }
+      }
+
+      try {
+        const response = await getFamilySettings({
+          expectedUserId: hydrateUserId,
+        });
+
+        if (!isCurrentHydrate()) {
+          abandonStaleHydrate();
+          return;
+        }
+
+        if (response.exists && response.settings) {
+          applyFamilySettingsDocument(response.settings);
+        } else {
+          const imported = readFamilySettingsFromLocalStorage();
+
+          /*
+           * Re-check before the import PUT. authenticatedRequest also refuses
+           * to send if the live Supabase session user no longer matches, so
+           * localStorage from user A cannot be written under user B's token.
+           */
+          if (!isCurrentHydrate()) {
+            abandonStaleHydrate();
+            return;
+          }
+
+          const saved = await saveFamilySettings(imported, {
+            expectedUserId: hydrateUserId,
+          });
+
+          /*
+           * Clear legacy keys as soon as the import PUT succeeds for this
+           * hydrate user — even if the effect already unmounted — so a later
+           * sign-in cannot re-import them. Only apply React state when this
+           * hydrate is still current.
+           */
+          clearFamilySettingsLocalStorage();
+
+          if (!isCurrentHydrate()) {
+            return;
+          }
+
+          applyFamilySettingsDocument(
+            saved.settings || imported
+          );
+        }
+
+        if (!isCurrentHydrate()) {
+          abandonStaleHydrate();
+          return;
+        }
+
+        /*
+         * Always clear legacy keys after a successful hydrate.
+         *
+         * If we only cleared on import, a later sign-in for a different user
+         * with no server row could re-import the previous account's settings.
+         */
+        clearFamilySettingsLocalStorage();
+        setFamilySettingsReady(true);
+      } catch (error) {
+        console.error("Could not hydrate family settings:", error);
+
+        if (
+          error instanceof AuthenticationError &&
+          error.code === "AUTH_SESSION_CHANGED"
+        ) {
+          clearFamilySettingsLocalStorage();
+        }
+
+        if (!isCurrentHydrate()) {
+          return;
+        }
+
+        setFamilySettingsError(
+          error instanceof Error
+            ? error.message
+            : "Could not load family settings."
+        );
+        setFamilySettingsReady(false);
+      }
+    }
+
+    hydrateFamilySettings();
+
+    return () => {
+      isMounted = false;
+    };
+    // applyFamilySettingsDocument only calls React setters + a module helper.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- hydrate once per user id
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!familySettingsReady || !user?.id) {
+      return;
+    }
+
+    if (familySettingsHydrateUserIdRef.current !== user.id) {
+      return;
+    }
+
+    if (suppressFamilySettingsSavesRef.current) {
+      return;
+    }
+
+    if (skipNextFamilySettingsSaveRef.current) {
+      skipNextFamilySettingsSaveRef.current = false;
+      return;
+    }
+
+    const payload = familySettingsPayloadFromState({
+      activityMode,
+      activeChildId,
+      activeParentPresetKey: activePresetKey,
+      childProfiles,
+      inventory,
+      safetySettings,
+      currentMoment,
+      customParentPresets,
+    });
+    const saveUserId = user.id;
+
+    familySettingsSaveTimeoutRef.current = window.setTimeout(() => {
+      familySettingsSaveTimeoutRef.current = null;
+
+      if (suppressFamilySettingsSavesRef.current) {
+        return;
+      }
+
+      if (familySettingsHydrateUserIdRef.current !== saveUserId) {
+        return;
+      }
+
+      queueFamilySettingsSave(payload, saveUserId);
+    }, 400);
+
+    return () => {
+      if (familySettingsSaveTimeoutRef.current !== null) {
+        window.clearTimeout(familySettingsSaveTimeoutRef.current);
+        familySettingsSaveTimeoutRef.current = null;
+      }
+    };
+  }, [
+    familySettingsReady,
+    user?.id,
+    activityMode,
+    activeChildId,
+    activePresetKey,
+    childProfiles,
+    inventory,
+    safetySettings,
+    currentMoment,
+    customParentPresets,
+  ]);
 
   function showStatus(message, type = "info") {
     if (!message) {
@@ -2248,22 +2511,61 @@ Prioritize activities that require the least decision-making from the child.
     showStatus("Activity history cleared.", "success");
   }
 
-  function resetSavedData() {
+  async function resetSavedData() {
     const confirmed = window.confirm(
-      "Reset all saved data in this browser? This cannot be undone."
+      "Reset all saved family settings and browser data? This cannot be undone."
     );
 
     if (!confirmed) {
       return;
     }
 
+    /*
+     * Stop debounced autosaves and drain the serialized save chain so an
+     * older payload cannot overwrite the reset defaults on the server.
+     */
+    suppressFamilySettingsSavesRef.current = true;
+
+    if (familySettingsSaveTimeoutRef.current !== null) {
+      window.clearTimeout(familySettingsSaveTimeoutRef.current);
+      familySettingsSaveTimeoutRef.current = null;
+    }
+
+    await familySettingsSaveChainRef.current.catch(() => {});
+
+    /*
+     * A timer callback may have been queued before clearTimeout took effect.
+     * Suppress keeps it from starting a PUT; clear again before we write
+     * defaults in case one was rescheduled somehow.
+     */
+    if (familySettingsSaveTimeoutRef.current !== null) {
+      window.clearTimeout(familySettingsSaveTimeoutRef.current);
+      familySettingsSaveTimeoutRef.current = null;
+    }
+
+    try {
+      const resetPromise = saveFamilySettings(
+        buildDefaultFamilySettings(),
+        {
+          expectedUserId: user?.id,
+        }
+      );
+
+      familySettingsSaveChainRef.current = resetPromise;
+      await resetPromise;
+    } catch (error) {
+      console.error("Could not reset server family settings:", error);
+      suppressFamilySettingsSavesRef.current = false;
+      window.alert(
+        "Could not reset synced family settings on the server. Try again."
+      );
+      return;
+    }
+
+    clearFamilySettingsLocalStorage();
     window.localStorage.removeItem("appMode");
     window.localStorage.removeItem("parentPin");
     window.localStorage.removeItem("parentStatus");
-    window.localStorage.removeItem("customParentPresets");
-    window.localStorage.removeItem("activeParentPresetKey");
-    window.localStorage.removeItem("inventory");
-    window.localStorage.removeItem("activityMode");
     window.localStorage.removeItem("kidMood");
     window.localStorage.removeItem("kidEnergyLevel");
     window.localStorage.removeItem("kidActivityStyle");
@@ -2272,14 +2574,10 @@ Prioritize activities that require the least decision-making from the child.
     window.localStorage.removeItem("activitySpace");
     window.localStorage.removeItem("customActivitySpace");
     window.localStorage.removeItem("childAgeRange");
-    window.localStorage.removeItem("childProfiles");
-    window.localStorage.removeItem("activeChildId");
-    window.localStorage.removeItem("safetySettings");
     window.localStorage.removeItem("activityHistory");
     window.localStorage.removeItem("savedActivities");
     window.localStorage.removeItem("activeActivity");
     window.localStorage.removeItem("lastCompletedQuest");
-    window.localStorage.removeItem("currentMoment");
     window.localStorage.removeItem("uiTheme");
     window.location.reload();
   }
@@ -2369,6 +2667,45 @@ Prioritize activities that require the least decision-making from the child.
     uiThemes,
   };
 
+  if (familySettingsError) {
+    return (
+      <main
+        role="alert"
+        style={{
+          minHeight: "100vh",
+          display: "grid",
+          placeItems: "center",
+          padding: "2rem",
+          textAlign: "center",
+        }}
+      >
+        <section>
+          <p>{familySettingsError}</p>
+          <button type="button" onClick={() => window.location.reload()}>
+            Try again
+          </button>
+        </section>
+      </main>
+    );
+  }
+
+  if (!familySettingsReady) {
+    return (
+      <main
+        role="status"
+        aria-live="polite"
+        style={{
+          minHeight: "100vh",
+          display: "grid",
+          placeItems: "center",
+          padding: "2rem",
+        }}
+      >
+        <p>Loading family settings…</p>
+      </main>
+    );
+  }
+
   return (
     <main className="app-shell">
       <header className="app-header">
@@ -2432,6 +2769,21 @@ Prioritize activities that require the least decision-making from the child.
           compact
         />
       </header>
+
+      {familySettingsSaveStatus === "error" ? (
+        <div
+          className="status-message status-message--error family-settings-save-error"
+          role="alert"
+        >
+          <p>
+            Your latest changes were not saved. Check your connection and try
+            again.
+          </p>
+          <button type="button" onClick={retryFamilySettingsSave}>
+            Try again
+          </button>
+        </div>
+      ) : null}
 
       {statusMessage && (
         <p

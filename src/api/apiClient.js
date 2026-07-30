@@ -48,7 +48,7 @@ export class AuthenticationError extends ApiRequestError {
     }
 }
 
-async function getAccessToken() {
+async function getAccessSession(expectedUserId) {
     const {
         data: sessionData,
         error: sessionError,
@@ -60,8 +60,8 @@ async function getAccessToken() {
         );
     }
 
-    const accessToken =
-        sessionData.session?.access_token;
+    const session = sessionData.session;
+    const accessToken = session?.access_token;
 
     if (!accessToken) {
         throw new AuthenticationError(
@@ -69,7 +69,19 @@ async function getAccessToken() {
         );
     }
 
-    return accessToken;
+    if (
+        expectedUserId &&
+        session.user?.id !== expectedUserId
+    ) {
+        throw new AuthenticationError(
+            "Authentication session changed before the request could be sent.",
+            {
+                code: "AUTH_SESSION_CHANGED",
+            }
+        );
+    }
+
+    return session;
 }
 
 /*
@@ -103,19 +115,26 @@ export async function authenticatedRequest(
     path,
     options = {}
 ) {
-    const accessToken = await getAccessToken();
+    const {
+        expectedUserId,
+        ...requestOptions
+    } = options;
+
+    const session = await getAccessSession(
+        expectedUserId
+    );
 
     const headers = new Headers(
-        options.headers || {}
+        requestOptions.headers || {}
     );
 
     headers.set(
         "Authorization",
-        `Bearer ${accessToken}`
+        `Bearer ${session.access_token}`
     );
 
     if (
-        options.body &&
+        requestOptions.body &&
         !headers.has("Content-Type")
     ) {
         headers.set(
@@ -127,7 +146,7 @@ export async function authenticatedRequest(
     const response = await fetch(
         `${API_BASE_URL}${path}`,
         {
-            ...options,
+            ...requestOptions,
             headers,
         }
     );

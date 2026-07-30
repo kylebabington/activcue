@@ -521,7 +521,10 @@ function SettingsPage() {
         <section className="panel">
           <h2>Danger zone</h2>
 
-          <p>Reset local saved data if you want to start this browser over.</p>
+          <p>
+            Reset synced family settings and this browser&apos;s local quest
+            data. This cannot be undone.
+          </p>
 
           <button className="ghost-button" onClick={resetSavedData}>
             Reset saved data
