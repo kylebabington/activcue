@@ -1,9 +1,80 @@
 // src/pages/LandingPage.jsx
 
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+
+import { redirectToCheckout } from "../api/billingApi";
+import { ApiRequestError } from "../api/apiClient";
+import { supabase } from "../lib/supabaseClient";
 import "../styles/landing.css";
 
 function LandingPage() {
+  const [canSubscribe, setCanSubscribe] = useState(false);
+  const [checkoutBusy, setCheckoutBusy] = useState(false);
+  const [checkoutError, setCheckoutError] = useState("");
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function detectPermanentSession() {
+      try {
+        const {
+          data: sessionData,
+        } = await supabase.auth.getSession();
+        const user = sessionData.session?.user;
+        const isPermanent =
+          Boolean(user) && user.is_anonymous !== true;
+
+        if (isMounted) {
+          setCanSubscribe(isPermanent);
+        }
+      } catch {
+        if (isMounted) {
+          setCanSubscribe(false);
+        }
+      }
+    }
+
+    detectPermanentSession();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      const user = session?.user;
+      setCanSubscribe(
+        Boolean(user) && user.is_anonymous !== true
+      );
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  async function handleGetPlus() {
+    setCheckoutError("");
+    setCheckoutBusy(true);
+
+    try {
+      await redirectToCheckout();
+    } catch (error) {
+      if (
+        error instanceof ApiRequestError &&
+        error.code === "ACCOUNT_REQUIRED"
+      ) {
+        window.location.assign("/signup");
+        return;
+      }
+
+      setCheckoutError(
+        error?.message ||
+          "Could not start checkout. Try again in a moment."
+      );
+      setCheckoutBusy(false);
+    }
+  }
+
   return (
     <div className="landing">
       <header className="landing-topbar">
@@ -123,12 +194,30 @@ function LandingPage() {
             <li>Favorites and history that grow with your family</li>
           </ul>
           <p className="landing-plus-note">
-            Checkout is coming soon. Create a free account today so you are ready.
+            {canSubscribe
+              ? "Subscribe to Plus to unlock personalized AI ideas for your family."
+              : "Create a free account, then subscribe to Plus when you are ready."}
           </p>
+          {checkoutError ? (
+            <p className="landing-plus-note" role="alert">
+              {checkoutError}
+            </p>
+          ) : null}
           <div className="landing-hero-actions">
-            <Link className="landing-btn landing-btn--primary" to="/signup">
-              Sign up free
-            </Link>
+            {canSubscribe ? (
+              <button
+                type="button"
+                className="landing-btn landing-btn--primary"
+                onClick={handleGetPlus}
+                disabled={checkoutBusy}
+              >
+                {checkoutBusy ? "Starting checkout…" : "Get FamilyFlow Plus"}
+              </button>
+            ) : (
+              <Link className="landing-btn landing-btn--primary" to="/signup">
+                Sign up free
+              </Link>
+            )}
             <a className="landing-btn landing-btn--ghost" href="#top">
               Back to top
             </a>

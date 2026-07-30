@@ -19,6 +19,8 @@ function KidPage({
   handleReplaySavedActivity,
   isDemoMode = false,
   imBoredDisabled = false,
+  onGetPlus = null,
+  checkoutBusy = false,
 }) {
   function energyChipClass(energyLevel) {
     return kidEnergyLevel === energyLevel
@@ -73,14 +75,44 @@ function KidPage({
             {imBoredDisabled ? (
               <p>
                 Free pretend sample used. <strong>I&apos;m Bored</strong> needs{" "}
-                <Link to="/signup">FamilyFlow Plus</Link> for more ideas.
-                Simple Quick ideas still work.
+                {typeof onGetPlus === "function" ? (
+                  <button
+                    type="button"
+                    className="kid-plus-link"
+                    onClick={onGetPlus}
+                    disabled={checkoutBusy || isLoading}
+                  >
+                    {checkoutBusy ? "Starting checkout…" : "FamilyFlow Plus"}
+                  </button>
+                ) : (
+                  <Link to="/signup">FamilyFlow Plus</Link>
+                )}{" "}
+                for more ideas. Simple Quick ideas still work.
               </p>
             ) : (
               <p>
                 These are <strong>sample presets</strong> so you can try the full
-                flow. <strong>FamilyFlow Plus</strong> will tailor activities to
-                the current parent moment, kid energy/style, and supplies.
+                flow.{" "}
+                {typeof onGetPlus === "function" ? (
+                  <>
+                    <button
+                      type="button"
+                      className="kid-plus-link"
+                      onClick={onGetPlus}
+                      disabled={checkoutBusy || isLoading}
+                    >
+                      {checkoutBusy ? "Starting checkout…" : "FamilyFlow Plus"}
+                    </button>{" "}
+                    will tailor activities to the current parent moment, kid
+                    energy/style, and supplies.
+                  </>
+                ) : (
+                  <>
+                    <strong>FamilyFlow Plus</strong> will tailor activities to
+                    the current parent moment, kid energy/style, and supplies.{" "}
+                    <Link to="/signup">Sign up</Link> to subscribe.
+                  </>
+                )}
               </p>
             )}
           </div>

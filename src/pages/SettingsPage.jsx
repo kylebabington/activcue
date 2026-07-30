@@ -1,10 +1,72 @@
 // src/pages/SettingsPage.jsx
 
-import { useState } from "react";
+import {
+  useEffect,
+  useState,
+} from "react";
+
+import {
+  Link,
+  useSearchParams,
+} from "react-router-dom";
 import SavedActivitiesPanel from "../components/SavedActivitiesPanel";
 import ActivityHistoryPanel from "../components/ActivityHistoryPanel";
 import ThemeSwitcher from "../components/ThemeSwitcher";
+import {
+  createCheckoutSession,
+} from "../api/billingApi";
+import { signOutCurrentUser } from "../api/authApi";
+
 import { useAppContext } from "../context/AppContext";
+import { useAuth } from "../hooks/useAuth";
+
+function formatSubscriptionStatus(
+  status
+) {
+  if (
+    typeof status !== "string" ||
+    !status
+  ) {
+    return "Inactive";
+  }
+
+  return status
+    .replaceAll("_", " ")
+    .replace(/\b\w/g, (letter) =>
+      letter.toUpperCase()
+    );
+}
+
+function formatBillingDate(value) {
+  if (!value) {
+    return "";
+  }
+
+  const date = new Date(value);
+
+  if (
+    Number.isNaN(date.getTime())
+  ) {
+    return "";
+  }
+
+  return new Intl.DateTimeFormat(
+    undefined,
+    {
+      dateStyle: "long",
+    }
+  ).format(date);
+}
+
+function wait(milliseconds) {
+  return new Promise((resolve) => {
+    window.setTimeout(
+      resolve,
+      milliseconds
+    );
+  });
+}
+
 
 function SettingsPage() {
   const {
@@ -53,10 +115,294 @@ function SettingsPage() {
     uiTheme,
     setUiTheme,
     uiThemes,
+    entitlement,
+    entitlementHydrated,
+    refreshEntitlement,
   } = useAppContext();
+
+  const {
+    user,
+    isAnonymous,
+  } = useAuth();
+
+  const [
+    searchParams,
+    setSearchParams,
+  ] = useSearchParams();
+
+  const [
+    billingPlanLoading,
+    setBillingPlanLoading,
+  ] = useState("");
+
+  const [
+    billingMessage,
+    setBillingMessage,
+  ] = useState("");
+
+  const [
+    billingMessageType,
+    setBillingMessageType,
+  ] = useState("info");
+
+  const [
+    logoutBusy,
+    setLogoutBusy,
+  ] = useState(false);
+
+  const [
+    logoutError,
+    setLogoutError,
+  ] = useState("");
+
+  const billingResult =
+    searchParams.get("billing");
 
   const [inventorySearch, setInventorySearch] = useState("");
   const [showSelectedOnly, setShowSelectedOnly] = useState(false);
+
+  /*
+ * Stripe redirects back to Settings after Checkout.
+ *
+ * The webhook usually updates Supabase quickly, but the redirect and webhook
+ * are separate requests. Poll /api/auth/me briefly so the UI updates without
+ * requiring the parent to manually reload the page.
+ */
+  useEffect(() => {
+    if (
+      billingResult ===
+      "checkout-cancelled"
+    ) {
+      setBillingMessage(
+        "Checkout was cancelled. You were not charged."
+      );
+
+      setBillingMessageType("info");
+
+      setSearchParams(
+        {},
+        {
+          replace: true,
+        }
+      );
+
+      return;
+    }
+
+    if (
+      billingResult !==
+      "checkout-success"
+    ) {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function confirmSubscription() {
+      setBillingMessage(
+        "Payment completed. Confirming your FamilyFlow Plus access…"
+      );
+
+      setBillingMessageType("info");
+
+      /*
+       * Give the webhook several chances to finish writing the subscription.
+       */
+      for (
+        let attempt = 0;
+        attempt < 8;
+        attempt += 1
+      ) {
+        try {
+          const nextEntitlement =
+            await refreshEntitlement();
+
+          if (cancelled) {
+            return;
+          }
+
+          if (
+            nextEntitlement.isPaid
+          ) {
+            setBillingMessage(
+              "FamilyFlow Plus is active. AI activities and hints are now unlocked."
+            );
+
+            setBillingMessageType(
+              "success"
+            );
+
+            setSearchParams(
+              {},
+              {
+                replace: true,
+              }
+            );
+
+            return;
+          }
+        } catch (error) {
+          console.warn(
+            "Could not refresh subscription entitlement:",
+            error
+          );
+        }
+
+        await wait(750);
+
+        if (cancelled) {
+          return;
+        }
+      }
+
+      setBillingMessage(
+        "Your payment completed, but Stripe is still confirming the subscription. Use Refresh subscription status in a moment."
+      );
+
+      setBillingMessageType("info");
+    }
+
+    /*
+ * Remove Stripe's return parameters so refreshing Settings does not restart
+ * the full polling sequence.
+ */
+    setSearchParams(
+      {},
+      {
+        replace: true,
+      }
+    );
+
+    confirmSubscription();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    billingResult,
+    refreshEntitlement,
+    setSearchParams,
+  ]);
+
+  async function handleLogOut() {
+    setLogoutError("");
+    setLogoutBusy(true);
+
+    try {
+      await signOutCurrentUser();
+
+      /*
+       * Full navigation leaves AuthProvider, which requires a session for
+       * /app routes. /login is public and does not recreate an anonymous user.
+       */
+      window.location.assign("/login");
+    } catch (error) {
+      console.error("Could not log out:", error);
+
+      setLogoutError(
+        error instanceof Error
+          ? error.message
+          : "Could not log out. Try again."
+      );
+
+      setLogoutBusy(false);
+    }
+  }
+
+  async function handleStartCheckout(
+    plan
+  ) {
+    if (
+      isAnonymous ||
+      !user?.id
+    ) {
+      setBillingMessage(
+        "Create a permanent account before subscribing."
+      );
+
+      setBillingMessageType("error");
+
+      return;
+    }
+
+    setBillingPlanLoading(plan);
+    setBillingMessage("");
+    setBillingMessageType("info");
+
+    try {
+      const checkout =
+        await createCheckoutSession(
+          plan,
+          {
+            expectedUserId:
+              user.id,
+          }
+        );
+
+      /*
+       * Navigate away from FamilyFlow to Stripe's hosted payment page.
+       */
+      window.location.assign(
+        checkout.url
+      );
+    } catch (error) {
+      console.error(
+        "Could not start Stripe Checkout:",
+        error
+      );
+
+      setBillingMessage(
+        error instanceof Error
+          ? error.message
+          : "Could not start checkout. Try again."
+      );
+
+      setBillingMessageType("error");
+      setBillingPlanLoading("");
+    }
+  }
+
+  async function handleRefreshSubscription() {
+    setBillingMessage(
+      "Refreshing subscription status…"
+    );
+
+    setBillingMessageType("info");
+
+    try {
+      const nextEntitlement =
+        await refreshEntitlement();
+
+      if (nextEntitlement.isPaid) {
+        setBillingMessage(
+          "FamilyFlow Plus is active."
+        );
+
+        setBillingMessageType(
+          "success"
+        );
+      } else {
+        setBillingMessage(
+          "FamilyFlow Plus is not active yet. Stripe may still be processing the subscription."
+        );
+
+        setBillingMessageType("info");
+      }
+    } catch (error) {
+      console.error(
+        "Could not refresh subscription status:",
+        error
+      );
+
+      setBillingMessage(
+        error instanceof Error
+          ? error.message
+          : "Could not refresh subscription status."
+      );
+
+      setBillingMessageType("error");
+    }
+  }
 
   const normalizedSearch = inventorySearch.trim().toLowerCase();
 
@@ -485,6 +831,231 @@ function SettingsPage() {
 
       <section className="settings-cluster">
         <h2 className="settings-cluster-title">Account</h2>
+
+        <section className="panel account-session-panel">
+          <div className="panel-header">
+            <div>
+              <h2>Signed in</h2>
+              <p>
+                {isAnonymous
+                  ? "This browser is using a temporary trial session."
+                  : "You are signed in with a permanent FamilyFlow account."}
+              </p>
+            </div>
+          </div>
+
+          {isAnonymous ? (
+            <div className="account-session-actions">
+              <Link className="secondary-action" to="/login">
+                Log in
+              </Link>
+              <Link className="billing-account-link" to="/signup">
+                Create free account
+              </Link>
+            </div>
+          ) : (
+            <div className="account-session-summary">
+              {user?.email ? (
+                <p className="account-session-email">{user.email}</p>
+              ) : null}
+
+              {logoutError ? (
+                <p className="billing-notice billing-notice--error" role="alert">
+                  {logoutError}
+                </p>
+              ) : null}
+
+              <button
+                type="button"
+                className="secondary-action"
+                onClick={handleLogOut}
+                disabled={logoutBusy}
+              >
+                {logoutBusy ? "Logging out…" : "Log out"}
+              </button>
+            </div>
+          )}
+        </section>
+
+        <section className="panel billing-panel">
+          <div className="panel-header">
+            <div>
+              <h2>FamilyFlow Plus</h2>
+
+              <p>
+                Unlock AI-generated activities,
+                personalized ideas, and AI quest
+                hints.
+              </p>
+            </div>
+          </div>
+
+          {billingMessage ? (
+            <div
+              className={
+                `billing-notice ` +
+                `billing-notice--${billingMessageType}`
+              }
+              role={
+                billingMessageType === "error"
+                  ? "alert"
+                  : "status"
+              }
+              aria-live="polite"
+            >
+              {billingMessage}
+            </div>
+          ) : null}
+
+          {!entitlementHydrated ? (
+            <p className="billing-loading">
+              Checking your subscription…
+            </p>
+          ) : entitlement.isPaid ? (
+            <div className="billing-active-summary">
+              <div>
+                <strong>
+                  FamilyFlow Plus is active
+                </strong>
+
+                <p>
+                  Status:{" "}
+                  {formatSubscriptionStatus(
+                    entitlement
+                      .subscriptionStatus
+                  )}
+                </p>
+
+                {entitlement.currentPeriodEnd ? (
+                  <p>
+                    Current billing period ends{" "}
+                    {formatBillingDate(
+                      entitlement
+                        .currentPeriodEnd
+                    )}
+                    .
+                  </p>
+                ) : null}
+              </div>
+
+              <button
+                type="button"
+                className="secondary-action"
+                onClick={
+                  handleRefreshSubscription
+                }
+              >
+                Refresh subscription status
+              </button>
+            </div>
+          ) : isAnonymous ? (
+            <div className="billing-account-required">
+              <p>
+                Your current session is an
+                anonymous trial. Create a free
+                permanent account before adding a
+                paid subscription.
+              </p>
+
+              <Link
+                className="billing-account-link"
+                to="/signup"
+              >
+                Create free account
+              </Link>
+            </div>
+          ) : (
+            <>
+              <div className="billing-plan-grid">
+                <article className="billing-plan-card">
+                  <p className="billing-plan-name">
+                    Monthly
+                  </p>
+
+                  <p className="billing-plan-price">
+                    <strong>$4.99</strong>
+                    <span>per month</span>
+                  </p>
+
+                  <p>
+                    Full FamilyFlow Plus access
+                    with monthly billing.
+                  </p>
+
+                  <button
+                    type="button"
+                    className="billing-plan-action"
+                    disabled={
+                      Boolean(
+                        billingPlanLoading
+                      )
+                    }
+                    onClick={() =>
+                      handleStartCheckout(
+                        "monthly"
+                      )
+                    }
+                  >
+                    {billingPlanLoading ===
+                      "monthly"
+                      ? "Opening Checkout…"
+                      : "Choose monthly"}
+                  </button>
+                </article>
+
+                <article className="billing-plan-card billing-plan-card--featured">
+                  <p className="billing-plan-badge">
+                    Best value
+                  </p>
+
+                  <p className="billing-plan-name">
+                    Annual
+                  </p>
+
+                  <p className="billing-plan-price">
+                    <strong>$39.99</strong>
+                    <span>per year</span>
+                  </p>
+
+                  <p>
+                    A full year of FamilyFlow
+                    Plus at a lower yearly price.
+                  </p>
+
+                  <button
+                    type="button"
+                    className="billing-plan-action"
+                    disabled={
+                      Boolean(
+                        billingPlanLoading
+                      )
+                    }
+                    onClick={() =>
+                      handleStartCheckout(
+                        "annual"
+                      )
+                    }
+                  >
+                    {billingPlanLoading ===
+                      "annual"
+                      ? "Opening Checkout…"
+                      : "Choose annual"}
+                  </button>
+                </article>
+              </div>
+
+              <button
+                type="button"
+                className="billing-refresh-button"
+                onClick={
+                  handleRefreshSubscription
+                }
+              >
+                Refresh subscription status
+              </button>
+            </>
+          )}
+        </section>
 
         <section className="panel theme-settings-panel">
           <div className="panel-header">

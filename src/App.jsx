@@ -1,7 +1,12 @@
 // src/App.jsx
 
 import { Link, Navigate, NavLink, Route, Routes, useNavigate } from "react-router-dom";
-import { useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   getActivitySuggestions,
   getPresetActivities,
@@ -9,6 +14,7 @@ import {
   unlockPresetActivity,
 } from "./api/activityApi";
 import { getCurrentAuthenticatedUser } from "./api/authApi";
+import { redirectToCheckout } from "./api/billingApi";
 import {
   getFamilySettings,
   saveFamilySettings,
@@ -62,9 +68,11 @@ import {
 } from "./utils/presetDemo";
 
 
+const CHECKOUT_ENTITLEMENT_RETRY_MS = 1500;
+
 function App() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isAnonymous } = useAuth();
 
   const { theme: uiTheme, setTheme: setUiTheme, themes: uiThemes } =
     useUiTheme();
@@ -231,9 +239,11 @@ function App() {
     canGenerateWithAi: false,
     canUseAiHints: false,
     subscriptionStatus: "inactive",
+    currentPeriodEnd: null,
     freeImaginativeActivityId: null,
   });
   const [entitlementHydrated, setEntitlementHydrated] = useState(false);
+  const [checkoutBusy, setCheckoutBusy] = useState(false);
 
   const [presetRotationIndex, setPresetRotationIndex] = useState({
     simple: 0,
@@ -247,49 +257,205 @@ function App() {
   const freeImaginativeUnlockUsed = isFreeImaginativeUnlockUsed(entitlement);
   const imBoredDisabled = isDemoMode && freeImaginativeUnlockUsed;
 
-  function mergePresetEntitlement(nextEntitlement) {
-    if (!nextEntitlement || typeof nextEntitlement !== "object") {
-      return;
-    }
+  /*
+ * Merge a server-trusted entitlement response into React state.
+ *
+ * This is wrapped in useCallback because it is used by effects and by the
+ * refreshEntitlement function that will be passed through AppContext.
+ */
+  const mergePresetEntitlement = useCallback(
+    (nextEntitlement) => {
+      if (
+        !nextEntitlement ||
+        typeof nextEntitlement !== "object"
+      ) {
+        return;
+      }
 
-    setEntitlement((current) => ({
-      ...current,
-      isPaid: Boolean(nextEntitlement.isPaid),
-      canGenerateWithAi: Boolean(nextEntitlement.canGenerateWithAi),
-      canUseAiHints: Boolean(nextEntitlement.canUseAiHints),
-      subscriptionStatus:
-        nextEntitlement.subscriptionStatus || current.subscriptionStatus,
-      // Honor explicit null from the server (no unlock on this account).
-      // `??` would incorrectly keep the previous session's unlock id.
-      freeImaginativeActivityId:
-        "freeImaginativeActivityId" in nextEntitlement
-          ? nextEntitlement.freeImaginativeActivityId ?? null
-          : current.freeImaginativeActivityId,
-    }));
-  }
+      setEntitlement((current) => ({
+        ...current,
+
+        isPaid: Boolean(
+          nextEntitlement.isPaid
+        ),
+
+        canGenerateWithAi: Boolean(
+          nextEntitlement.canGenerateWithAi
+        ),
+
+        canUseAiHints: Boolean(
+          nextEntitlement.canUseAiHints
+        ),
+
+        subscriptionStatus:
+          nextEntitlement.subscriptionStatus ||
+          current.subscriptionStatus,
+
+        /*
+         * An explicit null means there is no active period end.
+         *
+         * This matters for inactive and canceled subscriptions.
+         */
+        currentPeriodEnd:
+          "currentPeriodEnd" in
+            nextEntitlement
+            ? nextEntitlement.currentPeriodEnd ??
+            null
+            : current.currentPeriodEnd,
+
+        /*
+         * Honor an explicit null from the server.
+         *
+         * This prevents the free unlock from a previous account from leaking
+         * into the current account's React state.
+         */
+        freeImaginativeActivityId:
+          "freeImaginativeActivityId" in
+            nextEntitlement
+            ? nextEntitlement
+              .freeImaginativeActivityId ??
+            null
+            : current
+              .freeImaginativeActivityId,
+      }));
+    },
+    []
+  );
+
+  /*
+ * Re-read the current subscription entitlement from the trusted server.
+ *
+ * SettingsPage uses this after Stripe redirects back from Checkout because
+ * the webhook may need a moment to update Supabase.
+ */
+  const refreshEntitlement =
+    useCallback(async () => {
+      const me =
+        await getCurrentAuthenticatedUser();
+
+      const nextEntitlement = {
+        ...me.entitlement,
+
+        freeImaginativeActivityId:
+          me.entitlement
+            ?.freeImaginativeActivityId ??
+          me.profile
+            ?.freeImaginativeActivityId ??
+          null,
+      };
+
+      mergePresetEntitlement(
+        nextEntitlement
+      );
+
+      setEntitlementHydrated(true);
+
+      return nextEntitlement;
+    }, [mergePresetEntitlement]);
 
   useEffect(() => {
     let isMounted = true;
+    let retryTimeoutId = null;
+
+    const isCheckoutSuccess =
+      new URLSearchParams(window.location.search).get("checkout") ===
+      "success";
+
+    function applyEntitlementFromMe(me) {
+      mergePresetEntitlement({
+        ...me.entitlement,
+        freeImaginativeActivityId:
+          me.entitlement?.freeImaginativeActivityId ??
+          me.profile?.freeImaginativeActivityId ??
+          null,
+      });
+      setEntitlementHydrated(true);
+    }
+
+    function clearCheckoutQueryParam() {
+      const nextParams = new URLSearchParams(window.location.search);
+      if (!nextParams.has("checkout")) {
+        return;
+      }
+
+      nextParams.delete("checkout");
+      const search = nextParams.toString();
+      navigate(
+        {
+          pathname: window.location.pathname,
+          search: search ? `?${search}` : "",
+        },
+        { replace: true }
+      );
+    }
+
+    function applyCheckoutStatus(isPaid) {
+      if (isPaid) {
+        setStatusMessage(
+          "FamilyFlow Plus is active. Enjoy personalized ideas!"
+        );
+        setStatusType("success");
+        return;
+      }
+
+      setStatusMessage(
+        "Payment received. Plus unlocks in a moment—refresh if ideas stay locked."
+      );
+      setStatusType("info");
+    }
 
     async function hydrateEntitlement() {
       setEntitlementHydrated(false);
 
+      if (isCheckoutSuccess) {
+        setStatusMessage("Checking your FamilyFlow Plus subscription…");
+        setStatusType("info");
+      }
+
       try {
-        const me = await getCurrentAuthenticatedUser();
+        let me = await getCurrentAuthenticatedUser();
         if (!isMounted) {
           return;
         }
 
-        mergePresetEntitlement({
-          ...me.entitlement,
-          freeImaginativeActivityId:
-            me.entitlement?.freeImaginativeActivityId ??
-            me.profile?.freeImaginativeActivityId ??
-            null,
-        });
-        setEntitlementHydrated(true);
+        /*
+         * Webhook may lag behind the Checkout redirect. One short retry avoids
+         * flashing unpaid and a second competing /api/auth/me from another effect.
+         */
+        if (isCheckoutSuccess && !me.entitlement?.isPaid) {
+          await new Promise((resolve) => {
+            retryTimeoutId = window.setTimeout(
+              resolve,
+              CHECKOUT_ENTITLEMENT_RETRY_MS
+            );
+          });
+
+          if (!isMounted) {
+            return;
+          }
+
+          me = await getCurrentAuthenticatedUser();
+          if (!isMounted) {
+            return;
+          }
+        }
+
+        applyEntitlementFromMe(me);
+
+        if (isCheckoutSuccess) {
+          applyCheckoutStatus(Boolean(me.entitlement?.isPaid));
+          clearCheckoutQueryParam();
+        }
       } catch (error) {
         console.warn("Could not hydrate entitlement from /api/auth/me:", error);
+
+        if (isCheckoutSuccess && isMounted) {
+          setStatusMessage(
+            "Payment may have succeeded. Refresh the page if Plus is not unlocked yet."
+          );
+          setStatusType("info");
+          clearCheckoutQueryParam();
+        }
 
         try {
           const payload = await getPresetActivities();
@@ -311,6 +477,7 @@ function App() {
               canGenerateWithAi: false,
               canUseAiHints: false,
               subscriptionStatus: "inactive",
+              currentPeriodEnd: null,
               freeImaginativeActivityId: null,
             });
             setEntitlementHydrated(true);
@@ -323,8 +490,40 @@ function App() {
 
     return () => {
       isMounted = false;
+      if (retryTimeoutId != null) {
+        window.clearTimeout(retryTimeoutId);
+      }
     };
-  }, [user?.id]);
+  }, [user?.id, navigate, mergePresetEntitlement]);
+
+  async function handleGetPlus() {
+    if (isAnonymous) {
+      navigate("/signup");
+      return;
+    }
+
+    setCheckoutBusy(true);
+    setStatusMessage("");
+
+    try {
+      await redirectToCheckout();
+    } catch (error) {
+      if (
+        error instanceof ApiRequestError &&
+        error.code === "ACCOUNT_REQUIRED"
+      ) {
+        navigate("/signup");
+        return;
+      }
+
+      setStatusMessage(
+        error?.message ||
+        "Could not start checkout. Try again in a moment."
+      );
+      setStatusType("error");
+      setCheckoutBusy(false);
+    }
+  }
 
   function applyFamilySettingsDocument(settings) {
     const normalized = normalizeFamilySettingsDocument(settings);
@@ -431,7 +630,7 @@ function App() {
         return (
           isMounted &&
           familySettingsHydrateUserIdRef.current ===
-            hydrateUserId
+          hydrateUserId
         );
       }
 
@@ -539,7 +738,10 @@ function App() {
     };
     // applyFamilySettingsDocument only calls React setters + a module helper.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- hydrate once per user id
-  }, [user?.id]);
+  }, [
+    user?.id,
+    mergePresetEntitlement,
+  ]);
 
   useEffect(() => {
     if (!familySettingsReady || !user?.id) {
@@ -1100,7 +1302,7 @@ function App() {
       if (error instanceof AuthenticationError) {
         showStatus(
           error.message ||
-            "Your secure session could not be verified. Refresh and try again.",
+          "Your secure session could not be verified. Refresh and try again.",
           "error"
         );
         // null signals an intentional block so callers keep this status.
@@ -1166,14 +1368,14 @@ function App() {
       return `
 The child wants imaginative play.
 
-Use playful pretend framing, roles, and mission language.
-The activity may include:
-- a pretend role
-- a small mission
-- a story frame
-- make-believe play
+Use playful pretend framing, roles, and a rich setup story.
+Every imaginative activity should include:
+- a vivid theme that sets the world
+- a specific pretend role
+- a 3-to-5-sentence setup story in the mission field
+- make-believe play that still uses easy, realistic household setup
 
-But still keep setup easy and realistic.
+The mission field is the setup story the child hears first. Open with what is happening in the pretend world, name a small mystery or invitation, say who the child is and why it matters, then point them into the first action. Do not shrink the mission to a one-line goal.
 `;
     }
 
@@ -1457,7 +1659,10 @@ For simple activities:
 - avoid making chores or crafts sound like quests
 - do not over-explain
 
-If activityStyle is "imaginative", playful quest language is okay.
+If activityStyle is "imaginative":
+- playful quest language is required
+- the mission must be a 3-to-5-sentence setup story, not a short goal line
+- summary should hook the child with the story before listing actions
 
 Always obey currentMoment limits for time, mess, noise, supervision, and parent availability.
 `,
@@ -1611,6 +1816,10 @@ If the preferred style is "simple":
 - avoid complicated missions
 - avoid long lists of steps
 - avoid turning everything into pretend play
+
+If the preferred style is "imaginative":
+- lean into pretend play and a rich setup story
+- the mission should be a 3-to-5-sentence setup story, not a short goal line
 
 Prioritize activities that require the least decision-making from the child.
 `,
@@ -2082,7 +2291,7 @@ Prioritize activities that require the least decision-making from the child.
       if (error instanceof AuthenticationError) {
         showStatus(
           error.message ||
-            "Your secure session could not be verified. Refresh and try again.",
+          "Your secure session could not be verified. Refresh and try again.",
           "error"
         );
         return;
@@ -2119,11 +2328,11 @@ Prioritize activities that require the least decision-making from the child.
     const unlockedId = entitlement.freeImaginativeActivityId;
     const candidates = freeImaginativeUnlockUsed
       ? activities.filter(
-          (activity) =>
-            activity &&
-            (!activity.isLocked ||
-              (unlockedId && activity.id === unlockedId))
-        )
+        (activity) =>
+          activity &&
+          (!activity.isLocked ||
+            (unlockedId && activity.id === unlockedId))
+      )
       : activities;
 
     // Use the shared helper so auto-pick and fast-start choose the same way.
@@ -2531,7 +2740,7 @@ Prioritize activities that require the least decision-making from the child.
       familySettingsSaveTimeoutRef.current = null;
     }
 
-    await familySettingsSaveChainRef.current.catch(() => {});
+    await familySettingsSaveChainRef.current.catch(() => { });
 
     /*
      * A timer callback may have been queued before clearTimeout took effect.
@@ -2618,6 +2827,8 @@ Prioritize activities that require the least decision-making from the child.
     handleMoreLikeThis,
     handleAutoPickQuest,
     entitlement,
+    entitlementHydrated,
+    refreshEntitlement,
     safetySettings,
     toggleSafetySetting,
     updateSafetySetting,
@@ -2847,6 +3058,8 @@ Prioritize activities that require the least decision-making from the child.
                 handleReplaySavedActivity={handleReplaySavedActivity}
                 isDemoMode={isDemoMode}
                 imBoredDisabled={imBoredDisabled}
+                onGetPlus={isDemoMode ? handleGetPlus : null}
+                checkoutBusy={checkoutBusy}
               />
             }
           />
