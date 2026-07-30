@@ -10,6 +10,9 @@ import { fileURLToPath } from "url";
 import { createOpenAIClient } from "./lib/openaiClient.js";
 import healthRouter from "./routes/health.js";
 import authRouter from "./routes/auth.js";
+import billingRouter, {
+  handleStripeWebhook,
+} from "./routes/billing.js";
 import presetActivitiesRouter from "./routes/presetActivities.js";
 import familySettingsRouter from "./routes/familySettings.js";
 import createActivitySuggestionsRouter from "./routes/activitySuggestions.js";
@@ -104,10 +107,14 @@ if (process.env.NODE_ENV !== "production") {
  * Validate all server runtime variables before accepting requests.
  */
 const requiredServerEnvironmentVariables = [
+  "APP_URL",
   "OPENAI_API_KEY",
   "SUPABASE_URL",
   "SUPABASE_PUBLISHABLE_KEY",
   "SUPABASE_SECRET_KEY",
+  "STRIPE_SECRET_KEY",
+  "STRIPE_MONTHLY_PRICE_ID",
+  "STRIPE_ANNUAL_PRICE_ID",
 ];
 
 const missingServerEnvironmentVariables =
@@ -137,23 +144,14 @@ if (
 const client = createOpenAIClient();
 
 /*
- * IMPORTANT FUTURE STRIPE LOCATION
- * --------------------------------
- *
- * When Stripe is added, its webhook route must go HERE:
- *
- *   app.post(
- *     "/api/billing/webhook",
- *     express.raw({ type: "application/json" }),
- *     stripeWebhookHandler
- *   );
- *
- * It must be placed before app.use(express.json()) because Stripe webhook
- * signature verification requires the original, unparsed request body.
- *
- * Do not add the Stripe route yet because stripeWebhookHandler does not
- * exist yet.
+ * Stripe webhook must use the raw request body for signature verification.
+ * Mount it before express.json().
  */
+app.post(
+  "/api/billing/webhook",
+  express.raw({ type: "application/json" }),
+  handleStripeWebhook
+);
 
 /*
  * Parse normal application requests as JSON.
@@ -182,6 +180,14 @@ app.use("/api", healthRouter);
  * The router itself applies requireAuthenticatedUser to /auth/me.
  */
 app.use("/api", authRouter);
+
+/*
+ * Stripe Checkout for FamilyFlow Plus.
+ *
+ * The webhook is mounted above (raw body). This router handles authenticated
+ * create-checkout-session requests.
+ */
+app.use("/api", billingRouter);
 
 /*
  * Preset activity browsing and unlock routes.

@@ -9,6 +9,7 @@ import {
   unlockPresetActivity,
 } from "./api/activityApi";
 import { getCurrentAuthenticatedUser } from "./api/authApi";
+import { redirectToCheckout } from "./api/billingApi";
 import {
   getFamilySettings,
   saveFamilySettings,
@@ -62,9 +63,11 @@ import {
 } from "./utils/presetDemo";
 
 
+const CHECKOUT_ENTITLEMENT_RETRY_MS = 1500;
+
 function App() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isAnonymous } = useAuth();
 
   const { theme: uiTheme, setTheme: setUiTheme, themes: uiThemes } =
     useUiTheme();
@@ -234,6 +237,7 @@ function App() {
     freeImaginativeActivityId: null,
   });
   const [entitlementHydrated, setEntitlementHydrated] = useState(false);
+  const [checkoutBusy, setCheckoutBusy] = useState(false);
 
   const [presetRotationIndex, setPresetRotationIndex] = useState({
     simple: 0,
@@ -270,26 +274,107 @@ function App() {
 
   useEffect(() => {
     let isMounted = true;
+    let retryTimeoutId = null;
+
+    const isCheckoutSuccess =
+      new URLSearchParams(window.location.search).get("checkout") ===
+      "success";
+
+    function applyEntitlementFromMe(me) {
+      mergePresetEntitlement({
+        ...me.entitlement,
+        freeImaginativeActivityId:
+          me.entitlement?.freeImaginativeActivityId ??
+          me.profile?.freeImaginativeActivityId ??
+          null,
+      });
+      setEntitlementHydrated(true);
+    }
+
+    function clearCheckoutQueryParam() {
+      const nextParams = new URLSearchParams(window.location.search);
+      if (!nextParams.has("checkout")) {
+        return;
+      }
+
+      nextParams.delete("checkout");
+      const search = nextParams.toString();
+      navigate(
+        {
+          pathname: window.location.pathname,
+          search: search ? `?${search}` : "",
+        },
+        { replace: true }
+      );
+    }
+
+    function applyCheckoutStatus(isPaid) {
+      if (isPaid) {
+        setStatusMessage(
+          "FamilyFlow Plus is active. Enjoy personalized ideas!"
+        );
+        setStatusType("success");
+        return;
+      }
+
+      setStatusMessage(
+        "Payment received. Plus unlocks in a moment—refresh if ideas stay locked."
+      );
+      setStatusType("info");
+    }
 
     async function hydrateEntitlement() {
       setEntitlementHydrated(false);
 
+      if (isCheckoutSuccess) {
+        setStatusMessage("Checking your FamilyFlow Plus subscription…");
+        setStatusType("info");
+      }
+
       try {
-        const me = await getCurrentAuthenticatedUser();
+        let me = await getCurrentAuthenticatedUser();
         if (!isMounted) {
           return;
         }
 
-        mergePresetEntitlement({
-          ...me.entitlement,
-          freeImaginativeActivityId:
-            me.entitlement?.freeImaginativeActivityId ??
-            me.profile?.freeImaginativeActivityId ??
-            null,
-        });
-        setEntitlementHydrated(true);
+        /*
+         * Webhook may lag behind the Checkout redirect. One short retry avoids
+         * flashing unpaid and a second competing /api/auth/me from another effect.
+         */
+        if (isCheckoutSuccess && !me.entitlement?.isPaid) {
+          await new Promise((resolve) => {
+            retryTimeoutId = window.setTimeout(
+              resolve,
+              CHECKOUT_ENTITLEMENT_RETRY_MS
+            );
+          });
+
+          if (!isMounted) {
+            return;
+          }
+
+          me = await getCurrentAuthenticatedUser();
+          if (!isMounted) {
+            return;
+          }
+        }
+
+        applyEntitlementFromMe(me);
+
+        if (isCheckoutSuccess) {
+          applyCheckoutStatus(Boolean(me.entitlement?.isPaid));
+          clearCheckoutQueryParam();
+        }
       } catch (error) {
         console.warn("Could not hydrate entitlement from /api/auth/me:", error);
+
+        if (isCheckoutSuccess && isMounted) {
+          setStatusMessage(
+            "Payment may have succeeded. Refresh the page if Plus is not unlocked yet."
+          );
+          setStatusType("info");
+          clearCheckoutQueryParam();
+        }
 
         try {
           const payload = await getPresetActivities();
@@ -323,8 +408,40 @@ function App() {
 
     return () => {
       isMounted = false;
+      if (retryTimeoutId != null) {
+        window.clearTimeout(retryTimeoutId);
+      }
     };
-  }, [user?.id]);
+  }, [user?.id, navigate]);
+
+  async function handleGetPlus() {
+    if (isAnonymous) {
+      navigate("/signup");
+      return;
+    }
+
+    setCheckoutBusy(true);
+    setStatusMessage("");
+
+    try {
+      await redirectToCheckout();
+    } catch (error) {
+      if (
+        error instanceof ApiRequestError &&
+        error.code === "ACCOUNT_REQUIRED"
+      ) {
+        navigate("/signup");
+        return;
+      }
+
+      setStatusMessage(
+        error?.message ||
+          "Could not start checkout. Try again in a moment."
+      );
+      setStatusType("error");
+      setCheckoutBusy(false);
+    }
+  }
 
   function applyFamilySettingsDocument(settings) {
     const normalized = normalizeFamilySettingsDocument(settings);
@@ -2847,6 +2964,8 @@ Prioritize activities that require the least decision-making from the child.
                 handleReplaySavedActivity={handleReplaySavedActivity}
                 isDemoMode={isDemoMode}
                 imBoredDisabled={imBoredDisabled}
+                onGetPlus={isDemoMode ? handleGetPlus : null}
+                checkoutBusy={checkoutBusy}
               />
             }
           />
