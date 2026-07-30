@@ -368,9 +368,15 @@ function App() {
           applyFamilySettingsDocument(
             saved.settings || imported
           );
-          clearFamilySettingsLocalStorage();
         }
 
+        /*
+         * Always clear legacy keys after a successful hydrate.
+         *
+         * If we only cleared on import, a later sign-in for a different user
+         * with no server row could re-import the previous account's settings.
+         */
+        clearFamilySettingsLocalStorage();
         setFamilySettingsReady(true);
       } catch (error) {
         console.error("Could not hydrate family settings:", error);
