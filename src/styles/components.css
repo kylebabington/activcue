@@ -204,6 +204,19 @@
   background: color-mix(in srgb, var(--accent) 6%, white);
 }
 
+.family-settings-save-error {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.family-settings-save-error p {
+  margin: 0;
+  flex: 1 1 12rem;
+}
+
 /* ========== MOMENT BANNER ========== */
 
 .current-moment-banner {

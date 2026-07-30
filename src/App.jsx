@@ -142,10 +142,12 @@ function App() {
 
   const [familySettingsReady, setFamilySettingsReady] = useState(false);
   const [familySettingsError, setFamilySettingsError] = useState("");
+  const [familySettingsSaveStatus, setFamilySettingsSaveStatus] =
+    useState("saved");
   const skipNextFamilySettingsSaveRef = useRef(true);
   const familySettingsHydrateUserIdRef = useRef(null);
   const familySettingsSaveTimeoutRef = useRef(null);
-  const familySettingsSaveInFlightRef = useRef(new Set());
+  const familySettingsSaveChainRef = useRef(Promise.resolve());
   const suppressFamilySettingsSavesRef = useRef(false);
 
   const [activities, setActivities] = useState([]);
@@ -338,6 +340,77 @@ function App() {
     setParentStatus(parentStatusFromMoment(normalized.currentMoment));
   }
 
+  /*
+   * Serialize family-settings PUTs so an older in-flight request cannot
+   * overwrite a newer payload when the server upserts unconditionally.
+   */
+  function queueFamilySettingsSave(payload, userId) {
+    const savePromise = familySettingsSaveChainRef.current
+      .catch(() => {
+        // Allow the queue to continue after an earlier failure.
+      })
+      .then(async () => {
+        if (suppressFamilySettingsSavesRef.current) {
+          return;
+        }
+
+        if (familySettingsHydrateUserIdRef.current !== userId) {
+          return;
+        }
+
+        setFamilySettingsSaveStatus("saving");
+
+        try {
+          await saveFamilySettings(payload, {
+            expectedUserId: userId,
+          });
+
+          if (familySettingsHydrateUserIdRef.current !== userId) {
+            return;
+          }
+
+          setFamilySettingsSaveStatus("saved");
+        } catch (error) {
+          console.error("Could not save family settings:", error);
+
+          if (familySettingsHydrateUserIdRef.current !== userId) {
+            return;
+          }
+
+          setFamilySettingsSaveStatus("error");
+          throw error;
+        }
+      });
+
+    familySettingsSaveChainRef.current = savePromise;
+
+    return savePromise;
+  }
+
+  function buildCurrentFamilySettingsPayload() {
+    return familySettingsPayloadFromState({
+      activityMode,
+      activeChildId,
+      activeParentPresetKey: activePresetKey,
+      childProfiles,
+      inventory,
+      safetySettings,
+      currentMoment,
+      customParentPresets,
+    });
+  }
+
+  function retryFamilySettingsSave() {
+    if (!user?.id || suppressFamilySettingsSavesRef.current) {
+      return;
+    }
+
+    queueFamilySettingsSave(
+      buildCurrentFamilySettingsPayload(),
+      user.id
+    );
+  }
+
   useEffect(() => {
     let isMounted = true;
 
@@ -350,6 +423,7 @@ function App() {
 
       setFamilySettingsReady(false);
       setFamilySettingsError("");
+      setFamilySettingsSaveStatus("saved");
       skipNextFamilySettingsSaveRef.current = true;
       familySettingsHydrateUserIdRef.current = hydrateUserId;
 
@@ -495,7 +569,6 @@ function App() {
       currentMoment,
       customParentPresets,
     });
-
     const saveUserId = user.id;
 
     familySettingsSaveTimeoutRef.current = window.setTimeout(() => {
@@ -509,16 +582,7 @@ function App() {
         return;
       }
 
-      const savePromise = saveFamilySettings(payload, {
-        expectedUserId: saveUserId,
-      }).catch((error) => {
-        console.error("Could not save family settings:", error);
-      });
-
-      familySettingsSaveInFlightRef.current.add(savePromise);
-      savePromise.finally(() => {
-        familySettingsSaveInFlightRef.current.delete(savePromise);
-      });
+      queueFamilySettingsSave(payload, saveUserId);
     }, 400);
 
     return () => {
@@ -2457,8 +2521,8 @@ Prioritize activities that require the least decision-making from the child.
     }
 
     /*
-     * Stop debounced autosaves and drain in-flight PUTs so an older payload
-     * cannot overwrite the reset defaults on the server after we write them.
+     * Stop debounced autosaves and drain the serialized save chain so an
+     * older payload cannot overwrite the reset defaults on the server.
      */
     suppressFamilySettingsSavesRef.current = true;
 
@@ -2467,11 +2531,7 @@ Prioritize activities that require the least decision-making from the child.
       familySettingsSaveTimeoutRef.current = null;
     }
 
-    while (familySettingsSaveInFlightRef.current.size > 0) {
-      await Promise.all([
-        ...familySettingsSaveInFlightRef.current,
-      ]);
-    }
+    await familySettingsSaveChainRef.current.catch(() => {});
 
     /*
      * A timer callback may have been queued before clearTimeout took effect.
@@ -2484,9 +2544,15 @@ Prioritize activities that require the least decision-making from the child.
     }
 
     try {
-      await saveFamilySettings(buildDefaultFamilySettings(), {
-        expectedUserId: user?.id,
-      });
+      const resetPromise = saveFamilySettings(
+        buildDefaultFamilySettings(),
+        {
+          expectedUserId: user?.id,
+        }
+      );
+
+      familySettingsSaveChainRef.current = resetPromise;
+      await resetPromise;
     } catch (error) {
       console.error("Could not reset server family settings:", error);
       suppressFamilySettingsSavesRef.current = false;
@@ -2703,6 +2769,21 @@ Prioritize activities that require the least decision-making from the child.
           compact
         />
       </header>
+
+      {familySettingsSaveStatus === "error" ? (
+        <div
+          className="status-message status-message--error family-settings-save-error"
+          role="alert"
+        >
+          <p>
+            Your latest changes were not saved. Check your connection and try
+            again.
+          </p>
+          <button type="button" onClick={retryFamilySettingsSave}>
+            Try again
+          </button>
+        </div>
+      ) : null}
 
       {statusMessage && (
         <p

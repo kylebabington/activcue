@@ -1,7 +1,7 @@
 // src/pages/CompleteSignupPage.jsx
 
 import { useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import { getCurrentAuthenticatedUser } from "../api/authApi";
 import { useAuth } from "../hooks/useAuth";
 import { supabase } from "../lib/supabaseClient";
@@ -20,6 +20,17 @@ function CompleteSignupPage() {
     const [errorMessage, setErrorMessage] = useState("");
     const [isSubmitting, setIsSubmitting] =
         useState(false);
+
+    /*
+     * Browser-only conversion marker set by SignupPage before the confirmation
+     * email is sent. Without it, this page must not act as a password-change
+     * route for ordinary permanent sessions.
+     */
+    const hasPendingSignup = Boolean(
+        window.sessionStorage.getItem(
+            PENDING_SIGNUP_EMAIL_KEY
+        )
+    );
 
     /*
      * Supabase may place an authentication error in either the URL query string
@@ -63,6 +74,13 @@ function CompleteSignupPage() {
         if (isAnonymous) {
             setErrorMessage(
                 "Your email has not been confirmed yet. Open the confirmation link from your email first."
+            );
+            return;
+        }
+
+        if (!hasPendingSignup) {
+            setErrorMessage(
+                "This signup session is no longer active. Start from the signup page if you still need to finish creating your account."
             );
             return;
         }
@@ -278,6 +296,10 @@ function CompleteSignupPage() {
                 </section>
             </div>
         );
+    }
+
+    if (!hasPendingSignup) {
+        return <Navigate to="/app" replace />;
     }
 
     return (
