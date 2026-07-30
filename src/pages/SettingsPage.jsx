@@ -15,6 +15,7 @@ import ThemeSwitcher from "../components/ThemeSwitcher";
 import {
   createCheckoutSession,
 } from "../api/billingApi";
+import { signOutCurrentUser } from "../api/authApi";
 
 import { useAppContext } from "../context/AppContext";
 import { useAuth } from "../hooks/useAuth";
@@ -22,7 +23,10 @@ import { useAuth } from "../hooks/useAuth";
 function formatSubscriptionStatus(
   status
 ) {
-  if (!status) {
+  if (
+    typeof status !== "string" ||
+    !status
+  ) {
     return "Inactive";
   }
 
@@ -141,6 +145,16 @@ function SettingsPage() {
     setBillingMessageType,
   ] = useState("info");
 
+  const [
+    logoutBusy,
+    setLogoutBusy,
+  ] = useState(false);
+
+  const [
+    logoutError,
+    setLogoutError,
+  ] = useState("");
+
   const billingResult =
     searchParams.get("billing");
 
@@ -248,6 +262,17 @@ function SettingsPage() {
       setBillingMessageType("info");
     }
 
+    /*
+ * Remove Stripe's return parameters so refreshing Settings does not restart
+ * the full polling sequence.
+ */
+    setSearchParams(
+      {},
+      {
+        replace: true,
+      }
+    );
+
     confirmSubscription();
 
     return () => {
@@ -258,6 +283,31 @@ function SettingsPage() {
     refreshEntitlement,
     setSearchParams,
   ]);
+
+  async function handleLogOut() {
+    setLogoutError("");
+    setLogoutBusy(true);
+
+    try {
+      await signOutCurrentUser();
+
+      /*
+       * Full navigation leaves AuthProvider, which requires a session for
+       * /app routes. /login is public and does not recreate an anonymous user.
+       */
+      window.location.assign("/login");
+    } catch (error) {
+      console.error("Could not log out:", error);
+
+      setLogoutError(
+        error instanceof Error
+          ? error.message
+          : "Could not log out. Try again."
+      );
+
+      setLogoutBusy(false);
+    }
+  }
 
   async function handleStartCheckout(
     plan
@@ -781,6 +831,51 @@ function SettingsPage() {
 
       <section className="settings-cluster">
         <h2 className="settings-cluster-title">Account</h2>
+
+        <section className="panel account-session-panel">
+          <div className="panel-header">
+            <div>
+              <h2>Signed in</h2>
+              <p>
+                {isAnonymous
+                  ? "This browser is using a temporary trial session."
+                  : "You are signed in with a permanent FamilyFlow account."}
+              </p>
+            </div>
+          </div>
+
+          {isAnonymous ? (
+            <div className="account-session-actions">
+              <Link className="secondary-action" to="/login">
+                Log in
+              </Link>
+              <Link className="billing-account-link" to="/signup">
+                Create free account
+              </Link>
+            </div>
+          ) : (
+            <div className="account-session-summary">
+              {user?.email ? (
+                <p className="account-session-email">{user.email}</p>
+              ) : null}
+
+              {logoutError ? (
+                <p className="billing-notice billing-notice--error" role="alert">
+                  {logoutError}
+                </p>
+              ) : null}
+
+              <button
+                type="button"
+                className="secondary-action"
+                onClick={handleLogOut}
+                disabled={logoutBusy}
+              >
+                {logoutBusy ? "Logging out…" : "Log out"}
+              </button>
+            </div>
+          )}
+        </section>
 
         <section className="panel billing-panel">
           <div className="panel-header">

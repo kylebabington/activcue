@@ -703,6 +703,26 @@
 
 /* ========== SETTINGS ========== */
 
+.account-session-panel .account-session-summary,
+.account-session-panel .account-session-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+  margin-top: 0.35rem;
+}
+
+.account-session-email {
+  margin: 0;
+  color: var(--muted-text);
+  font-size: var(--text-sm);
+}
+
+.account-session-panel .billing-notice {
+  flex: 1 1 100%;
+  margin: 0;
+}
+
 .billing-panel {
   display: grid;
   gap: var(--space-3);

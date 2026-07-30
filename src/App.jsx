@@ -257,8 +257,14 @@ function App() {
   const freeImaginativeUnlockUsed = isFreeImaginativeUnlockUsed(entitlement);
   const imBoredDisabled = isDemoMode && freeImaginativeUnlockUsed;
 
-  const mergePresetEntitlement =
-    useCallback((nextEntitlement) => {
+  /*
+ * Merge a server-trusted entitlement response into React state.
+ *
+ * This is wrapped in useCallback because it is used by effects and by the
+ * refreshEntitlement function that will be passed through AppContext.
+ */
+  const mergePresetEntitlement = useCallback(
+    (nextEntitlement) => {
       if (
         !nextEntitlement ||
         typeof nextEntitlement !== "object"
@@ -282,22 +288,26 @@ function App() {
         ),
 
         subscriptionStatus:
-          nextEntitlement
-            .subscriptionStatus ||
+          nextEntitlement.subscriptionStatus ||
           current.subscriptionStatus,
 
+        /*
+         * An explicit null means there is no active period end.
+         *
+         * This matters for inactive and canceled subscriptions.
+         */
         currentPeriodEnd:
           "currentPeriodEnd" in
             nextEntitlement
-            ? nextEntitlement
-              .currentPeriodEnd ?? null
+            ? nextEntitlement.currentPeriodEnd ??
+            null
             : current.currentPeriodEnd,
 
         /*
-         * Honor explicit null from the server.
+         * Honor an explicit null from the server.
          *
-         * Using ?? here would incorrectly preserve an unlock from a previous
-         * account when the new account has no free imaginative unlock.
+         * This prevents the free unlock from a previous account from leaking
+         * into the current account's React state.
          */
         freeImaginativeActivityId:
           "freeImaginativeActivityId" in
@@ -308,7 +318,9 @@ function App() {
             : current
               .freeImaginativeActivityId,
       }));
-    }, []);
+    },
+    []
+  );
 
   /*
  * Re-read the current subscription entitlement from the trusted server.
@@ -1356,14 +1368,14 @@ function App() {
       return `
 The child wants imaginative play.
 
-Use playful pretend framing, roles, and mission language.
-The activity may include:
-- a pretend role
-- a small mission
-- a story frame
-- make-believe play
+Use playful pretend framing, roles, and a rich setup story.
+Every imaginative activity should include:
+- a vivid theme that sets the world
+- a specific pretend role
+- a 3-to-5-sentence setup story in the mission field
+- make-believe play that still uses easy, realistic household setup
 
-But still keep setup easy and realistic.
+The mission field is the setup story the child hears first. Open with what is happening in the pretend world, name a small mystery or invitation, say who the child is and why it matters, then point them into the first action. Do not shrink the mission to a one-line goal.
 `;
     }
 
@@ -1647,7 +1659,10 @@ For simple activities:
 - avoid making chores or crafts sound like quests
 - do not over-explain
 
-If activityStyle is "imaginative", playful quest language is okay.
+If activityStyle is "imaginative":
+- playful quest language is required
+- the mission must be a 3-to-5-sentence setup story, not a short goal line
+- summary should hook the child with the story before listing actions
 
 Always obey currentMoment limits for time, mess, noise, supervision, and parent availability.
 `,
@@ -1801,6 +1816,10 @@ If the preferred style is "simple":
 - avoid complicated missions
 - avoid long lists of steps
 - avoid turning everything into pretend play
+
+If the preferred style is "imaginative":
+- lean into pretend play and a rich setup story
+- the mission should be a 3-to-5-sentence setup story, not a short goal line
 
 Prioritize activities that require the least decision-making from the child.
 `,
