@@ -1,7 +1,12 @@
 // src/App.jsx
 
 import { Link, Navigate, NavLink, Route, Routes, useNavigate } from "react-router-dom";
-import { useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   getActivitySuggestions,
   getPresetActivities,
@@ -234,6 +239,7 @@ function App() {
     canGenerateWithAi: false,
     canUseAiHints: false,
     subscriptionStatus: "inactive",
+    currentPeriodEnd: null,
     freeImaginativeActivityId: null,
   });
   const [entitlementHydrated, setEntitlementHydrated] = useState(false);
@@ -251,26 +257,89 @@ function App() {
   const freeImaginativeUnlockUsed = isFreeImaginativeUnlockUsed(entitlement);
   const imBoredDisabled = isDemoMode && freeImaginativeUnlockUsed;
 
-  function mergePresetEntitlement(nextEntitlement) {
-    if (!nextEntitlement || typeof nextEntitlement !== "object") {
-      return;
-    }
+  const mergePresetEntitlement =
+    useCallback((nextEntitlement) => {
+      if (
+        !nextEntitlement ||
+        typeof nextEntitlement !== "object"
+      ) {
+        return;
+      }
 
-    setEntitlement((current) => ({
-      ...current,
-      isPaid: Boolean(nextEntitlement.isPaid),
-      canGenerateWithAi: Boolean(nextEntitlement.canGenerateWithAi),
-      canUseAiHints: Boolean(nextEntitlement.canUseAiHints),
-      subscriptionStatus:
-        nextEntitlement.subscriptionStatus || current.subscriptionStatus,
-      // Honor explicit null from the server (no unlock on this account).
-      // `??` would incorrectly keep the previous session's unlock id.
-      freeImaginativeActivityId:
-        "freeImaginativeActivityId" in nextEntitlement
-          ? nextEntitlement.freeImaginativeActivityId ?? null
-          : current.freeImaginativeActivityId,
-    }));
-  }
+      setEntitlement((current) => ({
+        ...current,
+
+        isPaid: Boolean(
+          nextEntitlement.isPaid
+        ),
+
+        canGenerateWithAi: Boolean(
+          nextEntitlement.canGenerateWithAi
+        ),
+
+        canUseAiHints: Boolean(
+          nextEntitlement.canUseAiHints
+        ),
+
+        subscriptionStatus:
+          nextEntitlement
+            .subscriptionStatus ||
+          current.subscriptionStatus,
+
+        currentPeriodEnd:
+          "currentPeriodEnd" in
+            nextEntitlement
+            ? nextEntitlement
+              .currentPeriodEnd ?? null
+            : current.currentPeriodEnd,
+
+        /*
+         * Honor explicit null from the server.
+         *
+         * Using ?? here would incorrectly preserve an unlock from a previous
+         * account when the new account has no free imaginative unlock.
+         */
+        freeImaginativeActivityId:
+          "freeImaginativeActivityId" in
+            nextEntitlement
+            ? nextEntitlement
+              .freeImaginativeActivityId ??
+            null
+            : current
+              .freeImaginativeActivityId,
+      }));
+    }, []);
+
+  /*
+ * Re-read the current subscription entitlement from the trusted server.
+ *
+ * SettingsPage uses this after Stripe redirects back from Checkout because
+ * the webhook may need a moment to update Supabase.
+ */
+  const refreshEntitlement =
+    useCallback(async () => {
+      const me =
+        await getCurrentAuthenticatedUser();
+
+      const nextEntitlement = {
+        ...me.entitlement,
+
+        freeImaginativeActivityId:
+          me.entitlement
+            ?.freeImaginativeActivityId ??
+          me.profile
+            ?.freeImaginativeActivityId ??
+          null,
+      };
+
+      mergePresetEntitlement(
+        nextEntitlement
+      );
+
+      setEntitlementHydrated(true);
+
+      return nextEntitlement;
+    }, [mergePresetEntitlement]);
 
   useEffect(() => {
     let isMounted = true;
@@ -396,6 +465,7 @@ function App() {
               canGenerateWithAi: false,
               canUseAiHints: false,
               subscriptionStatus: "inactive",
+              currentPeriodEnd: null,
               freeImaginativeActivityId: null,
             });
             setEntitlementHydrated(true);
@@ -412,7 +482,7 @@ function App() {
         window.clearTimeout(retryTimeoutId);
       }
     };
-  }, [user?.id, navigate]);
+  }, [user?.id, navigate, mergePresetEntitlement]);
 
   async function handleGetPlus() {
     if (isAnonymous) {
@@ -436,7 +506,7 @@ function App() {
 
       setStatusMessage(
         error?.message ||
-          "Could not start checkout. Try again in a moment."
+        "Could not start checkout. Try again in a moment."
       );
       setStatusType("error");
       setCheckoutBusy(false);
@@ -548,7 +618,7 @@ function App() {
         return (
           isMounted &&
           familySettingsHydrateUserIdRef.current ===
-            hydrateUserId
+          hydrateUserId
         );
       }
 
@@ -656,7 +726,10 @@ function App() {
     };
     // applyFamilySettingsDocument only calls React setters + a module helper.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- hydrate once per user id
-  }, [user?.id]);
+  }, [
+    user?.id,
+    mergePresetEntitlement,
+  ]);
 
   useEffect(() => {
     if (!familySettingsReady || !user?.id) {
@@ -1217,7 +1290,7 @@ function App() {
       if (error instanceof AuthenticationError) {
         showStatus(
           error.message ||
-            "Your secure session could not be verified. Refresh and try again.",
+          "Your secure session could not be verified. Refresh and try again.",
           "error"
         );
         // null signals an intentional block so callers keep this status.
@@ -2199,7 +2272,7 @@ Prioritize activities that require the least decision-making from the child.
       if (error instanceof AuthenticationError) {
         showStatus(
           error.message ||
-            "Your secure session could not be verified. Refresh and try again.",
+          "Your secure session could not be verified. Refresh and try again.",
           "error"
         );
         return;
@@ -2236,11 +2309,11 @@ Prioritize activities that require the least decision-making from the child.
     const unlockedId = entitlement.freeImaginativeActivityId;
     const candidates = freeImaginativeUnlockUsed
       ? activities.filter(
-          (activity) =>
-            activity &&
-            (!activity.isLocked ||
-              (unlockedId && activity.id === unlockedId))
-        )
+        (activity) =>
+          activity &&
+          (!activity.isLocked ||
+            (unlockedId && activity.id === unlockedId))
+      )
       : activities;
 
     // Use the shared helper so auto-pick and fast-start choose the same way.
@@ -2648,7 +2721,7 @@ Prioritize activities that require the least decision-making from the child.
       familySettingsSaveTimeoutRef.current = null;
     }
 
-    await familySettingsSaveChainRef.current.catch(() => {});
+    await familySettingsSaveChainRef.current.catch(() => { });
 
     /*
      * A timer callback may have been queued before clearTimeout took effect.
@@ -2735,6 +2808,8 @@ Prioritize activities that require the least decision-making from the child.
     handleMoreLikeThis,
     handleAutoPickQuest,
     entitlement,
+    entitlementHydrated,
+    refreshEntitlement,
     safetySettings,
     toggleSafetySetting,
     updateSafetySetting,

@@ -349,6 +349,17 @@
   transform: translateY(-1px);
 }
 
+button.landing-btn {
+  cursor: pointer;
+}
+
+button.landing-btn:disabled {
+  opacity: 0.75;
+  cursor: wait;
+  transform: none;
+  box-shadow: none;
+}
+
 /* ========== SECTIONS ========== */
 
 .landing-section {
