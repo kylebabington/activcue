@@ -144,6 +144,9 @@ function App() {
   const [familySettingsError, setFamilySettingsError] = useState("");
   const skipNextFamilySettingsSaveRef = useRef(true);
   const familySettingsHydrateUserIdRef = useRef(null);
+  const familySettingsSaveTimeoutRef = useRef(null);
+  const familySettingsSaveInFlightRef = useRef(new Set());
+  const suppressFamilySettingsSavesRef = useRef(false);
 
   const [activities, setActivities] = useState([]);
 
@@ -412,6 +415,10 @@ function App() {
       return;
     }
 
+    if (suppressFamilySettingsSavesRef.current) {
+      return;
+    }
+
     if (skipNextFamilySettingsSaveRef.current) {
       skipNextFamilySettingsSaveRef.current = false;
       return;
@@ -428,14 +435,28 @@ function App() {
       customParentPresets,
     });
 
-    const timeoutId = window.setTimeout(() => {
-      saveFamilySettings(payload).catch((error) => {
+    familySettingsSaveTimeoutRef.current = window.setTimeout(() => {
+      familySettingsSaveTimeoutRef.current = null;
+
+      if (suppressFamilySettingsSavesRef.current) {
+        return;
+      }
+
+      const savePromise = saveFamilySettings(payload).catch((error) => {
         console.error("Could not save family settings:", error);
+      });
+
+      familySettingsSaveInFlightRef.current.add(savePromise);
+      savePromise.finally(() => {
+        familySettingsSaveInFlightRef.current.delete(savePromise);
       });
     }, 400);
 
     return () => {
-      window.clearTimeout(timeoutId);
+      if (familySettingsSaveTimeoutRef.current !== null) {
+        window.clearTimeout(familySettingsSaveTimeoutRef.current);
+        familySettingsSaveTimeoutRef.current = null;
+      }
     };
   }, [
     familySettingsReady,
@@ -2366,10 +2387,26 @@ Prioritize activities that require the least decision-making from the child.
       return;
     }
 
+    /*
+     * Stop debounced autosaves and wait out any in-flight PUT so an older
+     * payload cannot overwrite the reset defaults on the server.
+     */
+    suppressFamilySettingsSavesRef.current = true;
+
+    if (familySettingsSaveTimeoutRef.current !== null) {
+      window.clearTimeout(familySettingsSaveTimeoutRef.current);
+      familySettingsSaveTimeoutRef.current = null;
+    }
+
+    if (familySettingsSaveInFlightRef.current.size > 0) {
+      await Promise.all([...familySettingsSaveInFlightRef.current]);
+    }
+
     try {
       await saveFamilySettings(buildDefaultFamilySettings());
     } catch (error) {
       console.error("Could not reset server family settings:", error);
+      suppressFamilySettingsSavesRef.current = false;
       window.alert(
         "Could not reset synced family settings on the server. Try again."
       );
