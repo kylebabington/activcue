@@ -1,6 +1,7 @@
 // server/routes/auth.js
 
 import { Router } from "express";
+import { checkEmailAvailabilityForUser } from "../lib/authEmailAvailability.js";
 import { getUserEntitlement } from "../lib/entitlements.js";
 import { requireAuthenticatedUser } from "../middleware/requireAuthenticatedUser.js";
 import { ensureUserProfile } from "../middleware/ensureUserProfile.js";
@@ -52,6 +53,8 @@ router.get(
             entitlement.subscriptionStatus,
           currentPeriodEnd:
             entitlement.currentPeriodEnd,
+          cancelAtPeriodEnd:
+            entitlement.cancelAtPeriodEnd,
           freeImaginativeActivityId:
             req.profile
               .free_imaginative_activity_id,
@@ -67,6 +70,63 @@ router.get(
         error:
           "Could not load the current user.",
         code: "CURRENT_USER_LOAD_FAILED",
+      });
+    }
+  }
+);
+
+/*
+ * POST /api/auth/check-email
+ *
+ * Body: { "email": "parent@example.com" }
+ *
+ * Used during anonymous → permanent conversion so we do not send a
+ * confirmation email for an address that already belongs to another account.
+ */
+router.post(
+  "/auth/check-email",
+  requireAuthenticatedUser,
+  ensureUserProfile,
+  async (req, res) => {
+    try {
+      const result =
+        await checkEmailAvailabilityForUser({
+          email: req.body?.email,
+          currentUserId: req.auth.userId,
+        });
+
+      if (result.code === "INVALID_EMAIL") {
+        return res.status(400).json({
+          error: result.error,
+          code: result.code,
+          available: false,
+        });
+      }
+
+      if (!result.available) {
+        return res.status(409).json({
+          error:
+            "That email may already belong to an account. Log in instead, or use a different email.",
+          code: "EMAIL_ALREADY_REGISTERED",
+          available: false,
+          email: result.email,
+        });
+      }
+
+      return res.json({
+        available: true,
+        email: result.email,
+      });
+    } catch (error) {
+      console.error(
+        "Could not check email availability:",
+        error
+      );
+
+      return res.status(500).json({
+        error:
+          "Could not verify whether that email is available.",
+        code: "EMAIL_CHECK_FAILED",
       });
     }
   }

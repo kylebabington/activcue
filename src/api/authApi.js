@@ -32,6 +32,19 @@ export async function signOutCurrentUser() {
 }
 
 /*
+ * Ask the server whether an email can be attached to the current anonymous
+ * session without colliding with another Auth user.
+ */
+export async function checkEmailAvailability(email) {
+  const response = await authenticatedRequest("/api/auth/check-email", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+
+  return response.json();
+}
+
+/*
  * Re-authenticate with the current password, then set a new password.
  */
 export async function changePassword({
