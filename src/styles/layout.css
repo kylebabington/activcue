@@ -111,9 +111,70 @@
   font-weight: var(--weight-normal);
 }
 
-.app-header .theme-switcher {
+.app-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.55rem 0.85rem;
   margin-left: auto;
   flex: 0 0 auto;
+}
+
+.app-header-actions .theme-switcher {
+  flex: 0 0 auto;
+}
+
+.app-header-auth {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.75rem;
+}
+
+.app-header-auth-link,
+.app-header-auth-button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.75rem;
+  padding: 0.15rem 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--muted-text);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  text-decoration: none;
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.app-header-auth-link:hover,
+.app-header-auth-button:hover {
+  color: var(--text);
+}
+
+.app-header-auth-link--primary {
+  color: var(--accent);
+  font-weight: var(--weight-semibold);
+}
+
+.app-header-auth-link--primary:hover {
+  color: var(--accent);
+}
+
+.app-header-auth-button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.app-header-auth-error {
+  margin: 0;
+  flex: 1 1 100%;
+  color: var(--danger, #b42318);
+  font-size: var(--text-xs);
+  text-align: right;
 }
 
 /* ========== PAGE STRUCTURE ========== */
@@ -286,7 +347,7 @@
     gap: 0.1rem 0.85rem;
   }
 
-  .app-header .theme-switcher {
+  .app-header-actions {
     margin-left: 0;
   }
 }
@@ -424,6 +485,17 @@
   color: #f5eee0;
   background: transparent;
   border-bottom-color: var(--kid-accent);
+}
+
+[data-theme="storybook"] .app-header-auth-link,
+[data-theme="storybook"] .app-header-auth-button {
+  color: rgba(245, 238, 224, 0.7);
+}
+
+[data-theme="storybook"] .app-header-auth-link:hover,
+[data-theme="storybook"] .app-header-auth-button:hover,
+[data-theme="storybook"] .app-header-auth-link--primary {
+  color: #f5eee0;
 }
 
 [data-theme="storybook"] .theme-switcher--compact .theme-switcher-option {
