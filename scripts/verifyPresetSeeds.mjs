@@ -110,7 +110,7 @@ const jsonbBlocks = [
  */
 const activityMatches = [
   ...migration.matchAll(
-    /\(\s*'([a-z0-9-]+)',\s*'([^']+)',\s*'([^']*)',\s*'([^']*)',\s*(\d+),\s*'(simple|imaginative)'/g
+    /\(\s*'([a-z0-9-]+)',\s*'((?:[^']|'')+)',\s*'((?:[^']|'')*)',\s*'((?:[^']|'')*)',\s*(\d+),\s*'(simple|imaginative)'/g
   ),
 ];
 
