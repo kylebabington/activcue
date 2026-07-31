@@ -14,7 +14,10 @@ import {
   getQuestStepHint,
   unlockPresetActivity,
 } from "./api/activityApi";
-import { getCurrentAuthenticatedUser } from "./api/authApi";
+import {
+  getCurrentAuthenticatedUser,
+  signOutCurrentUser,
+} from "./api/authApi";
 import { redirectToCheckout } from "./api/billingApi";
 import {
   getFamilySettings,
@@ -77,6 +80,9 @@ function App() {
 
   const { theme: uiTheme, setTheme: setUiTheme, themes: uiThemes } =
     useUiTheme();
+
+  const [headerLogoutBusy, setHeaderLogoutBusy] = useState(false);
+  const [headerLogoutError, setHeaderLogoutError] = useState("");
 
   // This is the parent PIN.
   // For MVP, we save it in localStorage.
@@ -241,6 +247,14 @@ function App() {
     canUseAiHints: false,
     subscriptionStatus: "inactive",
     currentPeriodEnd: null,
+
+    /*
+     * True means the subscription remains paid now but will not renew after
+     * currentPeriodEnd.
+     */
+    cancelAtPeriodEnd: false,
+
+
     freeImaginativeActivityId: null,
   });
   const [entitlementHydrated, setEntitlementHydrated] = useState(false);
@@ -303,6 +317,20 @@ function App() {
             ? nextEntitlement.currentPeriodEnd ??
             null
             : current.currentPeriodEnd,
+
+        /*
+ * Preserve the current value when older API responses do not contain the
+ * field. Honor both true and false when the server explicitly returns it.
+ */
+        cancelAtPeriodEnd:
+          "cancelAtPeriodEnd" in
+            nextEntitlement
+            ? Boolean(
+              nextEntitlement
+                .cancelAtPeriodEnd
+            )
+            : current
+              .cancelAtPeriodEnd,
 
         /*
          * Honor an explicit null from the server.
@@ -479,6 +507,7 @@ function App() {
               canUseAiHints: false,
               subscriptionStatus: "inactive",
               currentPeriodEnd: null,
+              cancelAtPeriodEnd: false,
               freeImaginativeActivityId: null,
             });
             setEntitlementHydrated(true);
@@ -2974,12 +3003,61 @@ Prioritize activities that require the least decision-making from the child.
           </NavLink>
         </nav>
 
-        <ThemeSwitcher
-          theme={uiTheme}
-          onChange={setUiTheme}
-          themes={uiThemes}
-          compact
-        />
+        <div className="app-header-actions">
+          <div className="app-header-auth">
+            {isAnonymous ? (
+              <>
+                <Link className="app-header-auth-link" to="/login">
+                  Log in
+                </Link>
+                <Link
+                  className="app-header-auth-link app-header-auth-link--primary"
+                  to="/signup"
+                >
+                  Create account
+                </Link>
+              </>
+            ) : (
+              <button
+                type="button"
+                className="app-header-auth-button"
+                disabled={headerLogoutBusy}
+                onClick={async () => {
+                  setHeaderLogoutError("");
+                  setHeaderLogoutBusy(true);
+
+                  try {
+                    await signOutCurrentUser();
+                    window.location.assign("/login");
+                  } catch (error) {
+                    console.error("Could not log out:", error);
+                    setHeaderLogoutError(
+                      error instanceof Error
+                        ? error.message
+                        : "Could not log out. Try again."
+                    );
+                    setHeaderLogoutBusy(false);
+                  }
+                }}
+              >
+                {headerLogoutBusy ? "Logging out…" : "Log out"}
+              </button>
+            )}
+          </div>
+
+          {headerLogoutError ? (
+            <p className="app-header-auth-error" role="alert">
+              {headerLogoutError}
+            </p>
+          ) : null}
+
+          <ThemeSwitcher
+            theme={uiTheme}
+            onChange={setUiTheme}
+            themes={uiThemes}
+            compact
+          />
+        </div>
       </header>
 
       {familySettingsSaveStatus === "error" ? (

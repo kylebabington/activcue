@@ -13,9 +13,15 @@ import SavedActivitiesPanel from "../components/SavedActivitiesPanel";
 import ActivityHistoryPanel from "../components/ActivityHistoryPanel";
 import ThemeSwitcher from "../components/ThemeSwitcher";
 import {
+  cancelSubscription,
   createCheckoutSession,
+  resumeSubscription,
 } from "../api/billingApi";
-import { signOutCurrentUser } from "../api/authApi";
+import {
+  changePassword,
+  signOutCurrentUser,
+} from "../api/authApi";
+import { ApiRequestError } from "../api/apiClient";
 
 import { useAppContext } from "../context/AppContext";
 import { useAuth } from "../hooks/useAuth";
@@ -145,6 +151,28 @@ function SettingsPage() {
     setBillingMessageType,
   ] = useState("info");
 
+  /*
+ * Tracks a cancel or resume request separately from Checkout.
+ *
+ * Values:
+ *
+ *   ""       -> no request running
+ *   "cancel" -> scheduling cancellation
+ *   "resume" -> restoring renewal
+ */
+  const [
+    subscriptionUpdateAction,
+    setSubscriptionUpdateAction,
+  ] = useState("");
+
+  /*
+   * Show an in-app confirmation before scheduling cancellation.
+   */
+  const [
+    showCancelConfirmation,
+    setShowCancelConfirmation,
+  ] = useState(false);
+
   const [
     logoutBusy,
     setLogoutBusy,
@@ -155,11 +183,42 @@ function SettingsPage() {
     setLogoutError,
   ] = useState("");
 
+  const [
+    currentPassword,
+    setCurrentPassword,
+  ] = useState("");
+
+  const [
+    newPassword,
+    setNewPassword,
+  ] = useState("");
+
+  const [
+    confirmNewPassword,
+    setConfirmNewPassword,
+  ] = useState("");
+
+  const [
+    passwordChangeBusy,
+    setPasswordChangeBusy,
+  ] = useState(false);
+
+  const [
+    passwordChangeMessage,
+    setPasswordChangeMessage,
+  ] = useState("");
+
+  const [
+    passwordChangeMessageType,
+    setPasswordChangeMessageType,
+  ] = useState("info");
+
   const billingResult =
     searchParams.get("billing");
 
   const [inventorySearch, setInventorySearch] = useState("");
   const [showSelectedOnly, setShowSelectedOnly] = useState(false);
+
 
   /*
  * Stripe redirects back to Settings after Checkout.
@@ -309,6 +368,69 @@ function SettingsPage() {
     }
   }
 
+  async function handleChangePassword(event) {
+    event.preventDefault();
+
+    setPasswordChangeMessage("");
+    setPasswordChangeMessageType("info");
+
+    if (!user?.email) {
+      setPasswordChangeMessage(
+        "A permanent account email is required to change the password."
+      );
+      setPasswordChangeMessageType("error");
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      setPasswordChangeMessage(
+        "Use a password that is at least 8 characters long."
+      );
+      setPasswordChangeMessageType("error");
+      return;
+    }
+
+    if (newPassword !== confirmNewPassword) {
+      setPasswordChangeMessage(
+        "The two new passwords do not match."
+      );
+      setPasswordChangeMessageType("error");
+      return;
+    }
+
+    setPasswordChangeBusy(true);
+
+    try {
+      await changePassword({
+        email: user.email,
+        currentPassword,
+        newPassword,
+      });
+
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmNewPassword("");
+      setPasswordChangeMessage(
+        "Your password has been updated."
+      );
+      setPasswordChangeMessageType("success");
+    } catch (error) {
+      console.error("Could not change password:", error);
+
+      const message =
+        error instanceof ApiRequestError
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : "Could not change password. Try again.";
+
+      setPasswordChangeMessage(message);
+      setPasswordChangeMessageType("error");
+    } finally {
+      setPasswordChangeBusy(false);
+    }
+  }
+
   async function handleStartCheckout(
     plan
   ) {
@@ -401,6 +523,159 @@ function SettingsPage() {
       );
 
       setBillingMessageType("error");
+    }
+  }
+
+  /*
+   * Schedule the subscription to stop renewing after the current paid period.
+   *
+   * FamilyFlow Plus remains active until currentPeriodEnd.
+   */
+  async function handleConfirmCancellation() {
+    if (
+      isAnonymous ||
+      !user?.id
+    ) {
+      setBillingMessage(
+        "A permanent account is required to manage a subscription."
+      );
+
+      setBillingMessageType("error");
+
+      return;
+    }
+
+    setSubscriptionUpdateAction(
+      "cancel"
+    );
+
+    setBillingMessage("");
+    setBillingMessageType("info");
+
+    try {
+      const result =
+        await cancelSubscription({
+          expectedUserId:
+            user.id,
+        });
+
+      /*
+       * Refresh the server-trusted entitlement after Stripe is updated.
+       */
+      try {
+        await refreshEntitlement();
+      } catch (refreshError) {
+        console.warn(
+          "Cancellation succeeded, but the entitlement refresh failed:",
+          refreshError
+        );
+      }
+
+      setShowCancelConfirmation(
+        false
+      );
+
+      setBillingMessage(
+        result.message ||
+        "FamilyFlow Plus will remain active through the current billing period and will not renew."
+      );
+
+      setBillingMessageType(
+        "success"
+      );
+    } catch (error) {
+      console.error(
+        "Could not cancel subscription renewal:",
+        error
+      );
+
+      setBillingMessage(
+        error instanceof Error
+          ? error.message
+          : "Could not cancel subscription renewal. Try again."
+      );
+
+      setBillingMessageType(
+        "error"
+      );
+    } finally {
+      setSubscriptionUpdateAction(
+        ""
+      );
+    }
+  }
+
+  /*
+   * Remove a scheduled cancellation before the subscription fully ends.
+   */
+  async function handleResumeSubscription() {
+    if (
+      isAnonymous ||
+      !user?.id
+    ) {
+      setBillingMessage(
+        "A permanent account is required to manage a subscription."
+      );
+
+      setBillingMessageType("error");
+
+      return;
+    }
+
+    setSubscriptionUpdateAction(
+      "resume"
+    );
+
+    setBillingMessage("");
+    setBillingMessageType("info");
+
+    try {
+      const result =
+        await resumeSubscription({
+          expectedUserId:
+            user.id,
+        });
+
+      try {
+        await refreshEntitlement();
+      } catch (refreshError) {
+        console.warn(
+          "Renewal resumed, but the entitlement refresh failed:",
+          refreshError
+        );
+      }
+
+      setShowCancelConfirmation(
+        false
+      );
+
+      setBillingMessage(
+        result.message ||
+        "Automatic renewal has been restored for FamilyFlow Plus."
+      );
+
+      setBillingMessageType(
+        "success"
+      );
+    } catch (error) {
+      console.error(
+        "Could not resume subscription renewal:",
+        error
+      );
+
+      setBillingMessage(
+        error instanceof Error
+          ? error.message
+          : "Could not resume subscription renewal. Try again."
+      );
+
+      setBillingMessageType(
+        "error"
+      );
+    } finally {
+      setSubscriptionUpdateAction(
+        ""
+      );
     }
   }
 
@@ -877,6 +1152,95 @@ function SettingsPage() {
           )}
         </section>
 
+        {!isAnonymous ? (
+          <section className="panel account-password-panel">
+            <div className="panel-header">
+              <div>
+                <h2>Change password</h2>
+                <p>
+                  Update the password for{" "}
+                  {user?.email || "your FamilyFlow account"}.
+                </p>
+              </div>
+            </div>
+
+            <form
+              className="account-password-form"
+              onSubmit={handleChangePassword}
+            >
+              <label className="account-password-field">
+                <span>Current password</span>
+                <input
+                  type="password"
+                  name="currentPassword"
+                  autoComplete="current-password"
+                  required
+                  value={currentPassword}
+                  onChange={(event) =>
+                    setCurrentPassword(event.target.value)
+                  }
+                />
+              </label>
+
+              <label className="account-password-field">
+                <span>New password</span>
+                <input
+                  type="password"
+                  name="newPassword"
+                  autoComplete="new-password"
+                  required
+                  minLength={8}
+                  value={newPassword}
+                  onChange={(event) =>
+                    setNewPassword(event.target.value)
+                  }
+                />
+              </label>
+
+              <label className="account-password-field">
+                <span>Confirm new password</span>
+                <input
+                  type="password"
+                  name="confirmNewPassword"
+                  autoComplete="new-password"
+                  required
+                  minLength={8}
+                  value={confirmNewPassword}
+                  onChange={(event) =>
+                    setConfirmNewPassword(event.target.value)
+                  }
+                />
+              </label>
+
+              {passwordChangeMessage ? (
+                <p
+                  className={
+                    `billing-notice ` +
+                    `billing-notice--${passwordChangeMessageType}`
+                  }
+                  role={
+                    passwordChangeMessageType === "error"
+                      ? "alert"
+                      : "status"
+                  }
+                >
+                  {passwordChangeMessage}
+                </p>
+              ) : null}
+
+              <button
+                type="submit"
+                className="secondary-action"
+                disabled={passwordChangeBusy}
+              >
+                {passwordChangeBusy
+                  ? "Updating password…"
+                  : "Update password"}
+              </button>
+            </form>
+          </section>
+        ) : null}
+
         <section className="panel billing-panel">
           <div className="panel-header">
             <div>
@@ -913,7 +1277,7 @@ function SettingsPage() {
             </p>
           ) : entitlement.isPaid ? (
             <div className="billing-active-summary">
-              <div>
+              <div className="billing-active-details">
                 <strong>
                   FamilyFlow Plus is active
                 </strong>
@@ -936,18 +1300,147 @@ function SettingsPage() {
                     .
                   </p>
                 ) : null}
+
+                {entitlement
+                  .cancelAtPeriodEnd ? (
+                  <p className="billing-renewal-status billing-renewal-status--ending">
+                    Automatic renewal is
+                    canceled. Your Plus access
+                    remains active through the
+                    current billing period.
+                  </p>
+                ) : (
+                  <p className="billing-renewal-status">
+                    Your subscription will renew
+                    automatically.
+                  </p>
+                )}
               </div>
 
-              <button
-                type="button"
-                className="secondary-action"
-                onClick={
-                  handleRefreshSubscription
-                }
-              >
-                Refresh subscription status
-              </button>
+              <div className="billing-management-controls">
+                {entitlement
+                  .cancelAtPeriodEnd ? (
+                  <button
+                    type="button"
+                    className="billing-resume-button"
+                    onClick={
+                      handleResumeSubscription
+                    }
+                    disabled={
+                      Boolean(
+                        subscriptionUpdateAction
+                      )
+                    }
+                  >
+                    {subscriptionUpdateAction ===
+                      "resume"
+                      ? "Restoring renewal…"
+                      : "Keep FamilyFlow Plus"}
+                  </button>
+                ) : !showCancelConfirmation ? (
+                  <button
+                    type="button"
+                    className="billing-cancel-button"
+                    onClick={() => {
+                      setShowCancelConfirmation(
+                        true
+                      );
+
+                      setBillingMessage("");
+                    }}
+                    disabled={
+                      Boolean(
+                        subscriptionUpdateAction
+                      )
+                    }
+                  >
+                    Cancel renewal
+                  </button>
+                ) : (
+                  <div className="billing-cancel-confirmation">
+                    <strong>
+                      Cancel FamilyFlow Plus
+                      renewal?
+                    </strong>
+
+                    {entitlement
+                      .currentPeriodEnd ? (
+                      <p>
+                        You will keep Plus access
+                        through{" "}
+                        {formatBillingDate(
+                          entitlement
+                            .currentPeriodEnd
+                        )}
+                        . Your subscription will
+                        not renew after that date.
+                      </p>
+                    ) : (
+                      <p>
+                        You will keep Plus access
+                        through the current paid
+                        billing period. Your
+                        subscription will not
+                        renew afterward.
+                      </p>
+                    )}
+
+                    <div className="billing-management-actions">
+                      <button
+                        type="button"
+                        className="secondary-action"
+                        onClick={() => {
+                          setShowCancelConfirmation(
+                            false
+                          );
+                        }}
+                        disabled={
+                          Boolean(
+                            subscriptionUpdateAction
+                          )
+                        }
+                      >
+                        Keep subscription
+                      </button>
+
+                      <button
+                        type="button"
+                        className="billing-confirm-cancel-button"
+                        onClick={
+                          handleConfirmCancellation
+                        }
+                        disabled={
+                          Boolean(
+                            subscriptionUpdateAction
+                          )
+                        }
+                      >
+                        {subscriptionUpdateAction ===
+                          "cancel"
+                          ? "Canceling renewal…"
+                          : "Confirm cancellation"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  className="secondary-action"
+                  onClick={
+                    handleRefreshSubscription
+                  }
+                  disabled={
+                    Boolean(
+                      subscriptionUpdateAction
+                    )
+                  }
+                >
+                  Refresh subscription status
+                </button>
+              </div>
             </div>
+
           ) : isAnonymous ? (
             <div className="billing-account-required">
               <p>
