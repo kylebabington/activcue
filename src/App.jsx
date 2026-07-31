@@ -4,6 +4,7 @@ import { Link, Navigate, NavLink, Route, Routes, useNavigate } from "react-route
 import {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -175,26 +176,31 @@ function App() {
     []
   );
 
-  const scoringOptions = {
-    inventory,
-    activeChildId: activityMode === "family" ? "" : activeChildId || "",
-  };
+  const scoringOptions = useMemo(
+    () => ({
+      inventory,
+      activeChildId: activityMode === "family" ? "" : activeChildId || "",
+    }),
+    [inventory, activityMode, activeChildId]
+  );
 
-  const scoredActivities = activities
-    .map((activity) => {
-      return {
-        activity,
-        score: getTotalActivityScore(
+  const scoredActivities = useMemo(() => {
+    return activities
+      .map((activity) => {
+        return {
           activity,
-          currentMoment,
-          activityHistory,
-          scoringOptions
-        ),
-      };
-    })
-    .sort((a, b) => {
-      return b.score - a.score;
-    });
+          score: getTotalActivityScore(
+            activity,
+            currentMoment,
+            activityHistory,
+            scoringOptions
+          ),
+        };
+      })
+      .sort((a, b) => {
+        return b.score - a.score;
+      });
+  }, [activities, currentMoment, activityHistory, scoringOptions]);
 
   useEffect(() => {
     if (activities.length === 0) {
@@ -205,19 +211,14 @@ function App() {
       scoredActivities,
       currentMoment,
       activityHistory,
-      {
-        inventory,
-        activeChildId: activityMode === "family" ? "" : activeChildId || "",
-      }
+      scoringOptions
     );
   }, [
     activities.length,
     scoredActivities,
     currentMoment,
     activityHistory,
-    inventory,
-    activityMode,
-    activeChildId,
+    scoringOptions,
   ]);
 
   const timerSecondsRemaining = useActivityTimer(activeActivity);

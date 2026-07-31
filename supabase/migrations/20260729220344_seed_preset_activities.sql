@@ -389,14 +389,14 @@ values
 (
   'the-lost-shell-signal',
   'The Lost Shell Signal',
-  'You are listening for shell signals in the deep ocean. Move quietly around the room, find the clues, and send back your discovery report.',
-  'A calm underwater search for lost shell signals and hidden sea clues.',
+  'Something odd happened under the waves: the shell signal network stopped singing. You are the Sea Signal Finder who must swim the quiet stations, listen for what went wrong, and bring the ocean''s message home.',
+  'The deep ocean has gone strangely quiet, and three glowing shell stations no longer send their soft signals up to the surface.',
   18,
   'imaginative',
   $$
   {
     "kidRole": "Sea Signal Finder",
-    "mission": "Search the undersea stations, find the hidden clues, and report what the ocean is telling you.",
+    "mission": "Last night the deep ocean went strangely quiet. The glowing shells that usually hum messages to the surface stopped one by one, and now three stations along the undersea path are dark. You are the Sea Signal Finder—calm, careful, and ready to listen. Travel from station to station, find each hidden clue the ocean left behind, and piece together what the shells are trying to say. When you return to base camp, tell the full story of the lost signal.",
     "starterPrompts": [
       "What kind of signal are you listening for?",
       "Which place in the room feels like a sea station?",
@@ -441,14 +441,14 @@ values
 (
   'tiny-bakery-counter',
   'Tiny Bakery Counter',
-  'You are the baker at your own little bakery. Take orders, make pretend treats, and serve them at the table.',
-  'A cozy kitchen-table bakery where you take orders, build treats, and serve customers with toy dishes and paper menus.',
+  'The bakery lights are on and the counter is waiting. You are the baker and server who must take orders, make pretend treats, and keep every customer happy at the kitchen table.',
+  'A tiny neighborhood bakery is opening for the morning rush, and the first customers are already peeking through the window.',
   20,
   'imaginative',
   $$
   {
     "kidRole": "Baker and server",
-    "mission": "Bake pretend treats, fill customer orders, and serve them neatly at the kitchen table.",
+    "mission": "This morning your tiny bakery is opening for the first time, and the neighborhood already smells like warm cookies. Customers will arrive soon with special requests, and the counter needs a baker who can listen carefully and create each treat. You are both baker and server today. Make a simple menu, take one order at a time, shape or draw each treat, and serve it with a friendly \"Order ready!\" Keep the bakery running until every customer leaves smiling.",
     "starterPrompts": [
       "What kind of bakery are you running today?",
       "What treat does your first customer want?",
@@ -493,14 +493,14 @@ values
 (
   'the-quiet-clue-room',
   'The Quiet Clue Room',
-  'You are the detective in charge of finding out which object does not belong and how it moved.',
-  'A calm living-room mystery where everyday objects become clues in a tiny case to solve.',
+  'A tiny mystery has appeared among everyday things. You are the detective who must study the clues, find the odd object, and explain what really happened.',
+  'A hush has fallen over the living room case files: one ordinary object does not belong, and the clues are waiting for a careful detective.',
   20,
   'imaginative',
   $$
   {
     "kidRole": "Detective",
-    "mission": "Look at the clues, figure out the odd object, and explain your answer like a real detective.",
+    "mission": "Earlier today, something strange happened in the Quiet Clue Room. Three ordinary objects were left out as evidence, but one of them does not fit the story. Soft footsteps, a tiny out-of-place detail, and a hush over the living room are all that remain. You are the detective in charge. Look closely, ask quiet questions, decide which object is the odd one out, and explain your answer like a real detective closing a case.",
     "starterPrompts": [
       "Which object looks the most different from the others?",
       "What small detail makes you think that?",
@@ -544,14 +544,14 @@ values
 (
   'downtown-map-maker',
   'Downtown Map Maker',
-  'You are the map maker. Draw a simple city plan, then build the parts you drew.',
-  'A living-room planning desk where you map out roads, buildings, and city signs for a tiny downtown.',
+  'The empty planning desk is waiting for the city''s first design. You are the map maker who will draw downtown, then build the parts you planned.',
+  'A brand-new downtown is about to be built, but the city still needs its first map before the roads and buildings can rise.',
   20,
   'imaginative',
   $$
   {
     "kidRole": "City Planner",
-    "mission": "Make a downtown map on paper and build the main parts in blocks.",
+    "mission": "The mayor of Tiny Downtown has a problem: the city exists only as blank paper and a pile of blocks. Before anyone can travel or visit, the roads, buildings, and signs must be planned. You are the City Planner and Map Maker. Draw a clear downtown map with streets and important places, then build the main parts with blocks so the city finally comes to life. When you finish, give a short tour of your new downtown.",
     "starterPrompts": [
       "What should go on your downtown map first?",
       "Where will the roads go?",
@@ -596,14 +596,14 @@ values
 (
   'stuffed-pet-clinic',
   'Stuffed Pet Clinic',
-  'You are the pet doctor in your cozy bedroom clinic. Your stuffed animals come one by one for careful checkups, stickers, and kind care.',
-  'A quiet bedroom clinic where stuffed animals come in for gentle checkups, bandages, and comfort.',
+  'Your cozy clinic is open and the waiting room is full of soft patients. You are the pet doctor who will check each one, offer comfort, and write a tiny care note.',
+  'A quiet bedroom clinic has opened for the day, and a line of stuffed animals is waiting for gentle checkups and kind care.',
   25,
   'imaginative',
   $$
   {
     "kidRole": "Pet Doctor",
-    "mission": "Take care of your stuffed animals by checking how they feel, giving them a bandage or sticker if needed, and writing a tiny care note for each one.",
+    "mission": "Today the Stuffed Pet Clinic is open, and several soft patients are feeling a little under the weather. Some need a checkup, some need a bandage or sticker, and all of them need a calm, kind doctor. You run this quiet bedroom clinic. Welcome each stuffed animal one by one, check how they feel, give gentle care, and write a tiny note so every patient goes home feeling better.",
     "starterPrompts": [
       "Which stuffed animal is first in line?",
       "What seems to be wrong: a hurt paw, a sad face, or a sleepy tail?",
@@ -648,14 +648,14 @@ values
 (
   'museum-of-lost-exhibits',
   'Museum of Lost Exhibits',
-  'You are the museum finder. Search the living room for three lost exhibits, bring each one back, and place it on the museum shelf.',
-  'A time-travel museum in the living room has three missing exhibits, and you must find them and return them to the museum shelf.',
+  'The museum doors will open soon, and three exhibits are missing. You are the Museum Finder who must recover them and restore the shelf before visitors arrive.',
+  'A living-room time-travel museum is about to open, but three precious exhibits have wandered off into nearby eras.',
   20,
   'imaginative',
   $$
   {
     "kidRole": "Museum Finder",
-    "mission": "Find the three lost exhibits hidden around the living room and return them to the museum shelf before the museum opens again.",
+    "mission": "The Museum of Lost Exhibits opens in just a little while, but three treasures have slipped out of their displays and into the living room timeline. Without them, the museum tour cannot begin. You are the Museum Finder trusted with this rescue. Search carefully for each lost exhibit, carry it back with care, and place it on the museum shelf before the doors open again. When all three are home, announce that the museum is ready.",
     "starterPrompts": [
       "Which exhibit do you want to hunt for first: the oldest, the shiniest, or the oddest?",
       "What clue will help you remember where each exhibit was found?",
@@ -696,14 +696,14 @@ values
 (
   'nature-magic-weather-map',
   'Nature Magic Weather Map',
-  'You are drawing a magic weather map for a little nature world.',
-  'A cozy map-making lab where you chart a magical garden sky and tiny weather spots.',
+  'The garden sky needs a map before its weather magic can settle. You are the Map Maker who will chart three weather spots and decide what nature magic lives in each one.',
+  'A little nature world is waiting for its first weather map, where each spot holds a different kind of quiet magic.',
   25,
   'imaginative',
   $$
   {
     "kidRole": "Map Maker",
-    "mission": "Create a map with three weather spots and decide what kind of nature magic lives in each one.",
+    "mission": "In a tiny garden world, the weather has gone mixed-up: sunny corners, breezy paths, and cloudy nests are waiting to be named. Until someone charts them, the nature magic cannot find its place. You are the Map Maker of this cozy weather lab. Create a map with three weather spots, decide what kind of nature magic belongs in each one, and tell the story of what happens when you travel from spot to spot.",
     "starterPrompts": [
       "What places will be on your magic map?",
       "Which spot has sun, clouds, wind, or rain?",
@@ -744,14 +744,14 @@ values
 (
   'living-room-circus-show',
   'Living Room Circus Show',
-  'You are the star of your own circus show. Pick your acts, get dressed up, and perform for the living room audience.',
-  'A bright circus stage in the living room where one performer gets ready for a big show.',
+  'Tonight is showtime in the living room. You are the ringmaster performer who will choose your acts, get ready, and put on a dazzling three-part circus.',
+  'The living-room circus tent is glowing, the audience seats are ready, and the star performer still needs to plan a three-part show.',
   25,
   'imaginative',
   $$
   {
     "kidRole": "Ringmaster Performer",
-    "mission": "Put on a 3-part circus show with an opening pose, a main act, and a big final bow.",
+    "mission": "The Living Room Circus is about to begin, and the audience of pillows and toys is already waiting. There is no script yet—only an empty stage and a performer ready for the spotlight. You are the Ringmaster Performer. Plan a three-part show with a strong opening pose, a main act, and a big final bow. Practice each part, then perform the whole show as if the whole room came just to cheer for you.",
     "starterPrompts": [
       "What is your circus name?",
       "Will your first act be dancing, balancing, or funny faces?",
@@ -792,14 +792,14 @@ values
 (
   'hallway-map-courier',
   'Hallway Map Courier',
-  'You are the route courier. Read your map, follow the stops, and deliver each package to the right place in the living room.',
-  'A cozy indoor route where you study a simple map, follow stops around the living room, and deliver tiny packages in order.',
+  'The route is marked and the packages are waiting. You are the Map Courier who must follow each stop and deliver every package to the right place.',
+  'Three important packages must travel an indoor route tonight, and only a careful courier with a clear map can deliver them in order.',
   20,
   'imaginative',
   $$
   {
     "kidRole": "Map Courier",
-    "mission": "Deliver the three packages to their correct stops by following your indoor map without mixing up the route.",
+    "mission": "A quiet delivery network runs through the living room tonight. Three packages need to reach three different stops, and mixing up the route would send them to the wrong places. You are the Map Courier trusted with this job. Study your indoor map, follow the stops in order, and deliver each package carefully without losing the route. When the last package arrives, report that the delivery network is clear.",
     "starterPrompts": [
       "Where is your start point on the map?",
       "Which stop should come first: sofa, chair, or table?",

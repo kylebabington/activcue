@@ -1,11 +1,19 @@
-(
-  'the-lost-shell-signal',
-  'The Lost Shell Signal',
-  'Something odd happened under the waves: the shell signal network stopped singing. You are the Sea Signal Finder who must swim the quiet stations, listen for what went wrong, and bring the ocean''s message home.',
-  'The deep ocean has gone strangely quiet, and three glowing shell stations no longer send their soft signals up to the surface.',
-  18,
-  'imaginative',
-  $$
+-- supabase/migrations/20260730225919_enrich_imaginative_setup_stories.sql
+
+/*
+ * Enrich imaginative preset theme, summary, and mission fields with richer
+ * setup stories. Idempotent updates by slug.
+ */
+
+begin;
+
+update public.preset_activities
+set
+  title = 'The Lost Shell Signal',
+  summary = 'Something odd happened under the waves: the shell signal network stopped singing. You are the Sea Signal Finder who must swim the quiet stations, listen for what went wrong, and bring the ocean''s message home.',
+  theme = 'The deep ocean has gone strangely quiet, and three glowing shell stations no longer send their soft signals up to the surface.',
+  estimated_minutes = 18,
+  full_content = $$
   {
     "kidRole": "Sea Signal Finder",
     "mission": "Last night the deep ocean went strangely quiet. The glowing shells that usually hum messages to the surface stopped one by one, and now three stations along the undersea path are dark. You are the Sea Signal Finder—calm, careful, and ready to listen. Travel from station to station, find each hidden clue the ocean left behind, and piece together what the shells are trying to say. When you return to base camp, tell the full story of the lost signal.",
@@ -46,18 +54,16 @@
     "adultHelp": "none",
     "whyItFits": "This fits do-not-interrupt time because the child can start it alone, keep it quiet, and stay in the living room. It uses no water, no small objects, and no screens, while still feeling like a real undersea exploration story with movement and clear missions."
   }
-  $$::jsonb,
-  true,
-  101
-),
-(
-  'tiny-bakery-counter',
-  'Tiny Bakery Counter',
-  'The bakery lights are on and the counter is waiting. You are the baker and server who must take orders, make pretend treats, and keep every customer happy at the kitchen table.',
-  'A tiny neighborhood bakery is opening for the morning rush, and the first customers are already peeking through the window.',
-  20,
-  'imaginative',
-  $$
+  $$::jsonb
+where slug = 'the-lost-shell-signal';
+
+update public.preset_activities
+set
+  title = 'Tiny Bakery Counter',
+  summary = 'The bakery lights are on and the counter is waiting. You are the baker and server who must take orders, make pretend treats, and keep every customer happy at the kitchen table.',
+  theme = 'A tiny neighborhood bakery is opening for the morning rush, and the first customers are already peeking through the window.',
+  estimated_minutes = 20,
+  full_content = $$
   {
     "kidRole": "Baker and server",
     "mission": "This morning your tiny bakery is opening for the first time, and the neighborhood already smells like warm cookies. Customers will arrive soon with special requests, and the counter needs a baker who can listen carefully and create each treat. You are both baker and server today. Make a simple menu, take one order at a time, shape or draw each treat, and serve it with a friendly \"Order ready!\" Keep the bakery running until every customer leaves smiling.",
@@ -98,18 +104,16 @@
     "adultHelp": "optional",
     "whyItFits": "This matches the child's interest in bakery and restaurant play, stays at the kitchen table, uses only the items on hand, and works well while a parent is cooking. It is imaginative but calm, low-mess, and independent for ages 5–8."
   }
-  $$::jsonb,
-  true,
-  102
-),
-(
-  'the-quiet-clue-room',
-  'The Quiet Clue Room',
-  'A tiny mystery has appeared among everyday things. You are the detective who must study the clues, find the odd object, and explain what really happened.',
-  'A hush has fallen over the living room case files: one ordinary object does not belong, and the clues are waiting for a careful detective.',
-  20,
-  'imaginative',
-  $$
+  $$::jsonb
+where slug = 'tiny-bakery-counter';
+
+update public.preset_activities
+set
+  title = 'The Quiet Clue Room',
+  summary = 'A tiny mystery has appeared among everyday things. You are the detective who must study the clues, find the odd object, and explain what really happened.',
+  theme = 'A hush has fallen over the living room case files: one ordinary object does not belong, and the clues are waiting for a careful detective.',
+  estimated_minutes = 20,
+  full_content = $$
   {
     "kidRole": "Detective",
     "mission": "Earlier today, something strange happened in the Quiet Clue Room. Three ordinary objects were left out as evidence, but one of them does not fit the story. Soft footsteps, a tiny out-of-place detail, and a hush over the living room are all that remain. You are the detective in charge. Look closely, ask quiet questions, decide which object is the odd one out, and explain your answer like a real detective closing a case.",
@@ -149,18 +153,16 @@
     "adultHelp": "none",
     "whyItFits": "This matches the child's love of detective mystery play, stays quiet and low-mess in the living room, uses only ordinary household items, and can be started independently while the parent pays bills."
   }
-  $$::jsonb,
-  true,
-  103
-),
-(
-  'downtown-map-maker',
-  'Downtown Map Maker',
-  'The empty planning desk is waiting for the city''s first design. You are the map maker who will draw downtown, then build the parts you planned.',
-  'A brand-new downtown is about to be built, but the city still needs its first map before the roads and buildings can rise.',
-  20,
-  'imaginative',
-  $$
+  $$::jsonb
+where slug = 'the-quiet-clue-room';
+
+update public.preset_activities
+set
+  title = 'Downtown Map Maker',
+  summary = 'The empty planning desk is waiting for the city''s first design. You are the map maker who will draw downtown, then build the parts you planned.',
+  theme = 'A brand-new downtown is about to be built, but the city still needs its first map before the roads and buildings can rise.',
+  estimated_minutes = 20,
+  full_content = $$
   {
     "kidRole": "City Planner",
     "mission": "The mayor of Tiny Downtown has a problem: the city exists only as blank paper and a pile of blocks. Before anyone can travel or visit, the roads, buildings, and signs must be planned. You are the City Planner and Map Maker. Draw a clear downtown map with streets and important places, then build the main parts with blocks so the city finally comes to life. When you finish, give a short tour of your new downtown.",
@@ -201,18 +203,16 @@
     "adultHelp": "optional",
     "whyItFits": "This gives the child a clear planning job, uses the living room as a build-and-draw space, keeps setup simple, and fits the requested construction/city planner theme with no small or messy materials."
   }
-  $$::jsonb,
-  true,
-  104
-),
-(
-  'stuffed-pet-clinic',
-  'Stuffed Pet Clinic',
-  'Your cozy clinic is open and the waiting room is full of soft patients. You are the pet doctor who will check each one, offer comfort, and write a tiny care note.',
-  'A quiet bedroom clinic has opened for the day, and a line of stuffed animals is waiting for gentle checkups and kind care.',
-  25,
-  'imaginative',
-  $$
+  $$::jsonb
+where slug = 'downtown-map-maker';
+
+update public.preset_activities
+set
+  title = 'Stuffed Pet Clinic',
+  summary = 'Your cozy clinic is open and the waiting room is full of soft patients. You are the pet doctor who will check each one, offer comfort, and write a tiny care note.',
+  theme = 'A quiet bedroom clinic has opened for the day, and a line of stuffed animals is waiting for gentle checkups and kind care.',
+  estimated_minutes = 25,
+  full_content = $$
   {
     "kidRole": "Pet Doctor",
     "mission": "Today the Stuffed Pet Clinic is open, and several soft patients are feeling a little under the weather. Some need a checkup, some need a bandage or sticker, and all of them need a calm, kind doctor. You run this quiet bedroom clinic. Welcome each stuffed animal one by one, check how they feel, give gentle care, and write a tiny note so every patient goes home feeling better.",
@@ -253,18 +253,16 @@
     "adultHelp": "none",
     "whyItFits": "This fits the child’s love of pet care, stays quiet and low-mess in the bedroom, and can be started independently with only stuffed animals, blanket, bandages or stickers, paper, and crayons."
   }
-  $$::jsonb,
-  true,
-  105
-),
-(
-  'museum-of-lost-exhibits',
-  'Museum of Lost Exhibits',
-  'The museum doors will open soon, and three exhibits are missing. You are the Museum Finder who must recover them and restore the shelf before visitors arrive.',
-  'A living-room time-travel museum is about to open, but three precious exhibits have wandered off into nearby eras.',
-  20,
-  'imaginative',
-  $$
+  $$::jsonb
+where slug = 'stuffed-pet-clinic';
+
+update public.preset_activities
+set
+  title = 'Museum of Lost Exhibits',
+  summary = 'The museum doors will open soon, and three exhibits are missing. You are the Museum Finder who must recover them and restore the shelf before visitors arrive.',
+  theme = 'A living-room time-travel museum is about to open, but three precious exhibits have wandered off into nearby eras.',
+  estimated_minutes = 20,
+  full_content = $$
   {
     "kidRole": "Museum Finder",
     "mission": "The Museum of Lost Exhibits opens in just a little while, but three treasures have slipped out of their displays and into the living room timeline. Without them, the museum tour cannot begin. You are the Museum Finder trusted with this rescue. Search carefully for each lost exhibit, carry it back with care, and place it on the museum shelf before the doors open again. When all three are home, announce that the museum is ready.",
@@ -301,18 +299,16 @@
     "adultHelp": "none",
     "whyItFits": "This matches the child’s love of time-travel museum scavenger hunts and keeps the main play as finding and returning lost exhibits. It works in the living room, needs only safe household objects plus paper and markers, stays low mess, and can be done mostly independently while the parent handles errands."
   }
-  $$::jsonb,
-  true,
-  106
-),
-(
-  'nature-magic-weather-map',
-  'Nature Magic Weather Map',
-  'The garden sky needs a map before its weather magic can settle. You are the Map Maker who will chart three weather spots and decide what nature magic lives in each one.',
-  'A little nature world is waiting for its first weather map, where each spot holds a different kind of quiet magic.',
-  25,
-  'imaginative',
-  $$
+  $$::jsonb
+where slug = 'museum-of-lost-exhibits';
+
+update public.preset_activities
+set
+  title = 'Nature Magic Weather Map',
+  summary = 'The garden sky needs a map before its weather magic can settle. You are the Map Maker who will chart three weather spots and decide what nature magic lives in each one.',
+  theme = 'A little nature world is waiting for its first weather map, where each spot holds a different kind of quiet magic.',
+  estimated_minutes = 25,
+  full_content = $$
   {
     "kidRole": "Map Maker",
     "mission": "In a tiny garden world, the weather has gone mixed-up: sunny corners, breezy paths, and cloudy nests are waiting to be named. Until someone charts them, the nature magic cannot find its place. You are the Map Maker of this cozy weather lab. Create a map with three weather spots, decide what kind of nature magic belongs in each one, and tell the story of what happens when you travel from spot to spot.",
@@ -349,18 +345,16 @@
     "adultHelp": "none",
     "whyItFits": "This is a calm craft-story activity that matches the kitchen table, quiet mode, and low-mess rules. It uses only paper and drawing tools, gives the child a clear imaginative role, and keeps the play independent and focused on weather and nature magic."
   }
-  $$::jsonb,
-  true,
-  107
-),
-(
-  'living-room-circus-show',
-  'Living Room Circus Show',
-  'Tonight is showtime in the living room. You are the ringmaster performer who will choose your acts, get ready, and put on a dazzling three-part circus.',
-  'The living-room circus tent is glowing, the audience seats are ready, and the star performer still needs to plan a three-part show.',
-  25,
-  'imaginative',
-  $$
+  $$::jsonb
+where slug = 'nature-magic-weather-map';
+
+update public.preset_activities
+set
+  title = 'Living Room Circus Show',
+  summary = 'Tonight is showtime in the living room. You are the ringmaster performer who will choose your acts, get ready, and put on a dazzling three-part circus.',
+  theme = 'The living-room circus tent is glowing, the audience seats are ready, and the star performer still needs to plan a three-part show.',
+  estimated_minutes = 25,
+  full_content = $$
   {
     "kidRole": "Ringmaster Performer",
     "mission": "The Living Room Circus is about to begin, and the audience of pillows and toys is already waiting. There is no script yet—only an empty stage and a performer ready for the spotlight. You are the Ringmaster Performer. Plan a three-part show with a strong opening pose, a main act, and a big final bow. Practice each part, then perform the whole show as if the whole room came just to cheer for you.",
@@ -397,18 +391,16 @@
     "adultHelp": "optional",
     "whyItFits": "This matches the child's interest in circus and stage performance, uses the living room, stays screen-free and low-mess, and works well with independent play while the parent is busy nearby doing yard work."
   }
-  $$::jsonb,
-  true,
-  108
-),
-(
-  'hallway-map-courier',
-  'Hallway Map Courier',
-  'The route is marked and the packages are waiting. You are the Map Courier who must follow each stop and deliver every package to the right place.',
-  'Three important packages must travel an indoor route tonight, and only a careful courier with a clear map can deliver them in order.',
-  20,
-  'imaginative',
-  $$
+  $$::jsonb
+where slug = 'living-room-circus-show';
+
+update public.preset_activities
+set
+  title = 'Hallway Map Courier',
+  summary = 'The route is marked and the packages are waiting. You are the Map Courier who must follow each stop and deliver every package to the right place.',
+  theme = 'Three important packages must travel an indoor route tonight, and only a careful courier with a clear map can deliver them in order.',
+  estimated_minutes = 20,
+  full_content = $$
   {
     "kidRole": "Map Courier",
     "mission": "A quiet delivery network runs through the living room tonight. Three packages need to reach three different stops, and mixing up the route would send them to the wrong places. You are the Map Courier trusted with this job. Study your indoor map, follow the stops in order, and deliver each package carefully without losing the route. When the last package arrives, report that the delivery network is clear.",
@@ -447,7 +439,7 @@
     "adultHelp": "optional",
     "whyItFits": "This fits the child's love of delivery routes and indoor map play, uses only the living room, stays mostly independent, and works with the paper and safe package items already available. It is screen-free, low-mess, and easy to do while a parent is cleaning nearby."
   }
-  $$::jsonb,
-  true,
-  109
-)
+  $$::jsonb
+where slug = 'hallway-map-courier';
+
+commit;
