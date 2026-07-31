@@ -20,7 +20,7 @@ const VALID_SUBSCRIPTION_STATUSES = new Set([
   "paused",
 ]);
 
-function normalizeSubscriptionStatus(status) {
+export function normalizeSubscriptionStatus(status) {
   if (
     typeof status === "string" &&
     VALID_SUBSCRIPTION_STATUSES.has(status)
@@ -107,6 +107,50 @@ export function getSubscriptionPriceId(subscription) {
   }
 
   return typeof price === "string" ? price : price.id || null;
+}
+
+/*
+ * Retrieve the billing record that belongs to one FamilyFlow user.
+ *
+ * Routes use this server-side lookup instead of accepting a Stripe
+ * subscription ID from the browser.
+ */
+export async function getSubscriptionRecordForUser(
+  userId
+) {
+  if (!userId) {
+    throw new Error(
+      "Cannot retrieve a subscription without a user id."
+    );
+  }
+
+  const supabaseAdmin =
+    getSupabaseAdminClient();
+
+  const {
+    data: subscription,
+    error,
+  } = await supabaseAdmin
+    .from("subscriptions")
+    .select(
+      [
+        "user_id",
+        "stripe_customer_id",
+        "stripe_subscription_id",
+        "stripe_price_id",
+        "status",
+        "current_period_end",
+        "cancel_at_period_end",
+      ].join(",")
+    )
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return subscription || null;
 }
 
 /*
@@ -244,11 +288,31 @@ async function persistSubscriptionRow({
   subscription,
 }) {
   const supabaseAdmin = getSupabaseAdminClient();
-  const stripePriceId = getSubscriptionPriceId(subscription);
-  const currentPeriodEnd = getSubscriptionPeriodEnd(subscription);
-  const status = normalizeSubscriptionStatus(
-    subscription.status
-  );
+  const stripePriceId =
+    getSubscriptionPriceId(
+      subscription
+    );
+
+  const currentPeriodEnd =
+    getSubscriptionPeriodEnd(
+      subscription
+    );
+
+  const status =
+    normalizeSubscriptionStatus(
+      subscription.status
+    );
+
+  /*
+   * Stripe keeps the subscription active while this is true.
+   *
+   * The customer retains paid access until currentPeriodEnd, but Stripe will
+   * not renew the subscription after that date.
+   */
+  const cancelAtPeriodEnd =
+    Boolean(
+      subscription.cancel_at_period_end
+    );
 
   const {
     error: profileError,
@@ -275,6 +339,7 @@ async function persistSubscriptionRow({
         stripe_price_id: stripePriceId,
         status,
         current_period_end: currentPeriodEnd,
+        cancel_at_period_end: cancelAtPeriodEnd,
       },
       {
         onConflict: "user_id",
@@ -292,5 +357,6 @@ async function persistSubscriptionRow({
     stripePriceId,
     status,
     currentPeriodEnd,
+    cancelAtPeriodEnd,
   };
 }

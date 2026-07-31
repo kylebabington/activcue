@@ -723,6 +723,44 @@
   margin: 0;
 }
 
+.account-password-form {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: 0.35rem;
+  max-width: 24rem;
+}
+
+.account-password-field {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.account-password-field span {
+  color: var(--muted-text);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+}
+
+.account-password-field input {
+  width: 100%;
+  min-height: 2.5rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 0.5rem);
+  background: var(--panel-bg-solid, var(--bg));
+  color: var(--text);
+  font: inherit;
+}
+
+.account-password-field input:focus {
+  outline: 2px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  outline-offset: 1px;
+}
+
+.account-password-form .billing-notice {
+  margin: 0;
+}
+
 .billing-panel {
   display: grid;
   gap: var(--space-3);
@@ -877,6 +915,100 @@
   margin: 0.25rem 0 0;
   color: var(--muted-text);
   font-size: var(--text-sm);
+}
+
+/*
+ * Subscription renewal management
+ */
+
+.billing-active-summary {
+  align-items: flex-start;
+}
+
+.billing-active-details {
+  flex: 1 1 16rem;
+}
+
+.billing-renewal-status {
+  line-height: 1.5;
+}
+
+.billing-active-summary .billing-renewal-status--ending {
+  color: var(--danger);
+  font-weight: var(--weight-semibold);
+}
+
+.billing-management-controls {
+  display: grid;
+  flex: 0 1 24rem;
+  justify-items: start;
+  gap: var(--space-2);
+}
+
+.billing-cancel-confirmation {
+  display: grid;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-2);
+  border: 1px solid color-mix(in srgb,
+      var(--danger) 35%,
+      var(--border));
+  border-radius: var(--radius-sm);
+  background:
+    color-mix(in srgb,
+      var(--danger) 6%,
+      var(--panel-bg-solid));
+}
+
+.billing-cancel-confirmation p {
+  margin: 0;
+  color: var(--muted-text);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+
+.billing-management-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.billing-cancel-button,
+.billing-resume-button,
+.billing-confirm-cancel-button {
+  min-height: var(--control-height);
+  border-radius: var(--radius-sm);
+  padding: 0.55rem 1rem;
+  font: inherit;
+  font-weight: var(--weight-semibold);
+  cursor: pointer;
+}
+
+.billing-cancel-button {
+  border: 1px solid color-mix(in srgb,
+      var(--danger) 45%,
+      var(--border));
+  background: transparent;
+  color: var(--danger);
+}
+
+.billing-resume-button {
+  border: 0;
+  background: var(--accent);
+  color: white;
+}
+
+.billing-confirm-cancel-button {
+  border: 0;
+  background: var(--danger);
+  color: white;
+}
+
+.billing-cancel-button:disabled,
+.billing-resume-button:disabled,
+.billing-confirm-cancel-button:disabled {
+  opacity: 0.6;
+  cursor: wait;
 }
 
 .billing-account-link {

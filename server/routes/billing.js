@@ -9,60 +9,23 @@ import {
 } from "../lib/stripeClient.js";
 
 import {
+  getSubscriptionRecordForUser,
   upsertSubscriptionFromCheckout,
   upsertSubscriptionFromStripe,
 } from "../lib/subscriptionStore.js";
 
 import { getUserEntitlement } from "../lib/entitlements.js";
+import {
+  findBlockingSubscription,
+  getAppBaseUrl,
+  getCheckoutConflict,
+  getPriceIdForPlan,
+  isValidBillingPlan,
+} from "../lib/billingHelpers.js";
 import { requireAuthenticatedUser } from "../middleware/requireAuthenticatedUser.js";
 import { ensureUserProfile } from "../middleware/ensureUserProfile.js";
 
 const router = Router();
-
-/*
- * The browser sends only "monthly" or "annual".
- *
- * The browser must never send an arbitrary Stripe Price ID.
- */
-const PLAN_PRICE_ENVIRONMENT_VARIABLES = {
-  monthly: "STRIPE_MONTHLY_PRICE_ID",
-  annual: "STRIPE_ANNUAL_PRICE_ID",
-};
-
-/*
- * These Stripe statuses indicate that another subscription Checkout should
- * not be created for the same Stripe customer.
- */
-const BLOCKING_SUBSCRIPTION_STATUSES =
-  new Set([
-    "incomplete",
-    "trialing",
-    "active",
-    "past_due",
-    "unpaid",
-    "paused",
-  ]);
-
-function getAppBaseUrl() {
-  const configured = (
-    process.env.APP_URL || ""
-  )
-    .trim()
-    .replace(/\/+$/, "");
-
-  if (configured) {
-    return configured;
-  }
-
-  if (
-    process.env.NODE_ENV !==
-    "production"
-  ) {
-    return "http://localhost:5173";
-  }
-
-  return "";
-}
 
 function billingNotConfiguredResponse(res) {
   return res.status(503).json({
@@ -72,48 +35,212 @@ function billingNotConfiguredResponse(res) {
   });
 }
 
-function getPriceIdForPlan(plan) {
-  const environmentVariableName =
-    PLAN_PRICE_ENVIRONMENT_VARIABLES[
-    plan
-    ];
-
-  if (!environmentVariableName) {
-    return null;
-  }
-
-  return (
-    process.env[
-    environmentVariableName
-    ] || null
-  );
-}
-
-async function findBlockingSubscription(
-  stripe,
-  customerId
-) {
-  if (!customerId) {
-    return null;
-  }
-
-  const subscriptionList =
-    await stripe.subscriptions.list({
-      customer: customerId,
-      status: "all",
-      limit: 100,
+/*
+ * Update whether the authenticated user's subscription will renew.
+ *
+ * cancelAtPeriodEnd:
+ *
+ *   true  -> stop renewal at the end of the paid period
+ *   false -> remove the pending cancellation
+ */
+export async function updateSubscriptionRenewal({
+  req,
+  res,
+  cancelAtPeriodEnd,
+}) {
+  /*
+   * Anonymous accounts cannot own subscriptions.
+   */
+  if (req.auth.isAnonymous) {
+    return res.status(403).json({
+      error:
+        "Create a permanent account before managing a subscription.",
+      code: "ACCOUNT_REQUIRED",
     });
+  }
 
-  return (
-    subscriptionList.data.find(
-      (subscription) =>
-        BLOCKING_SUBSCRIPTION_STATUSES.has(
-          subscription.status
-        )
-    ) || null
-  );
+  if (!process.env.STRIPE_SECRET_KEY) {
+    return billingNotConfiguredResponse(
+      res
+    );
+  }
+
+  const userId = req.auth.userId;
+
+  try {
+    /*
+     * Look up the subscription using the authenticated user ID.
+     *
+     * Never accept stripe_subscription_id from req.body.
+     */
+    const storedSubscription =
+      await getSubscriptionRecordForUser(
+        userId
+      );
+
+    if (
+      !storedSubscription
+        ?.stripe_subscription_id
+    ) {
+      return res.status(404).json({
+        error:
+          "No FamilyFlow Plus subscription was found for this account.",
+        code:
+          "SUBSCRIPTION_NOT_FOUND",
+      });
+    }
+
+    const stripe =
+      requireStripeClient();
+
+    /*
+     * Retrieve the live Stripe object before modifying it.
+     *
+     * Supabase is our local subscription cache, but Stripe is authoritative
+     * for the subscription's current billing state.
+     */
+    const currentSubscription =
+      await stripe.subscriptions.retrieve(
+        storedSubscription
+          .stripe_subscription_id,
+        {},
+        managedPaymentsRequestOptions
+      );
+
+    /*
+     * A fully ended subscription cannot be resumed.
+     *
+     * The user would need to purchase a new subscription instead.
+     */
+    if (
+      currentSubscription.status ===
+      "canceled"
+    ) {
+      /*
+       * Save Stripe's current state in case Supabase was behind.
+       */
+      await upsertSubscriptionFromStripe(
+        currentSubscription
+      );
+
+      return res.status(409).json({
+        error:
+          "This subscription has already ended and cannot be resumed.",
+        code:
+          "SUBSCRIPTION_ALREADY_ENDED",
+      });
+    }
+
+    const currentCustomerId =
+      typeof currentSubscription.customer ===
+        "string"
+        ? currentSubscription.customer
+        : currentSubscription.customer
+          ?.id || null;
+
+    /*
+     * Defense in depth:
+     *
+     * Refuse to modify the Stripe subscription if its customer does not match
+     * the customer stored for this authenticated FamilyFlow user.
+     */
+    if (
+      storedSubscription
+        .stripe_customer_id &&
+      currentCustomerId !==
+      storedSubscription
+        .stripe_customer_id
+    ) {
+      console.error(
+        "Stripe customer mismatch while managing subscription:",
+        {
+          userId,
+          storedCustomerId:
+            storedSubscription
+              .stripe_customer_id,
+          stripeCustomerId:
+            currentCustomerId,
+        }
+      );
+
+      return res.status(409).json({
+        error:
+          "The subscription could not be verified for this account.",
+        code:
+          "SUBSCRIPTION_CUSTOMER_MISMATCH",
+      });
+    }
+
+    /*
+     * Avoid an unnecessary Stripe update when the requested state is already
+     * active.
+     */
+    let updatedSubscription =
+      currentSubscription;
+
+    if (
+      Boolean(
+        currentSubscription
+          .cancel_at_period_end
+      ) !== cancelAtPeriodEnd
+    ) {
+      updatedSubscription =
+        await stripe.subscriptions.update(
+          currentSubscription.id,
+          {
+            cancel_at_period_end:
+              cancelAtPeriodEnd,
+          },
+          managedPaymentsRequestOptions
+        );
+    }
+
+    /*
+     * Save the Stripe response immediately.
+     *
+     * The customer.subscription.updated webhook will also arrive and confirm
+     * the same authoritative state.
+     */
+    await upsertSubscriptionFromStripe(
+      updatedSubscription
+    );
+
+    const entitlement =
+      await getUserEntitlement(userId);
+
+    return res.status(200).json({
+      message: cancelAtPeriodEnd
+        ? "FamilyFlow Plus will remain active through the current billing period and will not renew."
+        : "Automatic renewal has been restored for FamilyFlow Plus.",
+      entitlement,
+    });
+  } catch (error) {
+    if (
+      error?.code ===
+      "STRIPE_NOT_CONFIGURED"
+    ) {
+      return billingNotConfiguredResponse(
+        res
+      );
+    }
+
+    console.error(
+      cancelAtPeriodEnd
+        ? "Could not schedule subscription cancellation:"
+        : "Could not resume subscription renewal:",
+      error
+    );
+
+    return res.status(502).json({
+      error: cancelAtPeriodEnd
+        ? "Could not cancel subscription renewal. Try again in a moment."
+        : "Could not resume subscription renewal. Try again in a moment.",
+      code: cancelAtPeriodEnd
+        ? "SUBSCRIPTION_CANCEL_FAILED"
+        : "SUBSCRIPTION_RESUME_FAILED",
+    });
+  }
 }
-
 /*
  * POST /api/billing/create-checkout-session
  *
@@ -150,12 +277,7 @@ router.post(
           .toLowerCase()
         : "";
 
-    if (
-      !Object.hasOwn(
-        PLAN_PRICE_ENVIRONMENT_VARIABLES,
-        plan
-      )
-    ) {
+    if (!isValidBillingPlan(plan)) {
       return res.status(400).json({
         error:
           'Plan must be either "monthly" or "annual".',
@@ -211,15 +333,6 @@ router.post(
           userId
         );
 
-      if (entitlement.isPaid) {
-        return res.status(409).json({
-          error:
-            "This account already has FamilyFlow Plus.",
-          code:
-            "ALREADY_SUBSCRIBED",
-        });
-      }
-
       /*
        * Also check Stripe directly.
        *
@@ -232,13 +345,19 @@ router.post(
           existingCustomerId
         );
 
-      if (blockingSubscription) {
-        return res.status(409).json({
-          error:
-            "This Stripe customer already has a subscription that must be managed through billing settings.",
-          code:
-            "EXISTING_SUBSCRIPTION_REQUIRES_PORTAL",
+      const checkoutConflict =
+        getCheckoutConflict({
+          entitlement,
+          blockingSubscription,
         });
+
+      if (checkoutConflict) {
+        return res
+          .status(checkoutConflict.status)
+          .json({
+            error: checkoutConflict.error,
+            code: checkoutConflict.code,
+          });
       }
 
       const sessionParams = {
@@ -350,6 +469,44 @@ router.post(
       });
     }
   }
+);
+
+/*
+ * POST /api/billing/cancel-subscription
+ *
+ * Schedule the authenticated user's FamilyFlow Plus subscription to stop
+ * renewing after the current paid billing period.
+ *
+ * This does not remove paid access immediately.
+ */
+router.post(
+  "/billing/cancel-subscription",
+  requireAuthenticatedUser,
+  ensureUserProfile,
+  async (req, res) =>
+    updateSubscriptionRenewal({
+      req,
+      res,
+      cancelAtPeriodEnd: true,
+    })
+);
+
+/*
+ * POST /api/billing/resume-subscription
+ *
+ * Remove a scheduled end-of-period cancellation before the subscription has
+ * fully ended.
+ */
+router.post(
+  "/billing/resume-subscription",
+  requireAuthenticatedUser,
+  ensureUserProfile,
+  async (req, res) =>
+    updateSubscriptionRenewal({
+      req,
+      res,
+      cancelAtPeriodEnd: false,
+    })
 );
 
 /*

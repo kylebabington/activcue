@@ -111,3 +111,84 @@ export async function redirectToCheckout({
 
   window.location.assign(checkout.url);
 }
+
+/*
+ * Call one of FamilyFlow's authenticated subscription-management endpoints.
+ *
+ * The browser never sends a Stripe customer ID or subscription ID.
+ * The Express server finds the correct subscription using the authenticated
+ * Supabase user.
+ */
+async function updateSubscriptionRenewal(
+  path,
+  {
+    expectedUserId,
+  } = {}
+) {
+  const response =
+    await authenticatedRequest(
+      path,
+      {
+        method: "POST",
+        expectedUserId,
+      }
+    );
+
+  const payload =
+    await response.json();
+
+  /*
+   * Both management endpoints should return the latest server-trusted
+   * entitlement.
+   */
+  if (
+    !payload ||
+    typeof payload !== "object" ||
+    !payload.entitlement ||
+    typeof payload.entitlement !==
+    "object"
+  ) {
+    throw new ApiRequestError(
+      "The subscription was updated, but FamilyFlow did not return its latest billing status.",
+      {
+        status: 502,
+        code:
+          "SUBSCRIPTION_ENTITLEMENT_MISSING",
+      }
+    );
+  }
+
+  return payload;
+}
+
+/*
+ * Stop automatic renewal after the current paid billing period.
+ *
+ * Paid access remains active until currentPeriodEnd.
+ */
+export async function cancelSubscription({
+  expectedUserId,
+} = {}) {
+  return updateSubscriptionRenewal(
+    "/api/billing/cancel-subscription",
+    {
+      expectedUserId,
+    }
+  );
+}
+
+/*
+ * Remove a scheduled end-of-period cancellation.
+ *
+ * This works only before the Stripe subscription has fully ended.
+ */
+export async function resumeSubscription({
+  expectedUserId,
+} = {}) {
+  return updateSubscriptionRenewal(
+    "/api/billing/resume-subscription",
+    {
+      expectedUserId,
+    }
+  );
+}

@@ -26,7 +26,7 @@ function periodHasNotExpired(currentPeriodEnd) {
     return expirationTime > Date.now();
 }
 
-function isPaidSubscription(subscription) {
+export function isPaidSubscription(subscription) {
     const status = subscription?.status || "inactive";
     const currentPeriodEnd = subscription?.current_period_end;
 
@@ -62,6 +62,7 @@ export async function getUserEntitlement(userId) {
                 "status",
                 "stripe_price_id",
                 "current_period_end",
+                "cancel_at_period_end",
             ].join(",")
         )
         .eq("user_id", userId)
@@ -78,11 +79,35 @@ export async function getUserEntitlement(userId) {
 
     return {
         isPaid,
-        canGenerateWithAi: isPaid,
-        canUseAiHints: isPaid,
+
+        canGenerateWithAi:
+            isPaid,
+
+        canUseAiHints:
+            isPaid,
+
         subscriptionStatus,
-        stripePriceId: subscription?.stripe_price_id || null,
+
+        stripePriceId:
+            subscription
+                ?.stripe_price_id ||
+            null,
+
         currentPeriodEnd:
-            subscription?.current_period_end || null,
+            subscription
+                ?.current_period_end ||
+            null,
+
+        /*
+         * This does not remove paid access.
+         *
+         * It tells the frontend that automatic renewal is disabled and access will
+         * end on currentPeriodEnd.
+         */
+        cancelAtPeriodEnd:
+            Boolean(
+                subscription
+                    ?.cancel_at_period_end
+            ),
     };
 }
