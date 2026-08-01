@@ -10,15 +10,22 @@
 }
 
 .panel {
-  background: var(--panel-bg);
-  border: 1px solid transparent;
-  border-radius: var(--radius-md);
   padding: var(--panel-padding);
-  box-shadow: none;
+  color: var(--color-text);
+  background: var(--color-surface-transparent);
+  border: 1px solid transparent;
+  border-radius: var(--radius-medium);
+  box-shadow: var(--panel-shadow);
+}
+
+.hero-card {
+  padding: var(--card-padding);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
 }
 
 .panel--bordered {
-  border-color: var(--border);
+  border-color: var(--color-border);
 }
 
 .panel--quiet {
@@ -39,24 +46,24 @@
 
 .panel-header h2 {
   margin-bottom: 0.25rem;
-  font-family: var(--font-sans);
-  font-size: var(--text-md);
-  font-weight: var(--weight-semibold);
+  font-family: var(--font-body);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
 }
 
 .panel-header p {
-  color: var(--muted-text);
-  font-size: var(--text-sm);
-  line-height: 1.45;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
   margin: 0;
-  max-width: 40rem;
-  font-weight: var(--weight-normal);
+  max-width: var(--reading-max-width);
+  font-weight: var(--font-weight-regular);
 }
 
 .settings-note {
   margin-top: 0.35rem;
-  color: var(--muted-text);
-  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
 }
 
 /* ========== BUTTONS ========== */
@@ -67,15 +74,18 @@
   align-items: center;
   justify-content: center;
   min-height: var(--control-height);
+  padding: var(--button-padding-y) var(--button-padding-x);
   border: 0;
-  border-radius: var(--radius-sm);
-  padding: 0.45rem 0.9rem;
-  background: var(--accent);
-  color: white;
-  font-weight: var(--weight-semibold);
-  font-size: var(--text-sm);
+  border-radius: var(--radius-small);
+  background: var(--color-primary);
+  color: var(--color-text-on-accent);
+  font-family: var(--font-body);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
   text-decoration: none;
-  transition: filter var(--transition-fast), background var(--transition-fast);
+  transition:
+    filter var(--transition-fast),
+    transform var(--transition-fast);
 }
 
 .generate-button {
@@ -89,58 +99,65 @@
 
 .secondary-action {
   min-height: var(--control-height);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  padding: 0.4rem 0.75rem;
-  background: var(--panel-bg-solid);
-  color: var(--text);
-  font-weight: var(--weight-semibold);
-  font-size: var(--text-sm);
-  transition: background var(--transition-fast), border-color var(--transition-fast);
+  padding: var(--button-padding-y-secondary) var(--button-padding-x-secondary);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-small);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast);
 }
 
 .secondary-action:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--accent) 6%, white);
-  border-color: color-mix(in srgb, var(--accent) 30%, var(--border));
+  background: color-mix(in srgb, var(--color-primary) 6%, white);
+  border-color: color-mix(in srgb, var(--color-primary) 30%, var(--color-border));
 }
 
 .ghost-button {
-  border: 1px solid var(--border);
+  padding: var(--button-padding-y-secondary) var(--button-padding-x-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-small);
   background: transparent;
-  color: var(--muted-text);
-  border-radius: var(--radius-sm);
-  padding: 0.4rem 0.7rem;
-  font-weight: var(--weight-semibold);
-  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  font-family: var(--font-body);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
   white-space: nowrap;
-  transition: background var(--transition-fast), color var(--transition-fast);
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast);
 }
 
 .ghost-button:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--accent) 5%, transparent);
-  color: var(--text);
+  background: color-mix(in srgb, var(--color-primary) 5%, transparent);
+  color: var(--color-text);
 }
 
 .danger-button {
-  border: 1px solid color-mix(in srgb, var(--danger) 35%, var(--border));
-  background: color-mix(in srgb, var(--danger) 8%, white);
-  color: var(--danger);
-  border-radius: var(--radius-sm);
-  padding: 0.4rem 0.7rem;
-  font-weight: var(--weight-semibold);
-  font-size: var(--text-sm);
+  padding: var(--button-padding-y-secondary) var(--button-padding-x-secondary);
+  border: 1px solid color-mix(in srgb, var(--color-danger) 35%, var(--color-border));
+  border-radius: var(--radius-small);
+  background: color-mix(in srgb, var(--color-danger) 8%, white);
+  color: var(--color-danger);
+  font-family: var(--font-body);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
 }
 
 .secondary-link {
-  color: var(--muted-text);
-  font-weight: var(--weight-medium);
-  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-sm);
   text-decoration: underline;
   text-underline-offset: 0.16em;
 }
 
 .secondary-link:hover {
-  color: var(--accent);
+  color: var(--color-primary);
 }
 
 /* ========== CHIPS ========== */
@@ -153,55 +170,55 @@
 
 .chip {
   border: 1px solid transparent;
-  background: color-mix(in srgb, var(--accent) 6%, var(--panel-bg-solid));
-  color: var(--text);
-  border-radius: var(--chip-radius);
-  padding: 0.4rem 0.7rem;
-  font-weight: var(--weight-medium);
-  font-size: var(--text-sm);
+  background: color-mix(in srgb, var(--color-primary) 6%, var(--color-surface));
+  color: var(--color-text);
+  border-radius: var(--radius-chip);
+  padding: var(--chip-padding-y) var(--chip-padding-x);
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-sm);
   transition:
     background var(--transition-fast),
     color var(--transition-fast);
 }
 
 .chip:hover {
-  background: color-mix(in srgb, var(--accent) 10%, var(--panel-bg-solid));
+  background: color-mix(in srgb, var(--color-primary) 10%, var(--color-surface));
 }
 
 .chip.active,
 .chip.selected {
-  background: color-mix(in srgb, var(--accent) 14%, white);
-  color: var(--accent);
+  background: color-mix(in srgb, var(--color-primary) 14%, white);
+  color: var(--color-primary);
   border-color: transparent;
-  font-weight: var(--weight-semibold);
+  font-weight: var(--font-weight-semibold);
 }
 
 /* ========== STATUS ========== */
 
 .status-message {
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-small);
   padding: 0.65rem 0.85rem;
-  font-weight: var(--weight-semibold);
-  font-size: var(--text-sm);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-sm);
   margin: 0 0 var(--space-2);
-  border: 1px solid var(--border);
-  background: var(--panel-bg-solid);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
 }
 
 .status-message--error {
-  background: color-mix(in srgb, var(--danger) 8%, white);
-  border-color: color-mix(in srgb, var(--danger) 25%, var(--border));
-  color: var(--danger);
+  background: color-mix(in srgb, var(--color-danger) 8%, white);
+  border-color: color-mix(in srgb, var(--color-danger) 25%, var(--color-border));
+  color: var(--color-danger);
 }
 
 .status-message--success {
-  background: color-mix(in srgb, var(--success) 10%, white);
-  border-color: color-mix(in srgb, var(--success) 25%, var(--border));
-  color: var(--success);
+  background: color-mix(in srgb, var(--color-success) 10%, white);
+  border-color: color-mix(in srgb, var(--color-success) 25%, var(--color-border));
+  color: var(--color-success);
 }
 
 .status-message--info {
-  background: color-mix(in srgb, var(--accent) 6%, white);
+  background: color-mix(in srgb, var(--color-primary) 6%, white);
 }
 
 .family-settings-save-error {
@@ -228,7 +245,7 @@
   border-radius: 0;
   background: transparent;
   border: none;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--color-border);
   box-shadow: none;
 }
 
@@ -241,24 +258,24 @@
 
 .current-moment-banner h2 {
   margin: 0.1rem 0;
-  font-family: var(--font-sans);
-  font-size: var(--text-md);
-  font-weight: var(--weight-semibold);
+  font-family: var(--font-body);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
 }
 
 .current-moment-banner p {
   margin: 0;
-  color: var(--muted-text);
-  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
   max-width: none;
 }
 
 .kid-moment-message {
   margin: 0;
-  font-size: var(--text-md);
-  font-weight: var(--weight-semibold);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
   line-height: 1.35;
-  color: var(--text);
+  color: var(--color-text);
 }
 
 .moment-chip-list {
@@ -274,15 +291,15 @@
   align-items: center;
   min-height: 1.35rem;
   padding: 0.15rem 0.45rem;
-  border-radius: var(--chip-radius);
-  background: color-mix(in srgb, var(--accent) 6%, white);
-  color: var(--text);
-  font-size: var(--text-xs);
-  font-weight: var(--weight-semibold);
+  border-radius: var(--radius-chip);
+  background: color-mix(in srgb, var(--color-primary) 6%, white);
+  color: var(--color-text);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
   white-space: nowrap;
 }
 
-@media (max-width: 760px) {
+@media (max-width: 767px) /* below Medium */ {
   .current-moment-banner {
     flex-direction: column;
   }
@@ -304,12 +321,12 @@
 .fit-fact-chip {
   display: inline-flex;
   padding: 0.2rem 0.5rem;
-  border-radius: var(--chip-radius);
-  background: color-mix(in srgb, var(--accent) 7%, white);
-  border: 1px solid color-mix(in srgb, var(--accent) 18%, var(--border));
-  color: var(--text);
-  font-size: var(--text-xs);
-  font-weight: var(--weight-semibold);
+  border-radius: var(--radius-chip);
+  background: color-mix(in srgb, var(--color-primary) 7%, white);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 18%, var(--color-border));
+  color: var(--color-text);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
 }
 
 /* ========== MODAL ========== */
@@ -317,7 +334,7 @@
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 100;
+  z-index: var(--layer-modal-backdrop);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -333,13 +350,13 @@
 .modal-panel {
   display: grid;
   grid-template-rows: auto 1fr auto;
-  width: min(520px, 100%);
-  max-height: min(88vh, 720px);
+  width: min(var(--modal-width), 100%);
+  max-height: var(--modal-max-height);
   overflow: hidden;
-  background: var(--panel-bg-solid);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-large);
+  box-shadow: var(--shadow-medium);
 }
 
 .modal-panel--full-page {
@@ -362,14 +379,14 @@
   justify-content: space-between;
   gap: var(--space-2);
   align-items: center;
-  padding: var(--space-3);
-  border-bottom: 1px solid var(--border);
+  padding: var(--modal-padding);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .modal-header h2 {
   margin: 0;
-  font-family: var(--font-display);
-  font-size: var(--text-lg);
+  font-family: var(--font-heading);
+  font-size: var(--font-size-lg);
 }
 
 .modal-close-button {
@@ -378,17 +395,17 @@
   justify-content: center;
   width: 1.75rem;
   height: 1.75rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-small);
   background: white;
-  color: var(--muted-text);
+  color: var(--color-text-muted);
   font-size: 1.1rem;
   line-height: 1;
   padding: 0;
 }
 
 .modal-body {
-  padding: var(--space-3);
+  padding: var(--modal-padding);
   overflow-y: auto;
 }
 
@@ -397,9 +414,9 @@
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: var(--space-1);
-  padding: var(--space-2) var(--space-3) var(--space-3);
-  border-top: 1px solid var(--border);
-  background: color-mix(in srgb, var(--bg) 40%, white);
+  padding: var(--space-2) var(--modal-padding) var(--modal-padding);
+  border-top: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-background) 40%, white);
 }
 
 .modal-footer button {
@@ -426,46 +443,46 @@
 .compact-meta span {
   display: inline-flex;
   padding: 0.15rem 0.45rem;
-  border-radius: var(--chip-radius);
-  background: color-mix(in srgb, var(--accent) 6%, white);
-  font-size: var(--text-xs);
-  font-weight: var(--weight-semibold);
-  color: var(--muted-text);
+  border-radius: var(--radius-chip);
+  background: color-mix(in srgb, var(--color-primary) 6%, white);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-muted);
 }
 
 .activity-theme {
   margin: 0 0 var(--space-1);
-  color: var(--kid-accent);
-  font-size: var(--text-sm);
-  font-weight: var(--weight-semibold);
+  color: var(--color-kid);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
 }
 
 .quest-short-summary,
 .uses-list {
   margin: 0 0 var(--space-1);
-  color: var(--muted-text);
-  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
   line-height: 1.4;
 }
 
 .quest-box {
   margin-top: var(--space-2);
   padding: var(--space-2);
-  border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--accent) 4%, white);
-  border: 1px solid var(--border);
+  border-radius: var(--radius-small);
+  background: color-mix(in srgb, var(--color-primary) 4%, white);
+  border: 1px solid var(--color-border);
 }
 
 .quest-box h3,
 .quest-box h4 {
   margin: 0 0 var(--space-1);
-  font-size: var(--text-sm);
+  font-size: var(--font-size-sm);
 }
 
 .quest-box p,
 .quest-box li {
   margin: 0;
-  font-size: var(--text-sm);
+  font-size: var(--font-size-sm);
   line-height: 1.4;
 }
 
@@ -485,29 +502,29 @@
 .best-fit-badge {
   display: inline-flex;
   padding: 0.15rem 0.45rem;
-  border-radius: var(--chip-radius);
-  font-size: var(--text-xs);
-  font-weight: var(--weight-semibold);
+  border-radius: var(--radius-chip);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
 }
 
 .simple-style-badge {
-  background: color-mix(in srgb, var(--accent) 10%, white);
-  color: var(--accent);
+  background: color-mix(in srgb, var(--color-primary) 10%, white);
+  color: var(--color-primary);
 }
 
 .pretend-style-badge {
-  background: color-mix(in srgb, var(--kid-accent) 12%, white);
-  color: var(--kid-accent);
+  background: color-mix(in srgb, var(--color-kid) 12%, white);
+  color: var(--color-kid);
 }
 
 .best-fit-badge {
-  background: color-mix(in srgb, var(--success) 14%, white);
-  color: var(--success);
+  background: color-mix(in srgb, var(--color-success) 14%, white);
+  color: var(--color-success);
 }
 
 .fit-score-note {
-  font-size: var(--text-xs);
-  color: var(--muted-text);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
   margin-bottom: var(--space-1);
 }
 
@@ -520,20 +537,20 @@
 }
 
 .feedback-buttons button {
-  border: 1px solid var(--border);
-  background: var(--panel-bg-solid);
-  color: var(--text);
-  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-radius: var(--radius-small);
   padding: 0.5rem 0.65rem;
-  font-weight: var(--weight-semibold);
-  font-size: var(--text-sm);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-sm);
   text-align: left;
   transition: background var(--transition-fast), border-color var(--transition-fast);
 }
 
 .feedback-buttons button:hover {
-  border-color: color-mix(in srgb, var(--accent) 30%, var(--border));
-  background: color-mix(in srgb, var(--accent) 5%, white);
+  border-color: color-mix(in srgb, var(--color-primary) 30%, var(--color-border));
+  background: color-mix(in srgb, var(--color-primary) 5%, white);
 }
 
 .compact-feedback-buttons {
@@ -543,12 +560,12 @@
 .not-this-feedback {
   margin-top: var(--space-2);
   padding-top: var(--space-2);
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--color-border);
 }
 
 .not-this-feedback h4 {
   margin: 0 0 var(--space-1);
-  font-size: var(--text-sm);
+  font-size: var(--font-size-sm);
 }
 
 /* ========== PIN ========== */
@@ -568,9 +585,9 @@
 }
 
 .pin-status {
-  color: var(--muted-text);
+  color: var(--color-text-muted);
   margin: 0;
-  font-size: var(--text-sm);
+  font-size: var(--font-size-sm);
 }
 
 .pin-row {
@@ -582,11 +599,11 @@
 .pin-row button {
   min-height: var(--control-height);
   border: 0;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-small);
   padding: 0.45rem 0.85rem;
-  background: var(--accent);
-  color: white;
-  font-weight: var(--weight-semibold);
+  background: var(--color-primary);
+  color: var(--color-text-on-accent);
+  font-weight: var(--font-weight-semibold);
 }
 
 /* ========== QUICK CHIP GROUPS (moment editor) ========== */
@@ -602,11 +619,11 @@
   align-items: center;
   min-height: 1.35rem;
   padding: 0.15rem 0.45rem;
-  border-radius: var(--chip-radius);
-  background: color-mix(in srgb, var(--accent) 6%, white);
-  border: 1px solid var(--border);
-  font-size: var(--text-xs);
-  font-weight: var(--weight-semibold);
+  border-radius: var(--radius-chip);
+  background: color-mix(in srgb, var(--color-primary) 6%, white);
+  border: 1px solid var(--color-border);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
 }
 
 .quick-chip-group {
@@ -616,16 +633,16 @@
 
 .quick-chip-group h3 {
   margin: 0;
-  font-size: var(--text-xs);
-  color: var(--muted-text);
-  font-weight: var(--weight-semibold);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  font-weight: var(--font-weight-semibold);
 }
 
 .quick-chip-group > span,
 .quick-chip-label {
-  font-size: var(--text-xs);
-  font-weight: var(--weight-semibold);
-  color: var(--muted-text);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -639,28 +656,28 @@
 .quick-chip,
 .quick-chip-row button {
   min-height: 1.85rem;
-  border: 1px solid var(--border);
-  border-radius: var(--chip-radius);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-chip);
   padding: 0.25rem 0.55rem;
-  background: var(--panel-bg-solid);
-  color: var(--text);
-  font-size: var(--text-xs);
-  font-weight: var(--weight-semibold);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
   cursor: pointer;
   transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
 }
 
 .quick-chip:hover,
 .quick-chip-row button:hover {
-  border-color: color-mix(in srgb, var(--accent) 30%, var(--border));
+  border-color: color-mix(in srgb, var(--color-primary) 30%, var(--color-border));
 }
 
 .quick-chip.active,
 .quick-chip-row button.active,
 .quick-chip-row button.enabled {
   border-color: transparent;
-  background: var(--accent);
-  color: white;
+  background: var(--color-primary);
+  color: var(--color-text-on-accent);
 }
 
 .moment-editor-fields {
@@ -670,8 +687,8 @@
 
 .moment-editor-summary {
   margin: 0;
-  font-size: var(--text-sm);
-  color: var(--muted-text);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
 }
 
 .moment-editor-advanced {
@@ -688,7 +705,7 @@
   grid-template-columns: 1fr;
 }
 
-@media (min-width: 760px) {
+@media (min-width: 768px) /* Medium */ {
   .controls-grid--compact {
     grid-template-columns: 1fr 1fr;
   }

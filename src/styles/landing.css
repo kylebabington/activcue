@@ -4,9 +4,9 @@
 
 .landing {
   min-height: 100vh;
-  color: var(--text);
-  font-family: var(--font-sans);
-  background: var(--bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  background: var(--color-background);
 }
 
 /* ========== TOP BAR ========== */
@@ -45,11 +45,11 @@
 }
 
 .landing-brand-name {
-  font-family: var(--font-display);
+  font-family: var(--font-heading);
   font-size: 1.15rem;
-  font-weight: var(--weight-bold);
+  font-weight: var(--font-weight-bold);
   letter-spacing: -0.02em;
-  color: var(--text);
+  color: var(--color-text);
 }
 
 .landing-topbar-actions {
@@ -63,14 +63,14 @@
   align-items: center;
   min-height: 2.4rem;
   padding: 0.35rem 0.55rem;
-  color: var(--text);
-  font-weight: var(--weight-semibold);
-  font-size: var(--text-sm);
+  color: var(--color-text);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-sm);
   text-decoration: none;
 }
 
 .landing-topbar-link:hover {
-  color: var(--accent);
+  color: var(--color-primary);
 }
 
 .landing-topbar-cta {
@@ -78,11 +78,11 @@
   align-items: center;
   min-height: 2.4rem;
   padding: 0.4rem 1rem;
-  border-radius: var(--radius-sm);
-  background: var(--accent);
-  color: #fff;
-  font-weight: var(--weight-semibold);
-  font-size: var(--text-sm);
+  border-radius: var(--radius-small);
+  background: var(--color-primary);
+  color: var(--color-text-on-accent);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-sm);
   text-decoration: none;
   transition:
     transform 180ms ease,
@@ -91,9 +91,9 @@
 }
 
 .landing-topbar-cta:hover {
-  background: color-mix(in srgb, var(--accent) 88%, #000);
+  background: color-mix(in srgb, var(--color-primary) 88%, #000);
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px color-mix(in srgb, var(--accent) 28%, transparent);
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--color-primary) 28%, transparent);
 }
 
 /* ========== AUTH PAGES ========== */
@@ -102,7 +102,7 @@
   background:
     radial-gradient(ellipse 80% 55% at 10% 0%, #7ec8e8 0%, transparent 50%),
     radial-gradient(ellipse 60% 45% at 100% 10%, #ffc9a3 0%, transparent 45%),
-    var(--bg);
+    var(--color-background);
 }
 
 .landing-auth {
@@ -116,27 +116,27 @@
 .landing-auth-panel {
   width: min(420px, 100%);
   padding: 1.75rem 1.5rem 1.5rem;
-  border-radius: var(--radius-md, 16px);
-  background: color-mix(in srgb, var(--panel-bg-solid) 92%, transparent);
-  border: 1px solid var(--border);
+  border-radius: var(--radius-medium, 16px);
+  background: color-mix(in srgb, var(--color-surface) 92%, transparent);
+  border: 1px solid var(--color-border);
   box-shadow: 0 18px 40px rgba(26, 58, 74, 0.08);
   animation: landing-rise 650ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .landing-auth-panel h1 {
   margin: 0 0 0.5rem;
-  font-family: var(--font-display);
+  font-family: var(--font-heading);
   font-size: clamp(1.75rem, 4vw, 2.1rem);
   font-weight: 800;
   letter-spacing: -0.02em;
-  color: var(--text);
+  color: var(--color-text);
 }
 
 .landing-auth-lead {
   margin: 0 0 1.5rem;
-  color: var(--muted-text);
+  color: var(--color-text-muted);
   line-height: 1.45;
-  font-weight: var(--weight-medium);
+  font-weight: var(--font-weight-medium);
 }
 
 .landing-auth-form {
@@ -150,39 +150,39 @@
 }
 
 .landing-auth-field span {
-  font-size: var(--text-sm);
-  font-weight: var(--weight-bold);
-  color: var(--text);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
 }
 
 .landing-auth-field input {
   min-height: 2.75rem;
   padding: 0.55rem 0.75rem;
-  border-radius: var(--radius-sm);
-  border: 1.5px solid var(--border-strong);
+  border-radius: var(--radius-small);
+  border: 1.5px solid var(--color-border-strong);
   background: #fff;
-  color: var(--text);
+  color: var(--color-text);
   font: inherit;
 }
 
 .landing-auth-field input:focus {
-  outline: 2px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  outline: 2px solid color-mix(in srgb, var(--color-primary) 45%, transparent);
   outline-offset: 1px;
-  border-color: var(--accent);
+  border-color: var(--color-primary);
 }
 
 .landing-auth-error {
   margin: 0;
-  color: var(--danger);
-  font-size: var(--text-sm);
-  font-weight: var(--weight-semibold);
+  color: var(--color-danger);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
 }
 
 .landing-auth-info {
   margin: 0;
-  color: var(--success);
-  font-size: var(--text-sm);
-  font-weight: var(--weight-semibold);
+  color: var(--color-success);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
 }
 
 .landing-auth-form .landing-btn {
@@ -201,14 +201,14 @@
 
 .landing-auth-footer {
   margin: 1.25rem 0 0;
-  font-size: var(--text-sm);
-  color: var(--muted-text);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
   line-height: 1.5;
 }
 
 .landing-auth-footer a {
-  color: var(--accent);
-  font-weight: var(--weight-bold);
+  color: var(--color-primary);
+  font-weight: var(--font-weight-bold);
   text-decoration: none;
 }
 
@@ -269,23 +269,23 @@
 
 .landing-hero-brand {
   margin: 0 0 0.85rem;
-  font-family: var(--font-display);
+  font-family: var(--font-heading);
   font-size: clamp(2.4rem, 8vw, 4.25rem);
   font-weight: 800;
   line-height: 0.95;
   letter-spacing: -0.03em;
-  color: var(--accent);
+  color: var(--color-primary);
 }
 
 .landing-hero-title {
   margin: 0 0 0.9rem;
   max-width: 16ch;
-  font-family: var(--font-display);
+  font-family: var(--font-heading);
   font-size: clamp(1.55rem, 4.2vw, 2.35rem);
   font-weight: 700;
   line-height: 1.15;
   letter-spacing: -0.02em;
-  color: var(--text);
+  color: var(--color-text);
 }
 
 .landing-hero-support {
@@ -293,8 +293,8 @@
   max-width: 36ch;
   font-size: clamp(1rem, 2.2vw, 1.15rem);
   line-height: 1.45;
-  color: var(--muted-text);
-  font-weight: var(--weight-medium);
+  color: var(--color-text-muted);
+  font-weight: var(--font-weight-medium);
 }
 
 .landing-hero-actions {
@@ -312,10 +312,10 @@
   justify-content: center;
   min-height: 2.85rem;
   padding: 0.55rem 1.25rem;
-  border-radius: var(--radius-sm);
-  font-family: var(--font-sans);
-  font-size: var(--text-base);
-  font-weight: var(--weight-bold);
+  border-radius: var(--radius-small);
+  font-family: var(--font-body);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-bold);
   text-decoration: none;
   transition:
     transform 180ms ease,
@@ -326,26 +326,26 @@
 }
 
 .landing-btn--primary {
-  background: var(--kid-accent);
-  color: #fff;
+  background: var(--color-kid);
+  color: var(--color-text-on-accent);
   border: 2px solid transparent;
 }
 
 .landing-btn--primary:hover {
-  background: color-mix(in srgb, var(--kid-accent) 86%, #000);
+  background: color-mix(in srgb, var(--color-kid) 86%, #000);
   transform: translateY(-2px);
-  box-shadow: 0 10px 24px color-mix(in srgb, var(--kid-accent) 30%, transparent);
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--color-kid) 30%, transparent);
 }
 
 .landing-btn--ghost {
   background: transparent;
-  color: var(--text);
-  border: 2px solid color-mix(in srgb, var(--text) 22%, transparent);
+  color: var(--color-text);
+  border: 2px solid color-mix(in srgb, var(--color-text) 22%, transparent);
 }
 
 .landing-btn--ghost:hover {
-  border-color: var(--accent);
-  color: var(--accent);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
   transform: translateY(-1px);
 }
 
@@ -367,7 +367,7 @@ button.landing-btn:disabled {
 }
 
 .landing-section--tint {
-  background: color-mix(in srgb, var(--bg-accent) 70%, white);
+  background: color-mix(in srgb, var(--color-background-accent) 70%, white);
 }
 
 .landing-section-inner {
@@ -377,19 +377,19 @@ button.landing-btn:disabled {
 
 .landing-section h2 {
   margin: 0 0 0.65rem;
-  font-family: var(--font-display);
+  font-family: var(--font-heading);
   font-size: clamp(1.6rem, 3.5vw, 2.1rem);
   font-weight: 800;
   letter-spacing: -0.02em;
-  color: var(--text);
+  color: var(--color-text);
 }
 
 .landing-section-lead {
   margin: 0 0 1.75rem;
-  font-size: var(--text-lg);
+  font-size: var(--font-size-lg);
   line-height: 1.45;
-  color: var(--muted-text);
-  font-weight: var(--weight-medium);
+  color: var(--color-text-muted);
+  font-weight: var(--font-weight-medium);
 }
 
 .landing-steps {
@@ -419,22 +419,22 @@ button.landing-btn:disabled {
   display: grid;
   place-items: center;
   border-radius: 0.45rem;
-  background: var(--accent);
-  color: #fff;
-  font-family: var(--font-display);
+  background: var(--color-primary);
+  color: var(--color-text-on-accent);
+  font-family: var(--font-heading);
   font-weight: 700;
   font-size: 0.95rem;
 }
 
 .landing-step-label {
-  font-weight: var(--weight-bold);
-  font-size: var(--text-md);
-  color: var(--text);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-md);
+  color: var(--color-text);
 }
 
 .landing-step-text {
-  color: var(--muted-text);
-  font-size: var(--text-base);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-base);
   line-height: 1.45;
 }
 
@@ -449,10 +449,10 @@ button.landing-btn:disabled {
 .landing-perk-list li {
   position: relative;
   padding-left: 1.35rem;
-  font-size: var(--text-md);
+  font-size: var(--font-size-md);
   line-height: 1.4;
-  font-weight: var(--weight-medium);
-  color: var(--text);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
 }
 
 .landing-perk-list li::before {
@@ -463,24 +463,24 @@ button.landing-btn:disabled {
   width: 0.55rem;
   height: 0.55rem;
   border-radius: 50%;
-  background: var(--kid-accent);
+  background: var(--color-kid);
 }
 
 .landing-perk-list--plus li::before {
-  background: var(--kid-play);
+  background: var(--color-play);
 }
 
 .landing-plus-note {
   margin: 0 0 1.25rem;
-  font-size: var(--text-sm);
-  color: var(--muted-text);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
 }
 
 /* ========== FOOTER ========== */
 
 .landing-footer {
   padding: 2rem 1.25rem 2.5rem;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--color-border);
 }
 
 .landing-footer-inner {
@@ -489,16 +489,16 @@ button.landing-btn:disabled {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: var(--muted-text);
-  font-weight: var(--weight-semibold);
-  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-sm);
 }
 
 .landing-footer-inner img {
   border-radius: 0.35rem;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 639px) /* below Small */ {
   .landing-hero-inner {
     padding-top: 5.5rem;
     padding-bottom: 3.25rem;

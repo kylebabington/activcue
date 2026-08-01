@@ -1,40 +1,34 @@
 /* ============================================================
-   THEME — tinker here first
-   Switch skins via data-theme on <html>:
+   FAMILYFLOW DESIGN CONTROL PANEL
+
+   Change values here before touching any other CSS file.
+
+   Skins via data-theme on <html>:
      playroom | workshop | storybook
+
+   Optional modifiers:
+     data-density="compact" | "comfortable"
+     data-shape="rounded" | "squared"
+
+   Breakpoints (use these numbers — CSS vars cannot drive @media):
+     Small:  640px
+     Medium: 768px
+     Large:  1024px
+
+   Prefer sliders? Run the app locally and open /style-lab to adjust
+   these tokens live, then paste the result into this file.
    ============================================================ */
 
 @import url("https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Cormorant+Garamond:wght@600;700&family=DM+Sans:wght@400;500;600;700&family=Literata:opsz,wght@7..72,600;7..72,700&family=Nunito:wght@400;500;600;700;800&family=Source+Sans+3:wght@400;500;600;700&display=swap");
 
 :root {
-  /* Shared structural defaults (overridden per theme below) */
-  --weight-normal: 400;
-  --weight-medium: 500;
-  --weight-semibold: 600;
-  --weight-bold: 700;
+  /* ----------------------------------------------------------
+     COLORS
+     ---------------------------------------------------------- */
 
-  --space-1: 0.35rem;
-  --space-2: 0.75rem;
-  --space-3: 1.15rem;
-  --space-4: 1.75rem;
-
-  --radius-pill: 999px;
-  --panel-padding: 1.25rem;
-  --transition-fast: 150ms ease;
-
-  --shell-max: 1040px;
-  --kid-column-max: 520px;
-
-  --danger: #9b2c2c;
-  --success: #2f6b4f;
-}
-
-/* ========== PLAYROOM (default) ========== */
-:root,
-[data-theme="playroom"] {
-  --bg: #e8f4fc;
-  --bg-accent: #dff0e8;
-  --bg-wash: radial-gradient(
+  --color-background: #e8f4fc;
+  --color-background-accent: #dff0e8;
+  --color-background-wash: radial-gradient(
       ellipse 100% 70% at 0% 0%,
       #b8e0f5 0%,
       transparent 55%
@@ -49,94 +43,272 @@
       #c8f0e0 0%,
       transparent 45%
     ),
-    var(--bg);
+    var(--color-background);
 
-  --panel-bg: rgba(255, 255, 255, 0.85);
-  --panel-bg-solid: #ffffff;
-  --text: #1a3a4a;
-  --muted-text: #4a6a7a;
-  --border: rgba(26, 58, 74, 0.14);
-  --border-strong: rgba(26, 58, 74, 0.22);
+  --color-surface: #ffffff;
+  --color-surface-transparent: rgba(255, 255, 255, 0.85);
+  --color-surface-muted: #f4f8fa;
 
-  --accent: #1f6f8b;
-  --parent-accent: #1f6f8b;
-  --kid-accent: #0d9b8a;
-  --kid-warm: #f4a261;
-  --kid-play: #e76f51;
-  --success: #2a9d6e;
+  --color-text: #1a3a4a;
+  --color-text-muted: #4a6a7a;
+  --color-text-on-accent: #ffffff;
 
-  --font-sans: "Nunito", system-ui, sans-serif;
-  --font-display: "Baloo 2", "Nunito", system-ui, sans-serif;
-  --sans: var(--font-sans);
+  --color-border: rgba(26, 58, 74, 0.14);
+  --color-border-strong: rgba(26, 58, 74, 0.22);
 
-  --text-xs: 0.72rem;
-  --text-sm: 0.825rem;
-  --text-base: 0.925rem;
-  --text-md: 1rem;
-  --text-lg: 1.15rem;
-  --text-xl: 1.4rem;
-  --text-hero: clamp(1.5rem, 3vw, 2rem);
+  --color-primary: #1f6f8b;
+  --color-parent: #1f6f8b;
+  --color-kid: #0d9b8a;
+  --color-warm: #f4a261;
+  --color-play: #e76f51;
 
-  --radius-sm: 10px;
-  --radius-md: 14px;
-  --radius-lg: 18px;
-  --chip-radius: 12px;
+  --color-success: #2a9d6e;
+  --color-danger: #9b2c2c;
 
-  --shadow-sm: 0 2px 6px rgba(26, 58, 74, 0.06);
-  --shadow-md: 0 6px 18px rgba(26, 58, 74, 0.08);
-  --shadow-lg: 0 10px 28px rgba(26, 58, 74, 0.1);
+  /* ----------------------------------------------------------
+     TYPOGRAPHY
+     ---------------------------------------------------------- */
 
-  --control-height: 2.25rem;
-  --control-height-lg: 2.65rem;
+  --font-body: "Baloo 2", "Nunito", system-ui, sans-serif;
+  --font-heading: "Nunito", system-ui, sans-serif;
+
+  --font-size-xs: 0.72rem;
+  --font-size-sm: 0.885rem;
+  --font-size-base: 0.925rem;
+  --font-size-md: 1.175rem;
+  --font-size-lg: 0.9rem;
+  --font-size-xl: 1.405rem;
+  --font-size-hero: clamp(1.5rem, 3vw, 2rem);
+
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  --line-height-tight: 1.2;
+  --line-height-normal: 1.45;
+  --line-height-relaxed: 1.65;
+
+  /* ----------------------------------------------------------
+     SPACING
+     ---------------------------------------------------------- */
+
+  --space-0: 0;
+  --space-1: 0.35rem;
+  --space-2: 0.75rem;
+  --space-3: 1.15rem;
+  --space-4: 1.75rem;
+  --space-5: 2.25rem;
+  --space-6: 3rem;
+  --space-7: 4rem;
+  --space-8: 5rem;
+
+  /* ----------------------------------------------------------
+     SHAPE
+     ---------------------------------------------------------- */
+
+  --radius-small: 2rem;
+  --radius-medium: 2.5rem;
+  --radius-large: 1.375rem;
+  --radius-pill: 999px;
+  --radius-chip: 1.5rem;
+
+  /* ----------------------------------------------------------
+     SHADOWS
+
+     --shadow-strength multiplies every shadow alpha, so one
+     value moves the whole app between flat and floating.
+     ---------------------------------------------------------- */
+
+  --shadow-color: 26 58 74;
+  --shadow-strength: 3;
+
+  --shadow-small: 0 2px 6px
+    rgb(var(--shadow-color) / calc(0.06 * var(--shadow-strength)));
+  --shadow-medium: 0 6px 18px
+    rgb(var(--shadow-color) / calc(0.08 * var(--shadow-strength)));
+  --shadow-large: 0 10px 28px
+    rgb(var(--shadow-color) / calc(0.1 * var(--shadow-strength)));
+
+  /* ----------------------------------------------------------
+     PAGE LAYOUT
+     ---------------------------------------------------------- */
+
+  --page-max-width: 90rem;
+  --reading-max-width: 42rem;
+  --kid-column-max-width: 32.5rem;
+  --page-side-padding: 2.05rem;
+
+  /* ----------------------------------------------------------
+     COMPONENT SIZING
+     ---------------------------------------------------------- */
+
+  --control-height: 2.4rem;
+  --control-height-large: 2.65rem;
+  --kid-style-min-height: 3.25rem;
+
+  --button-padding-x: 1.1rem;
+  --button-padding-y: 0.1rem;
+  --button-padding-x-secondary: 0.75rem;
+  --button-padding-y-secondary: 0.4rem;
+
+  --panel-padding: 1.35rem;
+  --panel-shadow: var(--shadow-large);
+  --card-padding: 1.15rem;
+  --card-gap: 1.25rem;
+  --card-radius: var(--radius-medium);
+  --card-shadow: var(--shadow-large);
+
+  --modal-width: 52rem;
+  --modal-padding: 1.5rem;
+  --modal-max-height: 88vh;
+
+  --navigation-gap: 1rem;
+  --navigation-height: 2.5rem;
+  --header-logo-size: 1.75rem;
+  --chip-padding-x: 0.7rem;
+  --chip-padding-y: 0.4rem;
+
+  /* ----------------------------------------------------------
+     MOTION
+     ---------------------------------------------------------- */
+
+  --transition-fast: 150ms ease;
+  --transition-normal: 250ms ease;
+
+  /* ----------------------------------------------------------
+     LAYERS
+     ---------------------------------------------------------- */
+
+  --layer-header: 10;
+  --layer-modal-backdrop: 100;
+  --layer-modal: 110;
+}
+
+/* ========== PLAYROOM (default skin) ========== */
+:root,
+[data-theme="playroom"] {
+  --color-background: #e8f4fc;
+  --color-background-accent: #dff0e8;
+  --color-background-wash: radial-gradient(
+      ellipse 100% 70% at 0% 0%,
+      #b8e0f5 0%,
+      transparent 55%
+    ),
+    radial-gradient(
+      ellipse 80% 60% at 100% 10%,
+      #ffe0c8 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      ellipse 70% 50% at 50% 100%,
+      #c8f0e0 0%,
+      transparent 45%
+    ),
+    var(--color-background);
+
+  --color-surface: #ffffff;
+  --color-surface-transparent: rgba(255, 255, 255, 0.85);
+  --color-surface-muted: #f4f8fa;
+
+  --color-text: #1a3a4a;
+  --color-text-muted: #4a6a7a;
+  --color-text-on-accent: #ffffff;
+
+  --color-border: rgba(26, 58, 74, 0.14);
+  --color-border-strong: rgba(26, 58, 74, 0.22);
+
+  --color-primary: #1f6f8b;
+  --color-parent: #1f6f8b;
+  --color-kid: #0d9b8a;
+  --color-warm: #f4a261;
+  --color-play: #e76f51;
+  --color-success: #2a9d6e;
+
+  --font-body: "Baloo 2", "Nunito", system-ui, sans-serif;
+  --font-heading: "Nunito", system-ui, sans-serif;
+
+  --font-size-xs: 0.72rem;
+  --font-size-sm: 0.885rem;
+  --font-size-base: 0.925rem;
+  --font-size-md: 1.175rem;
+  --font-size-lg: 0.9rem;
+  --font-size-xl: 1.405rem;
+  --font-size-hero: clamp(1.5rem, 3vw, 2rem);
+
+  --radius-small: 2rem;
+  --radius-medium: 2.5rem;
+  --radius-large: 1.375rem;
+  --radius-chip: 1.5rem;
+
+  --shadow-color: 26 58 74;
+
+  --shadow-small: 0 2px 6px
+    rgb(var(--shadow-color) / calc(0.06 * var(--shadow-strength)));
+  --shadow-medium: 0 6px 18px
+    rgb(var(--shadow-color) / calc(0.08 * var(--shadow-strength)));
+  --shadow-large: 0 10px 28px
+    rgb(var(--shadow-color) / calc(0.1 * var(--shadow-strength)));
+
+  --control-height: 2.4rem;
+  --control-height-large: 2.65rem;
   --kid-style-min-height: 3.25rem;
 }
 
 /* ========== WORKSHOP ========== */
 [data-theme="workshop"] {
-  --bg: #e9e2d4;
-  --bg-accent: #d4cbb8;
-  --bg-wash: radial-gradient(
+  --color-background: #e9e2d4;
+  --color-background-accent: #d4cbb8;
+  --color-background-wash: radial-gradient(
       ellipse 90% 60% at 15% 0%,
       #cfc3a8 0%,
       transparent 50%
     ),
     linear-gradient(165deg, #ebe4d6 0%, #ddd3c0 45%, #e5ddd0 100%);
 
-  --panel-bg: rgba(250, 246, 238, 0.92);
-  --panel-bg-solid: #faf6ee;
-  --text: #2c2418;
-  --muted-text: #6b5e4a;
-  --border: rgba(44, 36, 24, 0.16);
-  --border-strong: rgba(44, 36, 24, 0.26);
+  --color-surface: #faf6ee;
+  --color-surface-transparent: rgba(250, 246, 238, 0.92);
+  --color-surface-muted: #f3eee4;
 
-  --accent: #3d5a3e;
-  --parent-accent: #3d4a3a;
-  --kid-accent: #4a7c59;
-  --kid-warm: #b0893e;
-  --kid-play: #a65d3f;
-  --success: #3d6b4a;
-  --danger: #8b3a2a;
+  --color-text: #2c2418;
+  --color-text-muted: #6b5e4a;
+  --color-text-on-accent: #ffffff;
 
-  --font-sans: "Source Sans 3", system-ui, sans-serif;
-  --font-display: "Literata", Georgia, serif;
-  --sans: var(--font-sans);
+  --color-border: rgba(44, 36, 24, 0.16);
+  --color-border-strong: rgba(44, 36, 24, 0.26);
 
-  --text-xs: 0.7rem;
-  --text-sm: 0.8rem;
-  --text-base: 0.875rem;
-  --text-md: 0.925rem;
-  --text-lg: 1.05rem;
-  --text-xl: 1.25rem;
-  --text-hero: clamp(1.3rem, 2.4vw, 1.65rem);
+  --color-primary: #3d5a3e;
+  --color-parent: #3d4a3a;
+  --color-kid: #4a7c59;
+  --color-warm: #b0893e;
+  --color-play: #a65d3f;
+  --color-success: #3d6b4a;
+  --color-danger: #8b3a2a;
 
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 10px;
-  --chip-radius: 6px;
+  --font-body: "Source Sans 3", system-ui, sans-serif;
+  --font-heading: "Literata", Georgia, serif;
 
-  --shadow-sm: 0 1px 2px rgba(44, 36, 24, 0.06);
-  --shadow-md: 0 3px 10px rgba(44, 36, 24, 0.08);
-  --shadow-lg: 0 6px 18px rgba(44, 36, 24, 0.1);
+  --font-size-xs: 0.7rem;
+  --font-size-sm: 0.8rem;
+  --font-size-base: 0.875rem;
+  --font-size-md: 0.925rem;
+  --font-size-lg: 1.05rem;
+  --font-size-xl: 1.25rem;
+  --font-size-hero: clamp(1.3rem, 2.4vw, 1.65rem);
+
+  --radius-small: 0.375rem;
+  --radius-medium: 0.5rem;
+  --radius-large: 0.625rem;
+  --radius-chip: 0.375rem;
+
+  --shadow-color: 44 36 24;
+
+  --shadow-small: 0 1px 2px
+    rgb(var(--shadow-color) / calc(0.06 * var(--shadow-strength)));
+  --shadow-medium: 0 3px 10px
+    rgb(var(--shadow-color) / calc(0.08 * var(--shadow-strength)));
+  --shadow-large: 0 6px 18px
+    rgb(var(--shadow-color) / calc(0.1 * var(--shadow-strength)));
 
   --space-1: 0.25rem;
   --space-2: 0.5rem;
@@ -144,16 +316,19 @@
   --space-4: 1.1rem;
 
   --control-height: 2rem;
-  --control-height-lg: 2.35rem;
+  --control-height-large: 2.35rem;
   --kid-style-min-height: 3rem;
   --panel-padding: var(--space-2);
+  --card-padding: var(--space-2);
+  --button-padding-x: 0.75rem;
+  --button-padding-y: 0.35rem;
 }
 
 /* ========== STORYBOOK ========== */
 [data-theme="storybook"] {
-  --bg: #1a2233;
-  --bg-accent: #243044;
-  --bg-wash: radial-gradient(
+  --color-background: #1a2233;
+  --color-background-accent: #243044;
+  --color-background-wash: radial-gradient(
       ellipse 80% 50% at 20% 0%,
       #2a3a55 0%,
       transparent 55%
@@ -165,43 +340,101 @@
     ),
     linear-gradient(180deg, #1a2233 0%, #121820 100%);
 
-  --panel-bg: rgba(245, 238, 224, 0.94);
-  --panel-bg-solid: #f5eee0;
-  --text: #1e2430;
-  --muted-text: #5a6170;
-  --border: rgba(30, 36, 48, 0.14);
-  --border-strong: rgba(30, 36, 48, 0.24);
+  --color-surface: #f5eee0;
+  --color-surface-transparent: rgba(245, 238, 224, 0.94);
+  --color-surface-muted: #ebe4d6;
 
-  --accent: #3d4f6f;
-  --parent-accent: #3d4f6f;
-  --kid-accent: #c9a227;
-  --kid-warm: #d4a574;
-  --kid-play: #c4785a;
-  --success: #4a7c5e;
-  --danger: #a04545;
+  --color-text: #1e2430;
+  --color-text-muted: #5a6170;
+  --color-text-on-accent: #ffffff;
 
-  --font-sans: "DM Sans", system-ui, sans-serif;
-  --font-display: "Cormorant Garamond", Georgia, serif;
-  --sans: var(--font-sans);
+  --color-border: rgba(30, 36, 48, 0.14);
+  --color-border-strong: rgba(30, 36, 48, 0.24);
 
-  --text-xs: 0.72rem;
-  --text-sm: 0.8125rem;
-  --text-base: 0.9rem;
-  --text-md: 0.95rem;
-  --text-lg: 1.2rem;
-  --text-xl: 1.5rem;
-  --text-hero: clamp(1.75rem, 3.5vw, 2.35rem);
+  --color-primary: #3d4f6f;
+  --color-parent: #3d4f6f;
+  --color-kid: #c9a227;
+  --color-warm: #d4a574;
+  --color-play: #c4785a;
+  --color-success: #4a7c5e;
+  --color-danger: #a04545;
 
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --chip-radius: 8px;
+  --font-body: "DM Sans", system-ui, sans-serif;
+  --font-heading: "Cormorant Garamond", Georgia, serif;
 
-  --shadow-sm: 0 2px 8px rgba(10, 14, 24, 0.12);
-  --shadow-md: 0 8px 24px rgba(10, 14, 24, 0.18);
-  --shadow-lg: 0 14px 36px rgba(10, 14, 24, 0.22);
+  --font-size-xs: 0.72rem;
+  --font-size-sm: 0.8125rem;
+  --font-size-base: 0.9rem;
+  --font-size-md: 0.95rem;
+  --font-size-lg: 1.2rem;
+  --font-size-xl: 1.5rem;
+  --font-size-hero: clamp(1.75rem, 3.5vw, 2.35rem);
+
+  --radius-small: 0.5rem;
+  --radius-medium: 0.75rem;
+  --radius-large: 1rem;
+  --radius-chip: 0.5rem;
+
+  --shadow-color: 10 14 24;
+
+  --shadow-small: 0 2px 8px
+    rgb(var(--shadow-color) / calc(0.12 * var(--shadow-strength)));
+  --shadow-medium: 0 8px 24px
+    rgb(var(--shadow-color) / calc(0.18 * var(--shadow-strength)));
+  --shadow-large: 0 14px 36px
+    rgb(var(--shadow-color) / calc(0.22 * var(--shadow-strength)));
 
   --control-height: 2.15rem;
-  --control-height-lg: 2.5rem;
+  --control-height-large: 2.5rem;
   --kid-style-min-height: 3.4rem;
+}
+
+/* ========== DENSITY MODES ========== */
+[data-density="compact"] {
+  --panel-padding: 0.75rem;
+  --card-padding: 0.75rem;
+  --card-gap: var(--space-2);
+  --modal-padding: 0.75rem;
+
+  --button-padding-x: 0.75rem;
+  --button-padding-y: 0.375rem;
+  --button-padding-x-secondary: 0.65rem;
+  --button-padding-y-secondary: 0.3rem;
+
+  --control-height: 2.125rem;
+  --control-height-large: 2.4rem;
+  --page-side-padding: 0.75rem;
+  --navigation-gap: 0.65rem;
+}
+
+[data-density="comfortable"] {
+  --panel-padding: 1.5rem;
+  --card-padding: 1.5rem;
+  --card-gap: var(--space-5);
+  --modal-padding: 1.5rem;
+
+  --button-padding-x: 1.25rem;
+  --button-padding-y: 0.625rem;
+  --button-padding-x-secondary: 1rem;
+  --button-padding-y-secondary: 0.5rem;
+
+  --control-height: 2.75rem;
+  --control-height-large: 3.1rem;
+  --page-side-padding: 1.25rem;
+  --navigation-gap: 1.25rem;
+}
+
+/* ========== SHAPE MODES ========== */
+[data-shape="rounded"] {
+  --radius-small: 0.75rem;
+  --radius-medium: 1.25rem;
+  --radius-large: 2rem;
+  --radius-chip: 1rem;
+}
+
+[data-shape="squared"] {
+  --radius-small: 0.25rem;
+  --radius-medium: 0.5rem;
+  --radius-large: 0.75rem;
+  --radius-chip: 0.25rem;
 }
