@@ -1,10 +1,20 @@
 /* ============================================================
    THEME GUIDE (for tinkering)
    ------------------------------------------------------------
-   1. Open theme.css — change colors, fonts, space, radii, heights
-   2. Most UI updates automatically via tokens
-   3. Page-specific tweaks go in pages.css
-   4. Shared pieces live in components.css
+   1. Open theme.css — the visual control panel
+      Change personality: fonts, colors, surfaces
+      Change spaciousness: panel/button padding, page side padding
+      Change softness: radii, shadows
+      Change size: font sizes, control heights, page max width
+   2. Optional modifiers on <html>:
+      data-density="compact" | "comfortable"
+      data-shape="rounded" | "squared"
+   3. Most UI updates automatically via tokens
+   4. Shared structure lives in components.css / layout.css
+   5. Unusual page-only rules go in pages.css
+
+   Prefer sliders? Run the app locally and open /style-lab to adjust
+   these tokens live, then paste the result into theme.css.
    ============================================================ */
 
 @import "./styles/theme.css";

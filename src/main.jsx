@@ -17,12 +17,39 @@ import SignupPage from "./pages/SignupPage.jsx";
 
 import "./index.css";
 
+/*
+ * Style Lab is a design tool for local work only.
+ *
+ * The lazy import keeps it out of the production bundle, and a pinned draft is
+ * re-applied here so token experiments survive a reload.
+ */
+const StyleLabPage = import.meta.env.DEV
+  ? React.lazy(() => import("./styleLab/StyleLabPage.jsx"))
+  : null;
+
+if (import.meta.env.DEV) {
+  import("./styleLab/styleLabDraft.js").then(({ applyPinnedDraft }) =>
+    applyPinnedDraft()
+  );
+}
+
 ReactDOM.createRoot(
   document.getElementById("root")
 ).render(
   <React.StrictMode>
     <BrowserRouter>
       <Routes>
+        {StyleLabPage && (
+          <Route
+            path="/style-lab"
+            element={
+              <React.Suspense fallback={null}>
+                <StyleLabPage />
+              </React.Suspense>
+            }
+          />
+        )}
+
         {/*
          * Public marketing page.
          *
