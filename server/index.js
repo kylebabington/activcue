@@ -228,6 +228,10 @@ app.use("/api", presetActivitiesRouter);
  */
 app.use("/api", familySettingsRouter);
 
+/*
+ * First-class family memory: saved activities, events, and sessions.
+ */
+app.use("/api", familyMemoryRouter);
 
 /*
  * Protected OpenAI routes.
