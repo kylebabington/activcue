@@ -15,6 +15,7 @@ import billingRouter, {
 } from "./routes/billing.js";
 import presetActivitiesRouter from "./routes/presetActivities.js";
 import familySettingsRouter from "./routes/familySettings.js";
+import familyMemoryRouter from "./routes/familyMemory.js";
 import createActivitySuggestionsRouter from "./routes/activitySuggestions.js";
 import createQuestStepHintRouter from "./routes/questStepHint.js";
 
@@ -227,6 +228,10 @@ app.use("/api", presetActivitiesRouter);
  */
 app.use("/api", familySettingsRouter);
 
+/*
+ * First-class family memory: saved activities, events, and sessions.
+ */
+app.use("/api", familyMemoryRouter);
 
 /*
  * Protected OpenAI routes.

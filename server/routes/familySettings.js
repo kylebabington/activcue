@@ -50,6 +50,17 @@ function formatFamilySettings(row) {
         safetySettings: row.safety_settings,
         currentMoment: row.current_moment,
         customParentPresets: row.custom_parent_presets,
+        savedActivities: Array.isArray(row.saved_activities)
+            ? row.saved_activities
+            : [],
+        activityHistory: Array.isArray(row.activity_history)
+            ? row.activity_history
+            : [],
+        lastSuccessfulMoment:
+            row.last_successful_moment &&
+            typeof row.last_successful_moment === "object"
+                ? row.last_successful_moment
+                : null,
         createdAt: row.created_at,
         updatedAt: row.updated_at,
     };
@@ -149,6 +160,37 @@ function validateSettingsPayload(body) {
         };
     }
 
+    if (
+        body.savedActivities !== undefined &&
+        !Array.isArray(body.savedActivities)
+    ) {
+        return {
+            ok: false,
+            error: "savedActivities must be an array.",
+        };
+    }
+
+    if (
+        body.activityHistory !== undefined &&
+        !Array.isArray(body.activityHistory)
+    ) {
+        return {
+            ok: false,
+            error: "activityHistory must be an array.",
+        };
+    }
+
+    if (
+        body.lastSuccessfulMoment !== undefined &&
+        body.lastSuccessfulMoment !== null &&
+        !isPlainObject(body.lastSuccessfulMoment)
+    ) {
+        return {
+            ok: false,
+            error: "lastSuccessfulMoment must be an object or null.",
+        };
+    }
+
     return {
         ok: true,
         settings: {
@@ -184,6 +226,18 @@ function validateSettingsPayload(body) {
             )
                 ? body.customParentPresets
                 : [],
+            saved_activities: Array.isArray(body.savedActivities)
+                ? body.savedActivities
+                : [],
+            activity_history: Array.isArray(body.activityHistory)
+                ? body.activityHistory
+                : [],
+            last_successful_moment:
+                body.lastSuccessfulMoment === null
+                    ? null
+                    : isPlainObject(body.lastSuccessfulMoment)
+                      ? body.lastSuccessfulMoment
+                      : null,
         },
     };
 }
