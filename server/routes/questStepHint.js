@@ -8,6 +8,8 @@ import {
   buildQuestStepHintInstructions,
 } from "../prompts/questStepHint.js";
 import { questStepHintSchema } from "../schemas/questStepHintSchema.js";
+import { aiHintsRateLimiter } from "../middleware/rateLimits.js";
+import { recordAiUsageEvent } from "../lib/aiUsage.js";
 
 const router = Router();
 
@@ -17,6 +19,7 @@ export default function createQuestStepHintRouter(client) {
     requireAuthenticatedUser,
     ensureUserProfile,
     requirePaidSubscription,
+    aiHintsRateLimiter,
     async (req, res) => {
       try {
         const {
@@ -56,12 +59,23 @@ export default function createQuestStepHintRouter(client) {
 
         const parsed = JSON.parse(rawText);
         res.json(parsed);
+        await recordAiUsageEvent({
+          userId: req.auth.userId,
+          operation: "quest-step-hint",
+          success: true,
+        });
       } catch (error) {
         console.error("Quest step hint error:", {
           status: error?.status,
           code: error?.code,
           type: error?.type,
           message: error?.message,
+        });
+
+        await recordAiUsageEvent({
+          userId: req.auth?.userId,
+          operation: "quest-step-hint",
+          success: false,
         });
 
         const isAuthError =

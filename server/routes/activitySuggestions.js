@@ -14,6 +14,8 @@ import {
   normalizeActivity,
   resolveActivityStyle,
 } from "../utils/normalizeRequest.js";
+import { recordAiUsageEvent } from "../lib/aiUsage.js";
+import { aiSuggestionsRateLimiter } from "../middleware/rateLimits.js";
 
 const router = Router();
 const isDebugLogging = process.env.DEBUG_AI_RESPONSES === "true";
@@ -24,6 +26,7 @@ export default function createActivitySuggestionsRouter(client) {
     requireAuthenticatedUser,
     ensureUserProfile,
     requirePaidSubscription,
+    aiSuggestionsRateLimiter,
     async (req, res) => {
       try {
         const {
@@ -43,9 +46,14 @@ export default function createActivitySuggestionsRouter(client) {
           feedbackContext,
           previousActivityTitles,
           safetySettings,
+          playModeTheme,
         } = req.body;
 
         const safeActivityStyle = resolveActivityStyle(activityStyle, activityMode);
+        const safePlayModeTheme =
+          typeof playModeTheme === "string" && playModeTheme.trim()
+            ? playModeTheme.trim()
+            : "playroom";
         const safeCurrentMoment = buildSafeCurrentMoment({
           currentMoment,
           parentActivity,
@@ -89,8 +97,10 @@ export default function createActivitySuggestionsRouter(client) {
           safetySettings
         );
 
-        const instructions =
-          buildActivitySuggestionsInstructions(safeActivityStyle);
+        const instructions = buildActivitySuggestionsInstructions(
+          safeActivityStyle,
+          safePlayModeTheme
+        );
         const input = buildActivitySuggestionsInput({
           safeCurrentMoment,
           kidMood,
@@ -104,6 +114,7 @@ export default function createActivitySuggestionsRouter(client) {
           safeFeedbackContext,
           safePreviousActivityTitles,
           safeSafetySettings,
+          playModeTheme: safePlayModeTheme,
         });
 
         const rawText = await createStructuredResponse(client, {
@@ -138,12 +149,23 @@ export default function createActivitySuggestionsRouter(client) {
         }
 
         res.json(normalizedResponse);
+        await recordAiUsageEvent({
+          userId: req.auth.userId,
+          operation: "activity-suggestions",
+          success: true,
+        });
       } catch (error) {
         console.error("AI suggestion error:", {
           status: error?.status,
           code: error?.code,
           type: error?.type,
           message: error?.message,
+        });
+
+        await recordAiUsageEvent({
+          userId: req.auth?.userId,
+          operation: "activity-suggestions",
+          success: false,
         });
 
         const isAuthError =
