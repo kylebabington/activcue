@@ -22,7 +22,7 @@ function activityIsUnlocked(
     profile,
     entitlement
 ) {
-    if (entitlement.isPaid) {
+    if (entitlement.hasPlusAccess) {
         return true;
     }
 
@@ -82,11 +82,19 @@ function buildEntitlementResponse(
     return {
         isAnonymous: req.auth.isAnonymous,
         isPaid: entitlement.isPaid,
+        hasPlusAccess: entitlement.hasPlusAccess,
+        billingExempt: entitlement.billingExempt,
+        role: entitlement.role,
+        isAdmin: entitlement.isAdmin,
         canGenerateWithAi:
             entitlement.canGenerateWithAi,
         canUseAiHints: entitlement.canUseAiHints,
         subscriptionStatus:
             entitlement.subscriptionStatus,
+        currentPeriodEnd:
+            entitlement.currentPeriodEnd,
+        cancelAtPeriodEnd:
+            entitlement.cancelAtPeriodEnd,
         freeImaginativeActivityId:
             profile.free_imaginative_activity_id,
     };
@@ -260,7 +268,7 @@ router.post(
              */
             if (
                 activity.activity_style === "simple" ||
-                entitlement.isPaid
+                entitlement.hasPlusAccess
             ) {
                 return res.json({
                     activity: formatPresetActivity(

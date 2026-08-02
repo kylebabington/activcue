@@ -3,8 +3,8 @@
 import { getUserEntitlement } from "../lib/entitlements.js";
 
 /*
- * Block every OpenAI-backed route unless the user has paid access
- * (active/trialing, or canceled with a remaining current_period_end).
+ * Block every OpenAI-backed route unless the user has Plus access
+ * (paid Stripe subscription, or a billing-exempt complimentary account).
  */
 export async function requirePaidSubscription(req, res, next) {
     if (!req.auth?.userId) {
@@ -21,10 +21,10 @@ export async function requirePaidSubscription(req, res, next) {
 
         req.entitlement = entitlement;
 
-        if (!entitlement.isPaid) {
+        if (!entitlement.hasPlusAccess) {
             return res.status(402).json({
                 error:
-                    "A paid subscription is required to generate personalized activities.",
+                    "FamilyFlow Plus access is required to generate personalized activities.",
                 code: "SUBSCRIPTION_REQUIRED",
                 entitlement,
             });

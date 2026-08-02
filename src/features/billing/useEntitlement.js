@@ -8,6 +8,10 @@ import { getPresetActivities } from "../../api/activityApi";
 
 const DEFAULT_ENTITLEMENT = {
   isPaid: false,
+  hasPlusAccess: false,
+  billingExempt: false,
+  role: "user",
+  isAdmin: false,
   canGenerateWithAi: false,
   canUseAiHints: false,
   subscriptionStatus: "inactive",
@@ -15,6 +19,14 @@ const DEFAULT_ENTITLEMENT = {
   cancelAtPeriodEnd: false,
   freeImaginativeActivityId: null,
 };
+
+function mergeBooleanField(nextEntitlement, current, field) {
+  if (!(field in nextEntitlement)) {
+    return current[field];
+  }
+
+  return nextEntitlement[field] === true;
+}
 
 export function useEntitlement({ userId } = {}) {
   const [entitlement, setEntitlement] = useState(DEFAULT_ENTITLEMENT);
@@ -28,6 +40,27 @@ export function useEntitlement({ userId } = {}) {
     setEntitlement((current) => ({
       ...current,
       isPaid: Boolean(nextEntitlement.isPaid),
+      hasPlusAccess: mergeBooleanField(
+        nextEntitlement,
+        current,
+        "hasPlusAccess"
+      ),
+      billingExempt: mergeBooleanField(
+        nextEntitlement,
+        current,
+        "billingExempt"
+      ),
+      isAdmin: mergeBooleanField(
+        nextEntitlement,
+        current,
+        "isAdmin"
+      ),
+      role:
+        "role" in nextEntitlement
+          ? nextEntitlement.role === "admin"
+            ? "admin"
+            : "user"
+          : current.role,
       canGenerateWithAi: Boolean(nextEntitlement.canGenerateWithAi),
       canUseAiHints: Boolean(nextEntitlement.canUseAiHints),
       subscriptionStatus:

@@ -84,6 +84,22 @@ describe("getAppBaseUrl", () => {
 });
 
 describe("getCheckoutConflict", () => {
+  it("returns BILLING_EXEMPT_ACCOUNT before paid checks", () => {
+    expect(
+      getCheckoutConflict({
+        entitlement: {
+          billingExempt: true,
+          isPaid: false,
+        },
+        blockingSubscription: { id: "sub_blocking" },
+      })
+    ).toMatchObject({
+      status: 409,
+      code: "BILLING_EXEMPT_ACCOUNT",
+      error: "FamilyFlow Plus is included with this account.",
+    });
+  });
+
   it("returns ALREADY_SUBSCRIBED when local entitlement is paid", () => {
     expect(
       getCheckoutConflict({
@@ -128,7 +144,7 @@ describe("getCheckoutConflict", () => {
   it("returns null when checkout may proceed", () => {
     expect(
       getCheckoutConflict({
-        entitlement: { isPaid: false },
+        entitlement: { isPaid: false, billingExempt: false },
         blockingSubscription: null,
       })
     ).toBeNull();

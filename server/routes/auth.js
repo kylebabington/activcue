@@ -41,12 +41,22 @@ router.get(
           hasStripeCustomer: Boolean(
             req.profile.stripe_customer_id
           ),
+          role: req.profile.role,
+          billingExempt: Boolean(
+            req.profile.billing_exempt
+          ),
           createdAt: req.profile.created_at,
           updatedAt: req.profile.updated_at,
         },
 
         entitlement: {
           isPaid: entitlement.isPaid,
+          hasPlusAccess:
+            entitlement.hasPlusAccess,
+          billingExempt:
+            entitlement.billingExempt,
+          role: entitlement.role,
+          isAdmin: entitlement.isAdmin,
           canGenerateWithAi:
             entitlement.canGenerateWithAi,
           canUseAiHints:

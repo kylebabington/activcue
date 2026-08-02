@@ -1233,6 +1233,26 @@ function SettingsPage() {
                 <p className="billing-loading">
                   Checking your subscription…
                 </p>
+              ) : entitlement.billingExempt ? (
+                <div className="billing-active-summary">
+                  <div className="billing-active-details">
+                    <strong>
+                      FamilyFlow Plus is included
+                    </strong>
+
+                    <p>
+                      {entitlement.isAdmin
+                        ? "Administrator account"
+                        : "Complimentary access"}
+                    </p>
+
+                    <p>
+                      This account has full Plus
+                      access and is not billed
+                      through Stripe.
+                    </p>
+                  </div>
+                </div>
               ) : entitlement.isPaid ? (
                 <div className="billing-active-summary">
                   <div className="billing-active-details">
