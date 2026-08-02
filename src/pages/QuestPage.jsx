@@ -291,6 +291,7 @@ function QuestPage() {
                         handleMoreLikeThis={handleMoreLikeThis}
                         activitySessions={activitySessions}
                         activeChildName={activeChildProfile?.name || ""}
+                        activeChildId={activeChildProfile?.id || ""}
                     />
                 </div>
             )}

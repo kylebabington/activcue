@@ -2,33 +2,66 @@
 
 import { getSessionFitBoost } from "./sessionFitScore";
 
+function getSessionChildId(session) {
+  return String(session?.childId ?? session?.child_id ?? "").trim();
+}
+
+function getIndependence(session) {
+  return String(
+    session?.independenceRating ?? session?.independence_rating ?? ""
+  ).trim();
+}
+
+function titlesMatch(session, activity) {
+  const sessionTitle = String(
+    session.activityTitle || session.activity_title || ""
+  )
+    .trim()
+    .toLowerCase();
+  const activityTitle = String(activity?.title || "")
+    .trim()
+    .toLowerCase();
+  return Boolean(sessionTitle && activityTitle && sessionTitle === activityTitle);
+}
+
 /**
  * Parent-facing confidence line without dumping the full scoring model.
+ * Strong “Usually…” claims require same child + title + successful outcomes.
  */
-export function buildConfidenceCopy(activity, sessions = [], childName = "") {
+export function buildConfidenceCopy(
+  activity,
+  sessions = [],
+  childName = "",
+  { childId = "" } = {}
+) {
   if (!activity) {
     return "";
   }
 
-  const boost = getSessionFitBoost(activity, sessions);
-  const matching = (Array.isArray(sessions) ? sessions : []).filter(
-    (session) => {
-      const title = String(
-        session.activityTitle || session.activity_title || ""
-      )
-        .trim()
-        .toLowerCase();
-      return title && title === String(activity.title || "").trim().toLowerCase();
-    }
+  const list = Array.isArray(sessions) ? sessions : [];
+  const childScoped = childId
+    ? list.filter((session) => getSessionChildId(session) === childId)
+    : list;
+
+  const boost = getSessionFitBoost(activity, childScoped);
+  const matchingTitle = childScoped.filter((session) =>
+    titlesMatch(session, activity)
+  );
+  const successful = matchingTitle.filter(
+    (session) => getIndependence(session) === "worked-great"
   );
 
   const name = childName || "your kid";
+  const mostlySuccessful =
+    matchingTitle.length >= 2 &&
+    (successful.length >= 2 || successful.length / matchingTitle.length >= 0.5);
 
-  if (matching.length >= 2) {
-    const durations = matching
+  if (mostlySuccessful) {
+    const durations = successful
       .map((s) => Number(s.actualMinutes ?? s.actual_minutes))
       .filter((n) => Number.isFinite(n) && n > 0);
-    if (durations.length > 0) {
+
+    if (durations.length >= 2) {
       const avg = Math.round(
         durations.reduce((sum, n) => sum + n, 0) / durations.length
       );
@@ -38,11 +71,15 @@ export function buildConfidenceCopy(activity, sessions = [], childName = "") {
       )}–${avg + 3} minutes.`;
     }
 
-    return `${name} has finished similar activities ${matching.length} times.`;
+    return "This has worked before for independent time.";
   }
 
-  if (boost >= 4) {
-    return "Great fit right now based on past independent-time wins.";
+  if (successful.length >= 1 || boost >= 4) {
+    return "This has worked before.";
+  }
+
+  if (matchingTitle.length >= 1 || boost > 0) {
+    return "Good match based on similar past activities.";
   }
 
   if (activity.energy === "low" || activity.mess === "low") {

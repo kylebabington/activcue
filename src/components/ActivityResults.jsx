@@ -18,6 +18,7 @@ function ActivityResults({
   handleMoreLikeThis,
   activitySessions = [],
   activeChildName = "",
+  activeChildId = "",
 }) {
   const [detailsActivityTitle, setDetailsActivityTitle] = useState(null);
   const [feedbackActivityTitle, setFeedbackActivityTitle] = useState(null);
@@ -89,7 +90,8 @@ function ActivityResults({
             const confidenceCopy = buildConfidenceCopy(
               activity,
               activitySessions,
-              activeChildName
+              activeChildName,
+              { childId: activeChildId }
             );
 
             return (
