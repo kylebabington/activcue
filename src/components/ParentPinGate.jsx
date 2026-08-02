@@ -1,22 +1,55 @@
 import { useState } from "react";
+import { verifyParentPin } from "../api/familySettingsApi";
+import { useAuth } from "../hooks/useAuth";
 
-function ParentPinGate({ parentPin, onUnlock, children }) {
+function ParentPinGate({ parentPin, parentPinSet, onUnlock, children }) {
+  const { user } = useAuth();
   const [enteredPin, setEnteredPin] = useState("");
   const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
 
-  if (!parentPin) {
+  const requiresPin = parentPinSet || Boolean(parentPin);
+
+  if (!requiresPin) {
     return children;
   }
 
-  function handleUnlock() {
-    if (enteredPin.trim() !== parentPin) {
-      setError("That PIN is incorrect.");
-      return;
-    }
-
+  async function handleUnlock() {
+    const cleaned = enteredPin.trim();
+    setBusy(true);
     setError("");
-    setEnteredPin("");
-    onUnlock();
+
+    try {
+      if (user?.id) {
+        await verifyParentPin(cleaned, {
+          expectedUserId: user.id,
+        });
+      } else if (!parentPin || cleaned !== parentPin) {
+        setError("That PIN is incorrect.");
+        return;
+      }
+
+      setEnteredPin("");
+      onUnlock();
+    } catch (verifyError) {
+      /*
+       * Fall back to local comparison when the server hash is not set yet
+       * (legacy device PIN during migration).
+       */
+      if (parentPin && cleaned === parentPin) {
+        setEnteredPin("");
+        onUnlock();
+        return;
+      }
+
+      setError(
+        verifyError instanceof Error
+          ? verifyError.message
+          : "That PIN is incorrect."
+      );
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -41,15 +74,15 @@ function ParentPinGate({ parentPin, onUnlock, children }) {
             }}
             onKeyDown={(event) => {
               if (event.key === "Enter") {
-                handleUnlock();
+                void handleUnlock();
               }
             }}
             placeholder="Enter PIN"
             aria-label="Parent PIN"
           />
 
-          <button type="button" onClick={handleUnlock}>
-            Unlock
+          <button type="button" onClick={() => void handleUnlock()} disabled={busy}>
+            {busy ? "Checking…" : "Unlock"}
           </button>
         </div>
 

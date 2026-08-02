@@ -19,4 +19,12 @@ describe("rate limit middleware configuration", () => {
   it("limits email checks more tightly than general auth", () => {
     expect(EMAIL_CHECK_RATE_LIMIT.max).toBe(20);
   });
+
+  it("limits family data writes", async () => {
+    const { FAMILY_DATA_RATE_LIMIT, PARENT_PIN_RATE_LIMIT } = await import(
+      "../middleware/rateLimits.js"
+    );
+    expect(FAMILY_DATA_RATE_LIMIT.max).toBe(120);
+    expect(PARENT_PIN_RATE_LIMIT.max).toBe(20);
+  });
 });

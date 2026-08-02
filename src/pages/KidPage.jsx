@@ -30,6 +30,8 @@ function KidPage({
   onFirstRunGenerated,
   playModeLine = "",
   kidDeviceMode = false,
+  gettingBetterCopy = "",
+  setupNudgeNeeded = false,
 }) {
   function energyChipClass(energyLevel) {
     return kidEnergyLevel === energyLevel
@@ -97,7 +99,11 @@ function KidPage({
           >
             {imBoredDisabled ? (
               <p>
-                Nice work finishing your free pretend world. Unlock more with{" "}
+                Nice work finishing your free pretend world. Unlimited ideas for{" "}
+                <strong>
+                  {currentMoment?.parentActivity || "this moment"}
+                </strong>{" "}
+                unlock with{" "}
                 {typeof onGetPlus === "function" ? (
                   <button
                     type="button"
@@ -110,7 +116,7 @@ function KidPage({
                 ) : (
                   <Link to="/signup">FamilyFlow Plus</Link>
                 )}
-                , or keep using Simple / Quick ideas.
+                . Keep using Simple / Quick ideas anytime.
               </p>
             ) : (
               <p>
@@ -139,6 +145,19 @@ function KidPage({
               </p>
             )}
           </div>
+        ) : null}
+
+        {gettingBetterCopy ? (
+          <p className="kid-getting-better" role="status">
+            {gettingBetterCopy}
+          </p>
+        ) : null}
+
+        {setupNudgeNeeded ? (
+          <p className="kid-setup-nudge" role="status">
+            Add a child profile and a few supplies in Settings so ideas can match
+            your house — Rescue Mode and Quick ideas still work without that.
+          </p>
         ) : null}
 
         <div className="kid-status-strip">

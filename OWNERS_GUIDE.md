@@ -396,7 +396,7 @@ Health: `GET /api/health`
 4. Point Stripe webhooks at `https://<your-domain>/api/billing/webhook`.
 5. Confirm `APP_URL` matches the public site URL used in Checkout redirects.
 
-CI on `main` runs lint, tests, and build (not Playwright e2e today).
+CI on `main` runs lint, Vitest, Vite build, and Playwright e2e (Chromium) when repository secrets are configured.
 
 ---
 

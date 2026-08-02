@@ -2,8 +2,13 @@
 
 import { Router } from "express";
 import { getSupabaseAdminClient } from "../lib/supabaseAdminClient.js";
+import { hashParentPin, verifyParentPin } from "../lib/parentPin.js";
 import { requireAuthenticatedUser } from "../middleware/requireAuthenticatedUser.js";
 import { ensureUserProfile } from "../middleware/ensureUserProfile.js";
+import {
+    familyDataRateLimiter,
+    parentPinRateLimiter,
+} from "../middleware/rateLimits.js";
 
 const router = Router();
 
@@ -50,17 +55,22 @@ function formatFamilySettings(row) {
         safetySettings: row.safety_settings,
         currentMoment: row.current_moment,
         customParentPresets: row.custom_parent_presets,
-        savedActivities: Array.isArray(row.saved_activities)
-            ? row.saved_activities
-            : [],
-        activityHistory: Array.isArray(row.activity_history)
-            ? row.activity_history
-            : [],
+        /*
+         * Legacy JSON memory columns are retired — memory tables are source of truth.
+         */
+        savedActivities: [],
+        activityHistory: [],
         lastSuccessfulMoment:
             row.last_successful_moment &&
             typeof row.last_successful_moment === "object"
                 ? row.last_successful_moment
                 : null,
+        uiTheme:
+            typeof row.ui_theme === "string" && row.ui_theme
+                ? row.ui_theme
+                : "playroom",
+        kidDeviceMode: row.kid_device_mode === true,
+        parentPinSet: Boolean(row.parent_pin_hash),
         createdAt: row.created_at,
         updatedAt: row.updated_at,
     };
@@ -75,6 +85,15 @@ function validateSettingsPayload(body) {
         return {
             ok: false,
             error: "Settings body must be a JSON object.",
+        };
+    }
+
+    const serialized = JSON.stringify(body);
+    if (serialized.length > 250_000) {
+        return {
+            ok: false,
+            error: "Settings payload is too large.",
+            code: "SETTINGS_PAYLOAD_TOO_LARGE",
         };
     }
 
@@ -161,26 +180,6 @@ function validateSettingsPayload(body) {
     }
 
     if (
-        body.savedActivities !== undefined &&
-        !Array.isArray(body.savedActivities)
-    ) {
-        return {
-            ok: false,
-            error: "savedActivities must be an array.",
-        };
-    }
-
-    if (
-        body.activityHistory !== undefined &&
-        !Array.isArray(body.activityHistory)
-    ) {
-        return {
-            ok: false,
-            error: "activityHistory must be an array.",
-        };
-    }
-
-    if (
         body.lastSuccessfulMoment !== undefined &&
         body.lastSuccessfulMoment !== null &&
         !isPlainObject(body.lastSuccessfulMoment)
@@ -188,6 +187,26 @@ function validateSettingsPayload(body) {
         return {
             ok: false,
             error: "lastSuccessfulMoment must be an object or null.",
+        };
+    }
+
+    if (
+        body.uiTheme !== undefined &&
+        typeof body.uiTheme !== "string"
+    ) {
+        return {
+            ok: false,
+            error: "uiTheme must be a string.",
+        };
+    }
+
+    if (
+        body.kidDeviceMode !== undefined &&
+        typeof body.kidDeviceMode !== "boolean"
+    ) {
+        return {
+            ok: false,
+            error: "kidDeviceMode must be a boolean.",
         };
     }
 
@@ -226,18 +245,22 @@ function validateSettingsPayload(body) {
             )
                 ? body.customParentPresets
                 : [],
-            saved_activities: Array.isArray(body.savedActivities)
-                ? body.savedActivities
-                : [],
-            activity_history: Array.isArray(body.activityHistory)
-                ? body.activityHistory
-                : [],
+            /*
+             * Stop writing legacy JSON memory columns — tables own favorites/history.
+             */
+            saved_activities: [],
+            activity_history: [],
             last_successful_moment:
                 body.lastSuccessfulMoment === null
                     ? null
                     : isPlainObject(body.lastSuccessfulMoment)
                       ? body.lastSuccessfulMoment
                       : null,
+            ui_theme:
+                typeof body.uiTheme === "string" && body.uiTheme.trim()
+                    ? body.uiTheme.trim().slice(0, 64)
+                    : "playroom",
+            kid_device_mode: body.kidDeviceMode === true,
         },
     };
 }
@@ -249,6 +272,7 @@ function validateSettingsPayload(body) {
  */
 router.get(
     "/family-settings",
+    familyDataRateLimiter,
     requireAuthenticatedUser,
     ensureUserProfile,
     async (req, res) => {
@@ -305,6 +329,7 @@ router.get(
  */
 router.put(
     "/family-settings",
+    familyDataRateLimiter,
     requireAuthenticatedUser,
     ensureUserProfile,
     async (req, res) => {
@@ -361,6 +386,107 @@ router.put(
             return res.status(500).json({
                 error: "Could not save family settings.",
                 code: "FAMILY_SETTINGS_SAVE_FAILED",
+            });
+        }
+    }
+);
+
+/*
+ * POST /api/family-settings/parent-pin
+ * Body: { pin: "1234" } — stores a scrypt hash; never returns the PIN.
+ */
+router.post(
+    "/family-settings/parent-pin",
+    parentPinRateLimiter,
+    requireAuthenticatedUser,
+    ensureUserProfile,
+    async (req, res) => {
+        try {
+            const pin = String(req.body?.pin || "").trim();
+            if (pin.length < 4) {
+                return res.status(400).json({
+                    error: "PIN must be at least 4 digits.",
+                    code: "INVALID_PARENT_PIN",
+                });
+            }
+
+            const parentPinHash = hashParentPin(pin);
+            const supabase = getSupabaseAdminClient();
+
+            const { data: existing } = await supabase
+                .from("family_settings")
+                .select("user_id")
+                .eq("user_id", req.auth.userId)
+                .maybeSingle();
+
+            if (!existing) {
+                return res.status(404).json({
+                    error: "Save family settings once before setting a PIN.",
+                    code: "FAMILY_SETTINGS_MISSING",
+                });
+            }
+
+            const { error } = await supabase
+                .from("family_settings")
+                .update({ parent_pin_hash: parentPinHash })
+                .eq("user_id", req.auth.userId);
+
+            if (error) {
+                throw error;
+            }
+
+            return res.json({
+                parentPinSet: true,
+            });
+        } catch (error) {
+            console.error("Could not save parent PIN:", error);
+            return res.status(500).json({
+                error: "Could not save parent PIN.",
+                code: "PARENT_PIN_SAVE_FAILED",
+            });
+        }
+    }
+);
+
+/*
+ * POST /api/family-settings/verify-parent-pin
+ * Body: { pin: "1234" }
+ */
+router.post(
+    "/family-settings/verify-parent-pin",
+    parentPinRateLimiter,
+    requireAuthenticatedUser,
+    ensureUserProfile,
+    async (req, res) => {
+        try {
+            const pin = String(req.body?.pin || "").trim();
+            const supabase = getSupabaseAdminClient();
+
+            const { data, error } = await supabase
+                .from("family_settings")
+                .select("parent_pin_hash")
+                .eq("user_id", req.auth.userId)
+                .maybeSingle();
+
+            if (error) {
+                throw error;
+            }
+
+            const ok = verifyParentPin(pin, data?.parent_pin_hash);
+            if (!ok) {
+                return res.status(403).json({
+                    error: "That PIN is incorrect.",
+                    code: "PARENT_PIN_INVALID",
+                    unlocked: false,
+                });
+            }
+
+            return res.json({ unlocked: true });
+        } catch (error) {
+            console.error("Could not verify parent PIN:", error);
+            return res.status(500).json({
+                error: "Could not verify parent PIN.",
+                code: "PARENT_PIN_VERIFY_FAILED",
             });
         }
     }

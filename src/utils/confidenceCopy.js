@@ -88,3 +88,56 @@ export function buildConfidenceCopy(
 
   return "";
 }
+
+/**
+ * Short flywheel signal after enough successful independent sessions.
+ * Reuses the same independence outcomes that train Fit Score.
+ */
+export function buildGettingBetterCopy(
+  sessions = [],
+  { childId = "", childName = "" } = {}
+) {
+  const list = Array.isArray(sessions) ? sessions : [];
+  const childScoped = childId
+    ? list.filter((session) => getSessionChildId(session) === childId)
+    : list;
+
+  const successful = childScoped.filter(
+    (session) => getIndependence(session) === "worked-great"
+  );
+
+  if (successful.length < 2) {
+    return "";
+  }
+
+  const name = childName || "your kid";
+  const spaces = successful
+    .map((session) =>
+      String(session.space || session.activity_space || "").trim()
+    )
+    .filter(Boolean);
+  const quietCount = successful.filter((session) => {
+    const noise = String(
+      session.noiseLevel || session.noise_level || ""
+    ).toLowerCase();
+    const energy = String(
+      session.activityEnergy || session.activity_energy || ""
+    ).toLowerCase();
+    return noise === "quiet" || energy === "low";
+  }).length;
+
+  if (quietCount >= 2) {
+    return `Getting better at quiet independent time for ${name}.`;
+  }
+
+  if (spaces.length >= 2) {
+    const topSpace = spaces.sort(
+      (a, b) =>
+        spaces.filter((s) => s === b).length -
+        spaces.filter((s) => s === a).length
+    )[0];
+    return `Getting better at activities in the ${topSpace} for ${name}.`;
+  }
+
+  return `Getting better at independent time for ${name}.`;
+}

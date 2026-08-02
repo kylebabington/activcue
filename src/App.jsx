@@ -1,20 +1,16 @@
 // src/App.jsx
 
-import { Link, Navigate, NavLink, Route, Routes, useNavigate } from "react-router-dom";
+import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import {
   useEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
-import {
-  getActivitySuggestions,
-  getPresetActivities,
-  unlockPresetActivity,
-} from "./api/activityApi";
 import { signOutCurrentUser } from "./api/authApi";
 import { redirectToCheckout } from "./api/billingApi";
-import { ApiRequestError, AuthenticationError } from "./api/apiClient";
+import { ApiRequestError } from "./api/apiClient";
+import { listActivitySessions } from "./api/familyMemoryApi";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import { useFirstRunCoach } from "./hooks/useFirstRunCoach";
 import { useKidDeviceMode } from "./hooks/useKidDeviceMode";
@@ -27,47 +23,43 @@ import KidPage from "./pages/KidPage";
 import QuestPage from "./pages/QuestPage";
 import SettingsPage from "./pages/SettingsPage";
 import ParentPinGate from "./components/ParentPinGate";
-import ThemeSwitcher from "./components/ThemeSwitcher";
+import ParentPinForm from "./components/ParentPinForm";
+import AppHeader from "./components/AppHeader";
 import { AppProvider } from "./context/AppContext";
+import {
+  BillingContext,
+  FamilyContext,
+  QuestContext,
+} from "./context/domainContexts";
 import "./App.css";
 import { defaultParentStatusPresets, inventoryCategories } from "./constants/presets";
-import {
-  inventoryPresets,
-  isPresetInventoryItem,
-} from "./constants/inventoryPresets";
+import { inventoryPresets } from "./constants/inventoryPresets";
 import {
   buildDefaultFamilySettings,
   clearFamilySettingsLocalStorage,
   saveFamilySettings,
+  saveParentPin as saveParentPinRemote,
   useFamilySettings,
   useFamilyMemory,
+  useInventory,
+  useChildProfiles,
+  useParentMoment,
 } from "./features/family";
 import { useQuestSession } from "./features/quest";
 import {
-  buildStructuredPreferenceContext,
   logActivityScoreTable,
-  activityPassesInventorySoftCheck,
-  buildInventoryOnlyFeedback,
-  normalizeActivitiesToInventory,
   scoreActivitiesForCurrentMoment,
-  pickBestActivityForCurrentMoment,
   useActivityGeneration,
+  useActivityFeedback,
 } from "./features/activities";
-import { listActivitySessions } from "./api/familyMemoryApi";
-import { buildSimpleActivitiesFromTemplates } from "./utils/simpleActivityTemplates";
-import { normalizeActivityStyle } from "./utils/activityStyle";
 import {
   formatAvailabilityLabel,
   formatFeedbackLabel,
   formatTimer,
 } from "./utils/activityFormatters";
-import {
-  getEligiblePresets,
-  isFreeImaginativeUnlockUsed,
-  takeRotatedOne,
-  takeRotatedSlice,
-} from "./utils/presetDemo";
-
+import { isFreeImaginativeUnlockUsed } from "./utils/presetDemo";
+import { buildGettingBetterCopy } from "./utils/confidenceCopy";
+import { trackProductEvent } from "./utils/analytics";
 
 function App() {
   const navigate = useNavigate();
@@ -96,83 +88,104 @@ function App() {
 
   const [headerLogoutBusy, setHeaderLogoutBusy] = useState(false);
   const [headerLogoutError, setHeaderLogoutError] = useState("");
-
-  // This is the parent PIN.
-  // For MVP, we save it in localStorage.
-  // Later, real accounts should move this server-side.
   const [parentPin, setParentPin] = useLocalStorage("parentPin", "");
+  const [parentPinSet, setParentPinSet] = useState(Boolean(parentPin));
   const [parentAreaUnlocked, setParentAreaUnlocked] = useState(false);
-
   const [, setParentStatus] = useLocalStorage("parentStatus", {
     activity: "Cleaning the kitchen",
     availability: "helper-welcome",
   });
 
-  /*
-   * Durable family settings live in Supabase (via Express).
-   * React state is hydrated once from the server (or a one-time localStorage
-   * import), then changes are debounced back with PUT.
-   */
-  const [currentMoment, setCurrentMoment] = useState(
-    () => buildDefaultFamilySettings().currentMoment
+  const [statusMessage, setStatusMessage] = useState("");
+  const [statusType, setStatusType] = useState("info");
+
+  function showStatus(message, type = "info") {
+    if (!message) {
+      setStatusMessage("");
+      setStatusType("info");
+      return;
+    }
+
+    setStatusMessage(message);
+    setStatusType(type);
+  }
+
+  const {
+    inventory,
+    setInventory,
+    newInventoryItem,
+    setNewInventoryItem,
+    newInventoryCategory,
+    setNewInventoryCategory,
+    normalizedInventory,
+    customInventoryItems,
+    addInventoryItem,
+    removeInventoryItem,
+    isInventoryItemSelected,
+    toggleInventoryPreset,
+  } = useInventory({ showStatus });
+
+  const [childAgeRange] = useLocalStorage("childAgeRange", "6-9");
+
+  const {
+    childProfiles,
+    setChildProfiles,
+    activeChildId,
+    setActiveChildId,
+    playingChildIds,
+    setPlayingChildIds,
+    activityMode,
+    setActivityMode,
+    newChildName,
+    setNewChildName,
+    newChildAgeRange,
+    setNewChildAgeRange,
+    newChildInterests,
+    setNewChildInterests,
+    newChildNeeds,
+    setNewChildNeeds,
+    editingChildId,
+    applyPlayingSelection,
+    togglePlayingChild,
+    addChildProfile,
+    startEditingChildProfile,
+    cancelEditingChildProfile,
+    deleteChildProfile,
+    activeChildProfile,
+    selectedChildProfiles,
+    effectiveChildAgeRange,
+  } = useChildProfiles({
+    showStatus,
+    childAgeRangeFallback: childAgeRange,
+  });
+
+  const [lastSuccessfulMoment, setLastSuccessfulMoment] = useLocalStorage(
+    "lastSuccessfulMoment",
+    null
   );
-
-  const [customParentPresets, setCustomParentPresets] = useState([]);
-
-  const [activePresetKey, setActivePresetKey] = useState("");
-
-  const [inventory, setInventory] = useState(
-    () => buildDefaultFamilySettings().inventory
-  );
-
-  const [newInventoryItem, setNewInventoryItem] = useState("");
-
-  const [newInventoryCategory, setNewInventoryCategory] =
-    useState("Building toys");
-
-  const [activityMode, setActivityMode] = useState("single-child");
-
-  const [kidMood, setKidMood] = useLocalStorage("kidMood", "neutral");
-  const [kidEnergyLevel, setKidEnergyLevel] = useLocalStorage(
-    "kidEnergyLevel",
-    "neutral"
-  );
-
-  const [kidActivityStyle, setKidActivityStyle] = useLocalStorage(
-    "kidActivityStyle",
-    "simple"
-  );
-
-  const [messLevel] = useLocalStorage("messLevel", "low");
-  const [locationPreference] = useLocalStorage(
-    "locationPreference",
-    "indoor"
-  );
-
-  const [childAgeRange] = useLocalStorage(
-    "childAgeRange",
-    "6-9"
-  );
-
-  const [childProfiles, setChildProfiles] = useState([]);
-
-  const [activeChildId, setActiveChildId] = useState("");
-  const [playingChildIds, setPlayingChildIds] = useState([]);
-
-  const [newChildName, setNewChildName] = useState("");
-  const [newChildAgeRange, setNewChildAgeRange] = useState("6-9");
-  const [newChildInterests, setNewChildInterests] = useState("");
-  const [newChildNeeds, setNewChildNeeds] = useState("");
-  const [editingChildId, setEditingChildId] = useState("");
 
   const [safetySettings, setSafetySettings] = useState(
     () => buildDefaultFamilySettings().safetySettings
   );
 
   const [activities, setActivities] = useState([]);
-
   const [activitySessions, setActivitySessions] = useState([]);
-  const generateActivitiesRef = useRef(null);
+  const [checkoutBusy, setCheckoutBusy] = useState(false);
+
+  const [kidMood, setKidMood] = useLocalStorage("kidMood", "neutral");
+  const [kidEnergyLevel, setKidEnergyLevel] = useLocalStorage(
+    "kidEnergyLevel",
+    "neutral"
+  );
+  const [kidActivityStyle, setKidActivityStyle] = useLocalStorage(
+    "kidActivityStyle",
+    "simple"
+  );
+  const [messLevel] = useLocalStorage("messLevel", "low");
+  const [locationPreference] = useLocalStorage(
+    "locationPreference",
+    "indoor"
+  );
 
   const {
     savedActivities,
@@ -208,6 +221,45 @@ function App() {
       cancelled = true;
     };
   }, [user?.id]);
+
+  const saveActivityFeedbackRef = useRef(null);
+  const handleStartActivityRef = useRef(null);
+  const setLastCompletedQuestBridge = useRef(null);
+
+  const {
+    entitlement,
+    entitlementHydrated,
+    mergePresetEntitlement,
+    refreshEntitlement,
+  } = useEntitlement({ userId: user?.id });
+
+  const isDemoMode =
+    entitlementHydrated && !entitlement.canGenerateWithAi;
+  const freeImaginativeUnlockUsed = isFreeImaginativeUnlockUsed(entitlement);
+  const imBoredDisabled = isDemoMode && freeImaginativeUnlockUsed;
+
+  const {
+    currentMoment,
+    setCurrentMoment,
+    customParentPresets,
+    setCustomParentPresets,
+    activePresetKey,
+    setActivePresetKey,
+    applyMomentDraft,
+    saveCustomParentPreset,
+    updateCustomParentPreset,
+    deleteCustomParentPreset,
+    reapplyLastSuccessfulMoment,
+  } = useParentMoment({
+    showStatus,
+    navigate,
+    firstRunCoach,
+    setParentStatus,
+    lastSuccessfulMoment,
+    setLastCompletedQuest: (value) => {
+      setLastCompletedQuestBridge.current?.(value);
+    },
+  });
 
   const scoringOptions = useMemo(
     () => ({
@@ -254,9 +306,13 @@ function App() {
     scoringOptions,
   ]);
 
-  const [lastSuccessfulMoment, setLastSuccessfulMoment] = useLocalStorage(
-    "lastSuccessfulMoment",
-    null
+  const gettingBetterCopy = useMemo(
+    () =>
+      buildGettingBetterCopy(activitySessions, {
+        childId: activityMode === "family" ? "" : activeChildId || "",
+        childName: activeChildProfile?.name || "",
+      }),
+    [activitySessions, activityMode, activeChildId, activeChildProfile]
   );
 
   const {
@@ -280,6 +336,9 @@ function App() {
     setCustomParentPresets,
     setParentStatus,
     setLastSuccessfulMoment,
+    setUiTheme,
+    setKidDeviceMode,
+    setParentPinSet,
     activityMode,
     activeChildId,
     activePresetKey,
@@ -289,121 +348,9 @@ function App() {
     currentMoment,
     customParentPresets,
     lastSuccessfulMoment,
+    uiTheme,
+    kidDeviceMode,
   });
-
-  const {
-    isLoading,
-    loadingIntent,
-    setIsLoading,
-    setLoadingIntent,
-  } = useActivityGeneration();
-  const [statusMessage, setStatusMessage] = useState("");
-  const [statusType, setStatusType] = useState("info");
-
-  // Entitlement comes from /api/auth/me; freeImaginativeActivityId is also
-  // refreshed from preset list/unlock responses.
-  const {
-    entitlement,
-    entitlementHydrated,
-    mergePresetEntitlement,
-    refreshEntitlement,
-  } = useEntitlement({ userId: user?.id });
-  const [checkoutBusy, setCheckoutBusy] = useState(false);
-
-  const [presetRotationIndex, setPresetRotationIndex] = useState({
-    simple: 0,
-    imaginative: 0,
-  });
-
-  // Until /api/auth/me succeeds, do not treat the session as unpaid demo —
-  // otherwise a failed preset hydrate would trap Plus users on the sample path.
-  const isDemoMode =
-    entitlementHydrated && !entitlement.canGenerateWithAi;
-  const freeImaginativeUnlockUsed = isFreeImaginativeUnlockUsed(entitlement);
-  const imBoredDisabled = isDemoMode && freeImaginativeUnlockUsed;
-
-  async function handleGetPlus() {
-    if (isAnonymous) {
-      navigate("/signup");
-      return;
-    }
-
-    setCheckoutBusy(true);
-    setStatusMessage("");
-
-    try {
-      await redirectToCheckout();
-    } catch (error) {
-      if (
-        error instanceof ApiRequestError &&
-        error.code === "ACCOUNT_REQUIRED"
-      ) {
-        navigate("/signup");
-        return;
-      }
-
-      setStatusMessage(
-        error?.message ||
-        "Could not start checkout. Try again in a moment."
-      );
-      setStatusType("error");
-      setCheckoutBusy(false);
-    }
-  }
-
-  function applyPlayingSelection(nextIds, profiles = childProfiles) {
-    const profileIds = new Set(profiles.map((child) => child.id));
-    let next = nextIds.filter((id) => profileIds.has(id));
-
-    if (next.length === 0 && profiles.length > 0) {
-      next = [profiles[0].id];
-    }
-
-    setPlayingChildIds(next);
-
-    if (next.length <= 1) {
-      setActivityMode("single-child");
-      setActiveChildId(next[0] || "");
-      return;
-    }
-
-    setActivityMode("family");
-    setActiveChildId("");
-  }
-
-  function togglePlayingChild(childId) {
-    const isSelected = playingChildIds.includes(childId);
-
-    if (isSelected && playingChildIds.length <= 1) {
-      return;
-    }
-
-    const next = isSelected
-      ? playingChildIds.filter((id) => id !== childId)
-      : [...playingChildIds, childId];
-
-    applyPlayingSelection(next);
-  }
-
-  function showStatus(message, type = "info") {
-    if (!message) {
-      setStatusMessage("");
-      setStatusType("info");
-      return;
-    }
-
-    setStatusMessage(message);
-    setStatusType(type);
-  }
-
-  const activeChildProfile =
-    childProfiles.find((child) => child.id === activeChildId) ||
-    childProfiles.find((child) => playingChildIds.includes(child.id)) ||
-    null;
-
-  const effectiveChildAgeRange = activeChildProfile
-    ? activeChildProfile.ageRange
-    : childAgeRange;
 
   const {
     activeActivity,
@@ -438,7 +385,8 @@ function App() {
     appendHistory,
     setLastSuccessfulMoment,
     setActivitySessions,
-    saveActivityFeedback,
+    saveActivityFeedback: (...args) =>
+      saveActivityFeedbackRef.current?.(...args),
     showStatus,
     onNeedAnotherIdea: (previousTitle) => {
       generateActivitiesRef.current?.(
@@ -447,9 +395,86 @@ function App() {
     },
   });
 
-  const selectedChildProfiles = childProfiles.filter((child) =>
-    playingChildIds.includes(child.id)
-  );
+  setLastCompletedQuestBridge.current = setLastCompletedQuest;
+  handleStartActivityRef.current = handleStartActivity;
+
+  const {
+    isLoading,
+    loadingIntent,
+    generateActivitiesRef,
+    handleGenerateActivities,
+    handleGenerateKidActivities,
+    handleStartSomethingForMe,
+    handleStartActivityFromUi,
+    handleAutoPickQuest,
+  } = useActivityGeneration({
+    showStatus,
+    setActivities,
+    activities,
+    activityHistory,
+    activitySessions,
+    activityMode,
+    activeChildId,
+    currentMoment,
+    inventory,
+    kidMood,
+    kidEnergyLevel,
+    kidActivityStyle,
+    effectiveChildAgeRange,
+    activeChildProfile,
+    selectedChildProfiles,
+    safetySettings,
+    uiTheme,
+    setKidMood,
+    navigate,
+    entitlement,
+    entitlementHydrated,
+    isDemoMode,
+    imBoredDisabled,
+    freeImaginativeUnlockUsed,
+    mergePresetEntitlement,
+    handleStartActivity: (...args) =>
+      handleStartActivityRef.current?.(...args),
+    setActiveActivity,
+    scoringOptions,
+  });
+
+  const {
+    saveActivityFeedback,
+    saveFavoriteActivity,
+    removeSavedActivity,
+    handleReplaySavedActivity,
+    handleTimerMoreLikeThis,
+    handleTooMessy,
+    handleTooHard,
+    handleNeedQuieter,
+    handleMoreLikeThis,
+    handleCompletedQuestMoreLikeThis,
+    handleCompletedQuestNeedAnotherIdea,
+    clearActivityHistory,
+  } = useActivityFeedback({
+    kidMood,
+    messLevel,
+    locationPreference,
+    effectiveChildAgeRange,
+    activeChildProfile,
+    activityMode,
+    appendHistory,
+    persistFavorite,
+    removeFavorite,
+    clearHistory,
+    savedActivities,
+    showStatus,
+    navigate,
+    handleGenerateActivities,
+    handleStartActivity,
+    activeActivity,
+    setActiveActivity,
+    lastCompletedQuest,
+    clearLastCompletedQuest,
+  });
+
+  saveActivityFeedbackRef.current = saveActivityFeedback;
 
   useEffect(() => {
     if (!activeActivity?.id) {
@@ -461,101 +486,6 @@ function App() {
       ?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [activeActivity?.id]);
 
-  function applyMomentDraft(draft, options = {}) {
-    setCurrentMoment({
-      parentActivity: draft.parentActivity,
-      availability: draft.availability,
-      timeNeededMinutes: draft.timeNeededMinutes,
-      space: draft.space,
-      messLevel: draft.messLevel,
-      noiseLevel: draft.noiseLevel,
-      supervisionLevel: draft.supervisionLevel,
-    });
-    setParentStatus(parentStatusFromMoment(draft));
-    showStatus(
-      `Live for kids now: "${draft.parentActivity}".`,
-      "success"
-    );
-
-    if (options.navigateToKid || firstRunCoach.active) {
-      firstRunCoach.markMomentSet();
-      navigate("/kid");
-    }
-  }
-
-  function saveCustomParentPreset(label, draft) {
-    const preset = {
-      id: crypto.randomUUID(),
-      label: label.trim(),
-      activity: draft.parentActivity,
-      availability: draft.availability,
-      timeNeededMinutes: draft.timeNeededMinutes,
-      space: draft.space,
-      messLevel: draft.messLevel,
-      noiseLevel: draft.noiseLevel,
-      supervisionLevel: draft.supervisionLevel,
-    };
-
-    setCustomParentPresets([...customParentPresets, preset]);
-    showStatus(`Saved "${preset.label}".`, "success");
-    return preset;
-  }
-
-  function updateCustomParentPreset(presetId, label, draft) {
-    const updatedPresets = customParentPresets.map((preset) => {
-      if (preset.id !== presetId) {
-        return preset;
-      }
-
-      return {
-        ...preset,
-        label: label.trim() || preset.label,
-        activity: draft.parentActivity,
-        availability: draft.availability,
-        timeNeededMinutes: draft.timeNeededMinutes,
-        space: draft.space,
-        messLevel: draft.messLevel,
-        noiseLevel: draft.noiseLevel,
-        supervisionLevel: draft.supervisionLevel,
-      };
-    });
-
-    setCustomParentPresets(updatedPresets);
-    showStatus("Custom moment updated.", "success");
-  }
-
-  function deleteCustomParentPreset(presetId) {
-    const preset = customParentPresets.find((item) => item.id === presetId);
-    const confirmed = window.confirm(
-      preset
-        ? `Delete custom moment "${preset.label}"?`
-        : "Delete this custom moment?"
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
-    setCustomParentPresets(
-      customParentPresets.filter((item) => item.id !== presetId)
-    );
-
-    if (activePresetKey === presetId) {
-      setActivePresetKey("");
-    }
-
-    showStatus(
-      preset ? `Deleted "${preset.label}".` : "Custom moment deleted.",
-      "success"
-    );
-  }
-  // This helper updates one field inside currentMoment.
-  //
-  // Example:
-  // updateCurrentMoment("space", "Backyard")
-  //
-  // That keeps the rest of currentMoment the same,
-  // but changes only the space field.
   function updateSafetySetting(settingName, newValue) {
     setSafetySettings({
       ...safetySettings,
@@ -570,212 +500,7 @@ function App() {
     });
   }
 
-  function addChildProfile() {
-    const cleanedName = newChildName.trim();
-    const cleanedInterests = newChildInterests.trim();
-    const cleanedNeeds = newChildNeeds.trim();
-
-    if (cleanedName === "") {
-      showStatus("Child name is required.", "error");
-      return;
-    }
-
-    const duplicateChild = childProfiles.some(
-      (child) =>
-        child.name.toLowerCase() === cleanedName.toLowerCase() &&
-        child.id !== editingChildId
-    );
-
-    if (duplicateChild) {
-      showStatus("A child with that name already exists.", "error");
-      return;
-    }
-
-    if (editingChildId) {
-      const updatedChildren = childProfiles.map((child) => {
-        if (child.id !== editingChildId) {
-          return child;
-        }
-
-        return {
-          ...child,
-          name: cleanedName,
-          ageRange: newChildAgeRange,
-          interests: cleanedInterests,
-          needs: cleanedNeeds,
-        };
-      });
-
-      setChildProfiles(updatedChildren);
-      setEditingChildId("");
-      setNewChildName("");
-      setNewChildAgeRange("6-9");
-      setNewChildInterests("");
-      setNewChildNeeds("");
-      showStatus(`Updated child profile for ${cleanedName}.`, "success");
-      return;
-    }
-
-    const childToAdd = {
-      id: crypto.randomUUID(),
-      name: cleanedName,
-      ageRange: newChildAgeRange,
-      interests: cleanedInterests,
-      needs: cleanedNeeds,
-      createdAt: new Date().toISOString(),
-    };
-
-    const updatedChildren = [...childProfiles, childToAdd];
-
-    setChildProfiles(updatedChildren);
-    applyPlayingSelection([childToAdd.id], updatedChildren);
-
-    setNewChildName("");
-    setNewChildAgeRange("6-9");
-    setNewChildInterests("");
-    setNewChildNeeds("");
-
-    showStatus(`Added child profile for ${cleanedName}.`, "success");
-  }
-
-  function startEditingChildProfile(child) {
-    setEditingChildId(child.id);
-    setNewChildName(child.name || "");
-    setNewChildAgeRange(child.ageRange || "6-9");
-    setNewChildInterests(child.interests || "");
-    setNewChildNeeds(child.needs || "");
-  }
-
-  function cancelEditingChildProfile() {
-    setEditingChildId("");
-    setNewChildName("");
-    setNewChildAgeRange("6-9");
-    setNewChildInterests("");
-    setNewChildNeeds("");
-  }
-
-  function deleteChildProfile(childIdToDelete) {
-    const childToDelete = childProfiles.find(
-      (child) => child.id === childIdToDelete
-    );
-
-    const confirmed = window.confirm(
-      childToDelete
-        ? `Delete child profile for ${childToDelete.name}?`
-        : "Delete this child profile?"
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
-    const remainingProfiles = childProfiles.filter(
-      (child) => child.id !== childIdToDelete
-    );
-
-    setChildProfiles(remainingProfiles);
-    applyPlayingSelection(
-      playingChildIds.filter((id) => id !== childIdToDelete),
-      remainingProfiles
-    );
-
-    if (editingChildId === childIdToDelete) {
-      cancelEditingChildProfile();
-    }
-
-    showStatus(
-      childToDelete
-        ? `Deleted child profile for ${childToDelete.name}.`
-        : "Child profile deleted.",
-      "success"
-    );
-  }
-
-  function normalizeInventoryItems(items) {
-    return items.map((item) => {
-      if (typeof item === "string") {
-        return {
-          id: crypto.randomUUID(),
-          name: item,
-          category: "Other",
-        };
-      }
-
-      return {
-        id: item.id || crypto.randomUUID(),
-        name: item.name || "Unnamed item",
-        category: item.category || "Other",
-      };
-    });
-  }
-
-  const normalizedInventory = normalizeInventoryItems(inventory);
-
-  function addInventoryItem() {
-    const cleanedItem = newInventoryItem.trim();
-
-    if (cleanedItem === "") {
-      return;
-    }
-
-    const itemAlreadyExists = normalizedInventory.some(
-      (item) => item.name.toLowerCase() === cleanedItem.toLowerCase()
-    );
-
-    if (itemAlreadyExists) {
-      showStatus("That item is already in your inventory.", "error");
-      return;
-    }
-
-    const itemToAdd = {
-      id: crypto.randomUUID(),
-      name: cleanedItem,
-      category: newInventoryCategory,
-    };
-
-    setInventory([...normalizedInventory, itemToAdd]);
-    setNewInventoryItem("");
-    setNewInventoryCategory("Building toys");
-    showStatus("");
-  }
-
-  function removeInventoryItem(itemIdToRemove) {
-    setInventory(
-      normalizedInventory.filter((item) => item.id !== itemIdToRemove)
-    );
-  }
-
-  function isInventoryItemSelected(itemName) {
-    return normalizedInventory.some(
-      (item) => item.name.toLowerCase() === itemName.toLowerCase()
-    );
-  }
-
-  function toggleInventoryPreset(preset) {
-    const existingItem = normalizedInventory.find(
-      (item) => item.name.toLowerCase() === preset.name.toLowerCase()
-    );
-
-    if (existingItem) {
-      removeInventoryItem(existingItem.id);
-      return;
-    }
-
-    setInventory([
-      ...normalizedInventory,
-      {
-        id: crypto.randomUUID(),
-        name: preset.name,
-        category: preset.category,
-      },
-    ]);
-  }
-
-  const customInventoryItems = normalizedInventory.filter(
-    (item) => !isPresetInventoryItem(item.name)
-  );
-
-  function saveParentPin(newPin) {
+  async function saveParentPin(newPin) {
     const cleanedPin = newPin.trim();
 
     if (cleanedPin.length < 4) {
@@ -783,1031 +508,57 @@ function App() {
       return;
     }
 
-    setParentPin(cleanedPin);
-    showStatus("Parent PIN saved.", "success");
-  }
-
-  async function handleGenerateActivities(
-    customFeedbackContext = "",
-    options = {}
-  ) {
-    const {
-      allowOfflineFallback = false,
-      preferSimpleTemplates = false,
-    } = options;
-
-    setIsLoading(true);
-    showStatus("");
-    setActivities([]);
-
-    const preferenceContext = buildStructuredPreferenceContext(
-      activityHistory,
-      {
-        activeChildId:
-          activityMode === "family" ? "" : activeChildId || "",
-      }
-    );
-
-    const combinedFeedback = [customFeedbackContext, preferenceContext]
-      .filter(Boolean)
-      .join("\n\n");
-
-    async function requestActivities(feedbackContext) {
-      const previousActivityTitles = activityHistory
-        .slice(-10)
-        .map((historyItem) => historyItem.title);
-
-      const activityRequest = {
-        currentMoment,
-        parentActivity: currentMoment.parentActivity,
-        parentAvailability: currentMoment.availability,
-        inventory,
-        kidMood,
-        messLevel: currentMoment.messLevel,
-        activitySpace: currentMoment.space,
-        childAgeRange: effectiveChildAgeRange,
-        activityStyle: kidActivityStyle,
-        activityMode,
-        activeChildProfile,
-        selectedChildProfiles,
-        safetySettings: {
-          ...safetySettings,
-          maxActivityMinutes: currentMoment.timeNeededMinutes,
-          quietMode: currentMoment.noiseLevel === "quiet",
-        },
-        feedbackContext,
-        previousActivityTitles,
-        playModeTheme: uiTheme,
-      };
-
-      return getActivitySuggestions(activityRequest);
-    }
-
-    function finalizeActivities(rawActivities) {
-      const normalized = normalizeActivitiesToInventory(
-        rawActivities,
-        inventory
-      );
-      setActivities(normalized);
-      return normalized;
-    }
-
     try {
-      if (preferSimpleTemplates && kidActivityStyle === "simple") {
-        /*
-         * Quick Ideas is a free path. Prefer local templates, then curated
-         * simple presets — never call the subscription-gated AI endpoint.
-         */
-        const templateActivities = buildSimpleActivitiesFromTemplates({
-          inventory,
-          currentMoment,
-          count: 3,
-        });
-
-        if (templateActivities.length > 0) {
-          showStatus("Quick ideas ready — no wait.", "success");
-          return finalizeActivities(templateActivities);
-        }
-
-        const { activities: presetActivities } = await getPresetActivities({
-          style: "simple",
-        });
-        const unlockedPresets = presetActivities
-          .filter((activity) => activity && !activity.isLocked)
-          .slice(0, 3);
-
-        if (unlockedPresets.length > 0) {
-          showStatus("Quick ideas from the free library.", "success");
-          return finalizeActivities(unlockedPresets);
-        }
-
-        showStatus(
-          "No quick ideas fit this moment. Try adjusting supplies or the parent moment.",
-          "info"
-        );
-        return [];
-      }
-
-      let generatedActivities = await requestActivities(combinedFeedback);
-      let normalized = normalizeActivitiesToInventory(
-        generatedActivities,
-        inventory
-      );
-
-      const allFailedInventoryCheck =
-        normalized.length > 0 &&
-        normalized.every(
-          (activity) => !activityPassesInventorySoftCheck(activity, inventory)
-        );
-
-      if (allFailedInventoryCheck) {
-        const strongerFeedback = [
-          combinedFeedback,
-          buildInventoryOnlyFeedback(inventory),
-        ]
-          .filter(Boolean)
-          .join("\n\n");
-
-        generatedActivities = await requestActivities(strongerFeedback);
-        normalized = normalizeActivitiesToInventory(
-          generatedActivities,
-          inventory
-        );
-      }
-
-      setActivities(normalized);
-      return normalized;
+      await saveParentPinRemote(cleanedPin, {
+        expectedUserId: user?.id,
+      });
+      setParentPin(cleanedPin);
+      setParentPinSet(true);
+      showStatus("Parent PIN saved.", "success");
     } catch (error) {
-      console.error(error);
-
+      console.error("Could not save parent PIN:", error);
       /*
-       * Auth failures are not an offline/server-unreachable case. Do not
-       * substitute local templates — that hides the real session problem.
+       * Fall back to local PIN if settings row is not ready yet.
        */
-      if (error instanceof AuthenticationError) {
-        showStatus(
-          error.message ||
-          "Your secure session could not be verified. Refresh and try again.",
-          "error"
-        );
-        // null signals an intentional block so callers keep this status.
-        return null;
-      }
-
-      /*
-       * A subscription rejection is intentional.
-       *
-       * Never replace it with local activity templates because unpaid users
-       * are limited to the curated preset library.
-       */
-      if (
-        error instanceof ApiRequestError &&
-        error.code === "SUBSCRIPTION_REQUIRED"
-      ) {
-        showStatus(
-          "Personalized AI activities require a paid subscription.",
-          "info"
-        );
-        // null signals an intentional block so callers keep this status.
-        return null;
-      }
-
-      if (allowOfflineFallback || kidActivityStyle === "simple") {
-        const templateActivities = buildSimpleActivitiesFromTemplates({
-          inventory,
-          currentMoment,
-          count: 3,
-        });
-
-        if (templateActivities.length > 0) {
-          showStatus(
-            "Couldn’t reach the idea server — showing quick simple ideas from your supplies.",
-            "info"
-          );
-          return finalizeActivities(templateActivities);
-        }
-      }
-
-      showStatus("Something went wrong while generating ideas.", "error");
-      return [];
-    } finally {
-      setIsLoading(false);
-      setLoadingIntent(null);
-    }
-  }
-
-  generateActivitiesRef.current = handleGenerateActivities;
-
-  function getKidEnergyInstruction(energyLevel) {
-    if (energyLevel === "quiet") {
-      return "The child feels quiet or low-energy. Prefer calm, low-noise activities. Avoid running, shouting, wild movement, or complex setup.";
-    }
-
-    if (energyLevel === "energetic") {
-      return "The child has extra energy. Suggest movement or active engagement only if the current family moment allows it. If the parent moment requires quiet, choose contained energy like building, sorting, obstacle planning, or quiet movement.";
-    }
-
-    return "The child feels neutral. Suggest an activity with a balanced amount of effort.";
-  }
-
-  /*
-   * Browser sends intent only. Full style policy lives in server/prompts.
-   */
-  function getKidActivityStyleInstruction(activityStyle) {
-    if (activityStyle === "imaginative") {
-      return "Intent: activityStyle=imaginative. Prefer pretend framing.";
-    }
-
-    return "Intent: activityStyle=simple. Prefer plain real-life activities.";
-  }
-
-  async function handleGenerateKidActivities(options = {}) {
-    setKidMood(kidEnergyLevel);
-    setLoadingIntent(options.preferSimpleTemplates ? "quick" : "board");
-
-    const preferSimpleTemplates = Boolean(options.preferSimpleTemplates);
-
-    /*
-     * Local Quick ideas templates do not need /api/auth/me or presets.
-     * Allow them even while plan hydrate is in flight or if it failed.
-     */
-    if (!entitlementHydrated && preferSimpleTemplates) {
-      setIsLoading(true);
-      showStatus("");
-
-      try {
-        const templateActivities = buildSimpleActivitiesFromTemplates({
-          inventory,
-          currentMoment,
-          count: 3,
-        });
-
-        if (templateActivities.length > 0) {
-          const normalized = normalizeActivitiesToInventory(
-            templateActivities,
-            inventory
-          );
-          setActivities(normalized);
-          showStatus("Quick ideas ready — no wait.", "success");
-          navigate("/quest");
-          return;
-        }
-
-        showStatus(
-          "Still checking your plan. Try again in a moment.",
-          "info"
-        );
-      } finally {
-        setIsLoading(false);
-        setLoadingIntent(null);
-      }
-
-      return;
-    }
-
-    if (!entitlementHydrated) {
+      setParentPin(cleanedPin);
+      setParentPinSet(true);
       showStatus(
-        "Still checking your plan. Try again in a moment.",
+        error instanceof Error
+          ? error.message
+          : "Parent PIN saved on this device only for now.",
         "info"
       );
-      setIsLoading(false);
-      setLoadingIntent(null);
+    }
+  }
+
+  async function handleGetPlus() {
+    if (isAnonymous) {
+      navigate("/signup");
       return;
     }
 
-    /*
-     * Unpaid / demo: never call OpenAI. Use curated presets (and local
-     * templates for Quick ideas). After the free imaginative unlock is used,
-     * I'm Bored is disabled until Plus.
-     */
-    if (isDemoMode) {
-      if (!preferSimpleTemplates && imBoredDisabled) {
-        showStatus(
-          "Nice work finishing your free pretend sample. Unlock more pretend worlds with Plus — or keep using Simple / Quick ideas.",
-          "info"
-        );
-        setIsLoading(false);
-        setLoadingIntent(null);
+    setCheckoutBusy(true);
+    setStatusMessage("");
+    trackProductEvent("plus_checkout_started");
+
+    try {
+      await redirectToCheckout();
+    } catch (error) {
+      if (
+        error instanceof ApiRequestError &&
+        error.code === "ACCOUNT_REQUIRED"
+      ) {
+        navigate("/signup");
         return;
       }
 
-      setIsLoading(true);
-      showStatus("");
-
-      try {
-        if (preferSimpleTemplates || kidActivityStyle === "simple") {
-          if (preferSimpleTemplates) {
-            const templateActivities = buildSimpleActivitiesFromTemplates({
-              inventory,
-              currentMoment,
-              count: 3,
-            });
-
-            if (templateActivities.length > 0) {
-              const normalized = normalizeActivitiesToInventory(
-                templateActivities,
-                inventory
-              );
-              setActivities(normalized);
-              showStatus("Quick ideas ready — no wait.", "success");
-              navigate("/quest");
-              return;
-            }
-          }
-
-          const payload = await getPresetActivities({ style: "simple" });
-          mergePresetEntitlement(payload.entitlement);
-          const eligible = getEligiblePresets(
-            payload.activities,
-            "simple",
-            {
-              ...entitlement,
-              ...payload.entitlement,
-            }
-          );
-
-          if (preferSimpleTemplates) {
-            const slice = eligible.slice(0, 3);
-            if (slice.length === 0) {
-              showStatus(
-                "No quick ideas available right now. Try again in a moment.",
-                "info"
-              );
-              setActivities([]);
-              navigate("/quest");
-              return;
-            }
-
-            const normalized = normalizeActivitiesToInventory(slice, inventory);
-            setActivities(normalized);
-            showStatus(
-              "Sample presets — Plus personalizes to this moment.",
-              "success"
-            );
-            navigate("/quest");
-            return;
-          }
-
-          const { slice, nextIndex } = takeRotatedSlice(
-            eligible,
-            presetRotationIndex.simple,
-            3
-          );
-          setPresetRotationIndex((current) => ({
-            ...current,
-            simple: nextIndex,
-          }));
-
-          if (slice.length === 0) {
-            showStatus("No sample activities available right now.", "info");
-            setActivities([]);
-            navigate("/quest");
-            return;
-          }
-
-          const normalized = normalizeActivitiesToInventory(slice, inventory);
-          setActivities(normalized);
-          showStatus(
-            "Showing sample presets — Plus personalizes to this moment.",
-            "success"
-          );
-          navigate("/quest");
-          return;
-        }
-
-        // Imaginative I'm Bored (only while unlock unused — gated above).
-        const payload = await getPresetActivities({ style: "imaginative" });
-        mergePresetEntitlement(payload.entitlement);
-        const mergedEntitlement = {
-          ...entitlement,
-          ...payload.entitlement,
-        };
-        const eligible = getEligiblePresets(
-          payload.activities,
-          "imaginative",
-          mergedEntitlement
-        );
-
-        const { slice, nextIndex } = takeRotatedSlice(
-          eligible,
-          presetRotationIndex.imaginative,
-          3
-        );
-        setPresetRotationIndex((current) => ({
-          ...current,
-          imaginative: nextIndex,
-        }));
-
-        if (slice.length === 0) {
-          showStatus("No pretend samples available right now.", "info");
-          setActivities([]);
-          navigate("/quest");
-          return;
-        }
-
-        const normalized = normalizeActivitiesToInventory(slice, inventory);
-        setActivities(normalized);
-        showStatus(
-          "Showing sample presets — Plus personalizes to this moment. Unlock one pretend quest free when you start.",
-          "success"
-        );
-        navigate("/quest");
-      } catch (error) {
-        console.error("Demo preset generation failed:", error);
-        showStatus(
-          error instanceof Error
-            ? error.message
-            : "Could not load sample activities.",
-          "error"
-        );
-        setActivities([]);
-        navigate("/quest");
-      } finally {
-        setIsLoading(false);
-        setLoadingIntent(null);
-      }
-
-      return;
-    }
-
-    const activityStyle = kidActivityStyle;
-    const styleInstruction = getKidActivityStyleInstruction(activityStyle);
-    const energyInstruction = getKidEnergyInstruction(kidEnergyLevel);
-
-    const generatedActivities = await handleGenerateActivities(
-      `
-The child chose activity style: ${activityStyle}.
-${styleInstruction}
-
-The child chose energy level: ${kidEnergyLevel}.
-${energyInstruction}
-
-Generate 3 activities that fit BOTH:
-1. the child's chosen style and energy level
-2. the current family moment
-
-Very important:
-If activityStyle is "simple", the activities should feel like normal things a kid might actually do at home.
-
-Simple activity targets:
-- "Draw a picture of your family"
-- "Use your crystal growing kit"
-- "Jump on the trampoline"
-- "Build with blocks"
-- "Read a book"
-- "Do a puzzle"
-- "Sort your cards"
-- "Play catch outside"
-- "Make a paper airplane"
-
-For simple activities:
-- use plain titles
-- use plain summaries
-- keep steps very short
-- avoid elaborate missions
-- avoid pretend roles
-- avoid fantasy framing
-- avoid making chores or crafts sound like quests
-- do not over-explain
-
-If activityStyle is "imaginative":
-- playful quest language is required
-- the mission must be a 3-to-5-sentence setup story, not a short goal line
-- summary should hook the child with the story before listing actions
-
-Always obey currentMoment limits for time, mess, noise, supervision, and parent availability.
-`,
-      {
-        allowOfflineFallback: true,
-        preferSimpleTemplates,
-      }
-    );
-
-    if (!generatedActivities?.length) {
-      navigate("/quest");
-      return;
-    }
-
-    navigate("/quest");
-  }
-
-  async function handleStartSomethingForMe() {
-    setKidMood(kidEnergyLevel);
-    setLoadingIntent("auto-start");
-    setActiveActivity(null);
-
-    if (!entitlementHydrated) {
-      showStatus(
-        "Still checking your plan. Try again in a moment.",
-        "info"
+      setStatusMessage(
+        error?.message ||
+        "Could not start checkout. Try again in a moment."
       );
-      setIsLoading(false);
-      setLoadingIntent(null);
-      return;
+      setStatusType("error");
+      setCheckoutBusy(false);
     }
-
-    if (isDemoMode) {
-      setIsLoading(true);
-      showStatus("");
-
-      try {
-        const style = kidActivityStyle === "imaginative" ? "imaginative" : "simple";
-
-        if (
-          style === "imaginative" &&
-          freeImaginativeUnlockUsed
-        ) {
-          const payload = await getPresetActivities({ style: "imaginative" });
-          mergePresetEntitlement(payload.entitlement);
-          const mergedEntitlement = {
-            ...entitlement,
-            ...payload.entitlement,
-          };
-          const eligible = getEligiblePresets(
-            payload.activities,
-            "imaginative",
-            mergedEntitlement
-          );
-          const unlocked = eligible[0];
-
-          if (!unlocked) {
-            showStatus(
-              "You finished that free pretend world. Unlock more with Plus, or keep using Simple / Quick ideas.",
-              "info"
-            );
-            navigate("/quest");
-            return;
-          }
-
-          await startPresetActivity(unlocked);
-          navigate("/quest");
-          showStatus(`Started: "${unlocked.title}".`, "success");
-          return;
-        }
-
-        const payload = await getPresetActivities({ style });
-        mergePresetEntitlement(payload.entitlement);
-        const mergedEntitlement = {
-          ...entitlement,
-          ...payload.entitlement,
-        };
-        const eligible = getEligiblePresets(
-          payload.activities,
-          style,
-          mergedEntitlement
-        );
-        const rotationKey = style;
-        const { activity, nextIndex } = takeRotatedOne(
-          eligible,
-          presetRotationIndex[rotationKey]
-        );
-        setPresetRotationIndex((current) => ({
-          ...current,
-          [rotationKey]: nextIndex,
-        }));
-
-        if (!activity) {
-          showStatus(
-            "I could not start a sample activity. Try I'm Bored instead.",
-            "error"
-          );
-          navigate("/quest");
-          return;
-        }
-
-        await startPresetActivity(activity);
-        navigate("/quest");
-        showStatus(
-          `Started sample: "${activity.title}". Plus personalizes to this moment.`,
-          "success"
-        );
-      } catch (error) {
-        console.error("Demo auto-start failed:", error);
-        const code =
-          error instanceof ApiRequestError ? error.code : "";
-
-        if (code === "FREE_IMAGINATIVE_UNLOCK_USED") {
-          showStatus(
-            "You finished your free pretend sample. Keep using Simple / Quick ideas, or unlock more pretend with Plus.",
-            "info"
-          );
-        } else {
-          showStatus(
-            error instanceof Error
-              ? error.message
-              : "Could not start a sample activity.",
-            "error"
-          );
-        }
-        navigate("/quest");
-      } finally {
-        setIsLoading(false);
-        setLoadingIntent(null);
-      }
-
-      return;
-    }
-
-    const generatedActivities = await handleGenerateActivities(
-      `
-The child wants the app to choose and start something automatically.
-
-Use the child's current energy level: ${kidEnergyLevel}.
-${getKidEnergyInstruction(kidEnergyLevel)}
-
-Use the child's preferred style: ${kidActivityStyle}.
-${getKidActivityStyleInstruction(kidActivityStyle)}
-
-Generate 3 safe, easy-to-start options that fit the current family moment.
-
-If the preferred style is "simple":
-- choose normal real-life activities
-- prefer activities like drawing, reading, building, puzzles, trampoline, kits, cards, toys, or simple outdoor play
-- avoid elaborate story framing
-- avoid complicated missions
-- avoid long lists of steps
-- avoid turning everything into pretend play
-
-If the preferred style is "imaginative":
-- lean into pretend play and a rich setup story
-- the mission should be a 3-to-5-sentence setup story, not a short goal line
-
-Prioritize activities that require the least decision-making from the child.
-`,
-      { allowOfflineFallback: true }
-    );
-
-    if (generatedActivities === null) {
-      navigate("/quest");
-      return;
-    }
-
-    const selectedActivity = getBestActivityForCurrentMoment(generatedActivities);
-
-    if (!selectedActivity) {
-      showStatus("I could not start an activity automatically. Try choosing one instead.", "error");
-      navigate("/quest");
-      return;
-    }
-
-    handleStartActivity(selectedActivity);
-    navigate("/quest");
-    showStatus(`Started: "${selectedActivity.title}" because it fits right now.`, "success");
-  }
-
-  async function startPresetActivity(activity) {
-    let readyActivity = activity;
-
-    if (activity?.isLocked) {
-      const payload = await unlockPresetActivity(activity.id);
-      mergePresetEntitlement(payload.entitlement);
-      readyActivity = payload.activity;
-
-      if (readyActivity?.isLocked) {
-        throw new ApiRequestError(
-          "This pretend activity is still locked.",
-          { code: "PRESET_STILL_LOCKED" }
-        );
-      }
-
-      // Keep the quest board in sync: entitlement alone is not enough —
-      // auto-pick filters on isLocked, and Start labels read the same flag.
-      setActivities((current) =>
-        current.map((item) =>
-          item?.id === readyActivity.id
-            ? { ...item, ...readyActivity, isLocked: false }
-            : item
-        )
-      );
-    }
-
-    handleStartActivity(readyActivity);
-    return readyActivity;
-  }
-
-  function saveActivityFeedback(activity, feedbackType) {
-    const historyItem = {
-      id: crypto.randomUUID(),
-      title: activity.title,
-      feedbackType,
-      createdAt: new Date().toISOString(),
-
-      // Context at the time of feedback.
-      kidMood,
-      childAgeRange: effectiveChildAgeRange,
-      childId: activeChildProfile?.id || "",
-      childName: activeChildProfile?.name || "",
-      activityMode,
-
-      // Activity traits.
-      // These are what feedback-weighted scoring learns from later.
-      activityStyle: normalizeActivityStyle(activity),
-      theme: activity.theme || "",
-
-      energy: activity.energy || "medium",
-      mess: activity.mess || "low",
-      adultHelp: activity.adultHelp || "optional",
-      estimatedMinutes: Number(activity.estimatedMinutes) || null,
-      uses: Array.isArray(activity.uses) ? activity.uses : [],
-      stepsCount: Array.isArray(activity.steps) ? activity.steps.length : 0,
-    };
-
-    appendHistory(historyItem);
-  }
-
-  function saveFavoriteActivity(activity) {
-    const alreadySaved = savedActivities.some(
-      (savedActivity) =>
-        savedActivity.title.toLowerCase() === activity.title.toLowerCase()
-    );
-
-    if (alreadySaved) {
-      showStatus(`"${activity.title}" is already saved.`, "error");
-      return;
-    }
-
-    const favoriteActivity = {
-      // This saved favorite gets its own ID.
-      // That lets us delete it later without relying on the title.
-      id: crypto.randomUUID(),
-
-      // Main activity identity.
-      title: activity.title,
-
-      // Save whether this is a simple activity or an imaginative quest.
-      // This matters when replaying saved activities later.
-      activityStyle: normalizeActivityStyle(activity),
-
-      theme: activity.theme || "",
-      summary: activity.summary || "",
-
-      // Older compatibility field.
-      // Some older saved activities may still use kidMission.
-      kidMission: activity.kidMission || "",
-
-      // Newer quest structure.
-      kidRole: activity.kidRole || "",
-      mission: activity.mission || "",
-      starterPrompts: Array.isArray(activity.starterPrompts)
-        ? activity.starterPrompts
-        : [],
-      firstMoves: Array.isArray(activity.firstMoves)
-        ? activity.firstMoves
-        : [],
-      roles: Array.isArray(activity.roles) ? activity.roles : [],
-      steps: Array.isArray(activity.steps) ? activity.steps : [],
-      extensionIdeas: Array.isArray(activity.extensionIdeas)
-        ? activity.extensionIdeas
-        : [],
-
-      // Supplies.
-      uses: Array.isArray(activity.uses) ? activity.uses : [],
-
-      // Fit/scoring metadata.
-      estimatedMinutes: Number(activity.estimatedMinutes) || null,
-      energy: activity.energy || "medium",
-      mess: activity.mess || "low",
-      adultHelp: activity.adultHelp || "optional",
-      whyItFits: activity.whyItFits || "",
-
-      // Save timestamp.
-      savedAt: new Date().toISOString(),
-    };
-
-    void persistFavorite(favoriteActivity);
-    showStatus(`Saved favorite: "${activity.title}".`, "success");
-  }
-
-  function removeSavedActivity(activityId) {
-    void removeFavorite(activityId);
-
-    showStatus("Saved activity removed.", "success");
-  }
-
-  function handleReplaySavedActivity(savedActivity) {
-    // Normalize the saved activity before replaying it.
-    // Older saved activities may not have activityStyle because this field
-    // was added later.
-    const activityToReplay = {
-      ...savedActivity,
-      activityStyle: normalizeActivityStyle(savedActivity),
-    };
-
-    // Start via quest session (fresh timer, ID, and guided step state).
-    handleStartActivity(activityToReplay);
-    navigate("/quest");
-    showStatus(`Replaying saved activity: "${savedActivity.title}".`, "success");
-  }
-
-  async function handleStartActivityFromUi(activity) {
-    if (!activity?.isLocked) {
-      handleStartActivity(activity);
-      return;
-    }
-
-    try {
-      setIsLoading(true);
-      const ready = await startPresetActivity(activity);
-      showStatus(
-        `Unlocked and started: "${ready.title}". Celebrate that free pretend win — Plus unlocks more worlds when you are ready.`,
-        "success"
-      );
-    } catch (error) {
-      const code =
-        error instanceof ApiRequestError ? error.code : "";
-
-      if (code === "FREE_IMAGINATIVE_UNLOCK_USED") {
-        showStatus(
-          "Your free pretend sample is already used. Keep using Simple / Quick ideas, or unlock more pretend with Plus.",
-          "info"
-        );
-      } else {
-        showStatus(
-          error instanceof Error
-            ? error.message
-            : "Could not unlock that activity.",
-          "error"
-        );
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
-  // Starts the best-scoring activity from the current suggestion list.
-  async function handleAutoPickQuest() {
-    // If there are no activities yet, there is nothing to start.
-    if (activities.length === 0) {
-      showStatus("No activities available yet. Choose something from Kid Mode first.", "error");
-      return;
-    }
-
-    // After the free imaginative unlock is used, locked samples on the board
-    // cannot be started — score only startable options. Include the redeemed
-    // id even if the board card is still stale-locked (unlock updates
-    // entitlement immediately; activities may lag until setActivities runs).
-    const unlockedId = entitlement.freeImaginativeActivityId;
-    const candidates = freeImaginativeUnlockUsed
-      ? activities.filter(
-        (activity) =>
-          activity &&
-          (!activity.isLocked ||
-            (unlockedId && activity.id === unlockedId))
-      )
-      : activities;
-
-    // Use the shared helper so auto-pick and fast-start choose the same way.
-    const selectedActivity = getBestActivityForCurrentMoment(candidates);
-
-    if (!selectedActivity) {
-      showStatus(
-        freeImaginativeUnlockUsed
-          ? "You finished your free pretend sample. Pick an unlocked activity, keep using Simple, or unlock more with Plus."
-          : "I could not pick an activity yet. Try generating again.",
-        freeImaginativeUnlockUsed ? "info" : "error"
-      );
-      return;
-    }
-
-    try {
-      setIsLoading(true);
-      // Unlock through the same path as Start / Unlock free so locked
-      // imaginative presets cannot bypass the one-free-unlock rule.
-      const ready = await startPresetActivity(selectedActivity);
-      showStatus(
-        `Picked for you: "${ready.title}" because it best fits right now.`,
-        "success"
-      );
-    } catch (error) {
-      const code =
-        error instanceof ApiRequestError ? error.code : "";
-
-      if (code === "FREE_IMAGINATIVE_UNLOCK_USED") {
-        showStatus(
-          "You finished your free pretend sample. Keep using Simple / Quick ideas, or unlock more pretend with Plus.",
-          "info"
-        );
-      } else {
-        showStatus(
-          error instanceof Error
-            ? error.message
-            : "Could not start that activity.",
-          "error"
-        );
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
-  function getBestActivityForCurrentMoment(activityOptions) {
-    if (!Array.isArray(activityOptions) || activityOptions.length === 0) {
-      return null;
-    }
-
-    const selected = pickBestActivityForCurrentMoment({
-      activities: activityOptions,
-      currentMoment,
-      activityHistory,
-      activitySessions,
-      scoringOptions,
-      activityMode,
-    });
-
-    const scoredOptions = scoreActivitiesForCurrentMoment({
-      activities: activityOptions,
-      currentMoment,
-      activityHistory,
-      activitySessions,
-      scoringOptions,
-      activityMode,
-    });
-    logActivityScoreTable(scoredOptions, currentMoment, activityHistory);
-
-    return selected;
-  }
-
-  function handleTimerMoreLikeThis() {
-    if (!activeActivity) {
-      return;
-    }
-
-    const previousTitle = activeActivity.title;
-
-    const moreLikeThisHistoryItem = {
-      id: crypto.randomUUID(),
-      title: previousTitle,
-
-      // Preserve whether the liked activity was simple or imaginative.
-      // This makes the feedback loop smarter later.
-      activityStyle: normalizeActivityStyle(activeActivity),
-
-      feedbackType: "timer-more-like-this",
-      createdAt: new Date().toISOString(),
-      kidMood,
-      messLevel,
-      locationPreference,
-      childAgeRange: effectiveChildAgeRange,
-    };
-
-    appendHistory(moreLikeThisHistoryItem);
-    setActiveActivity(null);
-
-    handleGenerateActivities(
-      `The child finished or liked "${previousTitle}". Suggest 3 more activities with a similar feeling, but do not repeat it.`
-    );
-  }
-
-  function handleTooMessy(activity) {
-    saveActivityFeedback(activity, "too-messy");
-    handleGenerateActivities(
-      `The activity "${activity.title}" was too messy. Suggest lower-mess alternatives.`
-    );
-  }
-
-  function handleTooHard(activity) {
-    saveActivityFeedback(activity, "too-hard");
-    handleGenerateActivities(
-      `The activity "${activity.title}" was too hard. Suggest easier alternatives.`
-    );
-  }
-
-  function handleNeedQuieter(activity) {
-    saveActivityFeedback(activity, "need-quieter");
-    handleGenerateActivities(
-      `The activity "${activity.title}" was too loud or active. Suggest quieter alternatives.`
-    );
-  }
-
-  function handleMoreLikeThis(activity) {
-    saveActivityFeedback(activity, "more-like-this");
-    handleGenerateActivities(
-      `The family liked "${activity.title}". Suggest more activities with a similar feeling, but do not repeat the same title.`
-    );
-  }
-
-  function handleCompletedQuestMoreLikeThis() {
-    // If there is no completed quest summary, we cannot use it for feedback.
-    if (!lastCompletedQuest?.activity) {
-      showStatus("No completed activity to use yet.", "error");
-      return;
-    }
-
-    const completedTitle = lastCompletedQuest.title;
-
-    clearLastCompletedQuest();
-
-    handleGenerateActivities(
-      `The child completed "${completedTitle}" and liked it. Suggest 3 more activities with a similar feeling, but do not repeat the same title.`
-    );
-
-    navigate("/quest");
-  }
-
-  function handleCompletedQuestNeedAnotherIdea() {
-    // If there is no completed quest summary, use a generic request.
-    const completedTitle = lastCompletedQuest?.title || "the last activity";
-
-    clearLastCompletedQuest();
-
-    handleGenerateActivities(
-      `The child finished "${completedTitle}" and wants something different now. Suggest 3 fresh activities that feel different from the completed one.`
-    );
-
-    navigate("/quest");
-  }
-
-  function clearActivityHistory() {
-    const confirmed = window.confirm(
-      "Clear all activity history? This cannot be undone."
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
-    clearHistory();
-    showStatus("Activity history cleared.", "success");
   }
 
   async function resetSavedData() {
@@ -1819,10 +570,6 @@ Prioritize activities that require the least decision-making from the child.
       return;
     }
 
-    /*
-     * Stop debounced autosaves and drain the serialized save chain so an
-     * older payload cannot overwrite the reset defaults on the server.
-     */
     suppressFamilySettingsSavesRef.current = true;
 
     if (familySettingsSaveTimeoutRef.current !== null) {
@@ -1832,11 +579,6 @@ Prioritize activities that require the least decision-making from the child.
 
     await familySettingsSaveChainRef.current.catch(() => { });
 
-    /*
-     * A timer callback may have been queued before clearTimeout took effect.
-     * Suppress keeps it from starting a PUT; clear again before we write
-     * defaults in case one was rescheduled somehow.
-     */
     if (familySettingsSaveTimeoutRef.current !== null) {
       window.clearTimeout(familySettingsSaveTimeoutRef.current);
       familySettingsSaveTimeoutRef.current = null;
@@ -1883,69 +625,17 @@ Prioritize activities that require the least decision-making from the child.
     window.location.reload();
   }
 
-  const parentAreasLocked = Boolean(parentPin) && !parentAreaUnlocked;
+  const parentAreasLocked =
+    (parentPinSet || Boolean(parentPin)) && !parentAreaUnlocked;
   const defaultHomePath =
     parentPin && inventory.length > 0 ? "/kid" : "/parent";
 
-  const appContextValue = {
-    currentMoment,
-    activeActivity,
-    lastCompletedQuest,
-    clearLastCompletedQuest,
-    handleCompletedQuestMoreLikeThis,
-    handleCompletedQuestNeedAnotherIdea,
-    timerSecondsRemaining,
-    finishActiveActivity,
-    cancelActiveActivity,
-    handleSessionOutcome,
-    handleTimerNotFinished,
-    handleTimerNeedAnotherIdea,
-    handleTimerMoreLikeThis,
-    goToNextQuestStep,
-    goToPreviousQuestStep,
-    toggleQuestStepComplete,
-    toggleShowAllQuestSteps,
-    stepHint,
-    isHintLoading,
-    handleNeedStepHint,
-    formatTimer,
-    activities,
-    scoredActivities,
-    activitySessions,
-    isLoading,
-    handleStartActivity: handleStartActivityFromUi,
-    saveFavoriteActivity,
-    reapplyLastSuccessfulMoment: () => {
-      if (!lastSuccessfulMoment?.parentActivity) {
-        showStatus("Finish an activity first to reuse that moment.", "info");
-        return;
-      }
+  const inventoryEmpty = normalizedInventory.length === 0;
+  const childProfilesEmpty = childProfiles.length === 0;
+  const setupNudgeNeeded = inventoryEmpty && childProfilesEmpty;
 
-      applyMomentDraft(
-        {
-          parentActivity: lastSuccessfulMoment.parentActivity,
-          availability:
-            lastSuccessfulMoment.availability || "helper-welcome",
-          timeNeededMinutes:
-            Number(lastSuccessfulMoment.timeNeededMinutes) || 20,
-          space: lastSuccessfulMoment.space || "Living room",
-          messLevel: lastSuccessfulMoment.messLevel || "low",
-          noiseLevel: lastSuccessfulMoment.noiseLevel || "normal",
-          supervisionLevel:
-            lastSuccessfulMoment.supervisionLevel || "independent",
-        },
-        { navigateToKid: true }
-      );
-      setLastCompletedQuest(null);
-    },
-    handleTooMessy,
-    handleTooHard,
-    handleNeedQuieter,
-    handleMoreLikeThis,
-    handleAutoPickQuest,
-    entitlement,
-    entitlementHydrated,
-    refreshEntitlement,
+  const familyContextValue = {
+    currentMoment,
     safetySettings,
     toggleSafetySetting,
     updateSafetySetting,
@@ -1997,6 +687,62 @@ Prioritize activities that require the least decision-making from the child.
     uiThemes,
     kidDeviceMode,
     setKidDeviceMode,
+    reapplyLastSuccessfulMoment,
+    setupNudgeNeeded,
+    inventoryEmpty,
+    gettingBetterCopy,
+  };
+
+  const questContextValue = {
+    currentMoment,
+    activeActivity,
+    lastCompletedQuest,
+    clearLastCompletedQuest,
+    handleCompletedQuestMoreLikeThis,
+    handleCompletedQuestNeedAnotherIdea,
+    timerSecondsRemaining,
+    finishActiveActivity,
+    cancelActiveActivity,
+    handleSessionOutcome,
+    handleTimerNotFinished,
+    handleTimerNeedAnotherIdea,
+    handleTimerMoreLikeThis,
+    goToNextQuestStep,
+    goToPreviousQuestStep,
+    toggleQuestStepComplete,
+    toggleShowAllQuestSteps,
+    stepHint,
+    isHintLoading,
+    handleNeedStepHint,
+    formatTimer,
+    activities,
+    scoredActivities,
+    activitySessions,
+    isLoading,
+    handleStartActivity: handleStartActivityFromUi,
+    saveFavoriteActivity,
+    handleTooMessy,
+    handleTooHard,
+    handleNeedQuieter,
+    handleMoreLikeThis,
+    handleAutoPickQuest,
+    gettingBetterCopy,
+    setupNudgeNeeded,
+    inventoryEmpty,
+    entitlement,
+    entitlementHydrated,
+  };
+
+  const billingContextValue = {
+    entitlement,
+    entitlementHydrated,
+    refreshEntitlement,
+  };
+
+  const appContextValue = {
+    ...familyContextValue,
+    ...questContextValue,
+    ...billingContextValue,
   };
 
   if (familySettingsError) {
@@ -2040,120 +786,33 @@ Prioritize activities that require the least decision-making from the child.
 
   return (
     <main className={`app-shell${kidDeviceMode ? " app-shell--kid-device" : ""}`}>
-      <header className={`app-header${kidDeviceMode ? " app-header--kid-device" : ""}`}>
-        <div className="app-header-brand">
-          <Link to="/" className="app-header-brand-link" aria-label="FamilyFlow home">
-            <img
-              className="app-brand-mark"
-              src="/logo.svg"
-              alt=""
-              width="28"
-              height="28"
-            />
-            <p className="app-brand-name">FamilyFlow</p>
-          </Link>
-        </div>
+      <AppHeader
+        kidDeviceMode={kidDeviceMode}
+        parentAreasLocked={parentAreasLocked}
+        isAnonymous={isAnonymous}
+        headerLogoutBusy={headerLogoutBusy}
+        headerLogoutError={headerLogoutError}
+        uiTheme={uiTheme}
+        setUiTheme={setUiTheme}
+        uiThemes={uiThemes}
+        onLogout={async () => {
+          setHeaderLogoutError("");
+          setHeaderLogoutBusy(true);
 
-        <nav className="app-nav">
-          <NavLink
-            to="/parent"
-            className={({ isActive }) => (isActive ? "active" : "")}
-            title={parentAreasLocked ? "Parent area is locked" : undefined}
-            aria-label={parentAreasLocked ? "Parent (locked)" : "Parent"}
-          >
-            Parent
-            {parentAreasLocked && (
-              <span className="nav-lock-mark" aria-hidden="true">
-                ·
-              </span>
-            )}
-          </NavLink>
-
-          <NavLink
-            to="/kid"
-            className={({ isActive }) => (isActive ? "active" : "")}
-          >
-            Kid
-          </NavLink>
-
-          <NavLink
-            to="/quest"
-            className={({ isActive }) => (isActive ? "active" : "")}
-          >
-            Activity
-          </NavLink>
-
-          <NavLink
-            to="/settings"
-            className={({ isActive }) =>
-              isActive ? "active" : parentAreasLocked ? "nav-muted" : ""
-            }
-            title={parentAreasLocked ? "Settings are locked" : undefined}
-          >
-            Settings
-          </NavLink>
-        </nav>
-
-        <div className="app-header-actions">
-          {!kidDeviceMode ? (
-          <div className="app-header-auth">
-            {isAnonymous ? (
-              <>
-                <Link className="app-header-auth-link" to="/login">
-                  Log in
-                </Link>
-                <Link
-                  className="app-header-auth-link app-header-auth-link--primary"
-                  to="/signup"
-                >
-                  Create account
-                </Link>
-              </>
-            ) : (
-              <button
-                type="button"
-                className="app-header-auth-button"
-                disabled={headerLogoutBusy}
-                onClick={async () => {
-                  setHeaderLogoutError("");
-                  setHeaderLogoutBusy(true);
-
-                  try {
-                    await signOutCurrentUser();
-                    window.location.assign("/login");
-                  } catch (error) {
-                    console.error("Could not log out:", error);
-                    setHeaderLogoutError(
-                      error instanceof Error
-                        ? error.message
-                        : "Could not log out. Try again."
-                    );
-                    setHeaderLogoutBusy(false);
-                  }
-                }}
-              >
-                {headerLogoutBusy ? "Logging out…" : "Log out"}
-              </button>
-            )}
-          </div>
-          ) : null}
-
-          {headerLogoutError ? (
-            <p className="app-header-auth-error" role="alert">
-              {headerLogoutError}
-            </p>
-          ) : null}
-
-          {!kidDeviceMode ? (
-            <ThemeSwitcher
-              theme={uiTheme}
-              onChange={setUiTheme}
-              themes={uiThemes}
-              compact
-            />
-          ) : null}
-        </div>
-      </header>
+          try {
+            await signOutCurrentUser();
+            window.location.assign("/login");
+          } catch (error) {
+            console.error("Could not log out:", error);
+            setHeaderLogoutError(
+              error instanceof Error
+                ? error.message
+                : "Could not log out. Try again."
+            );
+            setHeaderLogoutBusy(false);
+          }
+        }}
+      />
 
       {familySettingsSaveStatus === "error" ? (
         <div
@@ -2181,6 +840,9 @@ Prioritize activities that require the least decision-making from the child.
       )}
 
       <AppProvider value={appContextValue}>
+        <FamilyContext.Provider value={familyContextValue}>
+          <QuestContext.Provider value={questContextValue}>
+            <BillingContext.Provider value={billingContextValue}>
         <Routes>
           <Route
             path="/app"
@@ -2195,6 +857,7 @@ Prioritize activities that require the least decision-making from the child.
               parentAreasLocked ? (
                 <ParentPinGate
                   parentPin={parentPin}
+                  parentPinSet={parentPinSet}
                   onUnlock={() => setParentAreaUnlocked(true)}
                 />
               ) : (
@@ -2226,7 +889,12 @@ Prioritize activities that require the least decision-making from the child.
                 setKidEnergyLevel={setKidEnergyLevel}
                 kidActivityStyle={kidActivityStyle}
                 setKidActivityStyle={setKidActivityStyle}
-                handleGenerateKidActivities={handleGenerateKidActivities}
+                handleGenerateKidActivities={async (options) => {
+                  trackProductEvent(
+                    options?.preferSimpleTemplates ? "quick_ideas" : "im_bored"
+                  );
+                  return handleGenerateKidActivities(options);
+                }}
                 handleStartSomethingForMe={handleStartSomethingForMe}
                 isLoading={isLoading}
                 loadingIntent={loadingIntent}
@@ -2246,6 +914,8 @@ Prioritize activities that require the least decision-making from the child.
                 onFirstRunGenerated={firstRunCoach.markGenerated}
                 playModeLine={getPlayModeUiLine(uiTheme)}
                 kidDeviceMode={kidDeviceMode}
+                gettingBetterCopy={gettingBetterCopy}
+                setupNudgeNeeded={setupNudgeNeeded}
               />
             }
           />
@@ -2258,6 +928,7 @@ Prioritize activities that require the least decision-making from the child.
               parentAreasLocked ? (
                 <ParentPinGate
                   parentPin={parentPin}
+                  parentPinSet={parentPinSet}
                   onUnlock={() => setParentAreaUnlocked(true)}
                 />
               ) : (
@@ -2266,51 +937,12 @@ Prioritize activities that require the least decision-making from the child.
             }
           />
         </Routes>
+            </BillingContext.Provider>
+          </QuestContext.Provider>
+        </FamilyContext.Provider>
       </AppProvider>
     </main>
   );
-}
-
-function ParentPinForm({ parentPin, saveParentPin }) {
-  const [newPin, setNewPin] = useState("");
-
-  function handleSavePin() {
-    saveParentPin(newPin);
-    setNewPin("");
-  }
-
-  return (
-    <div className="pin-form">
-      <p className="pin-status">
-        Current PIN status:{" "}
-        <strong>{parentPin === "" ? "No PIN set" : "PIN is set"}</strong>
-      </p>
-
-      <div className="pin-row">
-        <input
-          type="password"
-          inputMode="numeric"
-          value={newPin}
-          onChange={(event) => setNewPin(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              handleSavePin();
-            }
-          }}
-          placeholder="Create or replace PIN"
-        />
-
-        <button onClick={handleSavePin}>Save PIN</button>
-      </div>
-    </div>
-  );
-}
-
-function parentStatusFromMoment(moment) {
-  return {
-    activity: moment.parentActivity,
-    availability: moment.availability,
-  };
 }
 
 export default App;

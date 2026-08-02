@@ -16,6 +16,13 @@ const PRODUCT_EVENTS = new Set([
   "subscription_resumed",
   "AI_error",
   "rescue_mode_started",
+  "im_bored",
+  "quick_ideas",
+  "unlock_used",
+  "plus_checkout_started",
+  "plus_checkout_succeeded",
+  "independence_outcome",
+  "regenerate",
 ]);
 
 export function trackProductEvent(eventName, payload = {}) {
