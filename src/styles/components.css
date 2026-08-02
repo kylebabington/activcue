@@ -344,6 +344,22 @@
   line-height: 1.35;
 }
 
+.recommendation-reasons {
+  margin: 0.35rem 0 0.45rem;
+  padding-left: 1.1rem;
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
+}
+
+.recommendation-reasons li + li {
+  margin-top: 0.15rem;
+}
+
+.plan-b-button {
+  margin-top: 0.65rem;
+}
+
 .hint-button--plus {
   opacity: 0.72;
   cursor: not-allowed;

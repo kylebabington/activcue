@@ -457,6 +457,7 @@ function App() {
     handleTooHard,
     handleNeedQuieter,
     handleMoreLikeThis,
+    handleTryNextBest,
     handleCompletedQuestMoreLikeThis,
     handleCompletedQuestNeedAnotherIdea,
     clearActivityHistory,
@@ -735,6 +736,10 @@ function App() {
     handleTooHard,
     handleNeedQuieter,
     handleMoreLikeThis,
+    handleTryNextBest: () => {
+      trackProductEvent("plan_b_next_best");
+      handleTryNextBest(scoredActivities);
+    },
     handleAutoPickQuest,
     gettingBetterCopy,
     setupNudgeNeeded,
