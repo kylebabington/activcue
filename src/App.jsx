@@ -20,8 +20,11 @@ import {
 import { redirectToCheckout } from "./api/billingApi";
 import { ApiRequestError, AuthenticationError } from "./api/apiClient";
 import { useLocalStorage } from "./hooks/useLocalStorage";
+import { useFirstRunCoach } from "./hooks/useFirstRunCoach";
+import { useKidDeviceMode } from "./hooks/useKidDeviceMode";
 import { useAuth } from "./hooks/useAuth";
 import { useUiTheme } from "./hooks/useUiTheme";
+import { getPlayModeUiLine } from "./utils/playModeTheme";
 import ParentPage from "./pages/ParentPage";
 import KidPage from "./pages/KidPage";
 import QuestPage from "./pages/QuestPage";
@@ -71,6 +74,24 @@ function App() {
 
   const { theme: uiTheme, setTheme: setUiTheme, themes: uiThemes } =
     useUiTheme();
+
+  const {
+    kidDeviceMode,
+    setKidDeviceMode,
+  } = useKidDeviceMode();
+
+  const firstRunCoach = useFirstRunCoach();
+
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("kid") === "1") {
+        setKidDeviceMode(true);
+      }
+    } catch {
+      // Ignore malformed search strings.
+    }
+  }, [setKidDeviceMode]);
 
   const [headerLogoutBusy, setHeaderLogoutBusy] = useState(false);
   const [headerLogoutError, setHeaderLogoutError] = useState("");
@@ -136,7 +157,6 @@ function App() {
 
   const [activeChildId, setActiveChildId] = useState("");
   const [playingChildIds, setPlayingChildIds] = useState([]);
-  void playingChildIds;
 
   const [newChildName, setNewChildName] = useState("");
   const [newChildAgeRange, setNewChildAgeRange] = useState("6-9");
@@ -494,6 +514,18 @@ function App() {
     }
   }
 
+  function togglePlayingChild(childId) {
+    const isSelected = playingChildIds.includes(childId);
+    if (isSelected && playingChildIds.length <= 1) {
+      return;
+    }
+    setPlayingChildIds(
+      isSelected
+        ? playingChildIds.filter((id) => id !== childId)
+        : [...playingChildIds, childId]
+    );
+  }
+
   function showStatus(message, type = "info") {
     if (!message) {
       setStatusMessage("");
@@ -532,7 +564,7 @@ function App() {
       ?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [activeActivity?.id]);
 
-  function applyMomentDraft(draft) {
+  function applyMomentDraft(draft, options = {}) {
     setCurrentMoment({
       parentActivity: draft.parentActivity,
       availability: draft.availability,
@@ -543,6 +575,12 @@ function App() {
       supervisionLevel: draft.supervisionLevel,
     });
     setParentStatus(parentStatusFromMoment(draft));
+    if (options.navigateToKid || firstRunCoach.active) {
+      firstRunCoach.markMomentSet();
+    }
+    if (options.navigateToKid) {
+      navigate("/kid");
+    }
     showStatus(
       `Live for kids now: "${draft.parentActivity}".`,
       "success"
@@ -2564,6 +2602,8 @@ Prioritize activities that require the least decision-making from the child.
     uiTheme,
     setUiTheme,
     uiThemes,
+    kidDeviceMode,
+    setKidDeviceMode,
   };
 
   if (familySettingsError) {
@@ -2606,8 +2646,8 @@ Prioritize activities that require the least decision-making from the child.
   }
 
   return (
-    <main className="app-shell">
-      <header className="app-header">
+    <main className={`app-shell${kidDeviceMode ? " app-shell--kid-device" : ""}`}>
+      <header className={`app-header${kidDeviceMode ? " app-header--kid-device" : ""}`}>
         <div className="app-header-brand">
           <Link to="/" className="app-header-brand-link" aria-label="FamilyFlow home">
             <img
@@ -2771,6 +2811,10 @@ Prioritize activities that require the least decision-making from the child.
                   deleteCustomParentPreset={deleteCustomParentPreset}
                   activePresetKey={activePresetKey}
                   setActivePresetKey={setActivePresetKey}
+                  firstRunHighlightCooking={firstRunCoach.highlightCooking}
+                  onFirstRunMomentSet={firstRunCoach.markMomentSet}
+                  onDismissFirstRun={firstRunCoach.dismiss}
+                  lastSuccessfulMoment={lastSuccessfulMoment}
                 />
               )
             }
@@ -2797,6 +2841,12 @@ Prioritize activities that require the least decision-making from the child.
                 imBoredDisabled={imBoredDisabled}
                 onGetPlus={isDemoMode ? handleGetPlus : null}
                 checkoutBusy={checkoutBusy}
+                playingChildIds={playingChildIds}
+                togglePlayingChild={togglePlayingChild}
+                firstRunPulseImBored={firstRunCoach.pulseImBored}
+                onFirstRunGenerated={firstRunCoach.markGenerated}
+                playModeLine={getPlayModeUiLine(uiTheme)}
+                kidDeviceMode={kidDeviceMode}
               />
             }
           />

@@ -170,3 +170,21 @@ export function getVerifiedFitFacts(activity, currentMoment) {
 
   return facts;
 }
+
+export function buildWhyThisFits(activity, currentMoment) {
+  const facts = getVerifiedFitFacts(activity, currentMoment);
+
+  if (facts.length === 0) {
+    if (currentMoment?.parentActivity) {
+      return `Fits ${currentMoment.parentActivity}.`;
+    }
+
+    return "";
+  }
+
+  const momentLabel = currentMoment?.parentActivity
+    ? `Fits ${currentMoment.parentActivity}`
+    : "Strong fit right now";
+
+  return `${momentLabel}: ${facts.slice(0, 3).join(" · ")}.`;
+}

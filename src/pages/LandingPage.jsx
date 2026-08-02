@@ -110,7 +110,7 @@ function LandingPage() {
           </h1>
           <p className="landing-hero-support">
             Match a parent moment and your kid’s energy to simple play or pretend
-            quests—without a long planning session.
+            adventures—without a long planning session.
           </p>
           <div className="landing-hero-actions">
             <Link className="landing-btn landing-btn--primary" to="/app">
@@ -143,7 +143,7 @@ function LandingPage() {
               </span>
             </li>
             <li>
-              <span className="landing-step-label">Guided quest</span>
+              <span className="landing-step-label">Guided activity</span>
               <span className="landing-step-text">
                 Pick an idea, follow kid-friendly steps, and finish with a win.
               </span>
@@ -157,13 +157,13 @@ function LandingPage() {
           <h2 id="try-free-title">Try free</h2>
           <p className="landing-section-lead">
             No account needed. Open the full app with sample ideas—set a moment,
-            pick kid energy, and run a guided quest. Unlock one pretend adventure
+            pick kid energy, and run a guided activity. Unlock one pretend adventure
             free.
           </p>
           <ul className="landing-perk-list">
             <li>Set a parent moment and kid energy or style</li>
             <li>Get sample Quick ideas and I&apos;m Bored presets</li>
-            <li>Unlock one pretend quest free and follow the steps</li>
+            <li>Unlock one pretend activity free and follow the steps</li>
             <li>
               After that unlock, more pretend needs Plus—simple Quick ideas still
               work
@@ -189,9 +189,10 @@ function LandingPage() {
           </p>
           <ul className="landing-perk-list landing-perk-list--plus">
             <li>Unlimited AI ideas tailored to inventory and the current moment</li>
-            <li>Unlimited imaginative quests</li>
-            <li>AI step hints when a quest gets stuck</li>
-            <li>Favorites and history that grow with your family</li>
+            <li>Unlimited imaginative pretend activities</li>
+            <li>AI step hints when an activity gets stuck</li>
+            <li>AI personalization that learns what works for your kids</li>
+            <li>Synced favorites and activity history across devices</li>
           </ul>
           <p className="landing-plus-note">
             {canSubscribe

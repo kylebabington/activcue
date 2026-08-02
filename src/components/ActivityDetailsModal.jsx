@@ -5,7 +5,7 @@ import {
   formatEstimatedMinutes,
   formatMessLabel,
 } from "../utils/activityFormatters";
-import { getVerifiedFitFacts } from "../utils/inventoryFit";
+import { getVerifiedFitFacts, buildWhyThisFits } from "../utils/inventoryFit";
 import Modal from "./Modal";
 
 function ActivityDetailsContent({ activity, score, currentMoment }) {
@@ -23,6 +23,7 @@ function ActivityDetailsContent({ activity, score, currentMoment }) {
     ? activity.extensionIdeas
     : [];
   const fitFacts = getVerifiedFitFacts(activity, currentMoment);
+  const whyThisFits = buildWhyThisFits(activity, currentMoment);
 
   return (
     <div className="activity-details-content">
@@ -45,6 +46,8 @@ function ActivityDetailsContent({ activity, score, currentMoment }) {
       {activity.summary && (
         <p className="quest-short-summary">{activity.summary}</p>
       )}
+
+      {whyThisFits ? <p className="why-this-fits">{whyThisFits}</p> : null}
 
       {fitFacts.length > 0 && (
         <div className="fit-fact-chip-row">
