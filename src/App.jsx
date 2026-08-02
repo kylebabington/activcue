@@ -44,6 +44,7 @@ import {
   clearFamilySettingsLocalStorage,
   saveFamilySettings,
   useFamilySettings,
+  useFamilyMemory,
 } from "./features/family";
 import {
   useActivityTimer,
@@ -198,12 +199,16 @@ function App() {
   const lastCompletedQuestRef = useRef(lastCompletedQuest);
   lastCompletedQuestRef.current = lastCompletedQuest;
 
-  const [activityHistory, setActivityHistory] = useLocalStorage(
-    "activityHistory",
-    []
-  );
-
   const [activitySessions, setActivitySessions] = useState([]);
+
+  const {
+    savedActivities,
+    activityHistory,
+    persistFavorite,
+    removeFavorite,
+    appendHistory,
+    clearHistory,
+  } = useFamilyMemory({ userId: user?.id });
 
   useEffect(() => {
     if (!user?.id) {
@@ -278,11 +283,6 @@ function App() {
 
   const timerSecondsRemaining = useActivityTimer(activeActivity);
 
-  const [savedActivities, setSavedActivities] = useLocalStorage(
-    "savedActivities",
-    []
-  );
-
   const [lastSuccessfulMoment, setLastSuccessfulMoment] = useLocalStorage(
     "lastSuccessfulMoment",
     null
@@ -308,8 +308,6 @@ function App() {
     setCurrentMoment,
     setCustomParentPresets,
     setParentStatus,
-    setSavedActivities,
-    setActivityHistory,
     setLastSuccessfulMoment,
     activityMode,
     activeChildId,
@@ -319,8 +317,6 @@ function App() {
     safetySettings,
     currentMoment,
     customParentPresets,
-    savedActivities,
-    activityHistory,
     lastSuccessfulMoment,
   });
 
@@ -1659,7 +1655,7 @@ Prioritize activities that require the least decision-making from the child.
       stepsCount: Array.isArray(activity.steps) ? activity.steps.length : 0,
     };
 
-    setActivityHistory([...activityHistory, historyItem]);
+    appendHistory(historyItem);
   }
 
   function saveFavoriteActivity(activity) {
@@ -1721,14 +1717,12 @@ Prioritize activities that require the least decision-making from the child.
       savedAt: new Date().toISOString(),
     };
 
-    setSavedActivities([...savedActivities, favoriteActivity]);
+    void persistFavorite(favoriteActivity);
     showStatus(`Saved favorite: "${activity.title}".`, "success");
   }
 
   function removeSavedActivity(activityId) {
-    setSavedActivities(
-      savedActivities.filter((activity) => activity.id !== activityId)
-    );
+    void removeFavorite(activityId);
 
     showStatus("Saved activity removed.", "success");
   }
@@ -2228,7 +2222,7 @@ Prioritize activities that require the least decision-making from the child.
       activityMode,
     });
 
-    setActivityHistory([...activityHistory, finishedHistoryItem]);
+    appendHistory(finishedHistoryItem);
 
     setLastSuccessfulMoment({
       parentActivity: currentMoment.parentActivity,
@@ -2424,7 +2418,7 @@ Prioritize activities that require the least decision-making from the child.
       childAgeRange: effectiveChildAgeRange,
     });
 
-    setActivityHistory([...activityHistory, canceledHistoryItem]);
+    appendHistory(canceledHistoryItem);
 
     // Canceling should not show a celebration summary.
     setLastCompletedQuest(null);
@@ -2455,7 +2449,7 @@ Prioritize activities that require the least decision-making from the child.
       childAgeRange: effectiveChildAgeRange,
     };
 
-    setActivityHistory([...activityHistory, notFinishedHistoryItem]);
+    appendHistory(notFinishedHistoryItem);
     patchActiveSessionExit(activeActivity, "not-finished");
     setActiveActivity(null);
     showStatus(
@@ -2488,7 +2482,7 @@ Prioritize activities that require the least decision-making from the child.
       childAgeRange: effectiveChildAgeRange,
     };
 
-    setActivityHistory([...activityHistory, anotherIdeaHistoryItem]);
+    appendHistory(anotherIdeaHistoryItem);
     patchActiveSessionExit(activeActivity, "abandoned");
     setActiveActivity(null);
 
@@ -2520,7 +2514,7 @@ Prioritize activities that require the least decision-making from the child.
       childAgeRange: effectiveChildAgeRange,
     };
 
-    setActivityHistory([...activityHistory, moreLikeThisHistoryItem]);
+    appendHistory(moreLikeThisHistoryItem);
     setActiveActivity(null);
 
     handleGenerateActivities(
@@ -2601,7 +2595,7 @@ Prioritize activities that require the least decision-making from the child.
       return;
     }
 
-    setActivityHistory([]);
+    clearHistory();
     showStatus("Activity history cleared.", "success");
   }
 
