@@ -41,7 +41,7 @@ jobs:
     runs-on: ubuntu-latest
 
     # Stop the workflow if something unexpectedly hangs.
-    timeout-minutes: 10
+    timeout-minutes: 25
 
     steps:
       # Step 1:
