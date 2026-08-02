@@ -22,6 +22,7 @@ import ParentPage from "./pages/ParentPage";
 import KidPage from "./pages/KidPage";
 import QuestPage from "./pages/QuestPage";
 import SettingsPage from "./pages/SettingsPage";
+import InsightsPage from "./pages/InsightsPage";
 import ParentPinGate from "./components/ParentPinGate";
 import ParentPinForm from "./components/ParentPinForm";
 import AppHeader from "./components/AppHeader";
@@ -936,6 +937,21 @@ function App() {
           />
 
           <Route path="/quest" element={<QuestPage />} />
+
+          <Route
+            path="/insights"
+            element={
+              parentAreasLocked ? (
+                <ParentPinGate
+                  parentPin={parentPin}
+                  parentPinSet={parentPinSet}
+                  onUnlock={() => setParentAreaUnlocked(true)}
+                />
+              ) : (
+                <InsightsPage />
+              )
+            }
+          />
 
           <Route
             path="/settings"
