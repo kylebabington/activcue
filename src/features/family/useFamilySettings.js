@@ -56,6 +56,9 @@ export function useFamilySettings({
   setCustomParentPresets,
   setParentStatus,
   setLastSuccessfulMoment,
+  setUiTheme,
+  setKidDeviceMode,
+  setParentPinSet,
   activityMode,
   activeChildId,
   activePresetKey,
@@ -65,6 +68,8 @@ export function useFamilySettings({
   currentMoment,
   customParentPresets,
   lastSuccessfulMoment,
+  uiTheme,
+  kidDeviceMode,
 } = {}) {
   const [familySettingsReady, setFamilySettingsReady] = useState(false);
   const [familySettingsError, setFamilySettingsError] = useState("");
@@ -97,6 +102,9 @@ export function useFamilySettings({
     setCustomParentPresets(normalized.customParentPresets);
     setParentStatus(parentStatusFromMoment(normalized.currentMoment));
     setLastSuccessfulMoment(normalized.lastSuccessfulMoment);
+    setUiTheme?.(normalized.uiTheme);
+    setKidDeviceMode?.(normalized.kidDeviceMode);
+    setParentPinSet?.(normalized.parentPinSet === true);
   }
 
   /*
@@ -156,9 +164,9 @@ export function useFamilySettings({
       safetySettings,
       currentMoment,
       customParentPresets,
-      savedActivities: [],
-      activityHistory: [],
       lastSuccessfulMoment,
+      uiTheme,
+      kidDeviceMode,
     });
   }
 
@@ -324,10 +332,9 @@ export function useFamilySettings({
       safetySettings,
       currentMoment,
       customParentPresets,
-      // Favorites/history live in first-class tables; stop dual-writing JSON.
-      savedActivities: [],
-      activityHistory: [],
       lastSuccessfulMoment,
+      uiTheme,
+      kidDeviceMode,
     });
     const saveUserId = userId;
 
@@ -363,6 +370,8 @@ export function useFamilySettings({
     currentMoment,
     customParentPresets,
     lastSuccessfulMoment,
+    uiTheme,
+    kidDeviceMode,
   ]);
 
   return {
