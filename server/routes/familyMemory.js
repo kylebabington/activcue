@@ -4,8 +4,11 @@ import { Router } from "express";
 import { getSupabaseAdminClient } from "../lib/supabaseAdminClient.js";
 import { requireAuthenticatedUser } from "../middleware/requireAuthenticatedUser.js";
 import { ensureUserProfile } from "../middleware/ensureUserProfile.js";
+import { familyDataRateLimiter } from "../middleware/rateLimits.js";
 
 const router = Router();
+
+router.use(familyDataRateLimiter);
 
 function isPlainObject(value) {
   return (
