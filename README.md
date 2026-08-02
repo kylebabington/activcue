@@ -70,7 +70,9 @@ server/
 
 ## Notes
 
-- Family settings (children, inventory, safety, current moment, parent presets) sync to Supabase for the signed-in user (anonymous or permanent).
-- Quest history, saved favorites, the active quest, parent PIN, and UI theme still live in browser `localStorage` for now.
+- Family settings (children, inventory, safety, current moment, parent presets, theme, kid-device mode) sync to Supabase for the signed-in user.
+- Favorites, activity history, and activity sessions sync via family memory tables when signed in.
+- Parent PIN is hashed server-side on `family_settings` (with a local fallback during migration).
+- Active quest / timer state still uses browser `localStorage` for the current session.
 - `server/.env` is gitignored. Never commit API keys.
 - If this repo ever exposed a real `.env` file, rotate the OpenAI key.
