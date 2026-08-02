@@ -18,6 +18,7 @@ import {
   resolveActivityStyle,
 } from "../utils/normalizeRequest.js";
 import { recordAiUsageEvent } from "../lib/aiUsage.js";
+import { expandGenerationIntent } from "../lib/generationIntent.js";
 import { aiSuggestionsRateLimiter } from "../middleware/rateLimits.js";
 
 const router = Router();
@@ -48,12 +49,16 @@ export default function createActivitySuggestionsRouter(client) {
           activeChildProfile,
           selectedChildProfiles,
           feedbackContext,
+          generationIntent,
           previousActivityTitles,
           safetySettings,
           playModeTheme,
         } = req.body;
 
-        const safeActivityStyle = resolveActivityStyle(activityStyle, activityMode);
+        const safeActivityStyle = resolveActivityStyle(
+          generationIntent?.activityStyle || activityStyle,
+          activityMode
+        );
         const safePlayModeTheme =
           typeof playModeTheme === "string" && playModeTheme.trim()
             ? playModeTheme.trim()
@@ -83,10 +88,12 @@ export default function createActivitySuggestionsRouter(client) {
           });
         }
 
-        const safeFeedbackContext =
+        const safeFeedbackContext = expandGenerationIntent(
+          generationIntent,
           feedbackContext && feedbackContext.trim() !== ""
             ? feedbackContext
-            : "No specific feedback yet.";
+            : ""
+        );
 
         const safePreviousActivityTitles = Array.isArray(previousActivityTitles)
           ? previousActivityTitles

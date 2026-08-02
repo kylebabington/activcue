@@ -27,6 +27,7 @@ import {
   buildKidBoredFeedbackContext,
   filterStartableActivities,
 } from "./activityGenerationHelpers";
+import { markSuggestionsShownAt } from "../../utils/timeToStart";
 
 export function useActivityGeneration(deps = {}) {
   const [isLoading, setIsLoading] = useState(false);
@@ -54,6 +55,7 @@ export function useActivityGeneration(deps = {}) {
       const {
         allowOfflineFallback = false,
         preferSimpleTemplates = false,
+        generationIntent = null,
       } = options;
       const d = depsRef.current;
 
@@ -73,7 +75,7 @@ export function useActivityGeneration(deps = {}) {
         .filter(Boolean)
         .join("\n\n");
 
-      async function requestActivities(feedbackContext) {
+      async function requestActivities(feedbackContext, intent = generationIntent) {
         const previousActivityTitles = (d.activityHistory || [])
           .slice(-10)
           .map((historyItem) => historyItem.title);
@@ -87,7 +89,7 @@ export function useActivityGeneration(deps = {}) {
           messLevel: d.currentMoment.messLevel,
           activitySpace: d.currentMoment.space,
           childAgeRange: d.effectiveChildAgeRange,
-          activityStyle: d.kidActivityStyle,
+          activityStyle: intent?.activityStyle || d.kidActivityStyle,
           activityMode: d.activityMode,
           activeChildProfile: d.activeChildProfile,
           selectedChildProfiles: d.selectedChildProfiles,
@@ -97,6 +99,7 @@ export function useActivityGeneration(deps = {}) {
             quietMode: d.currentMoment.noiseLevel === "quiet",
           },
           feedbackContext,
+          generationIntent: intent || undefined,
           previousActivityTitles,
           playModeTheme: d.uiTheme,
         });
@@ -108,6 +111,9 @@ export function useActivityGeneration(deps = {}) {
           d.inventory
         );
         d.setActivities?.(normalized);
+        if (normalized.length > 0) {
+          markSuggestionsShownAt();
+        }
         return normalized;
       }
 
@@ -171,8 +177,7 @@ export function useActivityGeneration(deps = {}) {
           );
         }
 
-        d.setActivities?.(normalized);
-        return normalized;
+        return finalizeActivities(normalized);
       } catch (error) {
         console.error(error);
 
@@ -309,6 +314,9 @@ export function useActivityGeneration(deps = {}) {
               d.inventory
             );
             d.setActivities?.(normalized);
+            if (normalized.length > 0) {
+              markSuggestionsShownAt();
+            }
             d.showStatus?.("Quick ideas ready — no wait.", "success");
             d.navigate?.("/quest");
             return;
@@ -365,6 +373,7 @@ export function useActivityGeneration(deps = {}) {
                   d.inventory
                 );
                 d.setActivities?.(normalized);
+                markSuggestionsShownAt();
                 d.showStatus?.("Quick ideas ready — no wait.", "success");
                 d.navigate?.("/quest");
                 return;
@@ -393,6 +402,7 @@ export function useActivityGeneration(deps = {}) {
               d.setActivities?.(
                 normalizeActivitiesToInventory(slice, d.inventory)
               );
+              markSuggestionsShownAt();
               d.showStatus?.(
                 "Sample presets — Plus personalizes to this moment.",
                 "success"
@@ -424,6 +434,7 @@ export function useActivityGeneration(deps = {}) {
             d.setActivities?.(
               normalizeActivitiesToInventory(slice, d.inventory)
             );
+            markSuggestionsShownAt();
             d.showStatus?.(
               "Showing sample presets — Plus personalizes to this moment.",
               "success"
@@ -464,6 +475,7 @@ export function useActivityGeneration(deps = {}) {
           d.setActivities?.(
             normalizeActivitiesToInventory(slice, d.inventory)
           );
+          markSuggestionsShownAt();
           d.showStatus?.(
             "Showing sample presets — Plus personalizes to this moment. Unlock one pretend quest free when you start.",
             "success"
