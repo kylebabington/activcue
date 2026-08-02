@@ -11,6 +11,9 @@ export const FAMILY_SETTINGS_LOCAL_KEYS = [
     "childProfiles",
     "activeChildId",
     "safetySettings",
+    "savedActivities",
+    "activityHistory",
+    "lastSuccessfulMoment",
 ];
 
 export const DEFAULT_CURRENT_MOMENT = {
@@ -43,6 +46,9 @@ export function buildDefaultFamilySettings() {
         safetySettings: { ...DEFAULT_SAFETY_SETTINGS },
         currentMoment: { ...DEFAULT_CURRENT_MOMENT },
         customParentPresets: [],
+        savedActivities: [],
+        activityHistory: [],
+        lastSuccessfulMoment: null,
     };
 }
 
@@ -115,6 +121,18 @@ export function readFamilySettingsFromLocalStorage() {
             "customParentPresets",
             defaults.customParentPresets
         ),
+        savedActivities: readLocalJson(
+            "savedActivities",
+            defaults.savedActivities
+        ),
+        activityHistory: readLocalJson(
+            "activityHistory",
+            defaults.activityHistory
+        ),
+        lastSuccessfulMoment: readLocalJson(
+            "lastSuccessfulMoment",
+            defaults.lastSuccessfulMoment
+        ),
     };
 }
 
@@ -133,6 +151,9 @@ export function familySettingsPayloadFromState({
     safetySettings,
     currentMoment,
     customParentPresets,
+    savedActivities,
+    activityHistory,
+    lastSuccessfulMoment,
 }) {
     return {
         activityMode,
@@ -143,13 +164,39 @@ export function familySettingsPayloadFromState({
         safetySettings,
         currentMoment,
         customParentPresets,
+        savedActivities: Array.isArray(savedActivities)
+            ? savedActivities
+            : [],
+        activityHistory: Array.isArray(activityHistory)
+            ? activityHistory
+            : [],
+        lastSuccessfulMoment:
+            lastSuccessfulMoment &&
+            typeof lastSuccessfulMoment === "object"
+                ? lastSuccessfulMoment
+                : null,
     };
+}
+
+/*
+ * Prefer server arrays when non-empty; otherwise keep local legacy data so a
+ * migration to new columns does not wipe favorites/history still only on device.
+ */
+export function mergeMemoryCollections(serverList, localList) {
+    const server = Array.isArray(serverList) ? serverList : [];
+    const local = Array.isArray(localList) ? localList : [];
+
+    if (server.length > 0) {
+        return server;
+    }
+
+    return local;
 }
 
 /*
  * Normalize a server or import document into values safe to apply to App state.
  */
-export function normalizeFamilySettingsDocument(settings) {
+export function normalizeFamilySettingsDocument(settings, localMemory = {}) {
     const defaults = buildDefaultFamilySettings();
 
     return {
@@ -180,5 +227,21 @@ export function normalizeFamilySettingsDocument(settings) {
         customParentPresets: Array.isArray(settings?.customParentPresets)
             ? settings.customParentPresets
             : [],
+        savedActivities: mergeMemoryCollections(
+            settings?.savedActivities,
+            localMemory.savedActivities
+        ),
+        activityHistory: mergeMemoryCollections(
+            settings?.activityHistory,
+            localMemory.activityHistory
+        ),
+        lastSuccessfulMoment:
+            settings?.lastSuccessfulMoment &&
+            typeof settings.lastSuccessfulMoment === "object"
+                ? settings.lastSuccessfulMoment
+                : localMemory.lastSuccessfulMoment &&
+                    typeof localMemory.lastSuccessfulMoment === "object"
+                  ? localMemory.lastSuccessfulMoment
+                  : null,
     };
 }
