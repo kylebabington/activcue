@@ -138,10 +138,13 @@ export function buildActivitySessionPayload(
     finishedAt = Date.now(),
     completionStatus = "finished",
     independenceRating = null,
+    includeFinishedAt = true,
   } = {}
 ) {
   const startedAt = Number(activeActivity?.startedAt);
-  const minutesWorked = getMinutesWorked(activeActivity, finishedAt);
+  const minutesWorked = includeFinishedAt
+    ? getMinutesWorked(activeActivity, finishedAt)
+    : null;
 
   return {
     childId,
@@ -155,8 +158,8 @@ export function buildActivitySessionPayload(
     startedAt:
       Number.isFinite(startedAt) && startedAt > 0
         ? new Date(startedAt).toISOString()
-        : new Date(finishedAt).toISOString(),
-    finishedAt: new Date(finishedAt).toISOString(),
+        : new Date().toISOString(),
+    finishedAt: includeFinishedAt ? new Date(finishedAt).toISOString() : null,
     parentActivity: currentMoment?.parentActivity || null,
     parentAvailability: currentMoment?.availability || null,
     space: currentMoment?.space || null,
@@ -170,6 +173,36 @@ export function buildActivitySessionPayload(
     actualMinutes: minutesWorked,
     completionStatus,
     independenceRating,
+  };
+}
+
+export function buildActivitySessionStartPayload(
+  activeActivity,
+  currentMoment,
+  { childId = "" } = {}
+) {
+  return buildActivitySessionPayload(activeActivity, currentMoment, {
+    childId,
+    completionStatus: "in-progress",
+    includeFinishedAt: false,
+  });
+}
+
+export function buildActivitySessionExitPatch(
+  activeActivity,
+  {
+    completionStatus,
+    finishedAt = Date.now(),
+    independenceRating = null,
+  } = {}
+) {
+  const minutesWorked = getMinutesWorked(activeActivity, finishedAt);
+
+  return {
+    finishedAt: new Date(finishedAt).toISOString(),
+    actualMinutes: minutesWorked,
+    completionStatus,
+    ...(independenceRating ? { independenceRating } : {}),
   };
 }
 

@@ -51,6 +51,8 @@ import {
   buildFinishedHistoryItem,
   buildCanceledHistoryItem,
   buildActivitySessionPayload,
+  buildActivitySessionStartPayload,
+  buildActivitySessionExitPatch,
 } from "./features/quest";
 import {
   buildStructuredPreferenceContext,
@@ -213,7 +215,7 @@ function App() {
 
     let cancelled = false;
 
-    listActivitySessions({ expectedUserId: user.id, limit: 80 })
+    listActivitySessions({ limit: 80 }, { expectedUserId: user.id })
       .then((payload) => {
         if (cancelled) {
           return;
@@ -1841,6 +1843,7 @@ Prioritize activities that require the least decision-making from the child.
       // Timer fields.
       startedAt: Date.now(),
       durationMinutes,
+      activitySessionId: null,
     };
 
     // Clear any old step hint when a brand-new quest starts.
@@ -1854,6 +1857,38 @@ Prioritize activities that require the least decision-making from the child.
     setActiveActivity(activityToStart);
     saveActivityFeedback(activity, "started");
     showStatus(`Started: "${activity.title}". Timer is running.`, "success");
+
+    const childIdForSession =
+      activityMode === "family" ? "" : activeChildProfile?.id || "";
+
+    void createActivitySession(
+      buildActivitySessionStartPayload(activityToStart, currentMoment, {
+        childId: childIdForSession,
+      }),
+      { expectedUserId: user?.id }
+    )
+      .then((response) => {
+        const session = response?.activitySession;
+        if (!session?.id) {
+          return;
+        }
+
+        setActivitySessions((current) => [session, ...current].slice(0, 100));
+
+        setActiveActivity((previous) => {
+          if (!previous || previous.id !== activityToStart.id) {
+            return previous;
+          }
+
+          return {
+            ...previous,
+            activitySessionId: session.id,
+          };
+        });
+      })
+      .catch((error) => {
+        console.error("Could not create activity session on start:", error);
+      });
   }
 
   async function handleStartActivityFromUi(activity) {
@@ -2231,57 +2266,130 @@ Prioritize activities that require the least decision-making from the child.
       title: finishedActivity.title,
     });
 
-    // Best-effort cloud session row — never block local UX on API failure.
-    void createActivitySession(
-      buildActivitySessionPayload(finishedActivity, currentMoment, {
-        childId: activeChildProfile?.id || "",
+    const sessionId = finishedActivity.activitySessionId;
+    const exitPatch = buildActivitySessionExitPatch(finishedActivity, {
+      completionStatus: "finished",
+      finishedAt,
+    });
+
+    if (sessionId) {
+      setLastCompletedQuest((previous) => {
+        if (!previous || previous.id !== completedQuestSummary.id) {
+          return previous;
+        }
+
+        return {
+          ...previous,
+          activitySessionId: sessionId,
+        };
+      });
+
+      void updateActivitySession(sessionId, exitPatch, {
+        expectedUserId: user?.id,
+      })
+        .then((response) => {
+          const session = response?.activitySession;
+          if (session) {
+            setActivitySessions((current) =>
+              [session, ...current.filter((row) => row.id !== session.id)].slice(
+                0,
+                100
+              )
+            );
+          }
+
+          const pendingIndependenceRating =
+            lastCompletedQuestRef.current?.id === completedQuestSummary.id
+              ? lastCompletedQuestRef.current.independenceRating || null
+              : null;
+
+          if (pendingIndependenceRating) {
+            void updateActivitySession(
+              sessionId,
+              { independenceRating: pendingIndependenceRating },
+              { expectedUserId: user?.id }
+            ).catch((error) => {
+              console.error(
+                "Could not update session independence rating:",
+                error
+              );
+            });
+          }
+        })
+        .catch((error) => {
+          console.error("Could not update activity session on finish:", error);
+        });
+    } else {
+      // Fallback for quests started before session-on-start landed.
+      void createActivitySession(
+        buildActivitySessionPayload(finishedActivity, currentMoment, {
+          childId: activeChildProfile?.id || "",
+          finishedAt,
+          completionStatus: "finished",
+        }),
+        { expectedUserId: user?.id }
+      )
+        .then((response) => {
+          const session = response?.activitySession;
+          if (session) {
+            setActivitySessions((current) =>
+              [session, ...current].slice(0, 100)
+            );
+          }
+
+          const createdId = session?.id;
+          if (!createdId) {
+            return;
+          }
+
+          setLastCompletedQuest((previous) => {
+            if (!previous || previous.id !== completedQuestSummary.id) {
+              return previous;
+            }
+
+            return {
+              ...previous,
+              activitySessionId: createdId,
+            };
+          });
+        })
+        .catch((error) => {
+          console.error("Could not create activity session on finish:", error);
+        });
+    }
+  }
+
+  function patchActiveSessionExit(activity, completionStatus) {
+    const sessionId = activity?.activitySessionId;
+    if (!sessionId) {
+      return;
+    }
+
+    const finishedAt = Date.now();
+    void updateActivitySession(
+      sessionId,
+      buildActivitySessionExitPatch(activity, {
+        completionStatus,
         finishedAt,
-        completionStatus: "finished",
       }),
       { expectedUserId: user?.id }
     )
       .then((response) => {
         const session = response?.activitySession;
         if (session) {
-          setActivitySessions((current) => [session, ...current].slice(0, 100));
-        }
-
-        const sessionId = session?.id;
-        if (!sessionId) {
-          return;
-        }
-
-        const pendingIndependenceRating =
-          lastCompletedQuestRef.current?.id === completedQuestSummary.id
-            ? lastCompletedQuestRef.current.independenceRating || null
-            : null;
-
-        setLastCompletedQuest((previous) => {
-          if (!previous || previous.id !== completedQuestSummary.id) {
-            return previous;
-          }
-
-          return {
-            ...previous,
-            activitySessionId: sessionId,
-          };
-        });
-
-        if (pendingIndependenceRating) {
-          void updateActivitySession(
-            sessionId,
-            { independenceRating: pendingIndependenceRating },
-            { expectedUserId: user?.id }
-          ).catch((error) => {
-            console.error(
-              "Could not update session independence rating:",
-              error
-            );
-          });
+          setActivitySessions((current) =>
+            [session, ...current.filter((row) => row.id !== session.id)].slice(
+              0,
+              100
+            )
+          );
         }
       })
       .catch((error) => {
-        console.error("Could not create activity session:", error);
+        console.error(
+          `Could not update activity session (${completionStatus}):`,
+          error
+        );
       });
   }
 
@@ -2333,6 +2441,8 @@ Prioritize activities that require the least decision-making from the child.
     // Canceling should not show a celebration summary.
     setLastCompletedQuest(null);
 
+    patchActiveSessionExit(activeActivity, "canceled");
+
     setActiveActivity(null);
     setStepHint("");
     showStatus(`Canceled: "${activeActivity.title}".`, "info");
@@ -2358,6 +2468,7 @@ Prioritize activities that require the least decision-making from the child.
     };
 
     setActivityHistory([...activityHistory, notFinishedHistoryItem]);
+    patchActiveSessionExit(activeActivity, "not-finished");
     setActiveActivity(null);
     showStatus(
       `"${activeActivity.title}" was marked not finished. We'll use that to improve suggestions.`,
@@ -2390,6 +2501,7 @@ Prioritize activities that require the least decision-making from the child.
     };
 
     setActivityHistory([...activityHistory, anotherIdeaHistoryItem]);
+    patchActiveSessionExit(activeActivity, "abandoned");
     setActiveActivity(null);
 
     handleGenerateActivities(
