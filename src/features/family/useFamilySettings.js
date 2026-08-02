@@ -55,8 +55,6 @@ export function useFamilySettings({
   setCurrentMoment,
   setCustomParentPresets,
   setParentStatus,
-  setSavedActivities,
-  setActivityHistory,
   setLastSuccessfulMoment,
   activityMode,
   activeChildId,
@@ -66,8 +64,6 @@ export function useFamilySettings({
   safetySettings,
   currentMoment,
   customParentPresets,
-  savedActivities,
-  activityHistory,
   lastSuccessfulMoment,
 } = {}) {
   const [familySettingsReady, setFamilySettingsReady] = useState(false);
@@ -100,8 +96,6 @@ export function useFamilySettings({
     setCurrentMoment(normalized.currentMoment);
     setCustomParentPresets(normalized.customParentPresets);
     setParentStatus(parentStatusFromMoment(normalized.currentMoment));
-    setSavedActivities(normalized.savedActivities);
-    setActivityHistory(normalized.activityHistory);
     setLastSuccessfulMoment(normalized.lastSuccessfulMoment);
   }
 
@@ -162,10 +156,8 @@ export function useFamilySettings({
       safetySettings,
       currentMoment,
       customParentPresets,
-      savedActivities,
-      activityHistory: Array.isArray(activityHistory)
-        ? activityHistory.slice(-200)
-        : [],
+      savedActivities: [],
+      activityHistory: [],
       lastSuccessfulMoment,
     });
   }
@@ -226,8 +218,6 @@ export function useFamilySettings({
         if (response.exists && response.settings) {
           const localLegacy = readFamilySettingsFromLocalStorage();
           applyFamilySettingsDocument(response.settings, {
-            savedActivities: localLegacy.savedActivities,
-            activityHistory: localLegacy.activityHistory,
             lastSuccessfulMoment: localLegacy.lastSuccessfulMoment,
           });
         } else {
@@ -334,10 +324,9 @@ export function useFamilySettings({
       safetySettings,
       currentMoment,
       customParentPresets,
-      savedActivities,
-      activityHistory: Array.isArray(activityHistory)
-        ? activityHistory.slice(-200)
-        : [],
+      // Favorites/history live in first-class tables; stop dual-writing JSON.
+      savedActivities: [],
+      activityHistory: [],
       lastSuccessfulMoment,
     });
     const saveUserId = userId;
@@ -373,8 +362,6 @@ export function useFamilySettings({
     safetySettings,
     currentMoment,
     customParentPresets,
-    savedActivities,
-    activityHistory,
     lastSuccessfulMoment,
   ]);
 
