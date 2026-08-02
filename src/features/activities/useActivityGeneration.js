@@ -1,15 +1,36 @@
 // src/features/activities/useActivityGeneration.js
 
 /*
- * Stub for activity-generation ownership (PR 9).
+ * Activity generation ownership surface.
  *
- * Full generate / Quick Ideas / presets / demo / auto-pick still live in App.jsx.
- * Import pure helpers from activityService until this hook owns the flow.
+ * Full orchestration still receives App-owned deps (moment, entitlement,
+ * inventory, navigate). This hook owns loading/status intent for generation
+ * and exposes a stable API App can call without owning the machinery forever.
  */
 
+import { useCallback, useState } from "react";
+
 export function useActivityGeneration() {
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadingIntent, setLoadingIntent] = useState(null);
+
+  const beginGeneration = useCallback((intent = "generate") => {
+    setIsLoading(true);
+    setLoadingIntent(intent);
+  }, []);
+
+  const endGeneration = useCallback(() => {
+    setIsLoading(false);
+    setLoadingIntent(null);
+  }, []);
+
   return {
-    ready: false,
-    note: "Activity generation still owned by App.jsx; use activityService helpers.",
+    isLoading,
+    loadingIntent,
+    setIsLoading,
+    setLoadingIntent,
+    beginGeneration,
+    endGeneration,
+    ready: true,
   };
 }

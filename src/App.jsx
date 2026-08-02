@@ -2,7 +2,6 @@
 
 import { Link, Navigate, NavLink, Route, Routes, useNavigate } from "react-router-dom";
 import {
-  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -11,13 +10,9 @@ import {
 import {
   getActivitySuggestions,
   getPresetActivities,
-  getQuestStepHint,
   unlockPresetActivity,
 } from "./api/activityApi";
-import {
-  getCurrentAuthenticatedUser,
-  signOutCurrentUser,
-} from "./api/authApi";
+import { signOutCurrentUser } from "./api/authApi";
 import { redirectToCheckout } from "./api/billingApi";
 import { ApiRequestError, AuthenticationError } from "./api/apiClient";
 import { useLocalStorage } from "./hooks/useLocalStorage";
@@ -26,6 +21,7 @@ import { useKidDeviceMode } from "./hooks/useKidDeviceMode";
 import { useAuth } from "./hooks/useAuth";
 import { useUiTheme } from "./hooks/useUiTheme";
 import { getPlayModeUiLine } from "./utils/playModeTheme";
+import { useEntitlement } from "./features/billing";
 import ParentPage from "./pages/ParentPage";
 import KidPage from "./pages/KidPage";
 import QuestPage from "./pages/QuestPage";
@@ -46,15 +42,7 @@ import {
   useFamilySettings,
   useFamilyMemory,
 } from "./features/family";
-import {
-  useActivityTimer,
-  buildCompletedQuestSummary,
-  buildFinishedHistoryItem,
-  buildCanceledHistoryItem,
-  buildActivitySessionPayload,
-  buildActivitySessionStartPayload,
-  buildActivitySessionExitPatch,
-} from "./features/quest";
+import { useQuestSession } from "./features/quest";
 import {
   buildStructuredPreferenceContext,
   logActivityScoreTable,
@@ -63,13 +51,9 @@ import {
   normalizeActivitiesToInventory,
   scoreActivitiesForCurrentMoment,
   pickBestActivityForCurrentMoment,
+  useActivityGeneration,
 } from "./features/activities";
-import {
-  createActivitySession,
-  updateActivitySession,
-  listActivitySessions,
-} from "./api/familyMemoryApi";
-import { trackProductEvent } from "./utils/analytics";
+import { listActivitySessions } from "./api/familyMemoryApi";
 import { buildSimpleActivitiesFromTemplates } from "./utils/simpleActivityTemplates";
 import { normalizeActivityStyle } from "./utils/activityStyle";
 import {
@@ -187,19 +171,8 @@ function App() {
 
   const [activities, setActivities] = useState([]);
 
-  const [activeActivity, setActiveActivity] = useLocalStorage(
-    "activeActivity",
-    null
-  );
-
-  const [lastCompletedQuest, setLastCompletedQuest] = useLocalStorage(
-    "lastCompletedQuest",
-    null
-  );
-  const lastCompletedQuestRef = useRef(lastCompletedQuest);
-  lastCompletedQuestRef.current = lastCompletedQuest;
-
   const [activitySessions, setActivitySessions] = useState([]);
+  const generateActivitiesRef = useRef(null);
 
   const {
     savedActivities,
@@ -281,8 +254,6 @@ function App() {
     scoringOptions,
   ]);
 
-  const timerSecondsRemaining = useActivityTimer(activeActivity);
-
   const [lastSuccessfulMoment, setLastSuccessfulMoment] = useLocalStorage(
     "lastSuccessfulMoment",
     null
@@ -320,30 +291,23 @@ function App() {
     lastSuccessfulMoment,
   });
 
-  const [isLoading, setIsLoading] = useState(false);
-  const [loadingIntent, setLoadingIntent] = useState(null);
+  const {
+    isLoading,
+    loadingIntent,
+    setIsLoading,
+    setLoadingIntent,
+  } = useActivityGeneration();
   const [statusMessage, setStatusMessage] = useState("");
   const [statusType, setStatusType] = useState("info");
 
   // Entitlement comes from /api/auth/me; freeImaginativeActivityId is also
   // refreshed from preset list/unlock responses.
-  const [entitlement, setEntitlement] = useState({
-    isPaid: false,
-    canGenerateWithAi: false,
-    canUseAiHints: false,
-    subscriptionStatus: "inactive",
-    currentPeriodEnd: null,
-
-    /*
-     * True means the subscription remains paid now but will not renew after
-     * currentPeriodEnd.
-     */
-    cancelAtPeriodEnd: false,
-
-
-    freeImaginativeActivityId: null,
-  });
-  const [entitlementHydrated, setEntitlementHydrated] = useState(false);
+  const {
+    entitlement,
+    entitlementHydrated,
+    mergePresetEntitlement,
+    refreshEntitlement,
+  } = useEntitlement({ userId: user?.id });
   const [checkoutBusy, setCheckoutBusy] = useState(false);
 
   const [presetRotationIndex, setPresetRotationIndex] = useState({
@@ -357,174 +321,6 @@ function App() {
     entitlementHydrated && !entitlement.canGenerateWithAi;
   const freeImaginativeUnlockUsed = isFreeImaginativeUnlockUsed(entitlement);
   const imBoredDisabled = isDemoMode && freeImaginativeUnlockUsed;
-
-  /*
- * Merge a server-trusted entitlement response into React state.
- *
- * This is wrapped in useCallback because it is used by effects and by the
- * refreshEntitlement function that will be passed through AppContext.
- */
-  const mergePresetEntitlement = useCallback(
-    (nextEntitlement) => {
-      if (
-        !nextEntitlement ||
-        typeof nextEntitlement !== "object"
-      ) {
-        return;
-      }
-
-      setEntitlement((current) => ({
-        ...current,
-
-        isPaid: Boolean(
-          nextEntitlement.isPaid
-        ),
-
-        canGenerateWithAi: Boolean(
-          nextEntitlement.canGenerateWithAi
-        ),
-
-        canUseAiHints: Boolean(
-          nextEntitlement.canUseAiHints
-        ),
-
-        subscriptionStatus:
-          nextEntitlement.subscriptionStatus ||
-          current.subscriptionStatus,
-
-        /*
-         * An explicit null means there is no active period end.
-         *
-         * This matters for inactive and canceled subscriptions.
-         */
-        currentPeriodEnd:
-          "currentPeriodEnd" in
-            nextEntitlement
-            ? nextEntitlement.currentPeriodEnd ??
-            null
-            : current.currentPeriodEnd,
-
-        /*
- * Preserve the current value when older API responses do not contain the
- * field. Honor both true and false when the server explicitly returns it.
- */
-        cancelAtPeriodEnd:
-          "cancelAtPeriodEnd" in
-            nextEntitlement
-            ? Boolean(
-              nextEntitlement
-                .cancelAtPeriodEnd
-            )
-            : current
-              .cancelAtPeriodEnd,
-
-        /*
-         * Honor an explicit null from the server.
-         *
-         * This prevents the free unlock from a previous account from leaking
-         * into the current account's React state.
-         */
-        freeImaginativeActivityId:
-          "freeImaginativeActivityId" in
-            nextEntitlement
-            ? nextEntitlement
-              .freeImaginativeActivityId ??
-            null
-            : current
-              .freeImaginativeActivityId,
-      }));
-    },
-    []
-  );
-
-  /*
- * Re-read the current subscription entitlement from the trusted server.
- *
- * SettingsPage uses this after Stripe redirects back from Checkout because
- * the webhook may need a moment to update Supabase.
- */
-  const refreshEntitlement =
-    useCallback(async () => {
-      const me =
-        await getCurrentAuthenticatedUser();
-
-      const nextEntitlement = {
-        ...me.entitlement,
-
-        freeImaginativeActivityId:
-          me.entitlement
-            ?.freeImaginativeActivityId ??
-          me.profile
-            ?.freeImaginativeActivityId ??
-          null,
-      };
-
-      mergePresetEntitlement(
-        nextEntitlement
-      );
-
-      setEntitlementHydrated(true);
-
-      return nextEntitlement;
-    }, [mergePresetEntitlement]);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    async function hydrateEntitlement() {
-      setEntitlementHydrated(false);
-
-      try {
-        const me = await getCurrentAuthenticatedUser();
-        if (!isMounted) {
-          return;
-        }
-
-        mergePresetEntitlement({
-          ...me.entitlement,
-          freeImaginativeActivityId:
-            me.entitlement?.freeImaginativeActivityId ??
-            me.profile?.freeImaginativeActivityId ??
-            null,
-        });
-        setEntitlementHydrated(true);
-      } catch (error) {
-        console.warn("Could not hydrate entitlement from /api/auth/me:", error);
-
-        try {
-          const payload = await getPresetActivities();
-          if (!isMounted) {
-            return;
-          }
-          mergePresetEntitlement(payload.entitlement);
-          setEntitlementHydrated(true);
-        } catch (fallbackError) {
-          console.warn(
-            "Could not hydrate entitlement from presets either:",
-            fallbackError
-          );
-          if (isMounted) {
-            mergePresetEntitlement({
-              isPaid: false,
-              canGenerateWithAi: false,
-              canUseAiHints: false,
-              subscriptionStatus: "inactive",
-              currentPeriodEnd: null,
-              cancelAtPeriodEnd: false,
-              freeImaginativeActivityId: null,
-            });
-            setEntitlementHydrated(true);
-          }
-        }
-      }
-    }
-
-    hydrateEntitlement();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [user?.id, mergePresetEntitlement]);
 
   async function handleGetPlus() {
     if (isAnonymous) {
@@ -600,9 +396,6 @@ function App() {
     setStatusType(type);
   }
 
-  const [stepHint, setStepHint] = useState("");
-  const [isHintLoading, setIsHintLoading] = useState(false);
-
   const activeChildProfile =
     childProfiles.find((child) => child.id === activeChildId) ||
     childProfiles.find((child) => playingChildIds.includes(child.id)) ||
@@ -611,6 +404,48 @@ function App() {
   const effectiveChildAgeRange = activeChildProfile
     ? activeChildProfile.ageRange
     : childAgeRange;
+
+  const {
+    activeActivity,
+    setActiveActivity,
+    lastCompletedQuest,
+    setLastCompletedQuest,
+    clearLastCompletedQuest,
+    stepHint,
+    isHintLoading,
+    timerSecondsRemaining,
+    handleStartActivity,
+    finishActiveActivity,
+    cancelActiveActivity,
+    handleTimerNotFinished,
+    handleTimerNeedAnotherIdea,
+    handleSessionOutcome,
+    goToNextQuestStep,
+    goToPreviousQuestStep,
+    toggleQuestStepComplete,
+    toggleShowAllQuestSteps,
+    handleNeedStepHint,
+  } = useQuestSession({
+    userId: user?.id,
+    currentMoment,
+    activityMode,
+    activeChildProfile,
+    kidActivityStyle,
+    kidMood,
+    messLevel,
+    locationPreference,
+    effectiveChildAgeRange,
+    appendHistory,
+    setLastSuccessfulMoment,
+    setActivitySessions,
+    saveActivityFeedback,
+    showStatus,
+    onNeedAnotherIdea: (previousTitle) => {
+      generateActivitiesRef.current?.(
+        `The child tried "${previousTitle}" but needs another idea. Suggest 3 different activities that are easier to start and feel fresh.`
+      );
+    },
+  });
 
   const selectedChildProfiles = childProfiles.filter((child) =>
     playingChildIds.includes(child.id)
@@ -1140,6 +975,8 @@ function App() {
       setLoadingIntent(null);
     }
   }
+
+  generateActivitiesRef.current = handleGenerateActivities;
 
   function getKidEnergyInstruction(energyLevel) {
     if (energyLevel === "quiet") {
@@ -1728,150 +1565,18 @@ Prioritize activities that require the least decision-making from the child.
   }
 
   function handleReplaySavedActivity(savedActivity) {
-    // Clear any previous completion summary.
-    // Replaying a saved quest should put the user back into active quest mode.
-    setLastCompletedQuest(null);
-
-    // Clear old hints.
-    // A hint from the previous quest should not appear on this replayed quest.
-    setStepHint("");
-
     // Normalize the saved activity before replaying it.
     // Older saved activities may not have activityStyle because this field
     // was added later.
     const activityToReplay = {
       ...savedActivity,
-
       activityStyle: normalizeActivityStyle(savedActivity),
     };
 
-    // Start the saved activity using the same existing start logic.
-    // This gives it a fresh timer, fresh ID, and guided step state.
+    // Start via quest session (fresh timer, ID, and guided step state).
     handleStartActivity(activityToReplay);
-
-    // Move the user to the active quest screen.
     navigate("/quest");
-
     showStatus(`Replaying saved activity: "${savedActivity.title}".`, "success");
-  }
-
-  function handleStartActivity(activity) {
-    // Use the activity's own estimatedMinutes when available.
-    // If that is missing, fall back to the parent's currentMoment time.
-    // If that is missing too, use 20 minutes as a safe default.
-    const durationMinutes =
-      Number(activity.estimatedMinutes) ||
-      Number(currentMoment.timeNeededMinutes) ||
-      20;
-
-    const activityToStart = {
-      // Give this active quest a unique ID.
-      id: crypto.randomUUID(),
-
-      // Basic visible activity information.
-      title: activity.title,
-
-      // This tells the UI whether this is a plain simple activity
-      // or an imaginative quest.
-      activityStyle: normalizeActivityStyle(activity, kidActivityStyle),
-
-      theme: activity.theme || "",
-      summary: activity.summary || "",
-
-      // Kid-facing quest structure.
-      kidRole: activity.kidRole || "",
-      mission: activity.mission || "",
-      starterPrompts: Array.isArray(activity.starterPrompts)
-        ? activity.starterPrompts
-        : [],
-      firstMoves: Array.isArray(activity.firstMoves) ? activity.firstMoves : [],
-      roles: Array.isArray(activity.roles) ? activity.roles : [],
-      steps: Array.isArray(activity.steps) ? activity.steps : [],
-      extensionIdeas: Array.isArray(activity.extensionIdeas)
-        ? activity.extensionIdeas
-        : [],
-
-      // Supplies.
-      uses: Array.isArray(activity.uses) ? activity.uses : [],
-
-      // Structured fit fields.
-      estimatedMinutes: Number(activity.estimatedMinutes) || durationMinutes,
-      energy: activity.energy || "medium",
-      mess: activity.mess || "low",
-      adultHelp: activity.adultHelp || "optional",
-      whyItFits: activity.whyItFits || "",
-
-      // New guided step state.
-      // currentStepIndex starts at 0 because arrays start counting at 0.
-      //
-      // Example:
-      // steps[0] is the first step.
-      // steps[1] is the second step.
-      currentStepIndex: 0,
-
-      // completedStepIndexes stores which steps the kid has completed.
-      //
-      // Example:
-      // [0, 1] means:
-      // - step 1 is complete
-      // - step 2 is complete
-      //
-      // We store indexes instead of step text because step text can be long.
-      completedStepIndexes: [],
-
-      // showAllSteps controls whether the full list is visible.
-      // false means the kid mainly sees one step at a time.
-      showAllSteps: false,
-
-      // Timer fields.
-      startedAt: Date.now(),
-      durationMinutes,
-      activitySessionId: null,
-    };
-
-    // Clear any old step hint when a brand-new quest starts.
-    // A hint from an old quest should not appear in a new quest.
-    setStepHint("");
-
-    // Clear the previous completed quest summary.
-    // Starting a new quest means the old completion screen should disappear.
-    setLastCompletedQuest(null);
-
-    setActiveActivity(activityToStart);
-    saveActivityFeedback(activity, "started");
-    showStatus(`Started: "${activity.title}". Timer is running.`, "success");
-
-    const childIdForSession =
-      activityMode === "family" ? "" : activeChildProfile?.id || "";
-
-    void createActivitySession(
-      buildActivitySessionStartPayload(activityToStart, currentMoment, {
-        childId: childIdForSession,
-      }),
-      { expectedUserId: user?.id }
-    )
-      .then((response) => {
-        const session = response?.activitySession;
-        if (!session?.id) {
-          return;
-        }
-
-        setActivitySessions((current) => [session, ...current].slice(0, 100));
-
-        setActiveActivity((previous) => {
-          if (!previous || previous.id !== activityToStart.id) {
-            return previous;
-          }
-
-          return {
-            ...previous,
-            activitySessionId: session.id,
-          };
-        });
-      })
-      .catch((error) => {
-        console.error("Could not create activity session on start:", error);
-      });
   }
 
   async function handleStartActivityFromUi(activity) {
@@ -1909,203 +1614,6 @@ Prioritize activities that require the least decision-making from the child.
     }
   }
 
-  function goToNextQuestStep() {
-    // If there is no active quest, there is nothing to update.
-    if (!activeActivity) {
-      return;
-    }
-
-    // Make sure steps is always an array.
-    const steps = Array.isArray(activeActivity.steps) ? activeActivity.steps : [];
-
-    // If there are no steps, there is nothing to advance.
-    if (steps.length === 0) {
-      return;
-    }
-
-    // Get the current step index.
-    const currentStepIndex = Number(activeActivity.currentStepIndex) || 0;
-
-    // The last valid index is steps.length - 1.
-    //
-    // Example:
-    // If there are 5 steps, indexes are:
-    // 0, 1, 2, 3, 4
-    const lastStepIndex = steps.length - 1;
-
-    // Do not go past the final step.
-    const nextStepIndex = Math.min(currentStepIndex + 1, lastStepIndex);
-
-    // Make sure completedStepIndexes is always an array.
-    const completedStepIndexes = Array.isArray(activeActivity.completedStepIndexes)
-      ? activeActivity.completedStepIndexes
-      : [];
-
-    // If the current step is not already marked complete,
-    // add it to the completed list.
-    const updatedCompletedStepIndexes = completedStepIndexes.includes(currentStepIndex)
-      ? completedStepIndexes
-      : [...completedStepIndexes, currentStepIndex];
-
-    // Clear the old hint when the child moves to a new step.
-    setStepHint("");
-
-    // Update activeActivity while keeping all the other quest data.
-    setActiveActivity({
-      ...activeActivity,
-      currentStepIndex: nextStepIndex,
-      completedStepIndexes: updatedCompletedStepIndexes,
-    });
-  }
-
-  function goToPreviousQuestStep() {
-    // If there is no active quest, there is nothing to update.
-    if (!activeActivity) {
-      return;
-    }
-
-    // Get the current step index.
-    const currentStepIndex = Number(activeActivity.currentStepIndex) || 0;
-
-    // Do not go below zero.
-    const previousStepIndex = Math.max(currentStepIndex - 1, 0);
-
-    setStepHint("");
-
-    // Update activeActivity while keeping all the other quest data.
-    setActiveActivity({
-      ...activeActivity,
-      currentStepIndex: previousStepIndex,
-    });
-  }
-
-  function toggleQuestStepComplete(stepIndexToToggle) {
-    // If there is no active quest, there is nothing to update.
-    if (!activeActivity) {
-      return;
-    }
-
-    // Make sure completedStepIndexes is always an array.
-    const completedStepIndexes = Array.isArray(activeActivity.completedStepIndexes)
-      ? activeActivity.completedStepIndexes
-      : [];
-
-    // Check whether this step is already complete.
-    const stepIsAlreadyComplete = completedStepIndexes.includes(stepIndexToToggle);
-
-    // If it is complete, remove it.
-    // If it is not complete, add it.
-    const updatedCompletedStepIndexes = stepIsAlreadyComplete
-      ? completedStepIndexes.filter((stepIndex) => stepIndex !== stepIndexToToggle)
-      : [...completedStepIndexes, stepIndexToToggle];
-
-    // Save the updated completion list back into activeActivity.
-    setActiveActivity({
-      ...activeActivity,
-      completedStepIndexes: updatedCompletedStepIndexes,
-    });
-  }
-
-  function toggleShowAllQuestSteps() {
-    // If there is no active quest, there is nothing to update.
-    if (!activeActivity) {
-      return;
-    }
-
-    // Flip showAllSteps from false to true, or true to false.
-    setActiveActivity({
-      ...activeActivity,
-      showAllSteps: !activeActivity.showAllSteps,
-    });
-  }
-
-  async function handleNeedStepHint() {
-    // If there is no active quest, there is no step to help with.
-    if (!activeActivity) {
-      showStatus("Start an activity first, then ask for a hint.", "error");
-      return;
-    }
-
-    if (!entitlement.canUseAiHints) {
-      showStatus(
-        "AI hints are included with FamilyFlow Plus.",
-        "info"
-      );
-      return;
-    }
-
-    // Make sure steps is always an array before reading from it.
-    const steps = Array.isArray(activeActivity.steps) ? activeActivity.steps : [];
-
-    // Get the current step index.
-    // If currentStepIndex is missing, default to 0, which means step 1.
-    const currentStepIndex = Number(activeActivity.currentStepIndex) || 0;
-
-    // Pull out the current step text.
-    const currentStep = steps[currentStepIndex];
-
-    // If there is no current step, we cannot generate a useful hint.
-    if (!currentStep) {
-      showStatus("This activity does not have a current step to hint at.", "error");
-      return;
-    }
-
-    // Start loading state for the hint button.
-    setIsHintLoading(true);
-
-    // Clear old error messages before trying.
-    showStatus("");
-
-    try {
-      const hintRequest = {
-        // The whole active activity gives the backend context.
-        activeActivity,
-
-        // The current step is the exact step the child needs help with.
-        currentStep,
-
-        // These numbers let the backend understand where the child is.
-        currentStepNumber: currentStepIndex + 1,
-        totalSteps: steps.length,
-
-        // The current family moment keeps the hint appropriate.
-        currentMoment,
-
-        activeChildProfile,
-        inventory,
-      };
-
-      const hint = await getQuestStepHint(hintRequest);
-
-      setStepHint(hint);
-    } catch (error) {
-      console.error(error);
-
-      if (error instanceof AuthenticationError) {
-        showStatus(
-          error.message ||
-          "Your secure session could not be verified. Refresh and try again.",
-          "error"
-        );
-        return;
-      }
-
-      if (
-        error instanceof ApiRequestError &&
-        error.code === "SUBSCRIPTION_REQUIRED"
-      ) {
-        showStatus(
-          "AI hints require a paid subscription.",
-          "info"
-        );
-        return;
-      }
-
-      showStatus("I could not make a hint right now.", "error");
-    } finally {
-      setIsHintLoading(false);
-    }
-  }
   // Starts the best-scoring activity from the current suggestion list.
   async function handleAutoPickQuest() {
     // If there are no activities yet, there is nothing to start.
@@ -2199,298 +1707,6 @@ Prioritize activities that require the least decision-making from the child.
     return selected;
   }
 
-  function finishActiveActivity() {
-    // If there is no active quest, there is nothing to finish.
-    if (!activeActivity) {
-      return;
-    }
-
-    const finishedAt = Date.now();
-    const finishedActivity = activeActivity;
-
-    const completedQuestSummary = buildCompletedQuestSummary(finishedActivity, {
-      finishedAt,
-    });
-
-    const finishedHistoryItem = buildFinishedHistoryItem(finishedActivity, {
-      kidMood,
-      messLevel,
-      locationPreference,
-      childAgeRange: effectiveChildAgeRange,
-      childId: activeChildProfile?.id || "",
-      childName: activeChildProfile?.name || "",
-      activityMode,
-    });
-
-    appendHistory(finishedHistoryItem);
-
-    setLastSuccessfulMoment({
-      parentActivity: currentMoment.parentActivity,
-      availability: currentMoment.availability,
-      timeNeededMinutes: currentMoment.timeNeededMinutes,
-      space: currentMoment.space,
-      messLevel: currentMoment.messLevel,
-      noiseLevel: currentMoment.noiseLevel,
-      supervisionLevel: currentMoment.supervisionLevel,
-      completedAt: new Date(finishedAt).toISOString(),
-      activityTitle: finishedActivity.title,
-    });
-
-    // Save the completion summary before clearing the active quest.
-    setLastCompletedQuest(completedQuestSummary);
-
-    // Clear the active quest and hint.
-    setActiveActivity(null);
-    setStepHint("");
-
-    showStatus(`Finished: "${finishedActivity.title}". Nice work.`, "success");
-    trackProductEvent("activity_finished", {
-      title: finishedActivity.title,
-    });
-
-    const sessionId = finishedActivity.activitySessionId;
-    const exitPatch = buildActivitySessionExitPatch(finishedActivity, {
-      completionStatus: "finished",
-      finishedAt,
-    });
-
-    if (sessionId) {
-      setLastCompletedQuest((previous) => {
-        if (!previous || previous.id !== completedQuestSummary.id) {
-          return previous;
-        }
-
-        return {
-          ...previous,
-          activitySessionId: sessionId,
-        };
-      });
-
-      void updateActivitySession(sessionId, exitPatch, {
-        expectedUserId: user?.id,
-      })
-        .then((response) => {
-          const session = response?.activitySession;
-          if (session) {
-            setActivitySessions((current) =>
-              [session, ...current.filter((row) => row.id !== session.id)].slice(
-                0,
-                100
-              )
-            );
-          }
-
-          const pendingIndependenceRating =
-            lastCompletedQuestRef.current?.id === completedQuestSummary.id
-              ? lastCompletedQuestRef.current.independenceRating || null
-              : null;
-
-          if (pendingIndependenceRating) {
-            void updateActivitySession(
-              sessionId,
-              { independenceRating: pendingIndependenceRating },
-              { expectedUserId: user?.id }
-            ).catch((error) => {
-              console.error(
-                "Could not update session independence rating:",
-                error
-              );
-            });
-          }
-        })
-        .catch((error) => {
-          console.error("Could not update activity session on finish:", error);
-        });
-    } else {
-      // Fallback for quests started before session-on-start landed.
-      void createActivitySession(
-        buildActivitySessionPayload(finishedActivity, currentMoment, {
-          childId: activeChildProfile?.id || "",
-          finishedAt,
-          completionStatus: "finished",
-        }),
-        { expectedUserId: user?.id }
-      )
-        .then((response) => {
-          const session = response?.activitySession;
-          if (session) {
-            setActivitySessions((current) =>
-              [session, ...current].slice(0, 100)
-            );
-          }
-
-          const createdId = session?.id;
-          if (!createdId) {
-            return;
-          }
-
-          setLastCompletedQuest((previous) => {
-            if (!previous || previous.id !== completedQuestSummary.id) {
-              return previous;
-            }
-
-            return {
-              ...previous,
-              activitySessionId: createdId,
-            };
-          });
-        })
-        .catch((error) => {
-          console.error("Could not create activity session on finish:", error);
-        });
-    }
-  }
-
-  function patchActiveSessionExit(activity, completionStatus) {
-    const sessionId = activity?.activitySessionId;
-    if (!sessionId) {
-      return;
-    }
-
-    const finishedAt = Date.now();
-    void updateActivitySession(
-      sessionId,
-      buildActivitySessionExitPatch(activity, {
-        completionStatus,
-        finishedAt,
-      }),
-      { expectedUserId: user?.id }
-    )
-      .then((response) => {
-        const session = response?.activitySession;
-        if (session) {
-          setActivitySessions((current) =>
-            [session, ...current.filter((row) => row.id !== session.id)].slice(
-              0,
-              100
-            )
-          );
-        }
-      })
-      .catch((error) => {
-        console.error(
-          `Could not update activity session (${completionStatus}):`,
-          error
-        );
-      });
-  }
-
-  function handleSessionOutcome(independenceRating) {
-    if (!independenceRating) {
-      return;
-    }
-
-    setLastCompletedQuest((previous) => {
-      if (!previous) {
-        return previous;
-      }
-
-      return {
-        ...previous,
-        independenceRating,
-      };
-    });
-
-    const sessionId = lastCompletedQuest?.activitySessionId;
-
-    if (!sessionId) {
-      return;
-    }
-
-    void updateActivitySession(
-      sessionId,
-      { independenceRating },
-      { expectedUserId: user?.id }
-    ).catch((error) => {
-      console.error("Could not update session independence rating:", error);
-    });
-  }
-
-  function cancelActiveActivity() {
-    if (!activeActivity) {
-      return;
-    }
-
-    const canceledHistoryItem = buildCanceledHistoryItem(activeActivity, {
-      kidMood,
-      messLevel,
-      locationPreference,
-      childAgeRange: effectiveChildAgeRange,
-    });
-
-    appendHistory(canceledHistoryItem);
-
-    // Canceling should not show a celebration summary.
-    setLastCompletedQuest(null);
-
-    patchActiveSessionExit(activeActivity, "canceled");
-
-    setActiveActivity(null);
-    setStepHint("");
-    showStatus(`Canceled: "${activeActivity.title}".`, "info");
-  }
-
-  function handleTimerNotFinished() {
-    if (!activeActivity) {
-      return;
-    }
-
-    const notFinishedHistoryItem = {
-      id: crypto.randomUUID(),
-      title: activeActivity.title,
-
-      activityStyle: normalizeActivityStyle(activeActivity),
-
-      feedbackType: "not-finished",
-      createdAt: new Date().toISOString(),
-      kidMood,
-      messLevel,
-      locationPreference,
-      childAgeRange: effectiveChildAgeRange,
-    };
-
-    appendHistory(notFinishedHistoryItem);
-    patchActiveSessionExit(activeActivity, "not-finished");
-    setActiveActivity(null);
-    showStatus(
-      `"${activeActivity.title}" was marked not finished. We'll use that to improve suggestions.`,
-      "info"
-    );
-  }
-
-  function handleTimerNeedAnotherIdea() {
-    if (!activeActivity) {
-      return;
-    }
-
-    const previousTitle = activeActivity.title;
-
-    const anotherIdeaHistoryItem = {
-      id: crypto.randomUUID(),
-      title: previousTitle,
-
-      // Preserve whether the rejected activity was simple or imaginative.
-      // This helps future scoring learn patterns like:
-      // "Simple activities work better when the kid is tired."
-      activityStyle: normalizeActivityStyle(activeActivity),
-
-      feedbackType: "need-another-idea",
-      createdAt: new Date().toISOString(),
-      kidMood,
-      messLevel,
-      locationPreference,
-      childAgeRange: effectiveChildAgeRange,
-    };
-
-    appendHistory(anotherIdeaHistoryItem);
-    patchActiveSessionExit(activeActivity, "abandoned");
-    setActiveActivity(null);
-
-    handleGenerateActivities(
-      `The child tried "${previousTitle}" but needs another idea. Suggest 3 different activities that are easier to start and feel fresh.`
-    );
-  }
-
   function handleTimerMoreLikeThis() {
     if (!activeActivity) {
       return;
@@ -2548,11 +1764,6 @@ Prioritize activities that require the least decision-making from the child.
     handleGenerateActivities(
       `The family liked "${activity.title}". Suggest more activities with a similar feeling, but do not repeat the same title.`
     );
-  }
-
-  function clearLastCompletedQuest() {
-    // This hides the completion summary.
-    setLastCompletedQuest(null);
   }
 
   function handleCompletedQuestMoreLikeThis() {

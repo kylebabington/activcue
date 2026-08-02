@@ -13,3 +13,5 @@ export {
   buildActivitySessionExitPatch,
   INDEPENDENCE_OUTCOMES,
 } from "./useQuest";
+
+export { useQuestSession } from "./useQuestSession";
