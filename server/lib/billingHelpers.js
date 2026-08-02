@@ -68,6 +68,14 @@ export function getCheckoutConflict({
   entitlement,
   blockingSubscription,
 }) {
+  if (entitlement?.billingExempt) {
+    return {
+      status: 409,
+      error: "FamilyFlow Plus is included with this account.",
+      code: "BILLING_EXEMPT_ACCOUNT",
+    };
+  }
+
   if (entitlement?.isPaid) {
     return {
       status: 409,

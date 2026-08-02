@@ -48,43 +48,80 @@ export function isPaidSubscription(subscription) {
 
 /*
  * Return the current server-trusted subscription entitlement.
+ *
+ * isPaid reflects Stripe subscription state only.
+ * hasPlusAccess also includes complimentary billing-exempt accounts.
  */
 export async function getUserEntitlement(userId) {
     const supabaseAdmin = getSupabaseAdminClient();
 
-    const {
-        data: subscription,
-        error,
-    } = await supabaseAdmin
-        .from("subscriptions")
-        .select(
-            [
-                "status",
-                "stripe_price_id",
-                "current_period_end",
-                "cancel_at_period_end",
-            ].join(",")
-        )
-        .eq("user_id", userId)
-        .maybeSingle();
+    const [
+        {
+            data: profile,
+            error: profileError,
+        },
+        {
+            data: subscription,
+            error: subscriptionError,
+        },
+    ] = await Promise.all([
+        supabaseAdmin
+            .from("profiles")
+            .select(
+                [
+                    "role",
+                    "billing_exempt",
+                ].join(",")
+            )
+            .eq("user_id", userId)
+            .maybeSingle(),
+        supabaseAdmin
+            .from("subscriptions")
+            .select(
+                [
+                    "status",
+                    "stripe_price_id",
+                    "current_period_end",
+                    "cancel_at_period_end",
+                ].join(",")
+            )
+            .eq("user_id", userId)
+            .maybeSingle(),
+    ]);
 
-    if (error) {
-        throw error;
+    if (profileError) {
+        throw profileError;
+    }
+
+    if (subscriptionError) {
+        throw subscriptionError;
     }
 
     const subscriptionStatus =
         subscription?.status || "inactive";
 
     const isPaid = isPaidSubscription(subscription);
+    const billingExempt = profile?.billing_exempt === true;
+    const role = profile?.role === "admin" ? "admin" : "user";
+    const isAdmin = role === "admin";
+    const hasPlusAccess = isPaid || billingExempt;
 
     return {
         isPaid,
 
+        billingExempt,
+
+        role,
+
+        isAdmin,
+
+        hasPlusAccess,
+
         canGenerateWithAi:
-            isPaid,
+            hasPlusAccess,
 
         canUseAiHints:
-            isPaid,
+            hasPlusAccess,
 
         subscriptionStatus,
 

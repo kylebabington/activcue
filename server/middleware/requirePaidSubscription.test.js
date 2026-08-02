@@ -50,9 +50,11 @@ describe("requirePaidSubscription", () => {
     expect(next).not.toHaveBeenCalled();
   });
 
-  it("returns 402 with entitlement when the user is unpaid", async () => {
+  it("returns 402 with entitlement when the user lacks Plus access", async () => {
     const entitlement = {
       isPaid: false,
+      hasPlusAccess: false,
+      billingExempt: false,
       subscriptionStatus: "inactive",
       cancelAtPeriodEnd: false,
       currentPeriodEnd: null,
@@ -68,17 +70,47 @@ describe("requirePaidSubscription", () => {
 
     expect(res.statusCode).toBe(402);
     expect(res.body.code).toBe("SUBSCRIPTION_REQUIRED");
+    expect(res.body.error).toBe(
+      "FamilyFlow Plus access is required to generate personalized activities."
+    );
     expect(res.body.entitlement).toEqual(entitlement);
     expect(req.entitlement).toEqual(entitlement);
     expect(next).not.toHaveBeenCalled();
   });
 
-  it("calls next and attaches entitlement when the user is paid", async () => {
+  it("calls next when the user is paid", async () => {
     const entitlement = {
       isPaid: true,
+      hasPlusAccess: true,
+      billingExempt: false,
       subscriptionStatus: "active",
       cancelAtPeriodEnd: true,
       currentPeriodEnd: "2099-01-01T00:00:00.000Z",
+    };
+
+    getUserEntitlementMock.mockResolvedValue(entitlement);
+
+    const req = { auth: { userId: "user-1" } };
+    const res = createMockRes();
+    const next = vi.fn();
+
+    await requirePaidSubscription(req, res, next);
+
+    expect(next).toHaveBeenCalledTimes(1);
+    expect(req.entitlement).toEqual(entitlement);
+    expect(res.body).toBeNull();
+  });
+
+  it("calls next for a billing-exempt user without a paid subscription", async () => {
+    const entitlement = {
+      isPaid: false,
+      hasPlusAccess: true,
+      billingExempt: true,
+      role: "admin",
+      isAdmin: true,
+      subscriptionStatus: "inactive",
+      cancelAtPeriodEnd: false,
+      currentPeriodEnd: null,
     };
 
     getUserEntitlementMock.mockResolvedValue(entitlement);

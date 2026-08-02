@@ -2,6 +2,17 @@
 
 import { getSupabaseAdminClient } from "../lib/supabaseAdminClient.js";
 
+const PROFILE_SELECT_FIELDS = [
+  "user_id",
+  "is_anonymous",
+  "free_imaginative_activity_id",
+  "stripe_customer_id",
+  "role",
+  "billing_exempt",
+  "created_at",
+  "updated_at",
+].join(",");
+
 /*
  * Load the application profile for the authenticated user.
  *
@@ -28,16 +39,7 @@ export async function ensureUserProfile(req, res, next) {
       error: selectError,
     } = await supabaseAdmin
       .from("profiles")
-      .select(
-        [
-          "user_id",
-          "is_anonymous",
-          "free_imaginative_activity_id",
-          "stripe_customer_id",
-          "created_at",
-          "updated_at",
-        ].join(",")
-      )
+      .select(PROFILE_SELECT_FIELDS)
       .eq("user_id", userId)
       .maybeSingle();
 
@@ -58,16 +60,7 @@ export async function ensureUserProfile(req, res, next) {
           .from("profiles")
           .update({ is_anonymous: isAnonymous })
           .eq("user_id", userId)
-          .select(
-            [
-              "user_id",
-              "is_anonymous",
-              "free_imaginative_activity_id",
-              "stripe_customer_id",
-              "created_at",
-              "updated_at",
-            ].join(",")
-          )
+          .select(PROFILE_SELECT_FIELDS)
           .single();
 
         if (updateError) {
@@ -91,16 +84,7 @@ export async function ensureUserProfile(req, res, next) {
         user_id: userId,
         is_anonymous: isAnonymous,
       })
-      .select(
-        [
-          "user_id",
-          "is_anonymous",
-          "free_imaginative_activity_id",
-          "stripe_customer_id",
-          "created_at",
-          "updated_at",
-        ].join(",")
-      )
+      .select(PROFILE_SELECT_FIELDS)
       .single();
 
     if (insertError) {
@@ -114,16 +98,7 @@ export async function ensureUserProfile(req, res, next) {
           error: raceSelectError,
         } = await supabaseAdmin
           .from("profiles")
-          .select(
-            [
-              "user_id",
-              "is_anonymous",
-              "free_imaginative_activity_id",
-              "stripe_customer_id",
-              "created_at",
-              "updated_at",
-            ].join(",")
-          )
+          .select(PROFILE_SELECT_FIELDS)
           .eq("user_id", userId)
           .single();
 
