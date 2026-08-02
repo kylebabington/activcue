@@ -435,6 +435,14 @@ router.post(
 
       const supabase = getSupabaseAdminClient();
 
+      const participantChildIds = parseParticipantChildIds(
+        body.participantChildIds ?? body.participant_child_ids
+      );
+      const sessionScope = parseSessionScope(
+        body.sessionScope ?? body.session_scope,
+        participantChildIds
+      );
+
       const { data, error } = await supabase
         .from("activity_sessions")
         .insert({
@@ -443,6 +451,8 @@ router.post(
             typeof (body.childId ?? body.child_id) === "string"
               ? body.childId ?? body.child_id
               : "",
+          session_scope: sessionScope,
+          participant_child_ids: participantChildIds,
           activity_title: activityTitle,
           activity_style: parseOptionalString(
             body.activityStyle ?? body.activity_style
