@@ -6,12 +6,16 @@ import ActivityResults from "../components/ActivityResults";
 import MomentStatusBanner from "../components/MomentStatusBanner";
 import SimpleActiveActivityPanel from "../components/SimpleActiveActivityPanel";
 import { useAppContext } from "../context/AppContext";
+import { INDEPENDENCE_OUTCOMES } from "../features/quest";
 
 function QuestCompleteSummary({
     lastCompletedQuest,
     clearLastCompletedQuest,
     handleCompletedQuestMoreLikeThis,
     handleCompletedQuestNeedAnotherIdea,
+    saveFavoriteActivity,
+    reapplyLastSuccessfulMoment,
+    onSessionOutcome,
 }) {
     const uses = Array.isArray(lastCompletedQuest.uses)
         ? lastCompletedQuest.uses
@@ -22,6 +26,7 @@ function QuestCompleteSummary({
 
     const completionLabel = "Activity complete";
     const isSimpleActivity = lastCompletedQuest.activityStyle === "simple";
+    const selectedOutcome = lastCompletedQuest.independenceRating || "";
 
     const progressText =
         totalStepCount > 0
@@ -57,6 +62,54 @@ function QuestCompleteSummary({
                         <strong>{uses.slice(0, 3).join(", ")}</strong>
                     </div>
                 )}
+            </div>
+
+            {typeof onSessionOutcome === "function" ? (
+                <div className="independence-outcome" role="group" aria-label="How independent was this?">
+                    <p className="independence-outcome-prompt">
+                        Did this buy you the time?
+                    </p>
+                    <div className="independence-outcome-actions">
+                        {INDEPENDENCE_OUTCOMES.map((outcome) => (
+                            <button
+                                key={outcome.value}
+                                type="button"
+                                className={
+                                    selectedOutcome === outcome.value
+                                        ? "independence-outcome-button is-selected"
+                                        : "independence-outcome-button"
+                                }
+                                onClick={() => onSessionOutcome(outcome.value)}
+                            >
+                                {outcome.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            ) : null}
+
+            <div className="completion-ritual-actions">
+                {lastCompletedQuest.activity ? (
+                    <button
+                        type="button"
+                        className="secondary-action"
+                        onClick={() =>
+                            saveFavoriteActivity?.(lastCompletedQuest.activity)
+                        }
+                    >
+                        Save favorite?
+                    </button>
+                ) : null}
+
+                {typeof reapplyLastSuccessfulMoment === "function" ? (
+                    <button
+                        type="button"
+                        className="secondary-action"
+                        onClick={reapplyLastSuccessfulMoment}
+                    >
+                        Same moment next time?
+                    </button>
+                ) : null}
             </div>
 
             <div className="completion-actions">
@@ -116,11 +169,16 @@ function QuestPage() {
         isLoading,
         handleStartActivity,
         saveFavoriteActivity,
+        entitlement,
+        reapplyLastSuccessfulMoment,
+        activitySessions,
+        activeChildProfile,
         handleTooMessy,
         handleTooHard,
         handleNeedQuieter,
         handleMoreLikeThis,
         handleAutoPickQuest,
+        handleSessionOutcome,
     } = useAppContext();
     return (
         <section className="page-layout page-layout--kid">
@@ -138,6 +196,7 @@ function QuestPage() {
                     stepHint={stepHint}
                     isHintLoading={isHintLoading}
                     handleNeedStepHint={handleNeedStepHint}
+                    canUseAiHints={Boolean(entitlement?.canUseAiHints)}
                     finishActiveActivity={finishActiveActivity}
                     cancelActiveActivity={cancelActiveActivity}
                 />
@@ -160,6 +219,7 @@ function QuestPage() {
                     stepHint={stepHint}
                     isHintLoading={isHintLoading}
                     handleNeedStepHint={handleNeedStepHint}
+                    canUseAiHints={Boolean(entitlement?.canUseAiHints)}
                     formatTimer={formatTimer}
                 />
             )}
@@ -170,6 +230,9 @@ function QuestPage() {
                     clearLastCompletedQuest={clearLastCompletedQuest}
                     handleCompletedQuestMoreLikeThis={handleCompletedQuestMoreLikeThis}
                     handleCompletedQuestNeedAnotherIdea={handleCompletedQuestNeedAnotherIdea}
+                    saveFavoriteActivity={saveFavoriteActivity}
+                    reapplyLastSuccessfulMoment={reapplyLastSuccessfulMoment}
+                    onSessionOutcome={handleSessionOutcome}
                 />
             )}
 
@@ -194,15 +257,21 @@ function QuestPage() {
 
             {!activeActivity && !lastCompletedQuest && activities.length === 0 && !isLoading && (
                 <section className="panel">
-                    <h2>No activities yet</h2>
+                    <h2>Waiting for Kid</h2>
 
                     <p>
-                        Go to Kid Mode and choose what kind of activity you want.
+                        Set a parent moment, then open Kid and tap I&apos;m Bored
+                        (or Quick ideas) to fill this board.
                     </p>
 
-                    <Link className="primary-link-button" to="/kid">
-                        Go to Kid Mode
-                    </Link>
+                    <div className="activity-empty-actions">
+                        <Link className="primary-link-button" to="/kid">
+                            Go to Kid
+                        </Link>
+                        <Link className="secondary-action" to="/parent">
+                            Set a moment
+                        </Link>
+                    </div>
                 </section>
             )}
             </div>
@@ -220,6 +289,8 @@ function QuestPage() {
                         handleTooHard={handleTooHard}
                         handleNeedQuieter={handleNeedQuieter}
                         handleMoreLikeThis={handleMoreLikeThis}
+                        activitySessions={activitySessions}
+                        activeChildName={activeChildProfile?.name || ""}
                     />
                 </div>
             )}

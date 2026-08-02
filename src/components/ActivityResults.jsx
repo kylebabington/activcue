@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { ActivityDetailsModal } from "./ActivityDetailsModal";
-import { getVerifiedFitFacts } from "../utils/inventoryFit";
+import { getVerifiedFitFacts, buildWhyThisFits } from "../utils/inventoryFit";
+import { buildConfidenceCopy } from "../utils/confidenceCopy";
 
 function ActivityResults({
   activities,
@@ -15,6 +16,8 @@ function ActivityResults({
   handleTooHard,
   handleNeedQuieter,
   handleMoreLikeThis,
+  activitySessions = [],
+  activeChildName = "",
 }) {
   const [detailsActivityTitle, setDetailsActivityTitle] = useState(null);
   const [feedbackActivityTitle, setFeedbackActivityTitle] = useState(null);
@@ -82,6 +85,12 @@ function ActivityResults({
             const isBestFit = index === 0 && typeof score === "number";
             const feedbackIsOpen = feedbackActivityTitle === activity.title;
             const fitFacts = getVerifiedFitFacts(activity, currentMoment);
+            const whyThisFits = buildWhyThisFits(activity, currentMoment);
+            const confidenceCopy = buildConfidenceCopy(
+              activity,
+              activitySessions,
+              activeChildName
+            );
 
             return (
               <article key={activity.title} className="quest-choice-card">
@@ -102,6 +111,14 @@ function ActivityResults({
                     {activity.summary && (
                       <p className="quest-short-summary">{activity.summary}</p>
                     )}
+
+                    {whyThisFits ? (
+                      <p className="why-this-fits">{whyThisFits}</p>
+                    ) : null}
+
+                    {confidenceCopy ? (
+                      <p className="confidence-copy">{confidenceCopy}</p>
+                    ) : null}
 
                     {fitFacts.length > 0 && (
                       <div className="fit-fact-chip-row">
