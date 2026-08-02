@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
    FAMILYFLOW DESIGN CONTROL PANEL
 
    Change values here before touching any other CSS file.
@@ -10,7 +10,7 @@
      data-density="compact" | "comfortable"
      data-shape="rounded" | "squared"
 
-   Breakpoints (use these numbers — CSS vars cannot drive @media):
+   Breakpoints (use these numbers â€” CSS vars cannot drive @media):
      Small:  640px
      Medium: 768px
      Large:  1024px
@@ -76,7 +76,7 @@
   --font-size-sm: 0.885rem;
   --font-size-base: 0.925rem;
   --font-size-md: 1.175rem;
-  --font-size-lg: 0.9rem;
+  --font-size-lg: 1.35rem;
   --font-size-xl: 1.405rem;
   --font-size-hero: clamp(1.5rem, 3vw, 2rem);
 
@@ -107,9 +107,9 @@
      SHAPE
      ---------------------------------------------------------- */
 
-  --radius-small: 2rem;
-  --radius-medium: 2.5rem;
-  --radius-large: 1.375rem;
+  --radius-small: 0.5rem;
+  --radius-medium: 1rem;
+  --radius-large: 1.75rem;
   --radius-pill: 999px;
   --radius-chip: 1.5rem;
 
@@ -232,13 +232,13 @@
   --font-size-sm: 0.885rem;
   --font-size-base: 0.925rem;
   --font-size-md: 1.175rem;
-  --font-size-lg: 0.9rem;
+  --font-size-lg: 1.35rem;
   --font-size-xl: 1.405rem;
   --font-size-hero: clamp(1.5rem, 3vw, 2rem);
 
-  --radius-small: 2rem;
-  --radius-medium: 2.5rem;
-  --radius-large: 1.375rem;
+  --radius-small: 0.5rem;
+  --radius-medium: 1rem;
+  --radius-large: 1.75rem;
   --radius-chip: 1.5rem;
 
   --shadow-color: 26 58 74;
@@ -292,7 +292,7 @@
   --font-size-sm: 0.8rem;
   --font-size-base: 0.875rem;
   --font-size-md: 0.925rem;
-  --font-size-lg: 1.05rem;
+  --font-size-lg: 1.4rem;
   --font-size-xl: 1.25rem;
   --font-size-hero: clamp(1.3rem, 2.4vw, 1.65rem);
 
