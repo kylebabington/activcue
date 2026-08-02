@@ -2,9 +2,6 @@
 
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import {
-  ApiRequestError,
-} from "../api/apiClient";
 import { checkEmailAvailability } from "../api/authApi";
 import { useAuth } from "../hooks/useAuth";
 import { supabase } from "../lib/supabaseClient";
@@ -52,20 +49,15 @@ function SignupPage() {
        * Reject emails that already belong to another Auth user before asking
        * Supabase to send a confirmation message.
        */
-      try {
+      const availability =
         await checkEmailAvailability(normalizedEmail);
-      } catch (availabilityError) {
-        if (
-          availabilityError instanceof ApiRequestError &&
-          availabilityError.code === "EMAIL_ALREADY_REGISTERED"
-        ) {
-          setErrorMessage(
-            "That email may already belong to an account. Log in instead, or use a different email."
-          );
-          return;
-        }
 
-        throw availabilityError;
+      if (availability?.available === false) {
+        setErrorMessage(
+          availability.message ||
+            "If this address can be used, we will continue. Otherwise, try logging in."
+        );
+        return;
       }
 
       const emailRedirectTo =
