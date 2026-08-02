@@ -58,16 +58,40 @@ const PORT = process.env.PORT || 3001;
 app.set("trust proxy", 1);
 
 /*
- * Add standard HTTP security headers.
- *
- * Content Security Policy is temporarily disabled because the future app
- * will load resources from Supabase, Stripe, and Cloudflare Turnstile.
- *
- * We will configure a real CSP after those services are connected.
+ * Add standard HTTP security headers, including a CSP tuned for FamilyFlow's
+ * Supabase auth, Stripe Checkout, Google Fonts, and same-origin assets.
  */
 app.use(
   helmet({
-    contentSecurityPolicy: false,
+    contentSecurityPolicy: {
+      useDefaults: true,
+      directives: {
+        "default-src": ["'self'"],
+        "base-uri": ["'self'"],
+        "object-src": ["'none'"],
+        "frame-ancestors": ["'none'"],
+        "script-src": ["'self'", "https://js.stripe.com"],
+        "style-src": [
+          "'self'",
+          "'unsafe-inline'",
+          "https://fonts.googleapis.com",
+        ],
+        "font-src": ["'self'", "https://fonts.gstatic.com", "data:"],
+        "img-src": ["'self'", "data:", "blob:", "https://*.stripe.com"],
+        "connect-src": [
+          "'self'",
+          "https://*.supabase.co",
+          "wss://*.supabase.co",
+          "https://api.stripe.com",
+        ],
+        "frame-src": [
+          "'self'",
+          "https://js.stripe.com",
+          "https://hooks.stripe.com",
+        ],
+        "form-action": ["'self'", "https://checkout.stripe.com"],
+      },
+    },
   })
 );
 

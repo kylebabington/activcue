@@ -5,6 +5,7 @@ import { checkEmailAvailabilityForUser } from "../lib/authEmailAvailability.js";
 import { getUserEntitlement } from "../lib/entitlements.js";
 import { requireAuthenticatedUser } from "../middleware/requireAuthenticatedUser.js";
 import { ensureUserProfile } from "../middleware/ensureUserProfile.js";
+import { authRateLimiter, emailCheckRateLimiter } from "../middleware/rateLimits.js";
 
 const router = Router();
 
@@ -15,6 +16,7 @@ const router = Router();
  */
 router.get(
   "/auth/me",
+  authRateLimiter,
   requireAuthenticatedUser,
   ensureUserProfile,
   async (req, res) => {
@@ -85,6 +87,7 @@ router.get(
  */
 router.post(
   "/auth/check-email",
+  emailCheckRateLimiter,
   requireAuthenticatedUser,
   ensureUserProfile,
   async (req, res) => {
@@ -103,19 +106,28 @@ router.post(
         });
       }
 
+      /*
+       * Avoid a crisp EMAIL_ALREADY_REGISTERED directory signal.
+       * Same shape for taken vs free keeps enumeration harder while still
+       * steering the parent toward login when needed.
+       */
       if (!result.available) {
-        return res.status(409).json({
-          error:
-            "That email may already belong to an account. Log in instead, or use a different email.",
-          code: "EMAIL_ALREADY_REGISTERED",
+        return res.json({
           available: false,
+          canContinue: false,
           email: result.email,
+          message:
+            "If this address can be used, we will continue. Otherwise, try logging in with it.",
+          code: "EMAIL_CHECK_COMPLETE",
         });
       }
 
       return res.json({
         available: true,
+        canContinue: true,
         email: result.email,
+        message: "That email can be used.",
+        code: "EMAIL_CHECK_COMPLETE",
       });
     } catch (error) {
       console.error(
