@@ -9,5 +9,7 @@ export {
   buildFinishedHistoryItem,
   buildCanceledHistoryItem,
   buildActivitySessionPayload,
+  buildActivitySessionStartPayload,
+  buildActivitySessionExitPatch,
   INDEPENDENCE_OUTCOMES,
 } from "./useQuest";
