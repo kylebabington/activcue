@@ -56,21 +56,18 @@ import {
 } from "./features/quest";
 import {
   buildStructuredPreferenceContext,
-  getTotalActivityScore,
   logActivityScoreTable,
   activityPassesInventorySoftCheck,
   buildInventoryOnlyFeedback,
   normalizeActivitiesToInventory,
+  scoreActivitiesForCurrentMoment,
+  pickBestActivityForCurrentMoment,
 } from "./features/activities";
 import {
   createActivitySession,
   updateActivitySession,
   listActivitySessions,
 } from "./api/familyMemoryApi";
-import {
-  applySessionFitBoost,
-  getSessionFitBoost,
-} from "./utils/sessionFitScore";
 import { trackProductEvent } from "./utils/analytics";
 import { buildSimpleActivitiesFromTemplates } from "./utils/simpleActivityTemplates";
 import { normalizeActivityStyle } from "./utils/activityStyle";
@@ -243,29 +240,21 @@ function App() {
   );
 
   const scoredActivities = useMemo(() => {
-    return activities
-      .map((activity) => {
-        const baseScore = getTotalActivityScore(
-          activity,
-          currentMoment,
-          activityHistory,
-          scoringOptions
-        );
-        return {
-          activity,
-          score: applySessionFitBoost(baseScore, activity, activitySessions),
-          sessionBoost: getSessionFitBoost(activity, activitySessions),
-        };
-      })
-      .sort((a, b) => {
-        return b.score - a.score;
-      });
+    return scoreActivitiesForCurrentMoment({
+      activities,
+      currentMoment,
+      activityHistory,
+      activitySessions,
+      scoringOptions,
+      activityMode,
+    });
   }, [
     activities,
     currentMoment,
     activityHistory,
     scoringOptions,
     activitySessions,
+    activityMode,
   ]);
 
   useEffect(() => {
@@ -2190,31 +2179,30 @@ Prioritize activities that require the least decision-making from the child.
   }
 
   function getBestActivityForCurrentMoment(activityOptions) {
-    // If the caller gives us nothing, return null.
     if (!Array.isArray(activityOptions) || activityOptions.length === 0) {
       return null;
     }
 
-    // Score every option using the same scoring function used by auto-pick.
-    const scoredOptions = activityOptions.map((activity) => {
-      return {
-        activity,
-        score: getTotalActivityScore(
-          activity,
-          currentMoment,
-          activityHistory,
-          scoringOptions
-        ),
-      };
+    const selected = pickBestActivityForCurrentMoment({
+      activities: activityOptions,
+      currentMoment,
+      activityHistory,
+      activitySessions,
+      scoringOptions,
+      activityMode,
     });
 
-    // Sort highest score first.
-    scoredOptions.sort((a, b) => b.score - a.score);
-
+    const scoredOptions = scoreActivitiesForCurrentMoment({
+      activities: activityOptions,
+      currentMoment,
+      activityHistory,
+      activitySessions,
+      scoringOptions,
+      activityMode,
+    });
     logActivityScoreTable(scoredOptions, currentMoment, activityHistory);
 
-    // Return only the winning activity.
-    return scoredOptions[0].activity;
+    return selected;
   }
 
   function finishActiveActivity() {

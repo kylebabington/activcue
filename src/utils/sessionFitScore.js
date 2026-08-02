@@ -5,7 +5,10 @@
  * activity_session outcomes: independence_rating and actual vs requested minutes.
  */
 
-import { normalizeTextValue } from "./activityScoring";
+import {
+  getTotalActivityScore,
+  normalizeTextValue,
+} from "./activityScoring";
 import { normalizeActivityStyle } from "./activityStyle";
 
 const INDEPENDENCE_BASE = {
@@ -13,6 +16,27 @@ const INDEPENDENCE_BASE = {
   "needed-me-few-times": 2,
   "didnt-last": -6,
 };
+
+function getSessionChildId(session) {
+  return String(session?.childId ?? session?.child_id ?? "").trim();
+}
+
+/*
+ * Single-child mode: only that child's sessions (strict — no empty childId).
+ * Family mode / no activeChildId: household-wide sessions.
+ */
+export function filterSessionsForFitScore(
+  sessions = [],
+  { activeChildId = "", activityMode = "single-child" } = {}
+) {
+  const list = Array.isArray(sessions) ? sessions : [];
+
+  if (activityMode === "family" || !activeChildId) {
+    return list;
+  }
+
+  return list.filter((session) => getSessionChildId(session) === activeChildId);
+}
 
 function getIndependenceKey(session) {
   return normalizeTextValue(
@@ -101,6 +125,7 @@ function sessionMatchesActivity(session, activity) {
 
 /*
  * Numeric boost for one activity given prior sessions (may be empty).
+ * Pass already child-filtered sessions, or use scoreActivitiesForCurrentMoment.
  */
 export function getSessionFitBoost(activity, sessions = []) {
   if (!activity || !Array.isArray(sessions) || sessions.length === 0) {
@@ -164,4 +189,38 @@ export function scoreActivitiesWithSessionFit(
       };
     })
     .sort((a, b) => b.score - a.score);
+}
+
+/*
+ * Canonical ranking for the activity board, auto-pick, and future recommenders.
+ */
+export function scoreActivitiesForCurrentMoment({
+  activities,
+  currentMoment,
+  activityHistory,
+  activitySessions,
+  scoringOptions = {},
+  activityMode = "single-child",
+} = {}) {
+  const activeChildId = scoringOptions.activeChildId || "";
+  const sessionsForFit = filterSessionsForFitScore(activitySessions, {
+    activeChildId,
+    activityMode,
+  });
+
+  return scoreActivitiesWithSessionFit(activities, {
+    sessions: sessionsForFit,
+    getBaseScore: (activity) =>
+      getTotalActivityScore(
+        activity,
+        currentMoment,
+        activityHistory,
+        scoringOptions
+      ),
+  });
+}
+
+export function pickBestActivityForCurrentMoment(options) {
+  const scored = scoreActivitiesForCurrentMoment(options);
+  return scored[0]?.activity || null;
 }

@@ -27,4 +27,7 @@ export {
   applySessionFitBoost,
   getSessionFitBoost,
   scoreActivitiesWithSessionFit,
+  filterSessionsForFitScore,
+  scoreActivitiesForCurrentMoment,
+  pickBestActivityForCurrentMoment,
 } from "../../utils/sessionFitScore";
