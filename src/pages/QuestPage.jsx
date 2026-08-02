@@ -179,11 +179,18 @@ function QuestPage() {
         handleMoreLikeThis,
         handleAutoPickQuest,
         handleSessionOutcome,
+        inventoryEmpty,
+        gettingBetterCopy,
     } = useAppContext();
     return (
         <section className="page-layout page-layout--kid">
             <section className="page-intro page-intro--kid page-intro--minimal">
                 <h1>What should happen next?</h1>
+                {gettingBetterCopy ? (
+                    <p className="kid-getting-better" role="status">
+                        {gettingBetterCopy}
+                    </p>
+                ) : null}
             </section>
 
             <div className="kid-center-column">
@@ -292,6 +299,7 @@ function QuestPage() {
                         activitySessions={activitySessions}
                         activeChildName={activeChildProfile?.name || ""}
                         activeChildId={activeChildProfile?.id || ""}
+                        inventoryEmpty={inventoryEmpty}
                     />
                 </div>
             )}

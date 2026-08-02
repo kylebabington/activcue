@@ -192,7 +192,7 @@ function LandingPage() {
             <li>Unlimited imaginative pretend activities</li>
             <li>AI step hints when an activity gets stuck</li>
             <li>AI personalization that learns what works for your kids</li>
-            <li>Synced favorites and activity history across devices</li>
+            <li>Favorites and history sync when you are signed in</li>
           </ul>
           <p className="landing-plus-note">
             {canSubscribe
