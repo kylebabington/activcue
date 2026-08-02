@@ -5,6 +5,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import {
@@ -44,7 +45,13 @@ import {
   saveFamilySettings,
   useFamilySettings,
 } from "./features/family";
-import { useActivityTimer } from "./features/quest";
+import {
+  useActivityTimer,
+  buildCompletedQuestSummary,
+  buildFinishedHistoryItem,
+  buildCanceledHistoryItem,
+  buildActivitySessionPayload,
+} from "./features/quest";
 import {
   buildStructuredPreferenceContext,
   getTotalActivityScore,
@@ -53,6 +60,16 @@ import {
   buildInventoryOnlyFeedback,
   normalizeActivitiesToInventory,
 } from "./features/activities";
+import {
+  createActivitySession,
+  updateActivitySession,
+  listActivitySessions,
+} from "./api/familyMemoryApi";
+import {
+  applySessionFitBoost,
+  getSessionFitBoost,
+} from "./utils/sessionFitScore";
+import { trackProductEvent } from "./utils/analytics";
 import { buildSimpleActivitiesFromTemplates } from "./utils/simpleActivityTemplates";
 import { normalizeActivityStyle } from "./utils/activityStyle";
 import {
@@ -169,7 +186,6 @@ function App() {
     () => buildDefaultFamilySettings().safetySettings
   );
 
-
   const [activities, setActivities] = useState([]);
 
   const [activeActivity, setActiveActivity] = useLocalStorage(
@@ -181,11 +197,41 @@ function App() {
     "lastCompletedQuest",
     null
   );
+  const lastCompletedQuestRef = useRef(lastCompletedQuest);
+  lastCompletedQuestRef.current = lastCompletedQuest;
 
   const [activityHistory, setActivityHistory] = useLocalStorage(
     "activityHistory",
     []
   );
+
+  const [activitySessions, setActivitySessions] = useState([]);
+
+  useEffect(() => {
+    if (!user?.id) {
+      return;
+    }
+
+    let cancelled = false;
+
+    listActivitySessions({ expectedUserId: user.id, limit: 80 })
+      .then((payload) => {
+        if (cancelled) {
+          return;
+        }
+        const sessions = Array.isArray(payload?.activitySessions)
+          ? payload.activitySessions
+          : [];
+        setActivitySessions(sessions);
+      })
+      .catch((error) => {
+        console.warn("Could not load activity sessions:", error);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
 
   const scoringOptions = useMemo(
     () => ({
@@ -198,20 +244,28 @@ function App() {
   const scoredActivities = useMemo(() => {
     return activities
       .map((activity) => {
+        const baseScore = getTotalActivityScore(
+          activity,
+          currentMoment,
+          activityHistory,
+          scoringOptions
+        );
         return {
           activity,
-          score: getTotalActivityScore(
-            activity,
-            currentMoment,
-            activityHistory,
-            scoringOptions
-          ),
+          score: applySessionFitBoost(baseScore, activity, activitySessions),
+          sessionBoost: getSessionFitBoost(activity, activitySessions),
         };
       })
       .sort((a, b) => {
         return b.score - a.score;
       });
-  }, [activities, currentMoment, activityHistory, scoringOptions]);
+  }, [
+    activities,
+    currentMoment,
+    activityHistory,
+    scoringOptions,
+    activitySessions,
+  ]);
 
   useEffect(() => {
     if (activities.length === 0) {
@@ -515,16 +569,38 @@ function App() {
     }
   }
 
+  function applyPlayingSelection(nextIds, profiles = childProfiles) {
+    const profileIds = new Set(profiles.map((child) => child.id));
+    let next = nextIds.filter((id) => profileIds.has(id));
+
+    if (next.length === 0 && profiles.length > 0) {
+      next = [profiles[0].id];
+    }
+
+    setPlayingChildIds(next);
+
+    if (next.length <= 1) {
+      setActivityMode("single-child");
+      setActiveChildId(next[0] || "");
+      return;
+    }
+
+    setActivityMode("family");
+    setActiveChildId("");
+  }
+
   function togglePlayingChild(childId) {
     const isSelected = playingChildIds.includes(childId);
+
     if (isSelected && playingChildIds.length <= 1) {
       return;
     }
-    setPlayingChildIds(
-      isSelected
-        ? playingChildIds.filter((id) => id !== childId)
-        : [...playingChildIds, childId]
-    );
+
+    const next = isSelected
+      ? playingChildIds.filter((id) => id !== childId)
+      : [...playingChildIds, childId];
+
+    applyPlayingSelection(next);
   }
 
   function showStatus(message, type = "info") {
@@ -542,18 +618,17 @@ function App() {
   const [isHintLoading, setIsHintLoading] = useState(false);
 
   const activeChildProfile =
-    childProfiles.find((child) => child.id === activeChildId) || null;
+    childProfiles.find((child) => child.id === activeChildId) ||
+    childProfiles.find((child) => playingChildIds.includes(child.id)) ||
+    null;
 
   const effectiveChildAgeRange = activeChildProfile
     ? activeChildProfile.ageRange
     : childAgeRange;
 
-  const selectedChildProfiles =
-    activityMode === "family"
-      ? childProfiles
-      : activeChildProfile
-        ? [activeChildProfile]
-        : [];
+  const selectedChildProfiles = childProfiles.filter((child) =>
+    playingChildIds.includes(child.id)
+  );
 
   useEffect(() => {
     if (!activeActivity?.id) {
@@ -576,16 +651,15 @@ function App() {
       supervisionLevel: draft.supervisionLevel,
     });
     setParentStatus(parentStatusFromMoment(draft));
-    if (options.navigateToKid || firstRunCoach.active) {
-      firstRunCoach.markMomentSet();
-    }
-    if (options.navigateToKid) {
-      navigate("/kid");
-    }
     showStatus(
       `Live for kids now: "${draft.parentActivity}".`,
       "success"
     );
+
+    if (options.navigateToKid || firstRunCoach.active) {
+      firstRunCoach.markMomentSet();
+      navigate("/kid");
+    }
   }
 
   function saveCustomParentPreset(label, draft) {
@@ -733,7 +807,7 @@ function App() {
     const updatedChildren = [...childProfiles, childToAdd];
 
     setChildProfiles(updatedChildren);
-    setActiveChildId(childToAdd.id);
+    applyPlayingSelection([childToAdd.id], updatedChildren);
 
     setNewChildName("");
     setNewChildAgeRange("6-9");
@@ -774,13 +848,15 @@ function App() {
       return;
     }
 
-    setChildProfiles(
-      childProfiles.filter((child) => child.id !== childIdToDelete)
+    const remainingProfiles = childProfiles.filter(
+      (child) => child.id !== childIdToDelete
     );
 
-    if (activeChildId === childIdToDelete) {
-      setActiveChildId("");
-    }
+    setChildProfiles(remainingProfiles);
+    applyPlayingSelection(
+      playingChildIds.filter((id) => id !== childIdToDelete),
+      remainingProfiles
+    );
 
     if (editingChildId === childIdToDelete) {
       cancelEditingChildProfile();
@@ -940,6 +1016,7 @@ function App() {
         },
         feedbackContext,
         previousActivityTitles,
+        playModeTheme: uiTheme,
       };
 
       return getActivitySuggestions(activityRequest);
@@ -1090,51 +1167,15 @@ function App() {
     return "The child feels neutral. Suggest an activity with a balanced amount of effort.";
   }
 
+  /*
+   * Browser sends intent only. Full style policy lives in server/prompts.
+   */
   function getKidActivityStyleInstruction(activityStyle) {
     if (activityStyle === "imaginative") {
-      return `
-The child wants imaginative play.
-
-Use playful pretend framing, roles, and a rich setup story.
-Every imaginative activity should include:
-- a vivid theme that sets the world
-- a specific pretend role
-- a 3-to-5-sentence setup story in the mission field
-- make-believe play that still uses easy, realistic household setup
-
-The mission field is the setup story the child hears first. Open with what is happening in the pretend world, name a small mystery or invitation, say who the child is and why it matters, then point them into the first action. Do not shrink the mission to a one-line goal.
-`;
+      return "Intent: activityStyle=imaginative. Prefer pretend framing.";
     }
 
-    return `
-The child wants a SIMPLE activity.
-
-Simple means:
-- normal real-life kid activities
-- no elaborate pretend story
-- no complicated mission
-- no long setup
-- no multi-stage project unless the item itself requires it
-- no "quest" language unless absolutely necessary
-- no made-up fantasy premise
-- 2 to 4 short steps maximum
-- something the child can understand immediately
-
-Good simple examples:
-- Draw a picture of your family.
-- Use your crystal growing kit.
-- Jump on the trampoline.
-- Build a tower with blocks.
-- Read a book in a cozy spot.
-- Sort your cards.
-- Play with Magnatiles.
-- Make a paper airplane.
-- Do a puzzle.
-- Kick a soccer ball outside.
-
-For simple activities, plain is good.
-Do not make the idea more creative than it needs to be.
-`;
+    return "Intent: activityStyle=simple. Prefer plain real-life activities.";
   }
 
   async function handleGenerateKidActivities(options = {}) {
@@ -1199,7 +1240,7 @@ Do not make the idea more creative than it needs to be.
     if (isDemoMode) {
       if (!preferSimpleTemplates && imBoredDisabled) {
         showStatus(
-          "You used your free pretend sample. I'm Bored needs FamilyFlow Plus for more ideas.",
+          "Nice work finishing your free pretend sample. Unlock more pretend worlds with Plus — or keep using Simple / Quick ideas.",
           "info"
         );
         setIsLoading(false);
@@ -1448,7 +1489,7 @@ Always obey currentMoment limits for time, mess, noise, supervision, and parent 
 
           if (!unlocked) {
             showStatus(
-              "Your free pretend sample is used. Switch to Simple, or get Plus for more ideas.",
+              "You finished that free pretend world. Unlock more with Plus, or keep using Simple / Quick ideas.",
               "info"
             );
             navigate("/quest");
@@ -1504,7 +1545,7 @@ Always obey currentMoment limits for time, mess, noise, supervision, and parent 
 
         if (code === "FREE_IMAGINATIVE_UNLOCK_USED") {
           showStatus(
-            "Your free pretend sample is already used. Try a simple activity, or get Plus.",
+            "You finished your free pretend sample. Keep using Simple / Quick ideas, or unlock more pretend with Plus.",
             "info"
           );
         } else {
@@ -1826,7 +1867,7 @@ Prioritize activities that require the least decision-making from the child.
       setIsLoading(true);
       const ready = await startPresetActivity(activity);
       showStatus(
-        `Unlocked and started: "${ready.title}". I'm Bored needs Plus for more ideas.`,
+        `Unlocked and started: "${ready.title}". Celebrate that free pretend win — Plus unlocks more worlds when you are ready.`,
         "success"
       );
     } catch (error) {
@@ -1835,7 +1876,7 @@ Prioritize activities that require the least decision-making from the child.
 
       if (code === "FREE_IMAGINATIVE_UNLOCK_USED") {
         showStatus(
-          "Your free pretend sample is already used. Try a simple activity, or get Plus.",
+          "Your free pretend sample is already used. Keep using Simple / Quick ideas, or unlock more pretend with Plus.",
           "info"
         );
       } else {
@@ -1968,6 +2009,14 @@ Prioritize activities that require the least decision-making from the child.
       return;
     }
 
+    if (!entitlement.canUseAiHints) {
+      showStatus(
+        "AI hints are included with FamilyFlow Plus.",
+        "info"
+      );
+      return;
+    }
+
     // Make sure steps is always an array before reading from it.
     const steps = Array.isArray(activeActivity.steps) ? activeActivity.steps : [];
 
@@ -2068,7 +2117,7 @@ Prioritize activities that require the least decision-making from the child.
     if (!selectedActivity) {
       showStatus(
         freeImaginativeUnlockUsed
-          ? "Your free pretend sample is already used. Pick an unlocked activity, or get Plus."
+          ? "You finished your free pretend sample. Pick an unlocked activity, keep using Simple, or unlock more with Plus."
           : "I could not pick an activity yet. Try generating again.",
         freeImaginativeUnlockUsed ? "info" : "error"
       );
@@ -2090,7 +2139,7 @@ Prioritize activities that require the least decision-making from the child.
 
       if (code === "FREE_IMAGINATIVE_UNLOCK_USED") {
         showStatus(
-          "Your free pretend sample is already used. Try a simple activity, or get Plus.",
+          "You finished your free pretend sample. Keep using Simple / Quick ideas, or unlock more pretend with Plus.",
           "info"
         );
       } else {
@@ -2140,98 +2189,36 @@ Prioritize activities that require the least decision-making from the child.
       return;
     }
 
-    // Make sure steps is always an array before counting them.
-    const steps = Array.isArray(activeActivity.steps) ? activeActivity.steps : [];
-
-    // Make sure completedStepIndexes is always an array.
-    const completedStepIndexes = Array.isArray(activeActivity.completedStepIndexes)
-      ? activeActivity.completedStepIndexes
-      : [];
-
-    // If the kid is currently on a step, finishing the quest should count that
-    // current step as completed too.
-    const currentStepIndex = Number(activeActivity.currentStepIndex) || 0;
-
-    const completedWithCurrentStep = completedStepIndexes.includes(currentStepIndex)
-      ? completedStepIndexes
-      : [...completedStepIndexes, currentStepIndex];
-
-    // Remove duplicate indexes just in case.
-    const uniqueCompletedStepIndexes = [...new Set(completedWithCurrentStep)];
-
-    // Work out how many steps were completed.
-    const completedStepCount = uniqueCompletedStepIndexes.length;
-
-    // Work out how many total steps exist.
-    const totalStepCount = steps.length;
-
-    // Calculate how long the quest was active.
-    const startedAt = Number(activeActivity.startedAt);
     const finishedAt = Date.now();
+    const finishedActivity = activeActivity;
 
-    const minutesWorked =
-      Number.isFinite(startedAt) && startedAt > 0
-        ? Math.max(1, Math.round((finishedAt - startedAt) / 1000 / 60))
-        : null;
+    const completedQuestSummary = buildCompletedQuestSummary(finishedActivity, {
+      finishedAt,
+    });
 
-    // Build a summary object that the activity page can display.
-    const completedQuestSummary = {
-      id: crypto.randomUUID(),
-      title: activeActivity.title,
-
-      // Preserve whether this was a simple activity or an imaginative quest.
-      activityStyle: normalizeActivityStyle(activeActivity),
-
-      theme: activeActivity.theme || "",
-      summary: activeActivity.summary || "",
-      completedAt: new Date(finishedAt).toISOString(),
-
-      // Progress summary.
-      completedStepCount,
-      totalStepCount,
-      completedStepIndexes: uniqueCompletedStepIndexes,
-
-      // Time summary.
-      minutesWorked,
-
-      // Useful quest metadata.
-      uses: Array.isArray(activeActivity.uses) ? activeActivity.uses : [],
-      energy: activeActivity.energy || "medium",
-      mess: activeActivity.mess || "low",
-      adultHelp: activeActivity.adultHelp || "optional",
-
-      // Save the full quest too, because "More like this" needs context.
-      activity: activeActivity,
-    };
-
-    const finishedHistoryItem = {
-      id: crypto.randomUUID(),
-      title: activeActivity.title,
-
-      activityStyle: normalizeActivityStyle(activeActivity),
-
-      feedbackType: "finished",
-      createdAt: new Date().toISOString(),
+    const finishedHistoryItem = buildFinishedHistoryItem(finishedActivity, {
       kidMood,
       messLevel,
       locationPreference,
       childAgeRange: effectiveChildAgeRange,
-
-      // Add richer completion data to history.
-      completedStepCount,
-      totalStepCount,
-      minutesWorked,
-      energy: activeActivity.energy || "medium",
-      mess: activeActivity.mess || "low",
-      adultHelp: activeActivity.adultHelp || "optional",
-      estimatedMinutes: Number(activeActivity.estimatedMinutes) || null,
-      uses: Array.isArray(activeActivity.uses) ? activeActivity.uses : [],
-      stepsCount: Array.isArray(activeActivity.steps)
-        ? activeActivity.steps.length
-        : 0,
-    };
+      childId: activeChildProfile?.id || "",
+      childName: activeChildProfile?.name || "",
+      activityMode,
+    });
 
     setActivityHistory([...activityHistory, finishedHistoryItem]);
+
+    setLastSuccessfulMoment({
+      parentActivity: currentMoment.parentActivity,
+      availability: currentMoment.availability,
+      timeNeededMinutes: currentMoment.timeNeededMinutes,
+      space: currentMoment.space,
+      messLevel: currentMoment.messLevel,
+      noiseLevel: currentMoment.noiseLevel,
+      supervisionLevel: currentMoment.supervisionLevel,
+      completedAt: new Date(finishedAt).toISOString(),
+      activityTitle: finishedActivity.title,
+    });
 
     // Save the completion summary before clearing the active quest.
     setLastCompletedQuest(completedQuestSummary);
@@ -2240,7 +2227,94 @@ Prioritize activities that require the least decision-making from the child.
     setActiveActivity(null);
     setStepHint("");
 
-    showStatus(`Finished: "${activeActivity.title}". Nice work.`, "success");
+    showStatus(`Finished: "${finishedActivity.title}". Nice work.`, "success");
+    trackProductEvent("activity_finished", {
+      title: finishedActivity.title,
+    });
+
+    // Best-effort cloud session row — never block local UX on API failure.
+    void createActivitySession(
+      buildActivitySessionPayload(finishedActivity, currentMoment, {
+        childId: activeChildProfile?.id || "",
+        finishedAt,
+        completionStatus: "finished",
+      }),
+      { expectedUserId: user?.id }
+    )
+      .then((response) => {
+        const session = response?.activitySession;
+        if (session) {
+          setActivitySessions((current) => [session, ...current].slice(0, 100));
+        }
+
+        const sessionId = session?.id;
+        if (!sessionId) {
+          return;
+        }
+
+        const pendingIndependenceRating =
+          lastCompletedQuestRef.current?.id === completedQuestSummary.id
+            ? lastCompletedQuestRef.current.independenceRating || null
+            : null;
+
+        setLastCompletedQuest((previous) => {
+          if (!previous || previous.id !== completedQuestSummary.id) {
+            return previous;
+          }
+
+          return {
+            ...previous,
+            activitySessionId: sessionId,
+          };
+        });
+
+        if (pendingIndependenceRating) {
+          void updateActivitySession(
+            sessionId,
+            { independenceRating: pendingIndependenceRating },
+            { expectedUserId: user?.id }
+          ).catch((error) => {
+            console.error(
+              "Could not update session independence rating:",
+              error
+            );
+          });
+        }
+      })
+      .catch((error) => {
+        console.error("Could not create activity session:", error);
+      });
+  }
+
+  function handleSessionOutcome(independenceRating) {
+    if (!independenceRating) {
+      return;
+    }
+
+    setLastCompletedQuest((previous) => {
+      if (!previous) {
+        return previous;
+      }
+
+      return {
+        ...previous,
+        independenceRating,
+      };
+    });
+
+    const sessionId = lastCompletedQuest?.activitySessionId;
+
+    if (!sessionId) {
+      return;
+    }
+
+    void updateActivitySession(
+      sessionId,
+      { independenceRating },
+      { expectedUserId: user?.id }
+    ).catch((error) => {
+      console.error("Could not update session independence rating:", error);
+    });
   }
 
   function cancelActiveActivity() {
@@ -2248,27 +2322,12 @@ Prioritize activities that require the least decision-making from the child.
       return;
     }
 
-    const canceledHistoryItem = {
-      id: crypto.randomUUID(),
-      title: activeActivity.title,
-
-      activityStyle: normalizeActivityStyle(activeActivity),
-
-      feedbackType: "canceled",
-      createdAt: new Date().toISOString(),
+    const canceledHistoryItem = buildCanceledHistoryItem(activeActivity, {
       kidMood,
       messLevel,
       locationPreference,
       childAgeRange: effectiveChildAgeRange,
-      energy: activeActivity.energy || "medium",
-      mess: activeActivity.mess || "low",
-      adultHelp: activeActivity.adultHelp || "optional",
-      estimatedMinutes: Number(activeActivity.estimatedMinutes) || null,
-      uses: Array.isArray(activeActivity.uses) ? activeActivity.uses : [],
-      stepsCount: Array.isArray(activeActivity.steps)
-        ? activeActivity.steps.length
-        : 0,
-    };
+    });
 
     setActivityHistory([...activityHistory, canceledHistoryItem]);
 
@@ -2512,9 +2571,11 @@ Prioritize activities that require the least decision-making from the child.
     window.localStorage.removeItem("childAgeRange");
     window.localStorage.removeItem("activityHistory");
     window.localStorage.removeItem("savedActivities");
+    window.localStorage.removeItem("lastSuccessfulMoment");
     window.localStorage.removeItem("activeActivity");
     window.localStorage.removeItem("lastCompletedQuest");
     window.localStorage.removeItem("uiTheme");
+    window.localStorage.removeItem("kidDeviceMode");
     window.location.reload();
   }
 
@@ -2532,6 +2593,7 @@ Prioritize activities that require the least decision-making from the child.
     timerSecondsRemaining,
     finishActiveActivity,
     cancelActiveActivity,
+    handleSessionOutcome,
     handleTimerNotFinished,
     handleTimerNeedAnotherIdea,
     handleTimerMoreLikeThis,
@@ -2545,9 +2607,33 @@ Prioritize activities that require the least decision-making from the child.
     formatTimer,
     activities,
     scoredActivities,
+    activitySessions,
     isLoading,
     handleStartActivity: handleStartActivityFromUi,
     saveFavoriteActivity,
+    reapplyLastSuccessfulMoment: () => {
+      if (!lastSuccessfulMoment?.parentActivity) {
+        showStatus("Finish an activity first to reuse that moment.", "info");
+        return;
+      }
+
+      applyMomentDraft(
+        {
+          parentActivity: lastSuccessfulMoment.parentActivity,
+          availability:
+            lastSuccessfulMoment.availability || "helper-welcome",
+          timeNeededMinutes:
+            Number(lastSuccessfulMoment.timeNeededMinutes) || 20,
+          space: lastSuccessfulMoment.space || "Living room",
+          messLevel: lastSuccessfulMoment.messLevel || "low",
+          noiseLevel: lastSuccessfulMoment.noiseLevel || "normal",
+          supervisionLevel:
+            lastSuccessfulMoment.supervisionLevel || "independent",
+        },
+        { navigateToKid: true }
+      );
+      setLastCompletedQuest(null);
+    },
     handleTooMessy,
     handleTooHard,
     handleNeedQuieter,
@@ -2573,8 +2659,10 @@ Prioritize activities that require the least decision-making from the child.
     removeInventoryItem,
     childProfiles,
     activeChildId,
-    setActiveChildId,
+    setActiveChildId: (childId) => applyPlayingSelection([childId]),
     activeChildProfile,
+    playingChildIds,
+    togglePlayingChild,
     activityMode,
     setActivityMode,
     newChildName,
@@ -2603,6 +2691,9 @@ Prioritize activities that require the least decision-making from the child.
     uiTheme,
     setUiTheme,
     uiThemes,
+    kidDeviceMode,
+    setKidDeviceMode,
+    toggleKidDeviceMode,
   };
 
   if (familySettingsError) {
@@ -2701,6 +2792,7 @@ Prioritize activities that require the least decision-making from the child.
         </nav>
 
         <div className="app-header-actions">
+          {!kidDeviceMode ? (
           <div className="app-header-auth">
             {isAnonymous ? (
               <>
@@ -2741,6 +2833,7 @@ Prioritize activities that require the least decision-making from the child.
               </button>
             )}
           </div>
+          ) : null}
 
           {headerLogoutError ? (
             <p className="app-header-auth-error" role="alert">
@@ -2748,12 +2841,14 @@ Prioritize activities that require the least decision-making from the child.
             </p>
           ) : null}
 
-          <ThemeSwitcher
-            theme={uiTheme}
-            onChange={setUiTheme}
-            themes={uiThemes}
-            compact
-          />
+          {!kidDeviceMode ? (
+            <ThemeSwitcher
+              theme={uiTheme}
+              onChange={setUiTheme}
+              themes={uiThemes}
+              compact
+            />
+          ) : null}
         </div>
       </header>
 
@@ -2834,14 +2929,16 @@ Prioritize activities that require the least decision-making from the child.
                 loadingIntent={loadingIntent}
                 activeChildProfile={activeChildProfile}
                 activityMode={activityMode}
+                childProfiles={childProfiles}
+                playingChildIds={playingChildIds}
+                togglePlayingChild={togglePlayingChild}
                 savedActivities={savedActivities}
+                activityHistory={activityHistory}
                 handleReplaySavedActivity={handleReplaySavedActivity}
                 isDemoMode={isDemoMode}
                 imBoredDisabled={imBoredDisabled}
                 onGetPlus={isDemoMode ? handleGetPlus : null}
                 checkoutBusy={checkoutBusy}
-                playingChildIds={playingChildIds}
-                togglePlayingChild={togglePlayingChild}
                 firstRunPulseImBored={firstRunCoach.pulseImBored}
                 onFirstRunGenerated={firstRunCoach.markGenerated}
                 playModeLine={getPlayModeUiLine(uiTheme)}
