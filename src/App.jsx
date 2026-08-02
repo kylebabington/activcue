@@ -10,7 +10,7 @@ import {
 import { signOutCurrentUser } from "./api/authApi";
 import { redirectToCheckout } from "./api/billingApi";
 import { ApiRequestError } from "./api/apiClient";
-import { listActivitySessions } from "./api/familyMemoryApi";
+import { listActivitySessions, resetFamilyData } from "./api/familyMemoryApi";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import { useFirstRunCoach } from "./hooks/useFirstRunCoach";
 import { useKidDeviceMode } from "./hooks/useKidDeviceMode";
@@ -563,7 +563,7 @@ function App() {
 
   async function resetSavedData() {
     const confirmed = window.confirm(
-      "Reset all saved family settings and browser data? This cannot be undone."
+      "Reset all saved family settings, favorites, history, and browser data? Your account and subscription stay. This cannot be undone."
     );
 
     if (!confirmed) {
@@ -585,6 +585,8 @@ function App() {
     }
 
     try {
+      await resetFamilyData({ expectedUserId: user?.id });
+
       const resetPromise = saveFamilySettings(
         buildDefaultFamilySettings(),
         {
@@ -595,10 +597,10 @@ function App() {
       familySettingsSaveChainRef.current = resetPromise;
       await resetPromise;
     } catch (error) {
-      console.error("Could not reset server family settings:", error);
+      console.error("Could not reset family data:", error);
       suppressFamilySettingsSavesRef.current = false;
       window.alert(
-        "Could not reset synced family settings on the server. Try again."
+        "Could not reset synced family data on the server. Try again."
       );
       return;
     }
@@ -620,6 +622,7 @@ function App() {
     window.localStorage.removeItem("lastSuccessfulMoment");
     window.localStorage.removeItem("activeActivity");
     window.localStorage.removeItem("lastCompletedQuest");
+    window.localStorage.removeItem("activitySessions");
     window.localStorage.removeItem("uiTheme");
     window.localStorage.removeItem("kidDeviceMode");
     window.location.reload();
