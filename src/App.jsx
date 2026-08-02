@@ -95,7 +95,6 @@ function App() {
   const {
     kidDeviceMode,
     setKidDeviceMode,
-    toggleKidDeviceMode,
   } = useKidDeviceMode();
 
   const firstRunCoach = useFirstRunCoach();
@@ -2693,7 +2692,6 @@ Prioritize activities that require the least decision-making from the child.
     uiThemes,
     kidDeviceMode,
     setKidDeviceMode,
-    toggleKidDeviceMode,
   };
 
   if (familySettingsError) {
