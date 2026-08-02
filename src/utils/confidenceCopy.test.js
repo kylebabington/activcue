@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { buildConfidenceCopy } from "./confidenceCopy";
+import {
+  buildConfidenceCopy,
+  buildGettingBetterCopy,
+} from "./confidenceCopy";
 
 describe("buildConfidenceCopy", () => {
   const activity = { title: "LEGO Free Build", energy: "medium", mess: "low" };
@@ -74,5 +77,41 @@ describe("buildConfidenceCopy", () => {
     );
 
     expect(copy).toMatch(/Usually keeps Emma busy independently/i);
+  });
+});
+
+describe("buildGettingBetterCopy", () => {
+  it("stays quiet until enough successful sessions exist", () => {
+    expect(
+      buildGettingBetterCopy(
+        [
+          {
+            childId: "emma",
+            independenceRating: "worked-great",
+          },
+        ],
+        { childId: "emma", childName: "Emma" }
+      )
+    ).toBe("");
+  });
+
+  it("surfaces a flywheel line after repeated success", () => {
+    expect(
+      buildGettingBetterCopy(
+        [
+          {
+            childId: "emma",
+            independenceRating: "worked-great",
+            noiseLevel: "quiet",
+          },
+          {
+            childId: "emma",
+            independenceRating: "worked-great",
+            noiseLevel: "quiet",
+          },
+        ],
+        { childId: "emma", childName: "Emma" }
+      )
+    ).toMatch(/Getting better at quiet independent time for Emma/i);
   });
 });

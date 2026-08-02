@@ -286,6 +286,10 @@ export function useQuestSession({
       return;
     }
 
+    trackProductEvent("independence_outcome", {
+      independenceRating,
+    });
+
     setLastCompletedQuest((previous) => {
       if (!previous) {
         return previous;

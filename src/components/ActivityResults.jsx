@@ -19,6 +19,7 @@ function ActivityResults({
   activitySessions = [],
   activeChildName = "",
   activeChildId = "",
+  inventoryEmpty = false,
 }) {
   const [detailsActivityTitle, setDetailsActivityTitle] = useState(null);
   const [feedbackActivityTitle, setFeedbackActivityTitle] = useState(null);
@@ -75,6 +76,12 @@ function ActivityResults({
         <div className="panel-header">
           <div>
             <h2>Pick something to do</h2>
+            {inventoryEmpty ? (
+              <p className="settings-note">
+                Mark a few supplies in Settings so &quot;why this fits&quot; can
+                name toys you actually have.
+              </p>
+            ) : null}
           </div>
         </div>
 
