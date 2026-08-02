@@ -16,18 +16,7 @@ npm install
 cp server/.env.example server/.env
 ```
 
-3. Add your OpenAI API key to `server/.env`:
-
-```env
-OPENAI_API_KEY=sk-...
-```
-
-Optional server flags:
-
-```env
-PORT=3001
-DEBUG_AI_RESPONSES=true
-```
+3. Fill required vars in `server/.env` (see `server/.env.example`). Billing needs `STRIPE_WEBHOOK_SECRET` at boot—locally run `stripe listen --forward-to localhost:3001/api/billing/webhook` and paste the `whsec_…` value.
 
 ## Run locally
 
