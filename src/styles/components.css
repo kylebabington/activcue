@@ -329,6 +329,26 @@
   font-weight: var(--font-weight-semibold);
 }
 
+.why-this-fits {
+  margin: 0.35rem 0 0.15rem;
+  color: var(--color-text-muted, var(--color-text));
+  font-size: var(--font-size-sm);
+  line-height: 1.35;
+}
+
+.confidence-copy {
+  margin: 0.25rem 0 0.35rem;
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.35;
+}
+
+.hint-button--plus {
+  opacity: 0.72;
+  cursor: not-allowed;
+}
+
 /* ========== MODAL ========== */
 
 .modal-backdrop {

@@ -10,6 +10,24 @@
   padding: var(--space-2) 0 var(--space-4);
 }
 
+.app-shell--kid-device {
+  padding-top: var(--space-1);
+}
+
+.app-header--kid-device {
+  margin-bottom: var(--space-2);
+  padding: var(--space-1) 0;
+}
+
+.app-header--kid-device .app-header-actions {
+  display: none;
+}
+
+.app-header--kid-device .app-nav a {
+  font-size: var(--font-size-sm);
+  padding: 0.35rem 0.55rem;
+}
+
 /* ========== HEADER ========== */
 
 .app-header {
@@ -242,19 +260,44 @@
   gap: var(--space-1);
 }
 
-.settings-cluster {
-  display: grid;
-  gap: var(--space-2);
+.settings-tablist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin: 0 0 var(--space-3);
+  padding: 0 0 var(--space-2);
+  border-bottom: 1px solid var(--color-border);
 }
 
-.settings-cluster-title {
-  margin: 0;
-  font-family: var(--font-body);
-  font-size: var(--font-size-xs);
+.settings-tab {
+  min-height: var(--control-height);
+  padding: var(--button-padding-y-secondary) var(--button-padding-x-secondary);
+  border: 1px solid transparent;
+  border-radius: var(--radius-small);
+  background: transparent;
   color: var(--color-text-muted);
-  letter-spacing: 0.04em;
+  font-family: var(--font-body);
+  font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
-  text-transform: none;
+  cursor: pointer;
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.settings-tab:hover {
+  background: color-mix(in srgb, var(--color-primary) 6%, transparent);
+  color: var(--color-text);
+}
+
+.settings-tab--active {
+  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+  color: var(--color-primary);
+}
+
+.settings-tab-panel {
+  display: grid;
+  gap: var(--space-2);
 }
 
 .parent-preset-page {
@@ -436,7 +479,8 @@
 [data-theme="playroom"] .app-nav a,
 [data-theme="playroom"] .app-brand-name,
 [data-theme="playroom"] .kid-energy-picker h3,
-[data-theme="playroom"] .settings-cluster-title {
+[data-theme="playroom"] .kid-playing-picker h3,
+[data-theme="playroom"] .settings-tab {
   font-family: var(--font-body);
 }
 
@@ -459,8 +503,17 @@
   color: #f5eee0;
 }
 
-[data-theme="storybook"] .settings-cluster-title {
-  color: rgba(245, 238, 224, 0.65);
+[data-theme="storybook"] .settings-tab {
+  color: rgba(245, 238, 224, 0.7);
+}
+
+[data-theme="storybook"] .settings-tab--active {
+  color: #f5eee0;
+  background: color-mix(in srgb, #f5eee0 12%, transparent);
+}
+
+[data-theme="storybook"] .settings-tablist {
+  border-bottom-color: rgba(245, 238, 224, 0.14);
 }
 
 [data-theme="storybook"] .page-intro {

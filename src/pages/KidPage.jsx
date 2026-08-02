@@ -2,6 +2,7 @@
 
 import { Link } from "react-router-dom";
 import { formatKidMomentMessage } from "../utils/activityFormatters";
+import { getRecentPlayAgainActivities } from "../utils/playAgainActivities";
 
 function KidPage({
   currentMoment,
@@ -15,12 +16,20 @@ function KidPage({
   loadingIntent,
   activeChildProfile,
   activityMode,
+  childProfiles = [],
+  playingChildIds = [],
+  togglePlayingChild,
   savedActivities,
+  activityHistory = [],
   handleReplaySavedActivity,
   isDemoMode = false,
   imBoredDisabled = false,
   onGetPlus = null,
   checkoutBusy = false,
+  firstRunPulseImBored = false,
+  onFirstRunGenerated,
+  playModeLine = "",
+  kidDeviceMode = false,
 }) {
   function energyChipClass(energyLevel) {
     return kidEnergyLevel === energyLevel
@@ -34,9 +43,12 @@ function KidPage({
       : `kid-style-button kid-style-button--${activityStyle}`;
   }
 
-  const recentSaved = Array.isArray(savedActivities)
-    ? savedActivities.slice(-3).reverse()
-    : [];
+  const recentSaved = getRecentPlayAgainActivities({
+    savedActivities,
+    activityHistory,
+    playingChildIds,
+    limit: 3,
+  });
 
   const boredLabel =
     loadingIntent === "board"
@@ -48,11 +60,17 @@ function KidPage({
   const startForMeLabel =
     loadingIntent === "auto-start" ? "Picking one for you..." : "Start for me";
 
+  const showPlayingPicker = childProfiles.length > 1;
+
+  const playingProfiles = childProfiles.filter((child) =>
+    playingChildIds.includes(child.id)
+  );
+
   const profileLabel =
-    activityMode === "family"
+    playingProfiles.length > 1 || activityMode === "family"
       ? "Playing together"
-      : activeChildProfile
-        ? `Playing as ${activeChildProfile.name}`
+      : playingProfiles[0] || activeChildProfile
+        ? `Playing as ${(playingProfiles[0] || activeChildProfile).name}`
         : null;
 
   const busyNote =
@@ -61,9 +79,14 @@ function KidPage({
       : null;
 
   return (
-    <section className="page-layout page-layout--kid">
+    <section
+      className={`page-layout page-layout--kid${kidDeviceMode ? " page-layout--kid-device" : ""}`}
+    >
       <section className="page-intro page-intro--kid page-intro--minimal">
         <h1>What sounds good?</h1>
+        {playModeLine ? (
+          <p className="play-mode-line">{playModeLine}</p>
+        ) : null}
       </section>
 
       <div className="kid-center-column">
@@ -74,7 +97,7 @@ function KidPage({
           >
             {imBoredDisabled ? (
               <p>
-                Free pretend sample used. <strong>I&apos;m Bored</strong> needs{" "}
+                Nice work finishing your free pretend world. Unlock more with{" "}
                 {typeof onGetPlus === "function" ? (
                   <button
                     type="button"
@@ -86,8 +109,8 @@ function KidPage({
                   </button>
                 ) : (
                   <Link to="/signup">FamilyFlow Plus</Link>
-                )}{" "}
-                for more ideas. Simple Quick ideas still work.
+                )}
+                , or keep using Simple / Quick ideas.
               </p>
             ) : (
               <p>
@@ -119,7 +142,7 @@ function KidPage({
         ) : null}
 
         <div className="kid-status-strip">
-          {profileLabel && (
+          {!showPlayingPicker && profileLabel && (
             <span className="kid-status-strip-profile">{profileLabel}</span>
           )}
           {currentMoment && (
@@ -131,6 +154,46 @@ function KidPage({
         </div>
 
         <section className="panel kid-main-panel">
+          {firstRunPulseImBored && (
+            <div className="first-run-coach first-run-coach--kid" role="status">
+              <p>
+                <strong>Next:</strong> pick energy, then tap I&apos;m Bored.
+              </p>
+            </div>
+          )}
+
+          {showPlayingPicker && (
+            <div className="kid-playing-picker">
+              <h3>Who&apos;s playing?</h3>
+              <div
+                className="kid-playing-row chip-grid"
+                role="group"
+                aria-label="Who is playing"
+              >
+                {childProfiles.map((child) => {
+                  const isPlaying = playingChildIds.includes(child.id);
+
+                  return (
+                    <button
+                      key={child.id}
+                      type="button"
+                      className={
+                        isPlaying
+                          ? "kid-playing-chip active"
+                          : "kid-playing-chip"
+                      }
+                      aria-pressed={isPlaying}
+                      onClick={() => togglePlayingChild?.(child.id)}
+                      disabled={isLoading}
+                    >
+                      {child.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <div className="kid-energy-picker">
             <h3>My energy</h3>
 
@@ -188,19 +251,26 @@ function KidPage({
 
           <button
             type="button"
-            className="im-bored-button"
-            onClick={() => handleGenerateKidActivities()}
+            className={
+              firstRunPulseImBored
+                ? "im-bored-button im-bored-button--pulse"
+                : "im-bored-button"
+            }
+            onClick={() => {
+              onFirstRunGenerated?.();
+              handleGenerateKidActivities();
+            }}
             disabled={isLoading || imBoredDisabled}
             title={
               imBoredDisabled
-                ? "Free pretend sample used — Plus unlocks more I'm Bored ideas"
+                ? "Free pretend sample finished — Plus unlocks more I'm Bored ideas"
                 : undefined
             }
           >
             {isLoading && loadingIntent !== "auto-start"
               ? boredLabel
               : imBoredDisabled
-                ? "I'm Bored (needs Plus)"
+                ? "I'm Bored — unlock more with Plus"
                 : "I'm Bored"}
           </button>
 

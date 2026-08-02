@@ -2,13 +2,16 @@ import {
   formatChildProfilesForPrompt,
   formatInventoryForPrompt,
 } from "../utils/promptFormatters.js";
+import { getPlayModePromptFlavor } from "../utils/playModeTheme.js";
 
-export function buildActivitySuggestionsInstructions(safeActivityStyle) {
+export function buildActivitySuggestionsInstructions(safeActivityStyle, playModeTheme = "playroom") {
+  const playModeFlavor = getPlayModePromptFlavor(playModeTheme);
+
   return `
 You are a kid-facing activity guide.
 
 Your job is to create the right kind of activity for the current family moment.
-
+${playModeFlavor}
 There are two possible activity styles:
 
 1. SIMPLE
@@ -191,6 +194,7 @@ export function buildActivitySuggestionsInput({
   safeFeedbackContext,
   safePreviousActivityTitles,
   safeSafetySettings,
+  playModeTheme = "playroom",
 }) {
   return `
 Family context:
@@ -204,6 +208,7 @@ Family context:
 - Kid mood/request: ${kidMood}
 - Preferred location: ${locationPreference}
 - Child age range: ${childAgeRange}
+- Play mode theme: ${playModeTheme}
 - Active child profile:
   - Name: ${activeChildProfile?.name || "Not specified"}
   - Interests: ${activeChildProfile?.interests || "Not specified"}

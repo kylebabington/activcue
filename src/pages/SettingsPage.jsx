@@ -4,6 +4,7 @@ import {
   useCallback,
   useState,
 } from "react";
+import { useLocalStorage } from "../hooks/useLocalStorage";
 
 import {
   Link,
@@ -83,8 +84,6 @@ function SettingsPage() {
     childProfiles,
     activeChildId,
     setActiveChildId,
-    activityMode,
-    setActivityMode,
     newChildName,
     setNewChildName,
     newChildAgeRange,
@@ -114,6 +113,8 @@ function SettingsPage() {
     entitlement,
     entitlementHydrated,
     refreshEntitlement,
+    kidDeviceMode,
+    setKidDeviceMode,
   } = useAppContext();
 
   const {
@@ -201,10 +202,30 @@ function SettingsPage() {
   const [inventorySearch, setInventorySearch] = useState("");
   const [showSelectedOnly, setShowSelectedOnly] = useState(false);
 
+  const SETTINGS_TABS = [
+    { id: "preferences", label: "Preferences" },
+    { id: "inventory", label: "Inventory" },
+    { id: "history", label: "History" },
+    { id: "account", label: "Account" },
+  ];
+
+  const [settingsTab, setSettingsTab] = useLocalStorage(
+    "settingsTab",
+    "preferences"
+  );
+
+  const activeSettingsTab = SETTINGS_TABS.some((tab) => tab.id === settingsTab)
+    ? settingsTab
+    : "preferences";
+
   const handleCheckoutStatus = useCallback((message, type) => {
     setBillingMessage(message);
     setBillingMessageType(type);
   }, []);
+
+  const openAccountTab = useCallback(() => {
+    setSettingsTab("account");
+  }, [setSettingsTab]);
 
   /*
    * Stripe redirects back to Settings after Checkout (?billing=...).
@@ -213,6 +234,7 @@ function SettingsPage() {
   useCheckoutReturn({
     refreshEntitlement,
     onStatus: handleCheckoutStatus,
+    onOpenAccountTab: openAccountTab,
   });
 
   async function handleLogOut() {
@@ -569,717 +591,698 @@ function SettingsPage() {
 
   return (
     <section className="page-layout page-layout--parent">
-      <section className="settings-cluster">
-        <h2 className="settings-cluster-title">Family setup</h2>
+      <div
+        className="settings-tablist"
+        role="tablist"
+        aria-label="Settings sections"
+      >
+        {SETTINGS_TABS.map((tab) => {
+          const isActive = activeSettingsTab === tab.id;
 
-        <div className="content-grid-2">
-          <section className="panel safety-panel">
-            <div className="panel-header">
-              <div>
-                <h2>Safety Settings</h2>
-                <p>These rules tell the AI what not to suggest.</p>
-                <p className="settings-note">
-                  Current moment can tighten time and quiet while it is active.
-                </p>
-              </div>
-            </div>
-
-            <div className="safety-toggle-grid">
-              <button
-                type="button"
-                className={safetySettings.screenFreeOnly ? "enabled" : ""}
-                onClick={() => toggleSafetySetting("screenFreeOnly")}
-              >
-                <span>Screen-free only</span>
-                <small>
-                  {safetySettings.screenFreeOnly
-                    ? "AI avoids screens"
-                    : "Screens may be suggested"}
-                </small>
-              </button>
-
-              <button
-                type="button"
-                className={safetySettings.noFoodActivities ? "enabled" : ""}
-                onClick={() => toggleSafetySetting("noFoodActivities")}
-              >
-                <span>No food activities</span>
-                <small>
-                  {safetySettings.noFoodActivities
-                    ? "AI avoids food"
-                    : "Food may be suggested"}
-                </small>
-              </button>
-
-              <button
-                type="button"
-                className={safetySettings.noWaterPlay ? "enabled" : ""}
-                onClick={() => toggleSafetySetting("noWaterPlay")}
-              >
-                <span>No water play</span>
-                <small>
-                  {safetySettings.noWaterPlay
-                    ? "AI avoids water play"
-                    : "Water play may be suggested"}
-                </small>
-              </button>
-
-              <button
-                type="button"
-                className={safetySettings.noSmallObjects ? "enabled" : ""}
-                onClick={() => toggleSafetySetting("noSmallObjects")}
-              >
-                <span>No small objects</span>
-                <small>
-                  {safetySettings.noSmallObjects
-                    ? "AI avoids choking-sized items"
-                    : "Small items may be suggested"}
-                </small>
-              </button>
-
-              <button
-                type="button"
-                className={safetySettings.quietMode ? "enabled" : ""}
-                onClick={() => toggleSafetySetting("quietMode")}
-              >
-                <span>Quiet mode</span>
-                <small>
-                  {safetySettings.quietMode
-                    ? "AI suggests quiet ideas"
-                    : "Normal noise allowed"}
-                </small>
-              </button>
-            </div>
-
-            <div className="safety-controls-grid">
-              <label>
-                Max activity time
-                <select
-                  value={safetySettings.maxActivityMinutes}
-                  onChange={(event) =>
-                    updateSafetySetting(
-                      "maxActivityMinutes",
-                      Number(event.target.value)
-                    )
-                  }
-                >
-                  <option value={10}>10 minutes</option>
-                  <option value={15}>15 minutes</option>
-                  <option value={20}>20 minutes</option>
-                  <option value={30}>30 minutes</option>
-                  <option value={45}>45 minutes</option>
-                  <option value={60}>60 minutes</option>
-                </select>
-              </label>
-
-              <label>
-                Adult help allowed?
-                <select
-                  value={safetySettings.adultHelpAllowed}
-                  onChange={(event) =>
-                    updateSafetySetting("adultHelpAllowed", event.target.value)
-                  }
-                >
-                  <option value="none">No adult help</option>
-                  <option value="optional">Optional adult help</option>
-                  <option value="needed">Adult help is okay</option>
-                </select>
-              </label>
-            </div>
-          </section>
-
-          <section className="panel">
-            <div className="panel-header">
-              <div>
-                <h2>Who is playing?</h2>
-                <p>Choose one child or family mode for shared activities.</p>
-              </div>
-            </div>
-
-            <div className="activity-mode-toggle">
-              <button
-                type="button"
-                className={activityMode === "single-child" ? "enabled" : ""}
-                onClick={() => setActivityMode("single-child")}
-              >
-                <span>One child</span>
-                <small>Uses the active child profile</small>
-              </button>
-
-              <button
-                type="button"
-                className={activityMode === "family" ? "enabled" : ""}
-                onClick={() => setActivityMode("family")}
-              >
-                <span>Family / siblings</span>
-                <small>Ideas for everyone together</small>
-              </button>
-            </div>
-          </section>
-        </div>
-
-        <section className="panel inventory-panel">
-          <div className="panel-header">
-            <div>
-              <h2>Toy & Supply Inventory</h2>
-              <p>
-                Tap what you have at home. No typing needed — pick from common
-                toys, craft supplies, and play items.
-              </p>
-            </div>
-          </div>
-
-          <div className="inventory-filter-row">
-            <input
-              value={inventorySearch}
-              onChange={(event) => setInventorySearch(event.target.value)}
-              placeholder="Search supplies"
-              aria-label="Search supplies"
-            />
-
+          return (
             <button
+              key={tab.id}
               type="button"
-              className={showSelectedOnly ? "enabled" : "secondary-action"}
-              onClick={() => setShowSelectedOnly((current) => !current)}
-            >
-              {showSelectedOnly ? "Showing selected" : "Show selected only"}
-            </button>
-          </div>
-
-          <div className="inventory-preset-list">
-            {inventoryCategories.map((category) => {
-              const presetsInCategory = inventoryPresets.filter(
-                (preset) =>
-                  preset.category === category && presetMatchesFilters(preset)
-              );
-
-              if (presetsInCategory.length === 0) {
-                return null;
+              role="tab"
+              id={`settings-tab-${tab.id}`}
+              aria-selected={isActive}
+              aria-controls={`settings-panel-${tab.id}`}
+              tabIndex={isActive ? 0 : -1}
+              className={
+                isActive
+                  ? "settings-tab settings-tab--active"
+                  : "settings-tab"
               }
+              onClick={() => setSettingsTab(tab.id)}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
 
-              return (
-                <section key={category} className="inventory-category-group">
-                  <h3>{category}</h3>
-
-                  <div className="chip-list inventory-preset-grid">
-                    {presetsInCategory.map((preset) => {
-                      const isSelected = isInventoryItemSelected(preset.name);
-
-                      return (
-                        <button
-                          key={preset.name}
-                          type="button"
-                          className={
-                            isSelected
-                              ? "chip inventory-preset-chip selected"
-                              : "chip inventory-preset-chip"
-                          }
-                          aria-pressed={isSelected}
-                          onClick={() => toggleInventoryPreset(preset)}
-                        >
-                          {preset.name}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </section>
-              );
-            })}
-          </div>
-
-          {customInventoryItems.length > 0 && (
-            <section className="inventory-category-group inventory-custom-group">
-              <h3>Custom items</h3>
-
-              <div className="chip-list">
-                {customInventoryItems.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    className="chip inventory-preset-chip selected"
-                    onClick={() => removeInventoryItem(item.id)}
-                  >
-                    {item.name} ×
-                  </button>
-                ))}
+      {activeSettingsTab === "preferences" && (
+        <div
+          className="settings-tab-panel"
+          role="tabpanel"
+          id="settings-panel-preferences"
+          aria-labelledby="settings-tab-preferences"
+        >
+            <section className="panel safety-panel">
+              <div className="panel-header">
+                <div>
+                  <h2>Activity Rules</h2>
+                  <p>These rules tell the AI what not to suggest.</p>
+                  <p className="settings-note">
+                    Current moment can tighten time and quiet while it is active.
+                  </p>
+                </div>
               </div>
-            </section>
-          )}
 
-          <details className="inventory-custom-add">
-            <summary>Add something not listed</summary>
-
-            <div className="inventory-add-grid">
-              <input
-                value={newInventoryItem}
-                onChange={(event) => setNewInventoryItem(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") addInventoryItem();
-                }}
-                placeholder="Example: marble collection, ukulele"
-              />
-
-              <select
-                value={newInventoryCategory}
-                onChange={(event) =>
-                  setNewInventoryCategory(event.target.value)
-                }
-              >
-                {inventoryCategories.map((category) => (
-                  <option key={category} value={category}>
-                    {category}
-                  </option>
-                ))}
-              </select>
-
-              <button type="button" onClick={addInventoryItem}>
-                Add
-              </button>
-            </div>
-          </details>
-        </section>
-
-        <section className="panel child-profile-panel">
-          <div className="panel-header">
-            <div>
-              <h2>Child Profiles</h2>
-              <p>
-                Add basic details so AI suggestions can fit each child instead of
-                treating everyone the same.
-              </p>
-            </div>
-          </div>
-
-          <div className="child-profile-form">
-            <label>
-              Child name
-              <input
-                value={newChildName}
-                onChange={(event) => setNewChildName(event.target.value)}
-                placeholder="Example: Mia"
-              />
-            </label>
-
-            <label>
-              Age range
-              <select
-                value={newChildAgeRange}
-                onChange={(event) => setNewChildAgeRange(event.target.value)}
-              >
-                <option value="3-5">3-5</option>
-                <option value="6-9">6-9</option>
-                <option value="10-12">10-12</option>
-                <option value="13+">13+</option>
-              </select>
-            </label>
-
-            <label>
-              Interests
-              <input
-                value={newChildInterests}
-                onChange={(event) => setNewChildInterests(event.target.value)}
-                placeholder="Example: animals, LEGO, drawing"
-              />
-            </label>
-
-            <label>
-              Helpful notes
-              <input
-                value={newChildNeeds}
-                onChange={(event) => setNewChildNeeds(event.target.value)}
-                placeholder="Example: gets overwhelmed by loud games"
-              />
-            </label>
-
-            <div className="child-profile-form-actions">
-              <button type="button" onClick={addChildProfile}>
-                {editingChildId ? "Save profile" : "Add child profile"}
-              </button>
-
-              {editingChildId && (
+              <div className="safety-toggle-grid">
                 <button
                   type="button"
-                  className="ghost-button"
-                  onClick={cancelEditingChildProfile}
+                  className={safetySettings.screenFreeOnly ? "enabled" : ""}
+                  onClick={() => toggleSafetySetting("screenFreeOnly")}
                 >
-                  Cancel edit
+                  <span>Screen-free only</span>
+                  <small>
+                    {safetySettings.screenFreeOnly
+                      ? "AI avoids screens"
+                      : "Screens may be suggested"}
+                  </small>
                 </button>
-              )}
-            </div>
-          </div>
 
-          {childProfiles.length === 0 ? (
-            <p className="empty-text">No child profiles yet.</p>
-          ) : (
-            <div className="child-profile-list">
-              {childProfiles.map((child) => (
-                <article
-                  key={child.id}
-                  className={
-                    activeChildId === child.id
-                      ? "child-profile-card active"
-                      : "child-profile-card"
-                  }
+                <button
+                  type="button"
+                  className={safetySettings.noFoodActivities ? "enabled" : ""}
+                  onClick={() => toggleSafetySetting("noFoodActivities")}
                 >
-                  <div>
-                    <h3>{child.name}</h3>
-                    <p>Age: {child.ageRange}</p>
+                  <span>No food activities</span>
+                  <small>
+                    {safetySettings.noFoodActivities
+                      ? "AI avoids food"
+                      : "Food may be suggested"}
+                  </small>
+                </button>
 
-                    {child.interests && <p>Interests: {child.interests}</p>}
-                    {child.needs && <p>Notes: {child.needs}</p>}
-                  </div>
+                <button
+                  type="button"
+                  className={safetySettings.noWaterPlay ? "enabled" : ""}
+                  onClick={() => toggleSafetySetting("noWaterPlay")}
+                >
+                  <span>No water play</span>
+                  <small>
+                    {safetySettings.noWaterPlay
+                      ? "AI avoids water play"
+                      : "Water play may be suggested"}
+                  </small>
+                </button>
 
-                  <div className="child-profile-actions">
-                    <button
-                      type="button"
-                      onClick={() => setActiveChildId(child.id)}
-                    >
-                      Use profile
-                    </button>
+                <button
+                  type="button"
+                  className={safetySettings.noSmallObjects ? "enabled" : ""}
+                  onClick={() => toggleSafetySetting("noSmallObjects")}
+                >
+                  <span>No small objects</span>
+                  <small>
+                    {safetySettings.noSmallObjects
+                      ? "AI avoids choking-sized items"
+                      : "Small items may be suggested"}
+                  </small>
+                </button>
 
-                    <button
-                      type="button"
-                      className="secondary-action"
-                      onClick={() => startEditingChildProfile(child)}
-                    >
-                      Edit
-                    </button>
-
-                    <button
-                      type="button"
-                      className="danger-button"
-                      onClick={() => deleteChildProfile(child.id)}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </article>
-              ))}
-            </div>
-          )}
-        </section>
-      </section>
-
-      <section className="settings-cluster">
-        <h2 className="settings-cluster-title">Saved & history</h2>
-
-        <SavedActivitiesPanel
-          savedActivities={savedActivities}
-          handleReplaySavedActivity={handleReplaySavedActivity}
-          removeSavedActivity={removeSavedActivity}
-        />
-
-        <ActivityHistoryPanel
-          activityHistory={activityHistory}
-          clearActivityHistory={clearActivityHistory}
-          formatFeedbackLabel={formatFeedbackLabel}
-        />
-      </section>
-
-      <section className="settings-cluster">
-        <h2 className="settings-cluster-title">Account</h2>
-
-        <section className="panel account-session-panel">
-          <div className="panel-header">
-            <div>
-              <h2>Signed in</h2>
-              <p>
-                {isAnonymous
-                  ? "This browser is using a temporary trial session."
-                  : "You are signed in with a permanent FamilyFlow account."}
-              </p>
-            </div>
-          </div>
-
-          {isAnonymous ? (
-            <div className="account-session-actions">
-              <Link className="secondary-action" to="/login">
-                Log in
-              </Link>
-              <Link className="billing-account-link" to="/signup">
-                Create free account
-              </Link>
-            </div>
-          ) : (
-            <div className="account-session-summary">
-              {user?.email ? (
-                <p className="account-session-email">{user.email}</p>
-              ) : null}
-
-              {logoutError ? (
-                <p className="billing-notice billing-notice--error" role="alert">
-                  {logoutError}
-                </p>
-              ) : null}
-
-              <button
-                type="button"
-                className="secondary-action"
-                onClick={handleLogOut}
-                disabled={logoutBusy}
-              >
-                {logoutBusy ? "Logging out…" : "Log out"}
-              </button>
-            </div>
-          )}
-        </section>
-
-        {!isAnonymous ? (
-          <section className="panel account-password-panel">
-            <div className="panel-header">
-              <div>
-                <h2>Change password</h2>
-                <p>
-                  Update the password for{" "}
-                  {user?.email || "your FamilyFlow account"}.
-                </p>
+                <button
+                  type="button"
+                  className={safetySettings.quietMode ? "enabled" : ""}
+                  onClick={() => toggleSafetySetting("quietMode")}
+                >
+                  <span>Quiet mode</span>
+                  <small>
+                    {safetySettings.quietMode
+                      ? "AI suggests quiet ideas"
+                      : "Normal noise allowed"}
+                  </small>
+                </button>
               </div>
-            </div>
 
-            <form
-              className="account-password-form"
-              onSubmit={handleChangePassword}
-            >
-              <label className="account-password-field">
-                <span>Current password</span>
+              <div className="safety-controls-grid">
+                <label>
+                  Max activity time
+                  <select
+                    value={safetySettings.maxActivityMinutes}
+                    onChange={(event) =>
+                      updateSafetySetting(
+                        "maxActivityMinutes",
+                        Number(event.target.value)
+                      )
+                    }
+                  >
+                    <option value={10}>10 minutes</option>
+                    <option value={15}>15 minutes</option>
+                    <option value={20}>20 minutes</option>
+                    <option value={30}>30 minutes</option>
+                    <option value={45}>45 minutes</option>
+                    <option value={60}>60 minutes</option>
+                  </select>
+                </label>
+
+                <label>
+                  Adult help allowed?
+                  <select
+                    value={safetySettings.adultHelpAllowed}
+                    onChange={(event) =>
+                      updateSafetySetting("adultHelpAllowed", event.target.value)
+                    }
+                  >
+                    <option value="none">No adult help</option>
+                    <option value="optional">Optional adult help</option>
+                    <option value="needed">Adult help is okay</option>
+                  </select>
+                </label>
+              </div>
+            </section>
+
+            <section className="panel theme-settings-panel">
+              <div className="panel-header">
+                <div>
+                  <h2>Look & feel</h2>
+                  <p>
+                    Themes change play character, not just colors — Storybook
+                    leans into longer pretend, Workshop builds from inventory,
+                    Playroom favors short energy bursts.
+                  </p>
+                </div>
+              </div>
+
+              <ThemeSwitcher
+                theme={uiTheme}
+                onChange={setUiTheme}
+                themes={uiThemes}
+              />
+
+              <div className="kid-device-mode-toggle">
+                <label className="settings-toggle-row">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(kidDeviceMode)}
+                    onChange={(event) =>
+                      setKidDeviceMode(event.target.checked)
+                    }
+                  />
+                  <span>
+                    Kid-device mode
+                    <small>
+                      Hides theme switcher and account links in the header.
+                      Parent and Settings stay PIN-protected. Tip: open with
+                      ?kid=1
+                    </small>
+                  </span>
+                </label>
+              </div>
+            </section>
+        </div>
+      )}
+
+      {activeSettingsTab === "inventory" && (
+        <div
+          className="settings-tab-panel"
+          role="tabpanel"
+          id="settings-panel-inventory"
+          aria-labelledby="settings-tab-inventory"
+        >
+            <section className="panel inventory-panel">
+              <div className="panel-header">
+                <div>
+                  <h2>Toy & Supply Inventory</h2>
+                  <p>
+                    Tap what you have at home. No typing needed — pick from common
+                    toys, craft supplies, and play items.
+                  </p>
+                </div>
+              </div>
+
+              <div className="inventory-filter-row">
                 <input
-                  type="password"
-                  name="currentPassword"
-                  autoComplete="current-password"
-                  required
-                  value={currentPassword}
-                  onChange={(event) =>
-                    setCurrentPassword(event.target.value)
-                  }
+                  value={inventorySearch}
+                  onChange={(event) => setInventorySearch(event.target.value)}
+                  placeholder="Search supplies"
+                  aria-label="Search supplies"
                 />
-              </label>
 
-              <label className="account-password-field">
-                <span>New password</span>
-                <input
-                  type="password"
-                  name="newPassword"
-                  autoComplete="new-password"
-                  required
-                  minLength={8}
-                  value={newPassword}
-                  onChange={(event) =>
-                    setNewPassword(event.target.value)
+                <button
+                  type="button"
+                  className={showSelectedOnly ? "enabled" : "secondary-action"}
+                  onClick={() => setShowSelectedOnly((current) => !current)}
+                >
+                  {showSelectedOnly ? "Showing selected" : "Show selected only"}
+                </button>
+              </div>
+
+              <div className="inventory-preset-list">
+                {inventoryCategories.map((category) => {
+                  const presetsInCategory = inventoryPresets.filter(
+                    (preset) =>
+                      preset.category === category && presetMatchesFilters(preset)
+                  );
+
+                  if (presetsInCategory.length === 0) {
+                    return null;
                   }
-                />
-              </label>
 
-              <label className="account-password-field">
-                <span>Confirm new password</span>
-                <input
-                  type="password"
-                  name="confirmNewPassword"
-                  autoComplete="new-password"
-                  required
-                  minLength={8}
-                  value={confirmNewPassword}
-                  onChange={(event) =>
-                    setConfirmNewPassword(event.target.value)
-                  }
-                />
-              </label>
+                  return (
+                    <section key={category} className="inventory-category-group">
+                      <h3>{category}</h3>
 
-              {passwordChangeMessage ? (
-                <p
+                      <div className="chip-list inventory-preset-grid">
+                        {presetsInCategory.map((preset) => {
+                          const isSelected = isInventoryItemSelected(preset.name);
+
+                          return (
+                            <button
+                              key={preset.name}
+                              type="button"
+                              className={
+                                isSelected
+                                  ? "chip inventory-preset-chip selected"
+                                  : "chip inventory-preset-chip"
+                              }
+                              aria-pressed={isSelected}
+                              onClick={() => toggleInventoryPreset(preset)}
+                            >
+                              {preset.name}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </section>
+                  );
+                })}
+              </div>
+
+              {customInventoryItems.length > 0 && (
+                <section className="inventory-category-group inventory-custom-group">
+                  <h3>Custom items</h3>
+
+                  <div className="chip-list">
+                    {customInventoryItems.map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        className="chip inventory-preset-chip selected"
+                        onClick={() => removeInventoryItem(item.id)}
+                      >
+                        {item.name} ×
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              <details className="inventory-custom-add">
+                <summary>Add something not listed</summary>
+
+                <div className="inventory-add-grid">
+                  <input
+                    value={newInventoryItem}
+                    onChange={(event) => setNewInventoryItem(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") addInventoryItem();
+                    }}
+                    placeholder="Example: marble collection, ukulele"
+                  />
+
+                  <select
+                    value={newInventoryCategory}
+                    onChange={(event) =>
+                      setNewInventoryCategory(event.target.value)
+                    }
+                  >
+                    {inventoryCategories.map((category) => (
+                      <option key={category} value={category}>
+                        {category}
+                      </option>
+                    ))}
+                  </select>
+
+                  <button type="button" onClick={addInventoryItem}>
+                    Add
+                  </button>
+                </div>
+              </details>
+            </section>
+        </div>
+      )}
+
+      {activeSettingsTab === "history" && (
+        <div
+          className="settings-tab-panel"
+          role="tabpanel"
+          id="settings-panel-history"
+          aria-labelledby="settings-tab-history"
+        >
+            <SavedActivitiesPanel
+              savedActivities={savedActivities}
+              handleReplaySavedActivity={handleReplaySavedActivity}
+              removeSavedActivity={removeSavedActivity}
+            />
+
+            <ActivityHistoryPanel
+              activityHistory={activityHistory}
+              clearActivityHistory={clearActivityHistory}
+              formatFeedbackLabel={formatFeedbackLabel}
+            />
+
+        </div>
+      )}
+
+      {activeSettingsTab === "account" && (
+        <div
+          className="settings-tab-panel"
+          role="tabpanel"
+          id="settings-panel-account"
+          aria-labelledby="settings-tab-account"
+        >
+            <section className="panel child-profile-panel">
+              <div className="panel-header">
+                <div>
+                  <h2>Child Profiles</h2>
+                  <p>
+                    Add basic details so AI suggestions can fit each child instead of
+                    treating everyone the same.
+                  </p>
+                </div>
+              </div>
+
+              <div className="child-profile-form">
+                <label>
+                  Child name
+                  <input
+                    value={newChildName}
+                    onChange={(event) => setNewChildName(event.target.value)}
+                    placeholder="Example: Mia"
+                  />
+                </label>
+
+                <label>
+                  Age range
+                  <select
+                    value={newChildAgeRange}
+                    onChange={(event) => setNewChildAgeRange(event.target.value)}
+                  >
+                    <option value="3-5">3-5</option>
+                    <option value="6-9">6-9</option>
+                    <option value="10-12">10-12</option>
+                    <option value="13+">13+</option>
+                  </select>
+                </label>
+
+                <label>
+                  Interests
+                  <input
+                    value={newChildInterests}
+                    onChange={(event) => setNewChildInterests(event.target.value)}
+                    placeholder="Example: animals, LEGO, drawing"
+                  />
+                </label>
+
+                <label>
+                  Helpful notes
+                  <input
+                    value={newChildNeeds}
+                    onChange={(event) => setNewChildNeeds(event.target.value)}
+                    placeholder="Example: gets overwhelmed by loud games"
+                  />
+                </label>
+
+                <div className="child-profile-form-actions">
+                  <button type="button" onClick={addChildProfile}>
+                    {editingChildId ? "Save profile" : "Add child profile"}
+                  </button>
+
+                  {editingChildId && (
+                    <button
+                      type="button"
+                      className="ghost-button"
+                      onClick={cancelEditingChildProfile}
+                    >
+                      Cancel edit
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {childProfiles.length === 0 ? (
+                <p className="empty-text">No child profiles yet.</p>
+              ) : (
+                <div className="child-profile-list">
+                  {childProfiles.map((child) => (
+                    <article
+                      key={child.id}
+                      className={
+                        activeChildId === child.id
+                          ? "child-profile-card active"
+                          : "child-profile-card"
+                      }
+                    >
+                      <div>
+                        <h3>{child.name}</h3>
+                        <p>Age: {child.ageRange}</p>
+
+                        {child.interests && <p>Interests: {child.interests}</p>}
+                        {child.needs && <p>Notes: {child.needs}</p>}
+                      </div>
+
+                      <div className="child-profile-actions">
+                        <button
+                          type="button"
+                          onClick={() => setActiveChildId(child.id)}
+                        >
+                          Use profile
+                        </button>
+
+                        <button
+                          type="button"
+                          className="secondary-action"
+                          onClick={() => startEditingChildProfile(child)}
+                        >
+                          Edit
+                        </button>
+
+                        <button
+                          type="button"
+                          className="danger-button"
+                          onClick={() => deleteChildProfile(child.id)}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            <section className="panel account-session-panel">
+              <div className="panel-header">
+                <div>
+                  <h2>Signed in</h2>
+                  <p>
+                    {isAnonymous
+                      ? "This browser is using a temporary trial session."
+                      : "You are signed in with a permanent FamilyFlow account."}
+                  </p>
+                </div>
+              </div>
+
+              {isAnonymous ? (
+                <div className="account-session-actions">
+                  <Link className="secondary-action" to="/login">
+                    Log in
+                  </Link>
+                  <Link className="billing-account-link" to="/signup">
+                    Create free account
+                  </Link>
+                </div>
+              ) : (
+                <div className="account-session-summary">
+                  {user?.email ? (
+                    <p className="account-session-email">{user.email}</p>
+                  ) : null}
+
+                  {logoutError ? (
+                    <p className="billing-notice billing-notice--error" role="alert">
+                      {logoutError}
+                    </p>
+                  ) : null}
+
+                  <button
+                    type="button"
+                    className="secondary-action"
+                    onClick={handleLogOut}
+                    disabled={logoutBusy}
+                  >
+                    {logoutBusy ? "Logging out…" : "Log out"}
+                  </button>
+                </div>
+              )}
+            </section>
+
+            {!isAnonymous ? (
+              <section className="panel account-password-panel">
+                <div className="panel-header">
+                  <div>
+                    <h2>Change password</h2>
+                    <p>
+                      Update the password for{" "}
+                      {user?.email || "your FamilyFlow account"}.
+                    </p>
+                  </div>
+                </div>
+
+                <form
+                  className="account-password-form"
+                  onSubmit={handleChangePassword}
+                >
+                  <label className="account-password-field">
+                    <span>Current password</span>
+                    <input
+                      type="password"
+                      name="currentPassword"
+                      autoComplete="current-password"
+                      required
+                      value={currentPassword}
+                      onChange={(event) =>
+                        setCurrentPassword(event.target.value)
+                      }
+                    />
+                  </label>
+
+                  <label className="account-password-field">
+                    <span>New password</span>
+                    <input
+                      type="password"
+                      name="newPassword"
+                      autoComplete="new-password"
+                      required
+                      minLength={8}
+                      value={newPassword}
+                      onChange={(event) =>
+                        setNewPassword(event.target.value)
+                      }
+                    />
+                  </label>
+
+                  <label className="account-password-field">
+                    <span>Confirm new password</span>
+                    <input
+                      type="password"
+                      name="confirmNewPassword"
+                      autoComplete="new-password"
+                      required
+                      minLength={8}
+                      value={confirmNewPassword}
+                      onChange={(event) =>
+                        setConfirmNewPassword(event.target.value)
+                      }
+                    />
+                  </label>
+
+                  {passwordChangeMessage ? (
+                    <p
+                      className={
+                        `billing-notice ` +
+                        `billing-notice--${passwordChangeMessageType}`
+                      }
+                      role={
+                        passwordChangeMessageType === "error"
+                          ? "alert"
+                          : "status"
+                      }
+                    >
+                      {passwordChangeMessage}
+                    </p>
+                  ) : null}
+
+                  <button
+                    type="submit"
+                    className="secondary-action"
+                    disabled={passwordChangeBusy}
+                  >
+                    {passwordChangeBusy
+                      ? "Updating password…"
+                      : "Update password"}
+                  </button>
+                </form>
+              </section>
+            ) : null}
+
+            <section className="panel billing-panel">
+              <div className="panel-header">
+                <div>
+                  <h2>FamilyFlow Plus</h2>
+
+                  <p>
+                    Unlock AI-generated activities,
+                    personalized ideas, and AI quest
+                    hints. Favorites and history stay
+                    free on this device (and sync when
+                    you are signed in).
+                  </p>
+                </div>
+              </div>
+
+              {billingMessage ? (
+                <div
                   className={
                     `billing-notice ` +
-                    `billing-notice--${passwordChangeMessageType}`
+                    `billing-notice--${billingMessageType}`
                   }
                   role={
-                    passwordChangeMessageType === "error"
+                    billingMessageType === "error"
                       ? "alert"
                       : "status"
                   }
+                  aria-live="polite"
                 >
-                  {passwordChangeMessage}
-                </p>
+                  {billingMessage}
+                </div>
               ) : null}
 
-              <button
-                type="submit"
-                className="secondary-action"
-                disabled={passwordChangeBusy}
-              >
-                {passwordChangeBusy
-                  ? "Updating password…"
-                  : "Update password"}
-              </button>
-            </form>
-          </section>
-        ) : null}
-
-        <section className="panel billing-panel">
-          <div className="panel-header">
-            <div>
-              <h2>FamilyFlow Plus</h2>
-
-              <p>
-                Unlock AI-generated activities,
-                personalized ideas, and AI quest
-                hints.
-              </p>
-            </div>
-          </div>
-
-          {billingMessage ? (
-            <div
-              className={
-                `billing-notice ` +
-                `billing-notice--${billingMessageType}`
-              }
-              role={
-                billingMessageType === "error"
-                  ? "alert"
-                  : "status"
-              }
-              aria-live="polite"
-            >
-              {billingMessage}
-            </div>
-          ) : null}
-
-          {!entitlementHydrated ? (
-            <p className="billing-loading">
-              Checking your subscription…
-            </p>
-          ) : entitlement.isPaid ? (
-            <div className="billing-active-summary">
-              <div className="billing-active-details">
-                <strong>
-                  FamilyFlow Plus is active
-                </strong>
-
-                <p>
-                  Status:{" "}
-                  {formatSubscriptionStatus(
-                    entitlement
-                      .subscriptionStatus
-                  )}
+              {!entitlementHydrated ? (
+                <p className="billing-loading">
+                  Checking your subscription…
                 </p>
-
-                {entitlement.currentPeriodEnd ? (
-                  <p>
-                    Current billing period ends{" "}
-                    {formatBillingDate(
-                      entitlement
-                        .currentPeriodEnd
-                    )}
-                    .
-                  </p>
-                ) : null}
-
-                {entitlement
-                  .cancelAtPeriodEnd ? (
-                  <p className="billing-renewal-status billing-renewal-status--ending">
-                    Automatic renewal is
-                    canceled. Your Plus access
-                    remains active through the
-                    current billing period.
-                  </p>
-                ) : (
-                  <p className="billing-renewal-status">
-                    Your subscription will renew
-                    automatically.
-                  </p>
-                )}
-              </div>
-
-              <div className="billing-management-controls">
-                {entitlement
-                  .cancelAtPeriodEnd ? (
-                  <button
-                    type="button"
-                    className="billing-resume-button"
-                    onClick={
-                      handleResumeSubscription
-                    }
-                    disabled={
-                      Boolean(
-                        subscriptionUpdateAction
-                      )
-                    }
-                  >
-                    {subscriptionUpdateAction ===
-                      "resume"
-                      ? "Restoring renewal…"
-                      : "Keep FamilyFlow Plus"}
-                  </button>
-                ) : !showCancelConfirmation ? (
-                  <button
-                    type="button"
-                    className="billing-cancel-button"
-                    onClick={() => {
-                      setShowCancelConfirmation(
-                        true
-                      );
-
-                      setBillingMessage("");
-                    }}
-                    disabled={
-                      Boolean(
-                        subscriptionUpdateAction
-                      )
-                    }
-                  >
-                    Cancel renewal
-                  </button>
-                ) : (
-                  <div className="billing-cancel-confirmation">
+              ) : entitlement.isPaid ? (
+                <div className="billing-active-summary">
+                  <div className="billing-active-details">
                     <strong>
-                      Cancel FamilyFlow Plus
-                      renewal?
+                      FamilyFlow Plus is active
                     </strong>
 
-                    {entitlement
-                      .currentPeriodEnd ? (
+                    <p>
+                      Status:{" "}
+                      {formatSubscriptionStatus(
+                        entitlement
+                          .subscriptionStatus
+                      )}
+                    </p>
+
+                    {entitlement.currentPeriodEnd ? (
                       <p>
-                        You will keep Plus access
-                        through{" "}
+                        Current billing period ends{" "}
                         {formatBillingDate(
                           entitlement
                             .currentPeriodEnd
                         )}
-                        . Your subscription will
-                        not renew after that date.
+                        .
+                      </p>
+                    ) : null}
+
+                    {entitlement
+                      .cancelAtPeriodEnd ? (
+                      <p className="billing-renewal-status billing-renewal-status--ending">
+                        Automatic renewal is
+                        canceled. Your Plus access
+                        remains active through the
+                        current billing period.
                       </p>
                     ) : (
-                      <p>
-                        You will keep Plus access
-                        through the current paid
-                        billing period. Your
-                        subscription will not
-                        renew afterward.
+                      <p className="billing-renewal-status">
+                        Your subscription will renew
+                        automatically.
                       </p>
                     )}
+                  </div>
 
-                    <div className="billing-management-actions">
+                  <div className="billing-management-controls">
+                    {entitlement
+                      .cancelAtPeriodEnd ? (
                       <button
                         type="button"
-                        className="secondary-action"
-                        onClick={() => {
-                          setShowCancelConfirmation(
-                            false
-                          );
-                        }}
-                        disabled={
-                          Boolean(
-                            subscriptionUpdateAction
-                          )
-                        }
-                      >
-                        Keep subscription
-                      </button>
-
-                      <button
-                        type="button"
-                        className="billing-confirm-cancel-button"
+                        className="billing-resume-button"
                         onClick={
-                          handleConfirmCancellation
+                          handleResumeSubscription
                         }
                         disabled={
                           Boolean(
@@ -1288,185 +1291,252 @@ function SettingsPage() {
                         }
                       >
                         {subscriptionUpdateAction ===
-                          "cancel"
-                          ? "Canceling renewal…"
-                          : "Confirm cancellation"}
+                          "resume"
+                          ? "Restoring renewal…"
+                          : "Keep FamilyFlow Plus"}
                       </button>
+                    ) : !showCancelConfirmation ? (
+                      <button
+                        type="button"
+                        className="billing-cancel-button"
+                        onClick={() => {
+                          setShowCancelConfirmation(
+                            true
+                          );
+
+                          setBillingMessage("");
+                        }}
+                        disabled={
+                          Boolean(
+                            subscriptionUpdateAction
+                          )
+                        }
+                      >
+                        Cancel renewal
+                      </button>
+                    ) : (
+                      <div className="billing-cancel-confirmation">
+                        <strong>
+                          Cancel FamilyFlow Plus
+                          renewal?
+                        </strong>
+
+                        {entitlement
+                          .currentPeriodEnd ? (
+                          <p>
+                            You will keep Plus access
+                            through{" "}
+                            {formatBillingDate(
+                              entitlement
+                                .currentPeriodEnd
+                            )}
+                            . Your subscription will
+                            not renew after that date.
+                          </p>
+                        ) : (
+                          <p>
+                            You will keep Plus access
+                            through the current paid
+                            billing period. Your
+                            subscription will not
+                            renew afterward.
+                          </p>
+                        )}
+
+                        <div className="billing-management-actions">
+                          <button
+                            type="button"
+                            className="secondary-action"
+                            onClick={() => {
+                              setShowCancelConfirmation(
+                                false
+                              );
+                            }}
+                            disabled={
+                              Boolean(
+                                subscriptionUpdateAction
+                              )
+                            }
+                          >
+                            Keep subscription
+                          </button>
+
+                          <button
+                            type="button"
+                            className="billing-confirm-cancel-button"
+                            onClick={
+                              handleConfirmCancellation
+                            }
+                            disabled={
+                              Boolean(
+                                subscriptionUpdateAction
+                              )
+                            }
+                          >
+                            {subscriptionUpdateAction ===
+                              "cancel"
+                              ? "Canceling renewal…"
+                              : "Confirm cancellation"}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    <button
+                      type="button"
+                      className="secondary-action"
+                      onClick={
+                        handleRefreshSubscription
+                      }
+                      disabled={
+                        Boolean(
+                          subscriptionUpdateAction
+                        )
+                      }
+                    >
+                      Refresh subscription status
+                    </button>
+                  </div>
+                </div>
+
+              ) : isAnonymous ? (
+                <div className="billing-account-required">
+                  <p>
+                    Your current session is an
+                    anonymous trial. Create a free
+                    permanent account before adding a
+                    paid subscription.
+                  </p>
+
+                  <Link
+                    className="billing-account-link"
+                    to="/signup"
+                  >
+                    Create free account
+                  </Link>
+                </div>
+              ) : (
+                <>
+                  <div className="billing-plan-grid">
+                    <article className="billing-plan-card">
+                      <p className="billing-plan-name">
+                        Monthly
+                      </p>
+
+                      <p className="billing-plan-price">
+                        <strong>$4.99</strong>
+                        <span>per month</span>
+                      </p>
+
+                      <p>
+                        Full FamilyFlow Plus access
+                        with monthly billing.
+                      </p>
+
+                      <button
+                        type="button"
+                        className="billing-plan-action"
+                        disabled={
+                          Boolean(
+                            billingPlanLoading
+                          )
+                        }
+                        onClick={() =>
+                          handleStartCheckout(
+                            "monthly"
+                          )
+                        }
+                      >
+                        {billingPlanLoading ===
+                          "monthly"
+                          ? "Opening Checkout…"
+                          : "Choose monthly"}
+                      </button>
+                    </article>
+
+                    <article className="billing-plan-card billing-plan-card--featured">
+                      <p className="billing-plan-badge">
+                        Best value
+                      </p>
+
+                      <p className="billing-plan-name">
+                        Annual
+                      </p>
+
+                      <p className="billing-plan-price">
+                        <strong>$39.99</strong>
+                        <span>per year</span>
+                      </p>
+
+                      <p>
+                        A full year of FamilyFlow
+                        Plus at a lower yearly price.
+                      </p>
+
+                      <button
+                        type="button"
+                        className="billing-plan-action"
+                        disabled={
+                          Boolean(
+                            billingPlanLoading
+                          )
+                        }
+                        onClick={() =>
+                          handleStartCheckout(
+                            "annual"
+                          )
+                        }
+                      >
+                        {billingPlanLoading ===
+                          "annual"
+                          ? "Opening Checkout…"
+                          : "Choose annual"}
+                      </button>
+                    </article>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="billing-refresh-button"
+                    onClick={
+                      handleRefreshSubscription
+                    }
+                  >
+                    Refresh subscription status
+                  </button>
+                </>
+              )}
+            </section>
+
+                <section className="panel pin-settings-panel">
+                  <div className="panel-header">
+                    <div>
+                      <h2>Parent PIN</h2>
+                      <p>
+                        When set, Parent and Settings stay locked until unlocked for this
+                        session. MVP-level protection, not real account security.
+                      </p>
                     </div>
                   </div>
-                )}
 
-                <button
-                  type="button"
-                  className="secondary-action"
-                  onClick={
-                    handleRefreshSubscription
-                  }
-                  disabled={
-                    Boolean(
-                      subscriptionUpdateAction
-                    )
-                  }
-                >
-                  Refresh subscription status
-                </button>
-              </div>
-            </div>
+                  <ParentPinForm parentPin={parentPin} saveParentPin={saveParentPin} />
+                </section>
 
-          ) : isAnonymous ? (
-            <div className="billing-account-required">
-              <p>
-                Your current session is an
-                anonymous trial. Create a free
-                permanent account before adding a
-                paid subscription.
-              </p>
-
-              <Link
-                className="billing-account-link"
-                to="/signup"
-              >
-                Create free account
-              </Link>
-            </div>
-          ) : (
-            <>
-              <div className="billing-plan-grid">
-                <article className="billing-plan-card">
-                  <p className="billing-plan-name">
-                    Monthly
-                  </p>
-
-                  <p className="billing-plan-price">
-                    <strong>$4.99</strong>
-                    <span>per month</span>
-                  </p>
+                <section className="panel">
+                  <h2>Danger zone</h2>
 
                   <p>
-                    Full FamilyFlow Plus access
-                    with monthly billing.
+                    Reset synced family settings and this browser&apos;s local quest
+                    data. This cannot be undone.
                   </p>
 
-                  <button
-                    type="button"
-                    className="billing-plan-action"
-                    disabled={
-                      Boolean(
-                        billingPlanLoading
-                      )
-                    }
-                    onClick={() =>
-                      handleStartCheckout(
-                        "monthly"
-                      )
-                    }
-                  >
-                    {billingPlanLoading ===
-                      "monthly"
-                      ? "Opening Checkout…"
-                      : "Choose monthly"}
+                  <button className="ghost-button" onClick={resetSavedData}>
+                    Reset saved data
                   </button>
-                </article>
+                </section>
 
-                <article className="billing-plan-card billing-plan-card--featured">
-                  <p className="billing-plan-badge">
-                    Best value
-                  </p>
-
-                  <p className="billing-plan-name">
-                    Annual
-                  </p>
-
-                  <p className="billing-plan-price">
-                    <strong>$39.99</strong>
-                    <span>per year</span>
-                  </p>
-
-                  <p>
-                    A full year of FamilyFlow
-                    Plus at a lower yearly price.
-                  </p>
-
-                  <button
-                    type="button"
-                    className="billing-plan-action"
-                    disabled={
-                      Boolean(
-                        billingPlanLoading
-                      )
-                    }
-                    onClick={() =>
-                      handleStartCheckout(
-                        "annual"
-                      )
-                    }
-                  >
-                    {billingPlanLoading ===
-                      "annual"
-                      ? "Opening Checkout…"
-                      : "Choose annual"}
-                  </button>
-                </article>
-              </div>
-
-              <button
-                type="button"
-                className="billing-refresh-button"
-                onClick={
-                  handleRefreshSubscription
-                }
-              >
-                Refresh subscription status
-              </button>
-            </>
-          )}
-        </section>
-
-        <section className="panel theme-settings-panel">
-          <div className="panel-header">
-            <div>
-              <h2>Look & feel</h2>
-              <p>
-                Switch themes anytime. Compare Playroom, Workshop, and Storybook
-                to find what fits your family.
-              </p>
-            </div>
-          </div>
-
-          <ThemeSwitcher
-            theme={uiTheme}
-            onChange={setUiTheme}
-            themes={uiThemes}
-          />
-        </section>
-
-        <section className="panel pin-settings-panel">
-          <div className="panel-header">
-            <div>
-              <h2>Parent PIN</h2>
-              <p>
-                When set, Parent and Settings stay locked until unlocked for this
-                session. MVP-level protection, not real account security.
-              </p>
-            </div>
-          </div>
-
-          <ParentPinForm parentPin={parentPin} saveParentPin={saveParentPin} />
-        </section>
-
-        <section className="panel">
-          <h2>Danger zone</h2>
-
-          <p>
-            Reset synced family settings and this browser&apos;s local quest
-            data. This cannot be undone.
-          </p>
-
-          <button className="ghost-button" onClick={resetSavedData}>
-            Reset saved data
-          </button>
-        </section>
-      </section>
+        </div>
+      )}
     </section>
   );
 }

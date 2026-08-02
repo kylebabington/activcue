@@ -1,4 +1,4 @@
-import { getVerifiedFitFacts } from "../utils/inventoryFit";
+import { getVerifiedFitFacts, buildWhyThisFits } from "../utils/inventoryFit";
 
 function ActiveActivityPanel({
   activeActivity,
@@ -16,6 +16,7 @@ function ActiveActivityPanel({
   stepHint,
   isHintLoading,
   handleNeedStepHint,
+  canUseAiHints = true,
   formatTimer,
 }) {
   const uses = Array.isArray(activeActivity.uses) ? activeActivity.uses : [];
@@ -31,6 +32,7 @@ function ActiveActivityPanel({
   const isLastStep = currentStepIndex === totalSteps - 1;
   const currentStepIsComplete = completedStepIndexes.includes(currentStepIndex);
   const fitFacts = getVerifiedFitFacts(activeActivity, currentMoment);
+  const whyThisFits = buildWhyThisFits(activeActivity, currentMoment);
 
   return (
     <section
@@ -47,6 +49,8 @@ function ActiveActivityPanel({
       {activeActivity.summary && (
         <p className="simple-active-summary">{activeActivity.summary}</p>
       )}
+
+      {whyThisFits ? <p className="why-this-fits">{whyThisFits}</p> : null}
 
       {fitFacts.length > 0 && (
         <div className="fit-fact-chip-row">
@@ -105,10 +109,20 @@ function ActiveActivityPanel({
       <div className="simple-active-actions">
         <button
           type="button"
+          className={canUseAiHints ? undefined : "hint-button--plus"}
           onClick={handleNeedStepHint}
-          disabled={isHintLoading}
+          disabled={isHintLoading || !canUseAiHints}
+          title={
+            canUseAiHints
+              ? undefined
+              : "AI hints are included with FamilyFlow Plus"
+          }
         >
-          {isHintLoading ? "Thinking..." : "Need a hint"}
+          {isHintLoading
+            ? "Thinking..."
+            : canUseAiHints
+              ? "Need a hint"
+              : "Plus hint"}
         </button>
 
         <button type="button" onClick={finishActiveActivity}>
