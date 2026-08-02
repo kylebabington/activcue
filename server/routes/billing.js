@@ -24,6 +24,11 @@ import {
 } from "../lib/billingHelpers.js";
 import { requireAuthenticatedUser } from "../middleware/requireAuthenticatedUser.js";
 import { ensureUserProfile } from "../middleware/ensureUserProfile.js";
+import { billingRateLimiter } from "../middleware/rateLimits.js";
+import {
+  hasProcessedStripeEvent,
+  recordProcessedStripeEvent,
+} from "../lib/stripeWebhookEvents.js";
 
 const router = Router();
 
@@ -258,6 +263,7 @@ export async function updateSubscriptionRenewal({
  */
 router.post(
   "/billing/create-checkout-session",
+  billingRateLimiter,
   requireAuthenticatedUser,
   ensureUserProfile,
   async (req, res) => {
@@ -481,6 +487,7 @@ router.post(
  */
 router.post(
   "/billing/cancel-subscription",
+  billingRateLimiter,
   requireAuthenticatedUser,
   ensureUserProfile,
   async (req, res) =>
@@ -499,6 +506,7 @@ router.post(
  */
 router.post(
   "/billing/resume-subscription",
+  billingRateLimiter,
   requireAuthenticatedUser,
   ensureUserProfile,
   async (req, res) =>
@@ -573,6 +581,13 @@ export async function handleStripeWebhook(
   }
 
   try {
+    if (await hasProcessedStripeEvent(event.id)) {
+      return res.json({
+        received: true,
+        duplicate: true,
+      });
+    }
+
     switch (event.type) {
       case "checkout.session.completed":
       case "checkout.session.async_payment_succeeded":
@@ -588,7 +603,8 @@ export async function handleStripeWebhook(
       case "customer.subscription.created":
       case "customer.subscription.updated":
       case "customer.subscription.deleted": {
-        await upsertSubscriptionFromStripe(
+        await handleSubscriptionLifecycleEvent(
+          stripe,
           event.data.object
         );
 
@@ -600,6 +616,11 @@ export async function handleStripeWebhook(
           `Ignoring unhandled Stripe event: ${event.type}`
         );
     }
+
+    await recordProcessedStripeEvent({
+      stripeEventId: event.id,
+      eventType: event.type,
+    });
 
     return res.json({
       received: true,
@@ -619,6 +640,31 @@ export async function handleStripeWebhook(
         "Webhook handler failed."
       );
   }
+}
+
+async function handleSubscriptionLifecycleEvent(
+  stripe,
+  subscriptionSnapshot
+) {
+  const subscriptionId =
+    typeof subscriptionSnapshot?.id === "string"
+      ? subscriptionSnapshot.id
+      : null;
+
+  if (!subscriptionId) {
+    throw new Error(
+      "Subscription webhook is missing a subscription id."
+    );
+  }
+
+  /*
+   * Always retrieve the authoritative current subscription so out-of-order
+   * webhook delivery cannot overwrite newer Stripe state with a stale snapshot.
+   */
+  const subscription =
+    await stripe.subscriptions.retrieve(subscriptionId);
+
+  await upsertSubscriptionFromStripe(subscription);
 }
 
 async function handleCheckoutSessionEvent(
