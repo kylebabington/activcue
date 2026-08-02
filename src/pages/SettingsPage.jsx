@@ -1,13 +1,12 @@
 // src/pages/SettingsPage.jsx
 
 import {
-  useEffect,
+  useCallback,
   useState,
 } from "react";
 
 import {
   Link,
-  useSearchParams,
 } from "react-router-dom";
 import SavedActivitiesPanel from "../components/SavedActivitiesPanel";
 import ActivityHistoryPanel from "../components/ActivityHistoryPanel";
@@ -17,6 +16,7 @@ import {
   createCheckoutSession,
   resumeSubscription,
 } from "../api/billingApi";
+import { useCheckoutReturn } from "../features/billing/useCheckoutReturn";
 import {
   changePassword,
   signOutCurrentUser,
@@ -63,16 +63,6 @@ function formatBillingDate(value) {
     }
   ).format(date);
 }
-
-function wait(milliseconds) {
-  return new Promise((resolve) => {
-    window.setTimeout(
-      resolve,
-      milliseconds
-    );
-  });
-}
-
 
 function SettingsPage() {
   const {
@@ -130,11 +120,6 @@ function SettingsPage() {
     user,
     isAnonymous,
   } = useAuth();
-
-  const [
-    searchParams,
-    setSearchParams,
-  ] = useSearchParams();
 
   const [
     billingPlanLoading,
@@ -213,135 +198,22 @@ function SettingsPage() {
     setPasswordChangeMessageType,
   ] = useState("info");
 
-  const billingResult =
-    searchParams.get("billing");
-
   const [inventorySearch, setInventorySearch] = useState("");
   const [showSelectedOnly, setShowSelectedOnly] = useState(false);
 
+  const handleCheckoutStatus = useCallback((message, type) => {
+    setBillingMessage(message);
+    setBillingMessageType(type);
+  }, []);
 
   /*
- * Stripe redirects back to Settings after Checkout.
- *
- * The webhook usually updates Supabase quickly, but the redirect and webhook
- * are separate requests. Poll /api/auth/me briefly so the UI updates without
- * requiring the parent to manually reload the page.
- */
-  useEffect(() => {
-    if (
-      billingResult ===
-      "checkout-cancelled"
-    ) {
-      setBillingMessage(
-        "Checkout was cancelled. You were not charged."
-      );
-
-      setBillingMessageType("info");
-
-      setSearchParams(
-        {},
-        {
-          replace: true,
-        }
-      );
-
-      return;
-    }
-
-    if (
-      billingResult !==
-      "checkout-success"
-    ) {
-      return;
-    }
-
-    let cancelled = false;
-
-    async function confirmSubscription() {
-      setBillingMessage(
-        "Payment completed. Confirming your FamilyFlow Plus access…"
-      );
-
-      setBillingMessageType("info");
-
-      /*
-       * Give the webhook several chances to finish writing the subscription.
-       */
-      for (
-        let attempt = 0;
-        attempt < 8;
-        attempt += 1
-      ) {
-        try {
-          const nextEntitlement =
-            await refreshEntitlement();
-
-          if (cancelled) {
-            return;
-          }
-
-          if (
-            nextEntitlement.isPaid
-          ) {
-            setBillingMessage(
-              "FamilyFlow Plus is active. AI activities and hints are now unlocked."
-            );
-
-            setBillingMessageType(
-              "success"
-            );
-
-            setSearchParams(
-              {},
-              {
-                replace: true,
-              }
-            );
-
-            return;
-          }
-        } catch (error) {
-          console.warn(
-            "Could not refresh subscription entitlement:",
-            error
-          );
-        }
-
-        await wait(750);
-
-        if (cancelled) {
-          return;
-        }
-      }
-
-      setBillingMessage(
-        "Your payment completed, but Stripe is still confirming the subscription. Use Refresh subscription status in a moment."
-      );
-
-      setBillingMessageType("info");
-    }
-
-    /*
- * Remove Stripe's return parameters so refreshing Settings does not restart
- * the full polling sequence.
- */
-    setSearchParams(
-      {},
-      {
-        replace: true,
-      }
-    );
-
-    confirmSubscription();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    billingResult,
+   * Stripe redirects back to Settings after Checkout (?billing=...).
+   * useCheckoutReturn owns polling and clears the URL only after a final status.
+   */
+  useCheckoutReturn({
     refreshEntitlement,
-    setSearchParams,
-  ]);
+    onStatus: handleCheckoutStatus,
+  });
 
   async function handleLogOut() {
     setLogoutError("");

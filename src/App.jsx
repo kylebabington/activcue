@@ -72,8 +72,6 @@ import {
 } from "./utils/presetDemo";
 
 
-const CHECKOUT_ENTITLEMENT_RETRY_MS = 1500;
-
 function App() {
   const navigate = useNavigate();
   const { user, isAnonymous } = useAuth();
@@ -384,107 +382,26 @@ function App() {
 
   useEffect(() => {
     let isMounted = true;
-    let retryTimeoutId = null;
-
-    const isCheckoutSuccess =
-      new URLSearchParams(window.location.search).get("checkout") ===
-      "success";
-
-    function applyEntitlementFromMe(me) {
-      mergePresetEntitlement({
-        ...me.entitlement,
-        freeImaginativeActivityId:
-          me.entitlement?.freeImaginativeActivityId ??
-          me.profile?.freeImaginativeActivityId ??
-          null,
-      });
-      setEntitlementHydrated(true);
-    }
-
-    function clearCheckoutQueryParam() {
-      const nextParams = new URLSearchParams(window.location.search);
-      if (!nextParams.has("checkout")) {
-        return;
-      }
-
-      nextParams.delete("checkout");
-      const search = nextParams.toString();
-      navigate(
-        {
-          pathname: window.location.pathname,
-          search: search ? `?${search}` : "",
-        },
-        { replace: true }
-      );
-    }
-
-    function applyCheckoutStatus(isPaid) {
-      if (isPaid) {
-        setStatusMessage(
-          "FamilyFlow Plus is active. Enjoy personalized ideas!"
-        );
-        setStatusType("success");
-        return;
-      }
-
-      setStatusMessage(
-        "Payment received. Plus unlocks in a moment—refresh if ideas stay locked."
-      );
-      setStatusType("info");
-    }
 
     async function hydrateEntitlement() {
       setEntitlementHydrated(false);
 
-      if (isCheckoutSuccess) {
-        setStatusMessage("Checking your FamilyFlow Plus subscription…");
-        setStatusType("info");
-      }
-
       try {
-        let me = await getCurrentAuthenticatedUser();
+        const me = await getCurrentAuthenticatedUser();
         if (!isMounted) {
           return;
         }
 
-        /*
-         * Webhook may lag behind the Checkout redirect. One short retry avoids
-         * flashing unpaid and a second competing /api/auth/me from another effect.
-         */
-        if (isCheckoutSuccess && !me.entitlement?.isPaid) {
-          await new Promise((resolve) => {
-            retryTimeoutId = window.setTimeout(
-              resolve,
-              CHECKOUT_ENTITLEMENT_RETRY_MS
-            );
-          });
-
-          if (!isMounted) {
-            return;
-          }
-
-          me = await getCurrentAuthenticatedUser();
-          if (!isMounted) {
-            return;
-          }
-        }
-
-        applyEntitlementFromMe(me);
-
-        if (isCheckoutSuccess) {
-          applyCheckoutStatus(Boolean(me.entitlement?.isPaid));
-          clearCheckoutQueryParam();
-        }
+        mergePresetEntitlement({
+          ...me.entitlement,
+          freeImaginativeActivityId:
+            me.entitlement?.freeImaginativeActivityId ??
+            me.profile?.freeImaginativeActivityId ??
+            null,
+        });
+        setEntitlementHydrated(true);
       } catch (error) {
         console.warn("Could not hydrate entitlement from /api/auth/me:", error);
-
-        if (isCheckoutSuccess && isMounted) {
-          setStatusMessage(
-            "Payment may have succeeded. Refresh the page if Plus is not unlocked yet."
-          );
-          setStatusType("info");
-          clearCheckoutQueryParam();
-        }
 
         try {
           const payload = await getPresetActivities();
@@ -499,8 +416,6 @@ function App() {
             fallbackError
           );
           if (isMounted) {
-            // Complete as unpaid so local Quick ideas (and demo UI) still work.
-            // Paid AI remains gated by the API if the session/plan is broken.
             mergePresetEntitlement({
               isPaid: false,
               canGenerateWithAi: false,
@@ -520,11 +435,8 @@ function App() {
 
     return () => {
       isMounted = false;
-      if (retryTimeoutId != null) {
-        window.clearTimeout(retryTimeoutId);
-      }
     };
-  }, [user?.id, navigate, mergePresetEntitlement]);
+  }, [user?.id, mergePresetEntitlement]);
 
   async function handleGetPlus() {
     if (isAnonymous) {
