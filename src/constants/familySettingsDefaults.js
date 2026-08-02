@@ -151,9 +151,9 @@ export function familySettingsPayloadFromState({
     safetySettings,
     currentMoment,
     customParentPresets,
-    savedActivities,
-    activityHistory,
     lastSuccessfulMoment,
+    uiTheme,
+    kidDeviceMode,
 }) {
     return {
         activityMode,
@@ -164,17 +164,18 @@ export function familySettingsPayloadFromState({
         safetySettings,
         currentMoment,
         customParentPresets,
-        savedActivities: Array.isArray(savedActivities)
-            ? savedActivities
-            : [],
-        activityHistory: Array.isArray(activityHistory)
-            ? activityHistory
-            : [],
+        /*
+         * Legacy JSON memory columns are retired; tables own favorites/history.
+         */
+        savedActivities: [],
+        activityHistory: [],
         lastSuccessfulMoment:
             lastSuccessfulMoment &&
             typeof lastSuccessfulMoment === "object"
                 ? lastSuccessfulMoment
                 : null,
+        uiTheme: uiTheme || "playroom",
+        kidDeviceMode: kidDeviceMode === true,
     };
 }
 
@@ -243,5 +244,11 @@ export function normalizeFamilySettingsDocument(settings, localMemory = {}) {
                     typeof localMemory.lastSuccessfulMoment === "object"
                   ? localMemory.lastSuccessfulMoment
                   : null,
+        uiTheme:
+            typeof settings?.uiTheme === "string" && settings.uiTheme
+                ? settings.uiTheme
+                : "playroom",
+        kidDeviceMode: settings?.kidDeviceMode === true,
+        parentPinSet: settings?.parentPinSet === true,
     };
 }
