@@ -39,9 +39,13 @@ async function setCookingMoment(page) {
   await expect(cooking).toBeVisible({ timeout: 20000 });
   await cooking.click();
 
-  const setMoment = page.getByRole("button", { name: /^Set moment$/i });
+  // Exact label inside the review modal — avoid matching Rescue chips like "Anything goes".
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toBeVisible({ timeout: 10000 });
+  const setMoment = dialog.getByRole("button", { name: /^Set moment$/i });
   await expect(setMoment).toBeVisible({ timeout: 10000 });
   await setMoment.click();
+  await expect(dialog).toBeHidden({ timeout: 10000 });
 }
 
 async function startFirstAvailableActivity(page) {
