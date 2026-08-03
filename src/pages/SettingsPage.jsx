@@ -9,10 +9,12 @@ import SettingsPreferencesTab from "./settings/SettingsPreferencesTab";
 import SettingsInventoryTab from "./settings/SettingsInventoryTab";
 import SettingsHistoryTab from "./settings/SettingsHistoryTab";
 import SettingsAccountTab from "./settings/SettingsAccountTab";
+import SettingsHouseholdTab from "./settings/SettingsHouseholdTab";
 
 const SETTINGS_TABS = [
   { id: "preferences", label: "Preferences" },
   { id: "inventory", label: "Inventory" },
+  { id: "household", label: "Household" },
   { id: "history", label: "History" },
   { id: "account", label: "Account" },
 ];
@@ -111,6 +113,10 @@ function SettingsPage() {
           clearActivityHistory={ctx.clearActivityHistory}
           formatFeedbackLabel={ctx.formatFeedbackLabel}
         />
+      ) : null}
+
+      {activeSettingsTab === "household" ? (
+        <SettingsHouseholdTab isAnonymous={isAnonymous} />
       ) : null}
 
       {activeSettingsTab === "account" ? (
