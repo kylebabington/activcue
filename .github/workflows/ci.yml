@@ -1,91 +1,155 @@
 # .github/workflows/ci.yml
-
-# This is the name displayed in the GitHub Actions tab.
 name: CI
 
-# Decide when GitHub should run this workflow.
 on:
-  # Run when someone opens or updates a pull request targeting main.
   pull_request:
     branches:
       - main
-
-  # Run again after code is merged or pushed into main.
   push:
     branches:
       - main
+  schedule:
+    # Twice daily (UTC): ~2am and ~2pm Eastern
+    - cron: "0 6 * * *"
+    - cron: "0 18 * * *"
+  workflow_dispatch:
 
-# The workflow only needs permission to read the repository's contents.
-# It does not need permission to edit code, create releases, or write issues.
 permissions:
   contents: read
 
-# Prevent multiple outdated CI runs for the same branch from wasting time.
-#
-# For example:
-# 1. You push commit A.
-# 2. CI begins.
-# 3. You quickly push commit B.
-# 4. GitHub cancels the outdated commit A run and tests commit B instead.
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  # "test" is the internal identifier for this job.
-  test:
-    # This is the user-facing check name displayed on the pull request.
+  # Lint, unit tests, and production build — no cloud credentials required.
+  unit:
     name: Test, lint, and build
-
-    # GitHub creates a temporary Linux machine for this job.
     runs-on: ubuntu-latest
-
-    # Stop the workflow if something unexpectedly hangs.
-    timeout-minutes: 25
+    timeout-minutes: 15
 
     steps:
-      # Step 1:
-      # Copy the repository's code onto the temporary GitHub runner.
       - name: Check out repository
         uses: actions/checkout@v6
 
-      # Step 2:
-      # Install the same major Node version you use locally.
-      #
-      # cache: npm tells setup-node to cache downloaded npm packages.
-      # This can make later workflow runs faster.
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
           node-version: 24
           cache: npm
 
-      # Step 3:
-      # Install the exact dependency versions stored in package-lock.json.
-      #
-      # npm ci is designed for clean, repeatable automated installations.
-      # It fails when package.json and package-lock.json disagree.
       - name: Install dependencies
         run: npm ci
 
-      # Step 4:
-      # Check the repository for ESLint errors.
       - name: Run lint
         run: npm run lint
 
-      # Step 5:
-      # Run the Vitest test suite one time.
       - name: Run tests
         run: npm test
 
-      # Step 6:
-      # Confirm that Vite can create the production React build.
       - name: Build production application
         run: npm run build
 
-      # Step 7:
-      # Install Chromium for Playwright, then run golden-path e2e specs.
-      # Requires repository secrets for Supabase/Stripe/OpenAI so start:all can boot.
+  # Playwright against local Supabase (Docker). No second cloud project.
+  # Production Supabase secrets must NOT be wired into this job.
+  # Runs twice daily (schedule) or on-demand (workflow_dispatch) — not on PRs or pushes.
+  e2e:
+    name: Playwright e2e
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    needs: unit
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Require Stripe test + OpenAI credentials
+        env:
+          TEST_STRIPE_SECRET_KEY: ${{ secrets.TEST_STRIPE_SECRET_KEY }}
+          TEST_STRIPE_WEBHOOK_SECRET: ${{ secrets.TEST_STRIPE_WEBHOOK_SECRET }}
+          TEST_STRIPE_MONTHLY_PRICE_ID: ${{ secrets.TEST_STRIPE_MONTHLY_PRICE_ID }}
+          TEST_STRIPE_ANNUAL_PRICE_ID: ${{ secrets.TEST_STRIPE_ANNUAL_PRICE_ID }}
+          TEST_OPENAI_API_KEY: ${{ secrets.TEST_OPENAI_API_KEY }}
+        run: |
+          missing=0
+          for name in \
+            TEST_STRIPE_SECRET_KEY \
+            TEST_STRIPE_WEBHOOK_SECRET \
+            TEST_STRIPE_MONTHLY_PRICE_ID \
+            TEST_STRIPE_ANNUAL_PRICE_ID \
+            TEST_OPENAI_API_KEY
+          do
+            value="${!name}"
+            if [ -z "$value" ]; then
+              echo "::error::Missing required secret: $name"
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            echo "E2E cannot run without Stripe test + OpenAI secrets."
+            echo "Supabase is provided by local Docker (supabase start) — no TEST_SUPABASE_* secrets."
+            exit 1
+          fi
+          case "$TEST_STRIPE_SECRET_KEY" in
+            sk_test_*) ;;
+            *)
+              echo "::error::TEST_STRIPE_SECRET_KEY must be a Stripe test key (sk_test_…)."
+              exit 1
+              ;;
+          esac
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start local Supabase
+        run: supabase start
+
+      - name: Export local Supabase credentials
+        run: |
+          set -euo pipefail
+          eval "$(supabase status -o env)"
+
+          # CLI env names vary by version; accept both legacy and new labels.
+          API_URL="${API_URL:-${SUPABASE_URL:-}}"
+          ANON_KEY="${ANON_KEY:-${PUBLISHABLE_KEY:-${SUPABASE_ANON_KEY:-}}}"
+          SERVICE_KEY="${SERVICE_ROLE_KEY:-${SECRET_KEY:-${SUPABASE_SERVICE_ROLE_KEY:-}}}"
+
+          if [ -z "$API_URL" ] || [ -z "$ANON_KEY" ] || [ -z "$SERVICE_KEY" ]; then
+            echo "::error::Could not read local Supabase credentials from supabase status."
+            supabase status || true
+            exit 1
+          fi
+
+          case "$API_URL" in
+            http://127.0.0.1:*|http://localhost:*) ;;
+            *)
+              echo "::error::Local Supabase URL must be localhost/127.0.0.1, got: $API_URL"
+              exit 1
+              ;;
+          esac
+
+          {
+            echo "VITE_SUPABASE_URL=$API_URL"
+            echo "VITE_SUPABASE_PUBLISHABLE_KEY=$ANON_KEY"
+            echo "SUPABASE_URL=$API_URL"
+            echo "SUPABASE_PUBLISHABLE_KEY=$ANON_KEY"
+            echo "SUPABASE_SECRET_KEY=$SERVICE_KEY"
+          } >> "$GITHUB_ENV"
+
+          echo "Local Supabase ready at $API_URL"
+
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
 
@@ -94,13 +158,15 @@ jobs:
         env:
           CI: true
           APP_URL: http://localhost:5173
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
-          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
-          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
-          STRIPE_MONTHLY_PRICE_ID: ${{ secrets.STRIPE_MONTHLY_PRICE_ID }}
-          STRIPE_ANNUAL_PRICE_ID: ${{ secrets.STRIPE_ANNUAL_PRICE_ID }}
+          # Supabase vars come from GITHUB_ENV (local stack above).
+          OPENAI_API_KEY: ${{ secrets.TEST_OPENAI_API_KEY }}
+          STRIPE_SECRET_KEY: ${{ secrets.TEST_STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.TEST_STRIPE_WEBHOOK_SECRET }}
+          STRIPE_MONTHLY_PRICE_ID: ${{ secrets.TEST_STRIPE_MONTHLY_PRICE_ID }}
+          STRIPE_ANNUAL_PRICE_ID: ${{ secrets.TEST_STRIPE_ANNUAL_PRICE_ID }}
+          # Optional: comma-separated production Supabase hostnames to refuse in CI.
+          FAMILYFLOW_BLOCKED_SUPABASE_HOSTS: ${{ vars.FAMILYFLOW_BLOCKED_SUPABASE_HOSTS }}
+
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop --no-backup || true
