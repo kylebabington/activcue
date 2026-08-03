@@ -2,6 +2,8 @@
 
 This is the long-form explanation of FamilyFlow: what it is, why it is built this way, how each part works, and how to use it day to day. Read it like someone asked you to walk through the whole product with a whiteboard—not like API reference docs.
 
+**Current focus:** Activity Content V2 → quest UX → landing/onboarding → measure. Unrelated feature work stays frozen until that loop is solid.
+
 ---
 
 ## 1. What this app is (and what it refuses to be)
@@ -115,10 +117,10 @@ Everything else—scoring, presets, AI prompts, Fit Score, Rescue Mode—is in s
 - One tap sets an independent, low-mess, quiet, 20-minute moment and jumps to Kid.
 - **Why:** When a parent is drowning, they will not configure six sliders. Rescue Mode is the honesty feature for real life.
 
-**First-run coach:**
+**First-run / contextual coach:**
 
-- On a new device, the app may highlight **Cooking** and nudge toward Kid → **I’m Bored**.
-- Stored only in `localStorage` (`useFirstRunCoach`). It is onboarding, not server state.
+- Primary setup is **`/onboarding`** (kids → supplies → moment → first Activity V2). Completion markers sync on `family_settings` (`onboarding_version`, `onboarding_completed_at`, `onboarding_skipped_at`).
+- `useFirstRunCoach` is now **contextual tips** (Plan B, Rescue, learning)—device-local only—not the primary setup path.
 
 **PIN gate:** Parent and Settings can be locked with a Parent PIN (still browser-local for MVP). Kid-facing paths stay reachable so a tablet can live in kid mode.
 
