@@ -271,6 +271,8 @@ family-activity-helper/
 | `routes/presetActivities.js` | List presets + free imaginative unlock |
 | `routes/familySettings.js` | GET/PUT durable family document |
 | `routes/familyMemory.js` | Saved activities, events, sessions |
+| `routes/productEvents.js` | Allowlisted product analytics |
+| `routes/account.js` | Permanent account deletion |
 | `routes/activitySuggestions.js` | Paid AI generation |
 | `routes/questStepHint.js` | Paid AI hints |
 | `routes/health.js` | Deploy health check |
@@ -286,10 +288,14 @@ family-activity-helper/
 | Core product | `profiles`, `subscriptions`, `preset_activities` |
 | Family document | `family_settings` (+ JSON memory columns) |
 | First-class memory | `saved_activities`, `activity_events`, `activity_sessions` |
-| Ops / safety | `stripe_webhook_events`, `ai_usage_events` |
+| Ops / safety | `stripe_webhook_events`, `ai_usage_events` (tokens, estimated cost, latency, failure type) |
+| Product analytics | `product_events` (allowlisted names; no child notes/prompts) |
+| Household sharing (foundation) | `households`, `household_members`; nullable `family_settings.household_id` future FK — children/inventory stay on `family_settings` until sharing UI ships |
 | Billing nuance | `cancel_at_period_end` on subscriptions |
 
 Migrations are the source of truth for other environments even if production already applied them.
+
+**Household sharing note:** Schema only. Do not wire invite/share UI until product is ready; keep writing child profiles and inventory on the per-user `family_settings` row.
 
 ---
 
@@ -328,6 +334,9 @@ AI is expensive and abusable. Per-user hourly limits on suggestions/hints, plus 
 - **Secrets** stay in host env / `server/.env` (gitignored). Rotate anything that ever leaked.
 - **Parent PIN** is not cryptographic parental control; it is a shared-device courtesy lock until it moves server-side.
 - **Service role** performs privileged DB writes; RLS is oriented so browsers cannot quietly rewrite billing or other users’ data.
+- **Leaked Password Protection (Supabase Auth)** cannot be turned on from application code. In the Supabase Dashboard go to **Authentication → Attack Protection** (or **Providers → Email** security settings, depending on dashboard version) and enable **Leaked password protection** for each project (Test + production). Re-check after project restores.
+- **Password reset redirect URLs** must include `{APP_URL}/reset-password` in Supabase Auth redirect allowlists.
+- **Account deletion** is `DELETE /api/account` (permanent users only): clears family/memory/usage/product events, then `auth.admin.deleteUser`. Cancel Stripe in the Billing UI first when a subscription is active.
 
 ---
 
@@ -356,6 +365,8 @@ Fill:
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_PUBLISHABLE_KEY`
 
+For Playwright / local E2E, prefer **local Supabase** (`npx supabase start`) and point Vite + server env at `http://127.0.0.1:54321`. Never point E2E at production. Anonymous sign-in is enabled in `supabase/config.toml` for the local stack.
+
 **Server** (required at boot)
 
 - `APP_URL` (e.g. `http://localhost:5173` locally)
@@ -363,8 +374,9 @@ Fill:
 - `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`
 - `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_MONTHLY_PRICE_ID`, `STRIPE_ANNUAL_PRICE_ID`
   (`STRIPE_WEBHOOK_SECRET` is required to boot—even locally—so billing webhooks cannot silently fail)
+  Local E2E must use Stripe **test-mode** keys (`sk_test_…`).
 
-Apply migrations with your usual Supabase workflow (`supabase db push` / CI) so tables match the repo.
+Apply migrations to your hosted production project with `supabase db push`. Local `supabase start` applies the same migrations automatically.
 
 One-time Stripe catalog helper (if prices are not created yet):
 
@@ -396,7 +408,22 @@ Health: `GET /api/health`
 4. Point Stripe webhooks at `https://<your-domain>/api/billing/webhook`.
 5. Confirm `APP_URL` matches the public site URL used in Checkout redirects.
 
-CI on `main` runs lint, Vitest, Vite build, and Playwright e2e (Chromium) when repository secrets are configured.
+### CI
+
+CI splits into:
+
+1. **Lint, test, and build** — no cloud secrets
+2. **Playwright e2e** — Chromium against **local Supabase** (`supabase start` on the runner)
+
+E2E repository secrets (Stripe test + OpenAI only — no second Supabase cloud project):
+
+- `TEST_STRIPE_SECRET_KEY` (must be `sk_test_…`)
+- `TEST_STRIPE_WEBHOOK_SECRET`
+- `TEST_STRIPE_MONTHLY_PRICE_ID`
+- `TEST_STRIPE_ANNUAL_PRICE_ID`
+- `TEST_OPENAI_API_KEY`
+
+Local Supabase URL/keys are generated on the runner and must be `127.0.0.1` / `localhost`. Optional repo variable `FAMILYFLOW_BLOCKED_SUPABASE_HOSTS`: production Supabase hostnames Playwright must refuse. Production Supabase secret names are not wired into the E2E job.
 
 ---
 
@@ -437,8 +464,10 @@ Use `scripts/` generators/emitters, then land SQL under `supabase/migrations/` (
 
 ### Observability crumbs
 
-- `src/utils/analytics.js` — lightweight product events (e.g. rescue started, activity finished)
-- `ai_usage_events` — server-side AI call logging for cost review
+- `src/utils/analytics.js` — product events (localStorage cache + authenticated `POST /api/product-events`)
+- `ai_usage_events` — server-side AI call logging with tokens, estimated cost, latency, and failure type
+- Consumer basics — `/forgot-password`, `/reset-password`, `/privacy`, `/terms`; Settings support mailto + delete account
+- PWA — `public/manifest.webmanifest` + minimal `public/sw.js` app-shell cache
 
 ---
 
