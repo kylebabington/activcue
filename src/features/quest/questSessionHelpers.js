@@ -94,6 +94,7 @@ export function buildFinishedHistoryItem(
     completedStepCount: uniqueCompletedStepIndexes.length,
     totalStepCount: steps.length,
     minutesWorked,
+    usedRescueMode: Boolean(activeActivity.usedRescueMode),
     energy: activeActivity.energy || "medium",
     mess: activeActivity.mess || "low",
     adultHelp: activeActivity.adultHelp || "optional",
@@ -227,6 +228,7 @@ export function buildActivitySessionPayload(
     selectedAt: activeActivity?.selectedAt || null,
     actualMinutes: minutesWorked,
     completionStatus,
+    usedRescueMode: Boolean(activeActivity?.usedRescueMode),
     independenceRating,
   };
 }
@@ -259,6 +261,7 @@ export function buildActivitySessionExitPatch(
     finishedAt: new Date(finishedAt).toISOString(),
     actualMinutes: minutesWorked,
     completionStatus,
+    usedRescueMode: Boolean(activeActivity?.usedRescueMode),
     ...(independenceRating ? { independenceRating } : {}),
   };
 }

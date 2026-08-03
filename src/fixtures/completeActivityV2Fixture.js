@@ -1,0 +1,98 @@
+export const completeActivityV2Fixture = {
+  activityFormatVersion: 2,
+  title: "Moon Base Message Mission",
+  activityStyle: "imaginative",
+  visualTheme: "space",
+  theme: "A quiet moon base waiting for urgent messages.",
+  summary: "Send three messages before the night crew arrives.",
+  kidRole: "Communications Officer",
+  mission:
+    "The moon base radios have gone almost silent. You are the Communications Officer. Send three important messages before night crew arrives. Start by building a station from household items.",
+  roleGuide: {
+    name: "Communications Officer",
+    description: "You control every message leaving the base.",
+    goal: "Send three messages before night crew arrives.",
+    firstAction: "Choose a desk spot.",
+    childRoles: [
+      {
+        childName: "Sam",
+        age: 8,
+        roleTitle: "Signal Runner",
+        responsibility: "Carry finished messages to the drop zone.",
+        firstAction: "Pick a pillow as the drop zone.",
+      },
+      {
+        childName: "Alex",
+        age: 13,
+        roleTitle: "Lead Communications Designer",
+        responsibility: "Design the message format and station layout.",
+        firstAction: "Sketch a one-page station blueprint.",
+      },
+    ],
+  },
+  ageFit: {
+    minAge: 8,
+    maxAge: 13,
+    targetAges: [8, 13],
+    maturityLevel: "mixed-age",
+    independenceLevel: "mostly-independent",
+    ageFitReason: "Gives each sibling a real communications role.",
+  },
+  starterIdeas: [
+    {
+      title: "Message from Earth",
+      example: "Earth says a supply rocket is late.",
+      kind: "imagination",
+    },
+    {
+      title: "Robot trouble",
+      example: "Your robot brings the wrong rocks.",
+      kind: "choice",
+    },
+  ],
+  starterPrompts: ["Earth says a supply rocket is late."],
+  firstMoves: ["Message from Earth"],
+  stepDetails: [
+    {
+      title: "Build your station",
+      instruction: "Make a communications desk.",
+      examples: ["Stack books as a radio."],
+      doneWhen: "You have a writing spot and a radio stand-in.",
+      ifStuck: "Use a chair as the station.",
+      roleInstructions: [
+        {
+          roleName: "Lead Communications Designer",
+          instruction: "Label each station zone on a scrap of paper.",
+        },
+      ],
+    },
+    {
+      title: "Write Earth's message",
+      instruction: "Write or draw one message to Earth.",
+      examples: ["A rocket is late."],
+      doneWhen: "One message is ready.",
+      ifStuck: "Draw a simple picture message.",
+      roleInstructions: [],
+    },
+  ],
+  steps: [
+    "Build your station: Make a communications desk.",
+    "Write Earth's message: Write or draw one message to Earth.",
+  ],
+  roles: ["Signal Runner", "Lead Communications Designer"],
+  extensionIdeas: ["Create a night-crew briefing card."],
+  uses: ["paper", "pencil", "books"],
+  energy: "low",
+  mess: "low",
+  adultHelp: "none",
+  estimatedMinutes: 20,
+  whyItFits: "Quiet desk work with household supplies.",
+  categories: ["pretend"],
+  traits: {
+    setupEffort: "low",
+    structure: "guided",
+    socialMode: "cooperative",
+    creativity: "high",
+    movement: "low",
+  },
+};

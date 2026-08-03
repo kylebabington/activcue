@@ -11,6 +11,7 @@ import { useLocalStorage } from "../../hooks/useLocalStorage";
 import { normalizeActivityStyle } from "../../utils/activityStyle";
 import { trackProductEvent } from "../../utils/analytics";
 import { markActivityStartedAt } from "../../utils/timeToStart";
+import { getDefaultOpenSections } from "../../components/quest/CollapsibleQuestSection";
 import {
   buildActivitySessionExitPatch,
   buildActivitySessionStartPayload,
@@ -176,6 +177,10 @@ export function useQuestSession({
         activity.roleGuide && typeof activity.roleGuide === "object"
           ? activity.roleGuide
           : null,
+      ageFit:
+        activity.ageFit && typeof activity.ageFit === "object"
+          ? activity.ageFit
+          : null,
       starterIdeas: Array.isArray(activity.starterIdeas)
         ? activity.starterIdeas
         : [],
@@ -207,23 +212,47 @@ export function useQuestSession({
         activity.recommendationBatchId ||
         activity.recommendation_batch_id ||
         null,
-      questPhase: "world",
+      questPhase: "playing",
       checkedStarterIndexes: [],
       selectedRoleName:
         activity.roleGuide?.name || activity.kidRole || roles[0] || "",
       roleAssignments: Object.fromEntries(
         playingChildren
           .filter((child) => child?.id)
-          .map((child, index) => [
-            child.id,
-            roles[index] || roles[0] || activity.roleGuide?.name || "",
-          ])
+          .map((child, index) => {
+            const fromChildRoles = Array.isArray(activity.roleGuide?.childRoles)
+              ? activity.roleGuide.childRoles.find(
+                  (role) =>
+                    String(role.childName || "").toLowerCase() ===
+                    String(child.name || "").toLowerCase()
+                )?.roleTitle
+              : null;
+            return [
+              child.id,
+              fromChildRoles ||
+                roles[index] ||
+                roles[0] ||
+                activity.roleGuide?.name ||
+                "",
+            ];
+          })
       ),
       showBuiltInHelp: false,
       showAiHintPanel: false,
       currentStepIndex: 0,
       completedStepIndexes: [],
-      showAllSteps: false,
+      showAllSteps: true,
+      openSections: getDefaultOpenSections({
+        mission: true,
+        role: true,
+        starters: true,
+        materials: false,
+        steps: true,
+        rescue: false,
+        finish: false,
+      }),
+      usedRescueMode: false,
+      highlightedStuckStepIndex: null,
       startedAt: Date.now(),
       durationMinutes,
       activitySessionId: null,
@@ -599,6 +628,58 @@ export function useQuestSession({
     }
   }
 
+  function setOpenSection(sectionKey, nextOpen) {
+    if (!activeActivity || !sectionKey) {
+      return;
+    }
+    const current =
+      activeActivity.openSections || getDefaultOpenSections();
+    setActiveActivity({
+      ...activeActivity,
+      openSections: {
+        ...current,
+        [sectionKey]: Boolean(nextOpen),
+      },
+    });
+  }
+
+  function markRescueModeUsed() {
+    if (!activeActivity) {
+      return;
+    }
+    setActiveActivity({
+      ...activeActivity,
+      usedRescueMode: true,
+    });
+    trackProductEvent("rescue_mode_opened", {
+      title: activeActivity.title,
+    });
+  }
+
+  function openRescueSection(stepIndex = null) {
+    if (!activeActivity) {
+      return;
+    }
+    const current =
+      activeActivity.openSections || getDefaultOpenSections();
+    setActiveActivity({
+      ...activeActivity,
+      usedRescueMode: true,
+      highlightedStuckStepIndex:
+        typeof stepIndex === "number" ? stepIndex : null,
+      openSections: {
+        ...current,
+        rescue: true,
+        steps: true,
+      },
+      showBuiltInHelp: true,
+    });
+    trackProductEvent("built_in_help_opened", {
+      title: activeActivity.title,
+      stepIndex,
+    });
+  }
+
   async function handleNeedStepHint() {
     if (!activeActivity) {
       return;
@@ -680,6 +761,9 @@ export function useQuestSession({
     toggleStarterIdea,
     assignRole,
     toggleBuiltInHelp,
+    setOpenSection,
+    openRescueSection,
+    markRescueModeUsed,
     handleNeedStepHint,
   };
 }
