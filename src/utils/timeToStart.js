@@ -45,33 +45,74 @@ export function markMomentCreatedAt(at = nowIso()) {
     momentCreatedAt: at,
     suggestionsShownAt: null,
     activityStartedAt: null,
+    recommendationBatchId: null,
+    candidateId: null,
   });
 }
 
-export function markSuggestionsShownAt(at = nowIso()) {
+export function markSuggestionsShownAt(
+  at = nowIso(),
+  { recommendationBatchId = null, candidateIds = [] } = {}
+) {
   const current = readTiming();
   writeTiming({
     ...current,
     suggestionsShownAt: at,
+    recommendationBatchId:
+      recommendationBatchId || current.recommendationBatchId || null,
+    candidateIds: Array.isArray(candidateIds) ? candidateIds : [],
+  });
+
+  trackProductEvent("recommendations_shown", {
+    recommendationBatchId: recommendationBatchId || null,
+    candidateCount: Array.isArray(candidateIds) ? candidateIds.length : 0,
   });
 }
 
-export function markActivityStartedAt(at = nowIso()) {
+export function markActivitySelectedAt(
+  at = nowIso(),
+  { candidateId = null, recommendationBatchId = null } = {}
+) {
+  const current = readTiming();
+  writeTiming({
+    ...current,
+    activitySelectedAt: at,
+    candidateId: candidateId || current.candidateId || null,
+    recommendationBatchId:
+      recommendationBatchId || current.recommendationBatchId || null,
+  });
+
+  trackProductEvent("activity_selected", {
+    candidateId: candidateId || null,
+    recommendationBatchId: recommendationBatchId || null,
+  });
+}
+
+export function markActivityStartedAt(
+  at = nowIso(),
+  { candidateId = null, recommendationBatchId = null } = {}
+) {
   const current = readTiming();
   const next = {
     ...current,
     activityStartedAt: at,
+    candidateId: candidateId || current.candidateId || null,
+    recommendationBatchId:
+      recommendationBatchId || current.recommendationBatchId || null,
   };
   writeTiming(next);
 
   const momentMs = toMs(next.momentCreatedAt);
   const suggestionsMs = toMs(next.suggestionsShownAt);
   const startedMs = toMs(at);
+  const selectedMs = toMs(next.activitySelectedAt);
 
   const payload = {
     momentCreatedAt: next.momentCreatedAt || null,
     suggestionsShownAt: next.suggestionsShownAt || null,
     activityStartedAt: at,
+    candidateId: next.candidateId || null,
+    recommendationBatchId: next.recommendationBatchId || null,
   };
 
   if (momentMs != null && startedMs != null) {
@@ -79,6 +120,10 @@ export function markActivityStartedAt(at = nowIso()) {
   }
   if (suggestionsMs != null && startedMs != null) {
     payload.msSuggestionsToStart = startedMs - suggestionsMs;
+    payload.timeToStartMs = startedMs - suggestionsMs;
+  }
+  if (selectedMs != null && startedMs != null) {
+    payload.msSelectedToStart = startedMs - selectedMs;
   }
   if (momentMs != null && suggestionsMs != null) {
     payload.msMomentToSuggestions = suggestionsMs - momentMs;

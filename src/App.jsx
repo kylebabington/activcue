@@ -369,6 +369,7 @@ function App() {
     currentMoment,
     activityMode,
     activeChildProfile,
+    selectedChildProfiles,
     kidActivityStyle,
     kidMood,
     messLevel,

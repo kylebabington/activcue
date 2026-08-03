@@ -68,16 +68,75 @@ function parseSessionScope(value, participantChildIds = []) {
   return participantChildIds.length > 1 ? "group" : "single";
 }
 
-function formatActivitySession(row) {
+function parseCategories(value) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((item) => (typeof item === "string" ? item.trim().toLowerCase() : ""))
+    .filter(Boolean);
+}
+
+function parseTraits(value) {
+  if (!isPlainObject(value)) {
+    return {};
+  }
+
+  return {
+    ...(typeof value.setupEffort === "string"
+      ? { setupEffort: value.setupEffort }
+      : {}),
+    ...(typeof value.structure === "string"
+      ? { structure: value.structure }
+      : {}),
+    ...(typeof value.socialMode === "string"
+      ? { socialMode: value.socialMode }
+      : {}),
+    ...(typeof value.creativity === "string"
+      ? { creativity: value.creativity }
+      : {}),
+    ...(typeof value.movement === "string"
+      ? { movement: value.movement }
+      : {}),
+  };
+}
+
+function formatParticipant(row) {
+  return {
+    id: row.id,
+    sessionId: row.session_id,
+    childId: row.child_id,
+    engagementRating: row.engagement_rating,
+    completionStatus: row.completion_status,
+    rejectionReason: row.rejection_reason,
+    joinedAt: row.joined_at,
+    leftAt: row.left_at,
+    createdAt: row.created_at,
+  };
+}
+
+function formatActivitySession(row, participants = []) {
   const participantChildIds = parseParticipantChildIds(
     row.participant_child_ids
   );
+  const resolvedParticipants = Array.isArray(participants)
+    ? participants.map(formatParticipant)
+    : [];
+
+  // Prefer explicit participant rows; fall back to denormalized ids.
+  const childIdsFromRows = resolvedParticipants
+    .map((p) => p.childId)
+    .filter(Boolean);
+  const mergedParticipantIds =
+    childIdsFromRows.length > 0 ? childIdsFromRows : participantChildIds;
 
   return {
     id: row.id,
     childId: row.child_id,
-    sessionScope: parseSessionScope(row.session_scope, participantChildIds),
-    participantChildIds,
+    sessionScope: parseSessionScope(row.session_scope, mergedParticipantIds),
+    participantChildIds: mergedParticipantIds,
+    participants: resolvedParticipants,
     activityTitle: row.activity_title,
     activityStyle: row.activity_style,
     requestedMinutes: row.requested_minutes,
@@ -95,12 +154,68 @@ function formatActivitySession(row) {
     activitySupplies: Array.isArray(row.activity_supplies)
       ? row.activity_supplies
       : [],
+    activityCategories: parseCategories(row.activity_categories),
+    activityTraits: parseTraits(row.activity_traits),
+    candidateId: row.candidate_id || null,
+    recommendationBatchId: row.recommendation_batch_id || null,
+    presentedAt: row.presented_at || null,
+    selectedAt: row.selected_at || null,
+    rejectionReason: row.rejection_reason || null,
     actualMinutes: row.actual_minutes,
     completionStatus: row.completion_status,
     independenceRating: row.independence_rating,
     cleanupRating: row.cleanup_rating,
     createdAt: row.created_at,
   };
+}
+
+async function loadParticipantsForSessions(supabase, sessionIds) {
+  if (!Array.isArray(sessionIds) || sessionIds.length === 0) {
+    return new Map();
+  }
+
+  const { data, error } = await supabase
+    .from("activity_session_participants")
+    .select("*")
+    .in("session_id", sessionIds);
+
+  if (error) {
+    console.warn("Could not load session participants:", error);
+    return new Map();
+  }
+
+  const bySession = new Map();
+  for (const row of data || []) {
+    const list = bySession.get(row.session_id) || [];
+    list.push(row);
+    bySession.set(row.session_id, list);
+  }
+  return bySession;
+}
+
+async function insertSessionParticipants(supabase, sessionId, childIds) {
+  const uniqueIds = parseParticipantChildIds(childIds);
+  if (!sessionId || uniqueIds.length === 0) {
+    return [];
+  }
+
+  const rows = uniqueIds.map((childId) => ({
+    session_id: sessionId,
+    child_id: childId,
+    joined_at: new Date().toISOString(),
+  }));
+
+  const { data, error } = await supabase
+    .from("activity_session_participants")
+    .upsert(rows, { onConflict: "session_id,child_id" })
+    .select("*");
+
+  if (error) {
+    console.warn("Could not insert session participants:", error);
+    return [];
+  }
+
+  return data || [];
 }
 
 function parseOptionalInt(value) {
@@ -523,8 +638,16 @@ router.get(
         });
       }
 
+      const sessionRows = data || [];
+      const participantsBySession = await loadParticipantsForSessions(
+        supabase,
+        sessionRows.map((row) => row.id)
+      );
+
       return res.json({
-        activitySessions: (data || []).map(formatActivitySession),
+        activitySessions: sessionRows.map((row) =>
+          formatActivitySession(row, participantsBySession.get(row.id) || [])
+        ),
       });
     } catch (error) {
       console.error("Unexpected activity sessions list failure:", error);
@@ -620,6 +743,27 @@ router.post(
           )
             ? body.activitySupplies ?? body.activity_supplies
             : [],
+          activity_categories: parseCategories(
+            body.activityCategories ?? body.activity_categories
+          ),
+          activity_traits: parseTraits(
+            body.activityTraits ?? body.activity_traits
+          ),
+          candidate_id: parseOptionalString(
+            body.candidateId ?? body.candidate_id
+          ),
+          recommendation_batch_id: parseOptionalString(
+            body.recommendationBatchId ?? body.recommendation_batch_id
+          ),
+          presented_at: parseOptionalString(
+            body.presentedAt ?? body.presented_at
+          ),
+          selected_at: parseOptionalString(
+            body.selectedAt ?? body.selected_at
+          ),
+          rejection_reason: parseOptionalString(
+            body.rejectionReason ?? body.rejection_reason
+          ),
           actual_minutes: parseOptionalInt(
             body.actualMinutes ?? body.actual_minutes
           ),
@@ -644,14 +788,124 @@ router.post(
         });
       }
 
+      const participants = await insertSessionParticipants(
+        supabase,
+        data.id,
+        participantChildIds
+      );
+
       return res.status(201).json({
-        activitySession: formatActivitySession(data),
+        activitySession: formatActivitySession(data, participants),
       });
     } catch (error) {
       console.error("Unexpected activity session create failure:", error);
       return res.status(500).json({
         error: "Could not create activity session.",
         code: "ACTIVITY_SESSION_CREATE_FAILED",
+      });
+    }
+  }
+);
+
+/*
+ * PATCH /api/family-memory/activity-sessions/:id/participants/:childId
+ */
+router.patch(
+  "/family-memory/activity-sessions/:id/participants/:childId",
+  requireAuthenticatedUser,
+  ensureUserProfile,
+  async (req, res) => {
+    try {
+      const sessionId = String(req.params.id || "").trim();
+      const childId = String(req.params.childId || "").trim();
+      const body = isPlainObject(req.body) ? req.body : {};
+
+      if (!sessionId || !childId) {
+        return res.status(400).json({
+          error: "session id and childId are required.",
+          code: "ACTIVITY_SESSION_PARTICIPANT_INVALID",
+        });
+      }
+
+      const supabase = getSupabaseAdminClient();
+
+      const { data: session, error: sessionError } = await supabase
+        .from("activity_sessions")
+        .select("id")
+        .eq("user_id", req.auth.userId)
+        .eq("id", sessionId)
+        .maybeSingle();
+
+      if (sessionError) {
+        console.error("Could not verify activity session:", sessionError);
+        return res.status(500).json({
+          error: "Could not update participant.",
+          code: "ACTIVITY_SESSION_PARTICIPANT_UPDATE_FAILED",
+        });
+      }
+
+      if (!session) {
+        return res.status(404).json({
+          error: "Activity session not found.",
+          code: "ACTIVITY_SESSION_NOT_FOUND",
+        });
+      }
+
+      const patch = {
+        child_id: childId,
+        session_id: sessionId,
+      };
+
+      const engagementRating = parseOptionalString(
+        body.engagementRating ?? body.engagement_rating
+      );
+      if (engagementRating) {
+        patch.engagement_rating = engagementRating;
+      }
+
+      const completionStatus = parseOptionalString(
+        body.completionStatus ?? body.completion_status
+      );
+      if (completionStatus) {
+        patch.completion_status = completionStatus;
+      }
+
+      const rejectionReason = parseOptionalString(
+        body.rejectionReason ?? body.rejection_reason
+      );
+      if (rejectionReason) {
+        patch.rejection_reason = rejectionReason;
+      }
+
+      const leftAt = parseOptionalString(body.leftAt ?? body.left_at);
+      if (leftAt) {
+        patch.left_at = leftAt;
+      } else if (completionStatus || rejectionReason) {
+        patch.left_at = new Date().toISOString();
+      }
+
+      const { data, error } = await supabase
+        .from("activity_session_participants")
+        .upsert(patch, { onConflict: "session_id,child_id" })
+        .select("*")
+        .single();
+
+      if (error) {
+        console.error("Could not update session participant:", error);
+        return res.status(500).json({
+          error: "Could not update participant.",
+          code: "ACTIVITY_SESSION_PARTICIPANT_UPDATE_FAILED",
+        });
+      }
+
+      return res.json({
+        participant: formatParticipant(data),
+      });
+    } catch (error) {
+      console.error("Unexpected participant update failure:", error);
+      return res.status(500).json({
+        error: "Could not update participant.",
+        code: "ACTIVITY_SESSION_PARTICIPANT_UPDATE_FAILED",
       });
     }
   }
