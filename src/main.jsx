@@ -11,9 +11,13 @@ import {
 import App from "./App.jsx";
 import { AuthProvider } from "./context/AuthProvider.jsx";
 import CompleteSignupPage from "./pages/CompleteSignupPage.jsx";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage.jsx";
 import LandingPage from "./pages/LandingPage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
+import PrivacyPolicyPage from "./pages/PrivacyPolicyPage.jsx";
+import ResetPasswordPage from "./pages/ResetPasswordPage.jsx";
 import SignupPage from "./pages/SignupPage.jsx";
+import TermsPage from "./pages/TermsPage.jsx";
 
 import "./index.css";
 
@@ -31,6 +35,14 @@ if (import.meta.env.DEV) {
   import("./styleLab/styleLabDraft.js").then(({ applyPinnedDraft }) =>
     applyPinnedDraft()
   );
+}
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(() => {
+      // Offline shell is best-effort.
+    });
+  });
 }
 
 ReactDOM.createRoot(
@@ -61,6 +73,9 @@ ReactDOM.createRoot(
           element={<LandingPage />}
         />
 
+        <Route path="/privacy" element={<PrivacyPolicyPage />} />
+        <Route path="/terms" element={<TermsPage />} />
+
         {/*
          * Existing users log in directly.
          *
@@ -71,6 +86,9 @@ ReactDOM.createRoot(
           path="/login"
           element={<LoginPage />}
         />
+
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
 
         {/*
          * Signup means converting the current visitor into a permanent user.

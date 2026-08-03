@@ -230,6 +230,12 @@ function LandingPage() {
         <div className="landing-footer-inner">
           <img src="/logo.svg" alt="" width="24" height="24" />
           <span>FamilyFlow</span>
+          <span className="landing-footer-sep" aria-hidden="true">
+            ·
+          </span>
+          <Link to="/privacy">Privacy</Link>
+          <Link to="/terms">Terms</Link>
+          <a href="mailto:support@familyflow.app">Support</a>
         </div>
       </footer>
     </div>
