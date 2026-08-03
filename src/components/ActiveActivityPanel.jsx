@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import QuestContent from "./quest/QuestContent";
-import { getDefaultOpenSections } from "./quest/CollapsibleQuestSection";
+import { getDefaultOpenSections } from "./quest/questSectionDefaults";
 import {
   getActivityRoleLabel,
   getStepDetails,

@@ -1,16 +1,4 @@
-const DEFAULT_OPEN_SECTIONS = Object.freeze({
-  mission: true,
-  role: true,
-  starters: true,
-  materials: false,
-  steps: true,
-  rescue: false,
-  finish: false,
-});
-
-export function getDefaultOpenSections(overrides = {}) {
-  return { ...DEFAULT_OPEN_SECTIONS, ...overrides };
-}
+import { useState } from "react";
 
 /**
  * Native details/summary collapsible section for quest content.
@@ -25,20 +13,22 @@ export default function CollapsibleQuestSection({
   children,
 }) {
   const isControlled = typeof open === "boolean";
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultOpen);
+  const isOpen = isControlled ? open : uncontrolledOpen;
 
   function handleToggle(event) {
-    if (!onOpenChange) {
-      return;
+    const nextOpen = Boolean(event.currentTarget.open);
+    if (!isControlled) {
+      setUncontrolledOpen(nextOpen);
     }
-    onOpenChange(Boolean(event.currentTarget.open));
+    onOpenChange?.(nextOpen);
   }
 
   return (
     <details
       id={id}
       className="quest-collapsible-section"
-      open={isControlled ? open : undefined}
-      defaultOpen={isControlled ? undefined : defaultOpen}
+      open={isOpen}
       onToggle={handleToggle}
     >
       <summary className="quest-collapsible-summary">
@@ -51,5 +41,3 @@ export default function CollapsibleQuestSection({
     </details>
   );
 }
-
-export { DEFAULT_OPEN_SECTIONS };

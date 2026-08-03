@@ -13,9 +13,8 @@ import {
   getStepDetails,
   getVisualThemeMeta,
 } from "../../utils/activityVisualTheme";
-import CollapsibleQuestSection, {
-  getDefaultOpenSections,
-} from "./CollapsibleQuestSection";
+import CollapsibleQuestSection from "./CollapsibleQuestSection";
+import { getDefaultOpenSections } from "./questSectionDefaults";
 
 function QuestStepCard({
   step,

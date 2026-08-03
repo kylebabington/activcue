@@ -11,7 +11,7 @@ import { useLocalStorage } from "../../hooks/useLocalStorage";
 import { normalizeActivityStyle } from "../../utils/activityStyle";
 import { trackProductEvent } from "../../utils/analytics";
 import { markActivityStartedAt } from "../../utils/timeToStart";
-import { getDefaultOpenSections } from "../../components/quest/CollapsibleQuestSection";
+import { getDefaultOpenSections } from "../../components/quest/questSectionDefaults";
 import {
   buildActivitySessionExitPatch,
   buildActivitySessionStartPayload,
