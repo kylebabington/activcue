@@ -180,8 +180,9 @@ export function familySettingsPayloadFromState({
 }
 
 /*
- * Prefer server arrays when non-empty; otherwise keep local legacy data so a
- * migration to new columns does not wipe favorites/history still only on device.
+ * Legacy JSON memory columns on family_settings are ignored.
+ * Favorites and history live in dedicated tables (useFamilyMemory).
+ * Keep this helper only for rare local fallback merges outside settings hydrate.
  */
 export function mergeMemoryCollections(serverList, localList) {
     const server = Array.isArray(serverList) ? serverList : [];
@@ -196,6 +197,7 @@ export function mergeMemoryCollections(serverList, localList) {
 
 /*
  * Normalize a server or import document into values safe to apply to App state.
+ * Does not apply legacy savedActivities / activityHistory JSON.
  */
 export function normalizeFamilySettingsDocument(settings, localMemory = {}) {
     const defaults = buildDefaultFamilySettings();
@@ -228,14 +230,8 @@ export function normalizeFamilySettingsDocument(settings, localMemory = {}) {
         customParentPresets: Array.isArray(settings?.customParentPresets)
             ? settings.customParentPresets
             : [],
-        savedActivities: mergeMemoryCollections(
-            settings?.savedActivities,
-            localMemory.savedActivities
-        ),
-        activityHistory: mergeMemoryCollections(
-            settings?.activityHistory,
-            localMemory.activityHistory
-        ),
+        savedActivities: [],
+        activityHistory: [],
         lastSuccessfulMoment:
             settings?.lastSuccessfulMoment &&
             typeof settings.lastSuccessfulMoment === "object"

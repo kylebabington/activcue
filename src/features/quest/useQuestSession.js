@@ -10,13 +10,14 @@ import {
 import { useLocalStorage } from "../../hooks/useLocalStorage";
 import { normalizeActivityStyle } from "../../utils/activityStyle";
 import { trackProductEvent } from "../../utils/analytics";
+import { markActivityStartedAt } from "../../utils/timeToStart";
 import {
   buildActivitySessionExitPatch,
-  buildActivitySessionPayload,
   buildActivitySessionStartPayload,
   buildCanceledHistoryItem,
   buildCompletedQuestSummary,
   buildFinishedHistoryItem,
+  resolveActivitySessionId,
   useActivityTimer,
 } from "./useQuest";
 
@@ -51,43 +52,99 @@ export function useQuestSession({
   const lastCompletedQuestRef = useRef(lastCompletedQuest);
   lastCompletedQuestRef.current = lastCompletedQuest;
 
+  // Serialize cloud session create → exit PATCH without blocking the UI.
+  const sessionCreationPromiseRef = useRef(null);
+  const sessionExitPromiseRef = useRef(null);
+
   const [stepHint, setStepHint] = useState("");
   const [isHintLoading, setIsHintLoading] = useState(false);
 
   const timerSecondsRemaining = useActivityTimer(activeActivity);
 
-  function patchActiveSessionExit(activity, completionStatus) {
-    const sessionId = activity?.activitySessionId;
-    if (!sessionId) {
+  function rememberSessionInList(session) {
+    if (!session?.id) {
       return;
     }
+    setActivitySessions((current) =>
+      [session, ...current.filter((row) => row.id !== session.id)].slice(0, 100)
+    );
+  }
 
-    const finishedAt = Date.now();
-    void updateActivitySession(
-      sessionId,
-      buildActivitySessionExitPatch(activity, {
-        completionStatus,
-        finishedAt,
-      }),
-      { expectedUserId: userId }
-    )
-      .then((response) => {
+  function persistSessionExit(activity, completionStatus, {
+    finishedAt = Date.now(),
+    completedQuestSummaryId = null,
+  } = {}) {
+    const exitPatch = buildActivitySessionExitPatch(activity, {
+      completionStatus,
+      finishedAt,
+    });
+
+    const exitPromise = (async () => {
+      const sessionId = await resolveActivitySessionId({
+        existingSessionId: activity?.activitySessionId || null,
+        creationPromise: sessionCreationPromiseRef.current,
+      });
+
+      sessionCreationPromiseRef.current = null;
+
+      if (!sessionId) {
+        console.error(
+          `Could not resolve activity session id for ${completionStatus}; skipping exit PATCH.`
+        );
+        return null;
+      }
+
+      if (completedQuestSummaryId) {
+        setLastCompletedQuest((previous) => {
+          if (!previous || previous.id !== completedQuestSummaryId) {
+            return previous;
+          }
+          return { ...previous, activitySessionId: sessionId };
+        });
+      }
+
+      try {
+        const response = await updateActivitySession(sessionId, exitPatch, {
+          expectedUserId: userId,
+        });
         const session = response?.activitySession;
-        if (session) {
-          setActivitySessions((current) =>
-            [session, ...current.filter((row) => row.id !== session.id)].slice(
-              0,
-              100
-            )
-          );
+        rememberSessionInList(session);
+
+        const pendingIndependenceRating =
+          completedQuestSummaryId &&
+          lastCompletedQuestRef.current?.id === completedQuestSummaryId
+            ? lastCompletedQuestRef.current.independenceRating || null
+            : null;
+
+        if (pendingIndependenceRating) {
+          try {
+            const rated = await updateActivitySession(
+              sessionId,
+              { independenceRating: pendingIndependenceRating },
+              { expectedUserId: userId }
+            );
+            rememberSessionInList(rated?.activitySession);
+          } catch (error) {
+            console.error(
+              "Could not update session independence rating:",
+              error
+            );
+          }
         }
-      })
-      .catch((error) => {
+
+        return sessionId;
+      } catch (error) {
         console.error(
           `Could not update activity session (${completionStatus}):`,
           error
         );
-      });
+        return sessionId;
+      }
+    })();
+
+    sessionExitPromiseRef.current = exitPromise;
+    void exitPromise;
+    return exitPromise;
   }
 
   function handleStartActivity(activity) {
@@ -130,13 +187,14 @@ export function useQuestSession({
     setStepHint("");
     setLastCompletedQuest(null);
     setActiveActivity(activityToStart);
+    markActivityStartedAt();
     saveActivityFeedback?.(activity, "started");
     showStatus?.(`Started: "${activity.title}". Timer is running.`, "success");
 
     const childIdForSession =
       activityMode === "family" ? "" : activeChildProfile?.id || "";
 
-    void createActivitySession(
+    const creationPromise = createActivitySession(
       buildActivitySessionStartPayload(activityToStart, currentMoment, {
         childId: childIdForSession,
       }),
@@ -144,21 +202,24 @@ export function useQuestSession({
     )
       .then((response) => {
         const session = response?.activitySession;
-        if (!session?.id) {
-          return;
+        if (session?.id) {
+          rememberSessionInList(session);
+          setActiveActivity((previous) => {
+            if (!previous || previous.id !== activityToStart.id) {
+              return previous;
+            }
+            return { ...previous, activitySessionId: session.id };
+          });
         }
-
-        setActivitySessions((current) => [session, ...current].slice(0, 100));
-        setActiveActivity((previous) => {
-          if (!previous || previous.id !== activityToStart.id) {
-            return previous;
-          }
-          return { ...previous, activitySessionId: session.id };
-        });
+        return response;
       })
       .catch((error) => {
         console.error("Could not create activity session on start:", error);
+        throw error;
       });
+
+    sessionCreationPromiseRef.current = creationPromise;
+    sessionExitPromiseRef.current = null;
   }
 
   function finishActiveActivity() {
@@ -199,86 +260,10 @@ export function useQuestSession({
     showStatus?.(`Finished: "${finishedActivity.title}". Nice work.`, "success");
     trackProductEvent("activity_finished", { title: finishedActivity.title });
 
-    const sessionId = finishedActivity.activitySessionId;
-    const exitPatch = buildActivitySessionExitPatch(finishedActivity, {
-      completionStatus: "finished",
+    persistSessionExit(finishedActivity, "finished", {
       finishedAt,
+      completedQuestSummaryId: completedQuestSummary.id,
     });
-
-    if (sessionId) {
-      setLastCompletedQuest((previous) => {
-        if (!previous || previous.id !== completedQuestSummary.id) {
-          return previous;
-        }
-        return { ...previous, activitySessionId: sessionId };
-      });
-
-      void updateActivitySession(sessionId, exitPatch, {
-        expectedUserId: userId,
-      })
-        .then((response) => {
-          const session = response?.activitySession;
-          if (session) {
-            setActivitySessions((current) =>
-              [session, ...current.filter((row) => row.id !== session.id)].slice(
-                0,
-                100
-              )
-            );
-          }
-
-          const pendingIndependenceRating =
-            lastCompletedQuestRef.current?.id === completedQuestSummary.id
-              ? lastCompletedQuestRef.current.independenceRating || null
-              : null;
-
-          if (pendingIndependenceRating) {
-            void updateActivitySession(
-              sessionId,
-              { independenceRating: pendingIndependenceRating },
-              { expectedUserId: userId }
-            ).catch((error) => {
-              console.error(
-                "Could not update session independence rating:",
-                error
-              );
-            });
-          }
-        })
-        .catch((error) => {
-          console.error("Could not update activity session on finish:", error);
-        });
-    } else {
-      void createActivitySession(
-        buildActivitySessionPayload(finishedActivity, currentMoment, {
-          childId: activeChildProfile?.id || "",
-          finishedAt,
-          completionStatus: "finished",
-        }),
-        { expectedUserId: userId }
-      )
-        .then((response) => {
-          const session = response?.activitySession;
-          if (session) {
-            setActivitySessions((current) =>
-              [session, ...current].slice(0, 100)
-            );
-          }
-          const createdId = session?.id;
-          if (!createdId) {
-            return;
-          }
-          setLastCompletedQuest((previous) => {
-            if (!previous || previous.id !== completedQuestSummary.id) {
-              return previous;
-            }
-            return { ...previous, activitySessionId: createdId };
-          });
-        })
-        .catch((error) => {
-          console.error("Could not create activity session on finish:", error);
-        });
-    }
   }
 
   function handleSessionOutcome(independenceRating) {
@@ -297,18 +282,34 @@ export function useQuestSession({
       return { ...previous, independenceRating };
     });
 
-    const sessionId = lastCompletedQuest?.activitySessionId;
-    if (!sessionId) {
-      return;
-    }
+    void (async () => {
+      let sessionId = lastCompletedQuestRef.current?.activitySessionId || null;
 
-    void updateActivitySession(
-      sessionId,
-      { independenceRating },
-      { expectedUserId: userId }
-    ).catch((error) => {
-      console.error("Could not update session independence rating:", error);
-    });
+      if (!sessionId && sessionExitPromiseRef.current) {
+        sessionId = await sessionExitPromiseRef.current;
+      }
+
+      if (!sessionId && sessionCreationPromiseRef.current) {
+        sessionId = await resolveActivitySessionId({
+          creationPromise: sessionCreationPromiseRef.current,
+        });
+      }
+
+      if (!sessionId) {
+        return;
+      }
+
+      try {
+        const response = await updateActivitySession(
+          sessionId,
+          { independenceRating },
+          { expectedUserId: userId }
+        );
+        rememberSessionInList(response?.activitySession);
+      } catch (error) {
+        console.error("Could not update session independence rating:", error);
+      }
+    })();
   }
 
   function cancelActiveActivity() {
@@ -316,8 +317,9 @@ export function useQuestSession({
       return;
     }
 
+    const canceledActivity = activeActivity;
     appendHistory?.(
-      buildCanceledHistoryItem(activeActivity, {
+      buildCanceledHistoryItem(canceledActivity, {
         kidMood,
         messLevel,
         locationPreference,
@@ -325,10 +327,10 @@ export function useQuestSession({
       })
     );
     setLastCompletedQuest(null);
-    patchActiveSessionExit(activeActivity, "canceled");
     setActiveActivity(null);
     setStepHint("");
-    showStatus?.(`Canceled: "${activeActivity.title}".`, "info");
+    showStatus?.(`Canceled: "${canceledActivity.title}".`, "info");
+    persistSessionExit(canceledActivity, "canceled");
   }
 
   function handleTimerNotFinished() {
@@ -336,10 +338,11 @@ export function useQuestSession({
       return;
     }
 
+    const activity = activeActivity;
     appendHistory?.({
       id: crypto.randomUUID(),
-      title: activeActivity.title,
-      activityStyle: normalizeActivityStyle(activeActivity),
+      title: activity.title,
+      activityStyle: normalizeActivityStyle(activity),
       feedbackType: "not-finished",
       createdAt: new Date().toISOString(),
       kidMood,
@@ -347,12 +350,12 @@ export function useQuestSession({
       locationPreference,
       childAgeRange: effectiveChildAgeRange,
     });
-    patchActiveSessionExit(activeActivity, "not-finished");
     setActiveActivity(null);
     showStatus?.(
-      `"${activeActivity.title}" was marked not finished. We'll use that to improve suggestions.`,
+      `"${activity.title}" was marked not finished. We'll use that to improve suggestions.`,
       "info"
     );
+    persistSessionExit(activity, "not-finished");
   }
 
   function handleTimerNeedAnotherIdea() {
@@ -361,10 +364,11 @@ export function useQuestSession({
     }
 
     const previousTitle = activeActivity.title;
+    const activity = activeActivity;
     appendHistory?.({
       id: crypto.randomUUID(),
       title: previousTitle,
-      activityStyle: normalizeActivityStyle(activeActivity),
+      activityStyle: normalizeActivityStyle(activity),
       feedbackType: "need-another-idea",
       createdAt: new Date().toISOString(),
       kidMood,
@@ -372,8 +376,8 @@ export function useQuestSession({
       locationPreference,
       childAgeRange: effectiveChildAgeRange,
     });
-    patchActiveSessionExit(activeActivity, "abandoned");
     setActiveActivity(null);
+    persistSessionExit(activity, "abandoned");
     onNeedAnotherIdea?.(previousTitle);
   }
 

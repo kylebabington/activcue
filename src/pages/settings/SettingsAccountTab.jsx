@@ -2,8 +2,11 @@
 
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { changePassword, signOutCurrentUser } from "../../api/authApi";
+import { changePassword, deleteAccount, signOutCurrentUser } from "../../api/authApi";
 import { ApiRequestError } from "../../api/apiClient";
+
+const SUPPORT_EMAIL =
+  import.meta.env.VITE_SUPPORT_EMAIL || "support@familyflow.app";
 
 function formatSubscriptionStatus(status) {
   if (typeof status !== "string" || !status) {
@@ -70,6 +73,9 @@ export default function SettingsAccountTab({
   const [passwordChangeBusy, setPasswordChangeBusy] = useState(false);
   const [passwordChangeMessage, setPasswordChangeMessage] = useState("");
   const [passwordChangeMessageType, setPasswordChangeMessageType] = useState("info");
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deleteAccountBusy, setDeleteAccountBusy] = useState(false);
+  const [deleteAccountError, setDeleteAccountError] = useState("");
 
   async function handleLogOut() {
     setLogoutError("");
@@ -125,6 +131,29 @@ export default function SettingsAccountTab({
       setPasswordChangeMessageType("error");
     } finally {
       setPasswordChangeBusy(false);
+    }
+  }
+
+  async function handleDeleteAccount() {
+    setDeleteAccountError("");
+    if (deleteConfirmText.trim().toUpperCase() !== "DELETE") {
+      setDeleteAccountError('Type DELETE to confirm account deletion.');
+      return;
+    }
+    setDeleteAccountBusy(true);
+    try {
+      await deleteAccount();
+      window.location.assign("/");
+    } catch (error) {
+      console.error("Could not delete account:", error);
+      setDeleteAccountError(
+        error instanceof ApiRequestError
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : "Could not delete account. Try again."
+      );
+      setDeleteAccountBusy(false);
     }
   }
 
@@ -745,6 +774,67 @@ export default function SettingsAccountTab({
                   <button className="ghost-button" onClick={resetSavedData}>
                     Reset saved data
                   </button>
+
+                  {!isAnonymous ? (
+                    <div className="account-delete-block">
+                      <h3>Delete account</h3>
+                      <p>
+                        Permanently delete your FamilyFlow account, synced family
+                        data, and sign-in credentials. Active Stripe subscriptions
+                        should be cancelled separately if needed.
+                      </p>
+                      <label className="account-password-field">
+                        <span>Type DELETE to confirm</span>
+                        <input
+                          type="text"
+                          name="deleteConfirm"
+                          autoComplete="off"
+                          value={deleteConfirmText}
+                          onChange={(event) =>
+                            setDeleteConfirmText(event.target.value)
+                          }
+                        />
+                      </label>
+                      {deleteAccountError ? (
+                        <p
+                          className="billing-notice billing-notice--error"
+                          role="alert"
+                        >
+                          {deleteAccountError}
+                        </p>
+                      ) : null}
+                      <button
+                        type="button"
+                        className="ghost-button"
+                        onClick={handleDeleteAccount}
+                        disabled={deleteAccountBusy}
+                      >
+                        {deleteAccountBusy
+                          ? "Deleting account…"
+                          : "Delete account"}
+                      </button>
+                    </div>
+                  ) : null}
+                </section>
+
+                <section className="panel">
+                  <div className="panel-header">
+                    <div>
+                      <h2>Support</h2>
+                      <p>
+                        Questions, billing help, or privacy requests — email us
+                        and we will get back to you.
+                      </p>
+                    </div>
+                  </div>
+                  <p>
+                    <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>
+                  </p>
+                  <p className="account-legal-links">
+                    <Link to="/privacy">Privacy Policy</Link>
+                    {" · "}
+                    <Link to="/terms">Terms of Use</Link>
+                  </p>
                 </section>
 
 

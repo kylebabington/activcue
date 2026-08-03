@@ -59,6 +59,16 @@ export default function AppHeader({
         </NavLink>
 
         <NavLink
+          to="/insights"
+          className={({ isActive }) =>
+            isActive ? "active" : parentAreasLocked ? "nav-muted" : ""
+          }
+          title={parentAreasLocked ? "Insights are locked" : undefined}
+        >
+          Insights
+        </NavLink>
+
+        <NavLink
           to="/settings"
           className={({ isActive }) =>
             isActive ? "active" : parentAreasLocked ? "nav-muted" : ""

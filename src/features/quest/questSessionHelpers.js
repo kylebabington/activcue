@@ -127,6 +127,28 @@ export function buildCanceledHistoryItem(
   };
 }
 
+function normalizeParticipantChildIds(participantChildIds = []) {
+  if (!Array.isArray(participantChildIds)) {
+    return [];
+  }
+
+  return [
+    ...new Set(
+      participantChildIds
+        .map((id) => String(id || "").trim())
+        .filter(Boolean)
+    ),
+  ];
+}
+
+function resolveSessionScope(sessionScope, participantChildIds) {
+  if (sessionScope === "group" || sessionScope === "single") {
+    return sessionScope;
+  }
+
+  return participantChildIds.length > 1 ? "group" : "single";
+}
+
 /*
  * Payload shape for POST /api/family-memory/activity-sessions (camelCase client API).
  */
@@ -139,15 +161,21 @@ export function buildActivitySessionPayload(
     completionStatus = "finished",
     independenceRating = null,
     includeFinishedAt = true,
+    sessionScope,
+    participantChildIds = [],
   } = {}
 ) {
   const startedAt = Number(activeActivity?.startedAt);
   const minutesWorked = includeFinishedAt
     ? getMinutesWorked(activeActivity, finishedAt)
     : null;
+  const normalizedParticipants = normalizeParticipantChildIds(participantChildIds);
+  const resolvedScope = resolveSessionScope(sessionScope, normalizedParticipants);
 
   return {
     childId,
+    sessionScope: resolvedScope,
+    participantChildIds: normalizedParticipants,
     activityTitle: activeActivity?.title || "Activity",
     activityStyle: normalizeActivityStyle(activeActivity),
     requestedMinutes:
@@ -179,10 +207,12 @@ export function buildActivitySessionPayload(
 export function buildActivitySessionStartPayload(
   activeActivity,
   currentMoment,
-  { childId = "" } = {}
+  { childId = "", sessionScope, participantChildIds = [] } = {}
 ) {
   return buildActivitySessionPayload(activeActivity, currentMoment, {
     childId,
+    sessionScope,
+    participantChildIds,
     completionStatus: "in-progress",
     includeFinishedAt: false,
   });
@@ -220,3 +250,27 @@ export const INDEPENDENCE_OUTCOMES = [
     label: "Didn't last",
   },
 ];
+
+/*
+ * Resolve the cloud session id for finish/cancel/abandon without creating a
+ * second row. Prefer an already-known id; otherwise await the in-flight create.
+ */
+export async function resolveActivitySessionId({
+  existingSessionId = null,
+  creationPromise = null,
+} = {}) {
+  if (existingSessionId) {
+    return existingSessionId;
+  }
+
+  if (!creationPromise) {
+    return null;
+  }
+
+  try {
+    const response = await creationPromise;
+    return response?.activitySession?.id || null;
+  } catch {
+    return null;
+  }
+}

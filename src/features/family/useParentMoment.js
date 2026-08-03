@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { buildDefaultFamilySettings } from "../../constants/familySettingsDefaults";
+import { markMomentCreatedAt } from "../../utils/timeToStart";
 
 export function parentStatusFromMoment(moment) {
   return {
@@ -34,6 +35,7 @@ export function useParentMoment({
       noiseLevel: draft.noiseLevel,
       supervisionLevel: draft.supervisionLevel,
     });
+    markMomentCreatedAt();
     setParentStatus?.(parentStatusFromMoment(draft));
     showStatus?.(
       `Live for kids now: "${draft.parentActivity}".`,

@@ -177,6 +177,7 @@ function QuestPage() {
         handleTooHard,
         handleNeedQuieter,
         handleMoreLikeThis,
+        handleTryNextBest,
         handleAutoPickQuest,
         handleSessionOutcome,
         inventoryEmpty,
@@ -296,6 +297,7 @@ function QuestPage() {
                         handleTooHard={handleTooHard}
                         handleNeedQuieter={handleNeedQuieter}
                         handleMoreLikeThis={handleMoreLikeThis}
+                        handleTryNextBest={handleTryNextBest}
                         activitySessions={activitySessions}
                         activeChildName={activeChildProfile?.name || ""}
                         activeChildId={activeChildProfile?.id || ""}
