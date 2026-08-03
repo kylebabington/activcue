@@ -2,6 +2,12 @@ import { describe, expect, it } from "vitest";
 import {
   applySessionFitBoost,
   filterSessionsForFitScore,
+  getChildPreferenceScore,
+  getDurationReliabilityRatio,
+  getDurationReliabilityScore,
+  getHistoricalContextSimilarity,
+  getIndependenceSignal,
+  getRecentRepetitionPenalty,
   getSessionFitBoost,
   pickBestActivityForCurrentMoment,
   scoreActivitiesForCurrentMoment,
@@ -13,6 +19,17 @@ describe("sessionFitScore", () => {
     activityStyle: "simple",
     energy: "medium",
     mess: "low",
+    uses: ["LEGO"],
+  };
+
+  const cookingMoment = {
+    timeNeededMinutes: 20,
+    messLevel: "low",
+    noiseLevel: "quiet",
+    supervisionLevel: "independent",
+    space: "Kitchen",
+    availability: "do-not-interrupt",
+    parentActivity: "Cooking",
   };
 
   it("boosts activities with independent-time wins", () => {
@@ -26,14 +43,16 @@ describe("sessionFitScore", () => {
     ]);
 
     expect(boost).toBeGreaterThan(0);
-    expect(applySessionFitBoost(50, activity, [
-      {
-        activityTitle: "LEGO Free Build",
-        independenceRating: "worked-great",
-        actualMinutes: 24,
-        requestedMinutes: 20,
-      },
-    ])).toBeGreaterThan(50);
+    expect(
+      applySessionFitBoost(50, activity, [
+        {
+          activityTitle: "LEGO Free Build",
+          independenceRating: "worked-great",
+          actualMinutes: 24,
+          requestedMinutes: 20,
+        },
+      ])
+    ).toBeGreaterThan(50);
   });
 
   it("penalizes activities that did not last", () => {
@@ -70,6 +89,7 @@ describe("sessionFitScore", () => {
       energy: "medium",
       mess: "low",
       estimatedMinutes: 20,
+      uses: ["LEGO"],
     };
     const drawing = {
       title: "Quiet Drawing",
@@ -77,15 +97,7 @@ describe("sessionFitScore", () => {
       energy: "low",
       mess: "low",
       estimatedMinutes: 20,
-    };
-
-    const moment = {
-      timeNeededMinutes: 20,
-      messLevel: "low",
-      noiseLevel: "quiet",
-      supervisionLevel: "independent",
-      space: "Living room",
-      availability: "do-not-interrupt",
+      uses: ["crayons"],
     };
 
     const sessions = [
@@ -100,7 +112,7 @@ describe("sessionFitScore", () => {
 
     const forEmma = scoreActivitiesForCurrentMoment({
       activities: [lego, drawing],
-      currentMoment: moment,
+      currentMoment: cookingMoment,
       activityHistory: [],
       activitySessions: sessions,
       scoringOptions: { activeChildId: "emma", inventory: [] },
@@ -110,7 +122,7 @@ describe("sessionFitScore", () => {
     const boardTop = forEmma[0].activity;
     const autoPick = pickBestActivityForCurrentMoment({
       activities: [lego, drawing],
-      currentMoment: moment,
+      currentMoment: cookingMoment,
       activityHistory: [],
       activitySessions: sessions,
       scoringOptions: { activeChildId: "emma", inventory: [] },
@@ -118,6 +130,139 @@ describe("sessionFitScore", () => {
     });
 
     expect(autoPick).toBe(boardTop);
-    expect(forEmma.find((row) => row.activity.title === "LEGO Free Build").sessionBoost).toBe(0);
+    expect(
+      forEmma.find((row) => row.activity.title === "LEGO Free Build").sessionBoost
+    ).toBe(0);
+  });
+
+  it("maps independence ratings and duration reliability", () => {
+    expect(
+      getIndependenceSignal({ independenceRating: "worked-great" })
+    ).toBeGreaterThan(getIndependenceSignal({ independenceRating: "needed-me-few-times" }));
+    expect(getIndependenceSignal({ independenceRating: "didnt-last" })).toBeLessThan(0);
+    expect(getIndependenceSignal({ completionStatus: "abandoned" })).toBeLessThan(0);
+    expect(getIndependenceSignal({ completionStatus: "canceled" })).toBeLessThan(0);
+
+    expect(
+      getDurationReliabilityRatio({
+        actualMinutes: 18,
+        requestedMinutes: 20,
+      })
+    ).toBeCloseTo(0.9);
+    expect(
+      getDurationReliabilityScore({
+        actualMinutes: 20,
+        requestedMinutes: 20,
+      })
+    ).toBeGreaterThan(
+      getDurationReliabilityScore({
+        actualMinutes: 5,
+        requestedMinutes: 20,
+      })
+    );
+  });
+
+  it("weights matching historical moment context more heavily", () => {
+    const matchingContext = {
+      childId: "emma",
+      activityTitle: "LEGO Free Build",
+      independenceRating: "worked-great",
+      actualMinutes: 20,
+      requestedMinutes: 20,
+      parentActivity: "Cooking",
+      parentAvailability: "do-not-interrupt",
+      space: "Kitchen",
+      noiseLimit: "quiet",
+      messLimit: "low",
+      supervisionLevel: "independent",
+    };
+
+    const mismatchedContext = {
+      ...matchingContext,
+      parentActivity: "Calls",
+      parentAvailability: "helper-welcome",
+      space: "Backyard",
+      noiseLimit: "loud",
+      messLimit: "high",
+      supervisionLevel: "nearby",
+      requestedMinutes: 45,
+    };
+
+    expect(
+      getHistoricalContextSimilarity(matchingContext, cookingMoment, {
+        activeChildId: "emma",
+      })
+    ).toBeGreaterThan(
+      getHistoricalContextSimilarity(mismatchedContext, cookingMoment, {
+        activeChildId: "emma",
+      })
+    );
+
+    const matchingBoost = getSessionFitBoost(activity, [matchingContext], {
+      currentMoment: cookingMoment,
+      activeChildId: "emma",
+    });
+    const mismatchedBoost = getSessionFitBoost(activity, [mismatchedContext], {
+      currentMoment: cookingMoment,
+      activeChildId: "emma",
+    });
+
+    expect(matchingBoost).toBeGreaterThan(mismatchedBoost);
+  });
+
+  it("matches trait-similar activities when titles differ", () => {
+    const blocks = {
+      title: "Block Tower Challenge",
+      activityStyle: "simple",
+      energy: "medium",
+      mess: "low",
+      uses: ["blocks"],
+    };
+
+    const boost = getSessionFitBoost(blocks, [
+      {
+        activityTitle: "LEGO Free Build",
+        activityEnergy: "medium",
+        activityMess: "low",
+        activitySupplies: ["LEGO"],
+        independenceRating: "worked-great",
+        actualMinutes: 22,
+        requestedMinutes: 20,
+      },
+    ]);
+
+    expect(boost).toBeGreaterThan(0);
+  });
+
+  it("applies child preference and recent repetition helpers", () => {
+    const preference = getChildPreferenceScore(
+      activity,
+      [
+        {
+          childId: "emma",
+          activityTitle: "LEGO City",
+          activitySupplies: ["LEGO"],
+          activityEnergy: "medium",
+          activityMess: "low",
+          independenceRating: "worked-great",
+        },
+      ],
+      { activeChildId: "emma" }
+    );
+
+    expect(preference).toBeGreaterThan(0);
+
+    const penalty = getRecentRepetitionPenalty(
+      activity,
+      [
+        {
+          activityTitle: "LEGO Free Build",
+          startedAt: new Date().toISOString(),
+        },
+      ],
+      { now: Date.now() }
+    );
+
+    expect(penalty).toBeGreaterThan(0);
   });
 });
