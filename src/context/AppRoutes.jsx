@@ -1,15 +1,26 @@
 // src/context/AppRoutes.jsx
 
+import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import ParentPage from "../pages/ParentPage";
 import KidPage from "../pages/KidPage";
 import QuestPage from "../pages/QuestPage";
-import SettingsPage from "../pages/SettingsPage";
-import InsightsPage from "../pages/InsightsPage";
 import ParentPinGate from "../components/ParentPinGate";
 import { defaultParentStatusPresets } from "../constants/presets";
 import { getPlayModeUiLine } from "../utils/playModeTheme";
 import { trackProductEvent } from "../utils/analytics";
+
+const SettingsPage = lazy(() => import("../pages/SettingsPage"));
+const InsightsPage = lazy(() => import("../pages/InsightsPage"));
+const OnboardingPage = lazy(() => import("../pages/OnboardingPage"));
+
+function RouteFallback() {
+  return (
+    <section className="panel loading-panel">
+      <h2>Loading…</h2>
+    </section>
+  );
+}
 
 /**
  * Authenticated app routes. Page-specific props stay explicit; domain state
@@ -56,6 +67,8 @@ export function AppRoutes({
   kidDeviceMode,
   gettingBetterCopy,
   setupNudgeNeeded,
+  applyOnboardingDraft,
+  handleStartActivityFromUi,
 }) {
   return (
     <Routes>
@@ -65,6 +78,18 @@ export function AppRoutes({
       />
 
       <Route path="/demo" element={<Navigate to="/parent" replace />} />
+
+      <Route
+        path="/onboarding"
+        element={
+          <Suspense fallback={<RouteFallback />}>
+            <OnboardingPage
+              applyOnboardingDraft={applyOnboardingDraft}
+              handleStartActivity={handleStartActivityFromUi}
+            />
+          </Suspense>
+        }
+      />
 
       <Route
         path="/parent"
@@ -147,7 +172,9 @@ export function AppRoutes({
               onUnlock={() => setParentAreaUnlocked(true)}
             />
           ) : (
-            <InsightsPage />
+            <Suspense fallback={<RouteFallback />}>
+              <InsightsPage />
+            </Suspense>
           )
         }
       />
@@ -162,7 +189,9 @@ export function AppRoutes({
               onUnlock={() => setParentAreaUnlocked(true)}
             />
           ) : (
-            <SettingsPage />
+            <Suspense fallback={<RouteFallback />}>
+              <SettingsPage />
+            </Suspense>
           )
         }
       />
