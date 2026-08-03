@@ -537,12 +537,517 @@
   color: var(--color-primary);
 }
 
+/* ========== ACTIVITY CARDS V2 ========== */
+
+.activity-card-meta-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.activity-card-meta-chip {
+  display: inline-flex;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-primary) 8%, white);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.activity-card--simple {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--color-primary) 4%, white),
+      var(--color-surface-transparent) 38%
+    );
+}
+
+.activity-card--imaginative {
+  position: relative;
+  overflow: hidden;
+  border-color: color-mix(in srgb, var(--activity-theme-accent, var(--color-primary)) 35%, transparent);
+  background:
+    linear-gradient(
+      165deg,
+      color-mix(in srgb, var(--activity-theme-accent, var(--color-primary)) 12%, white),
+      var(--color-surface-transparent) 42%
+    );
+}
+
+.activity-card--imaginative::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.22;
+  background-image: var(--activity-theme-pattern, none);
+  background-size: var(--activity-theme-pattern-size, 24px 24px);
+}
+
+.activity-card--theme-space {
+  --activity-theme-pattern:
+    radial-gradient(circle at 20% 30%, currentColor 1.2px, transparent 1.4px),
+    radial-gradient(circle at 70% 55%, currentColor 1px, transparent 1.2px),
+    radial-gradient(circle at 45% 80%, currentColor 0.9px, transparent 1.1px);
+  --activity-theme-pattern-size: 28px 28px, 36px 36px, 22px 22px;
+  color: color-mix(in srgb, var(--activity-theme-accent) 55%, #1a2a44);
+}
+
+.activity-card--theme-jungle {
+  --activity-theme-pattern:
+    repeating-linear-gradient(
+      -18deg,
+      transparent 0 10px,
+      color-mix(in srgb, var(--activity-theme-accent) 35%, transparent) 10px 12px
+    );
+  --activity-theme-pattern-size: 100% 100%;
+}
+
+.activity-card--theme-detective {
+  --activity-theme-pattern:
+    repeating-linear-gradient(
+      45deg,
+      transparent 0 8px,
+      color-mix(in srgb, var(--activity-theme-accent) 28%, transparent) 8px 9px
+    );
+}
+
+.activity-card--theme-animals {
+  --activity-theme-pattern:
+    radial-gradient(circle at 30% 40%, color-mix(in srgb, var(--activity-theme-accent) 40%, transparent) 2px, transparent 2.5px),
+    radial-gradient(circle at 65% 70%, color-mix(in srgb, var(--activity-theme-accent) 30%, transparent) 3px, transparent 3.5px);
+  --activity-theme-pattern-size: 20px 20px, 28px 28px;
+}
+
+.activity-card--theme-fantasy {
+  --activity-theme-pattern:
+    radial-gradient(circle at 25% 25%, color-mix(in srgb, var(--activity-theme-accent) 45%, transparent) 1.5px, transparent 2px),
+    radial-gradient(circle at 75% 60%, color-mix(in srgb, var(--activity-theme-accent) 35%, transparent) 2px, transparent 2.5px);
+  --activity-theme-pattern-size: 26px 26px, 34px 34px;
+}
+
+.activity-card--theme-building {
+  --activity-theme-pattern:
+    linear-gradient(color-mix(in srgb, var(--activity-theme-accent) 22%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--activity-theme-accent) 22%, transparent) 1px, transparent 1px);
+  --activity-theme-pattern-size: 16px 16px;
+}
+
+.activity-card--theme-science {
+  --activity-theme-pattern:
+    radial-gradient(circle, transparent 55%, color-mix(in srgb, var(--activity-theme-accent) 30%, transparent) 56% 58%, transparent 59%);
+  --activity-theme-pattern-size: 22px 22px;
+}
+
+.activity-card--theme-art {
+  --activity-theme-pattern:
+    repeating-linear-gradient(
+      12deg,
+      transparent 0 14px,
+      color-mix(in srgb, var(--activity-theme-accent) 25%, transparent) 14px 16px
+    ),
+    repeating-linear-gradient(
+      -22deg,
+      transparent 0 18px,
+      color-mix(in srgb, var(--activity-theme-accent) 18%, transparent) 18px 19px
+    );
+}
+
+.activity-card--theme-expedition {
+  --activity-theme-pattern:
+    repeating-linear-gradient(
+      90deg,
+      transparent 0 11px,
+      color-mix(in srgb, var(--activity-theme-accent) 28%, transparent) 11px 12px
+    );
+}
+
+.activity-card--theme-neighborhood {
+  --activity-theme-pattern:
+    linear-gradient(90deg, color-mix(in srgb, var(--activity-theme-accent) 20%, transparent) 2px, transparent 2px),
+    linear-gradient(color-mix(in srgb, var(--activity-theme-accent) 16%, transparent) 2px, transparent 2px);
+  --activity-theme-pattern-size: 28px 18px;
+}
+
+.activity-card--theme-rescue {
+  --activity-theme-pattern:
+    repeating-linear-gradient(
+      -45deg,
+      transparent 0 7px,
+      color-mix(in srgb, var(--activity-theme-accent) 32%, transparent) 7px 10px
+    );
+}
+
+.activity-card--theme-mystery {
+  --activity-theme-pattern:
+    radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--activity-theme-accent) 35%, transparent), transparent 60%),
+    radial-gradient(circle at 80% 80%, color-mix(in srgb, var(--activity-theme-accent) 25%, transparent) 1.5px, transparent 2px);
+  --activity-theme-pattern-size: 100% 100%, 30px 30px;
+}
+
+.activity-card-world-band {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: calc(var(--space-3) * -1) calc(var(--space-3) * -1) 0;
+  padding: 0.55rem 0.85rem;
+  border-radius: var(--radius-medium) var(--radius-medium) 0 0;
+  background: color-mix(in srgb, var(--activity-theme-accent, var(--color-primary)) 18%, white);
+  color: var(--color-text);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.activity-card--imaginative .quest-choice-main {
+  position: relative;
+  z-index: 1;
+}
+
+.activity-card-world-icon {
+  font-size: 1rem;
+}
+
+.activity-card-mission-tease {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  line-height: 1.45;
+}
+
+.activity-card-role-badge {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: var(--radius-small);
+  background: color-mix(in srgb, var(--activity-theme-accent, var(--color-primary)) 10%, white);
+}
+
+.activity-card-role-kicker {
+  font-size: var(--font-size-xs);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.activity-card-step-count {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.activity-visual-theme-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-left: 0.5rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-primary) 10%, white);
+  font-size: var(--font-size-xs);
+}
+
+.starter-ideas-list li {
+  margin-bottom: 0.45rem;
+}
+
+.starter-idea-kind {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-primary) 8%, white);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+}
+
+.step-details-list > li {
+  margin-bottom: 0.85rem;
+}
+
+.step-done-when,
+.step-if-stuck {
+  margin: 0.25rem 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.step-role-instructions {
+  margin: 0.4rem 0 0;
+  padding-left: 1.1rem;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.activity-details-world-band {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: var(--space-2);
+  padding: 0.75rem 0.9rem;
+  border-radius: var(--radius-medium);
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--activity-theme-accent, var(--color-primary)) 16%, white),
+      color-mix(in srgb, var(--activity-theme-accent, var(--color-primary)) 6%, white)
+    );
+}
+
+.activity-details-world-kicker {
+  margin: 0 0 0.15rem;
+  font-size: var(--font-size-xs);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.activity-details-world-band p {
+  margin: 0;
+}
+
 /* ========== ACTIVE PLAY ========== */
+
+.quest-v2-panel {
+  text-align: left;
+}
+
+.quest-v2-kicker {
+  margin: 0 0 0.35rem;
+  font-size: var(--font-size-xs);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  font-weight: var(--font-weight-semibold);
+}
+
+.quest-v2-lede {
+  margin: 0 0 var(--space-2);
+  color: var(--color-text-muted);
+  line-height: 1.45;
+}
+
+.quest-v2-intro {
+  display: grid;
+  gap: var(--space-2);
+  margin: var(--space-2) 0;
+}
+
+.quest-v2-world-band {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius-medium);
+  background: color-mix(in srgb, var(--activity-theme-accent, var(--color-primary)) 16%, white);
+}
+
+.quest-v2-world-band h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.quest-v2-world-icon {
+  font-size: 1.5rem;
+}
+
+.quest-v2-intro-actions,
+.quest-v2-step-actions,
+.quest-v2-global-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.quest-v2-role-picker {
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.75rem;
+  border-radius: var(--radius-medium);
+  background: color-mix(in srgb, var(--color-primary) 6%, white);
+}
+
+.quest-v2-role-picker h3 {
+  margin: 0;
+  font-size: var(--font-size-sm);
+}
+
+.quest-v2-role-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.quest-v2-starter-doors {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.quest-v2-starter-door {
+  display: grid;
+  gap: 0.2rem;
+  text-align: left;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid color-mix(in srgb, var(--activity-theme-accent, var(--color-primary)) 28%, transparent);
+  border-radius: var(--radius-medium);
+  background: color-mix(in srgb, var(--activity-theme-accent, var(--color-primary)) 8%, white);
+  cursor: pointer;
+}
+
+.quest-v2-starter-door.is-open {
+  border-color: var(--activity-theme-accent, var(--color-primary));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--activity-theme-accent, var(--color-primary)) 40%, transparent);
+}
+
+.quest-v2-starter-title {
+  font-weight: var(--font-weight-semibold);
+}
+
+.quest-v2-starter-example,
+.quest-v2-starter-kind {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.quest-v2-starter-kind {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.7rem;
+}
+
+.quest-v2-step-card {
+  display: grid;
+  gap: var(--space-2);
+  margin: var(--space-2) 0;
+  padding: var(--space-2);
+  border-radius: var(--radius-medium);
+  background: color-mix(in srgb, var(--activity-theme-accent, var(--color-primary)) 7%, white);
+}
+
+.quest-v2-step-card h2 {
+  margin: 0;
+}
+
+.quest-v2-step-block {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.quest-v2-step-block h3,
+.quest-v2-step-block summary {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.quest-v2-step-block p,
+.quest-v2-if-stuck,
+.quest-v2-ai-hint {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.quest-v2-help,
+.quest-v2-ai-fallback {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.quest-v2-finish {
+  justify-self: start;
+}
+
+.onboarding-page .onboarding-step {
+  display: grid;
+  gap: var(--space-2);
+  text-align: left;
+}
+
+.onboarding-form-grid {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.onboarding-form-grid label {
+  display: grid;
+  gap: 0.3rem;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.onboarding-form-grid input,
+.onboarding-form-grid select {
+  min-height: 2.5rem;
+  padding: 0.45rem 0.65rem;
+  border-radius: var(--radius-small);
+  border: 1px solid var(--color-border-strong);
+  font: inherit;
+}
+
+.onboarding-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.onboarding-supply-chips,
+.onboarding-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.onboarding-chip {
+  min-height: 2.4rem;
+  padding: 0.4rem 0.8rem;
+  border-radius: var(--radius-small);
+  border: 1px solid var(--color-border);
+  background: white;
+  cursor: pointer;
+}
+
+.onboarding-chip.is-selected {
+  border-color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 12%, white);
+}
+
+.activation-signup-panel {
+  margin: var(--space-2) 0;
+  padding: var(--space-2);
+  border-radius: var(--radius-medium);
+  background: color-mix(in srgb, var(--color-primary) 8%, white);
+  text-align: left;
+}
+
+.activation-signup-panel h3 {
+  margin: 0 0 0.35rem;
+}
+
+.activation-signup-panel p {
+  margin: 0 0 0.75rem;
+  color: var(--color-text-muted);
+}
 
 .simple-active-panel,
 .pretend-active-panel {
   text-align: center;
   padding: var(--space-3);
+}
+
+.quest-v2-panel.pretend-active-panel {
+  text-align: left;
 }
 
 .simple-active-eyebrow {
