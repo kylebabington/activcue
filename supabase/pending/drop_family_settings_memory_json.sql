@@ -1,0 +1,11 @@
+-- PENDING (do not apply until after 1–2 confident releases using memory tables)
+-- Drop legacy JSON memory columns from family_settings once dedicated tables
+-- (saved_activities, activity_events, activity_sessions) have been the sole
+-- source of truth in production long enough to trust.
+--
+-- When ready, move this file into supabase/migrations/ with a real timestamp
+-- and run via the normal migration workflow:
+--
+-- ALTER TABLE public.family_settings
+--   DROP COLUMN IF EXISTS saved_activities,
+--   DROP COLUMN IF EXISTS activity_history;

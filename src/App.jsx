@@ -51,6 +51,8 @@ import {
   scoreActivitiesForCurrentMoment,
   useActivityGeneration,
   useActivityFeedback,
+  buildFeedbackIntent,
+  intentToLegacyFeedbackContext,
 } from "./features/activities";
 import {
   formatAvailabilityLabel,
@@ -389,9 +391,15 @@ function App() {
       saveActivityFeedbackRef.current?.(...args),
     showStatus,
     onNeedAnotherIdea: (previousTitle) => {
-      generateActivitiesRef.current?.(
-        `The child tried "${previousTitle}" but needs another idea. Suggest 3 different activities that are easier to start and feel fresh.`
-      );
+      const intent = buildFeedbackIntent({
+        feedbackIntent: "need-another-idea",
+        previousActivityTitle: previousTitle,
+        activityStyle: kidActivityStyle,
+        energyLevel: kidEnergyLevel || kidMood || "neutral",
+      });
+      generateActivitiesRef.current?.(intentToLegacyFeedbackContext(intent), {
+        generationIntent: intent,
+      });
     },
   });
 
@@ -472,6 +480,8 @@ function App() {
     setActiveActivity,
     lastCompletedQuest,
     clearLastCompletedQuest,
+    kidActivityStyle,
+    kidEnergyLevel,
   });
 
   saveActivityFeedbackRef.current = saveActivityFeedback;

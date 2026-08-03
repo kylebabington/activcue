@@ -1,6 +1,10 @@
 // src/features/activities/useActivityFeedback.js
 
 import { normalizeActivityStyle } from "../../utils/activityStyle";
+import {
+  buildFeedbackIntent,
+  intentToLegacyFeedbackContext,
+} from "./activityIntent";
 
 export function useActivityFeedback({
   kidMood,
@@ -22,6 +26,8 @@ export function useActivityFeedback({
   setActiveActivity,
   lastCompletedQuest,
   clearLastCompletedQuest,
+  kidActivityStyle,
+  kidEnergyLevel,
 } = {}) {
   function saveActivityFeedback(activity, feedbackType) {
     const historyItem = {
@@ -45,6 +51,19 @@ export function useActivityFeedback({
     };
 
     appendHistory?.(historyItem);
+  }
+
+  function regenerateFromFeedback(feedbackIntent, previousActivityTitle) {
+    const intent = buildFeedbackIntent({
+      feedbackIntent,
+      previousActivityTitle,
+      activityStyle: kidActivityStyle || "simple",
+      energyLevel: kidEnergyLevel || kidMood || "neutral",
+    });
+
+    handleGenerateActivities?.(intentToLegacyFeedbackContext(intent), {
+      generationIntent: intent,
+    });
   }
 
   function saveFavoriteActivity(activity) {
@@ -87,13 +106,25 @@ export function useActivityFeedback({
       savedAt: new Date().toISOString(),
     };
 
-    void persistFavorite?.(favoriteActivity);
-    showStatus?.(`Saved favorite: "${activity.title}".`, "success");
+    showStatus?.(`Saving favorite: "${activity.title}"…`, "info");
+
+    void Promise.resolve(persistFavorite?.(favoriteActivity)).then((result) => {
+      if (result?.ok === false) {
+        showStatus?.("Could not sync this favorite.", "error");
+        return;
+      }
+      showStatus?.(`Saved favorite: "${activity.title}".`, "success");
+    });
   }
 
   function removeSavedActivity(activityId) {
-    void removeFavorite?.(activityId);
-    showStatus?.("Saved activity removed.", "success");
+    void Promise.resolve(removeFavorite?.(activityId)).then((result) => {
+      if (result?.ok === false) {
+        showStatus?.("Could not sync this favorite.", "error");
+        return;
+      }
+      showStatus?.("Saved activity removed.", "success");
+    });
   }
 
   function handleReplaySavedActivity(savedActivity) {
@@ -129,37 +160,49 @@ export function useActivityFeedback({
       childAgeRange: effectiveChildAgeRange,
     });
     setActiveActivity?.(null);
-
-    handleGenerateActivities?.(
-      `The child finished or liked "${previousTitle}". Suggest 3 more activities with a similar feeling, but do not repeat it.`
-    );
+    regenerateFromFeedback("timer-more-like-this", previousTitle);
   }
 
   function handleTooMessy(activity) {
     saveActivityFeedback(activity, "too-messy");
-    handleGenerateActivities?.(
-      `The activity "${activity.title}" was too messy. Suggest lower-mess alternatives.`
-    );
+    regenerateFromFeedback("too-messy", activity.title);
   }
 
   function handleTooHard(activity) {
     saveActivityFeedback(activity, "too-hard");
-    handleGenerateActivities?.(
-      `The activity "${activity.title}" was too hard. Suggest easier alternatives.`
-    );
+    regenerateFromFeedback("too-hard", activity.title);
   }
 
   function handleNeedQuieter(activity) {
     saveActivityFeedback(activity, "need-quieter");
-    handleGenerateActivities?.(
-      `The activity "${activity.title}" was too loud or active. Suggest quieter alternatives.`
-    );
+    regenerateFromFeedback("need-quieter", activity.title);
   }
 
   function handleMoreLikeThis(activity) {
     saveActivityFeedback(activity, "more-like-this");
-    handleGenerateActivities?.(
-      `The family liked "${activity.title}". Suggest more activities with a similar feeling, but do not repeat the same title.`
+    regenerateFromFeedback("more-like-this", activity.title);
+  }
+
+  function handleTryNextBest(scoredActivities = []) {
+    const ranked = Array.isArray(scoredActivities) ? scoredActivities : [];
+    if (ranked.length < 2) {
+      showStatus?.("Need at least two ideas to try the next best one.", "info");
+      return;
+    }
+
+    const rejected = ranked[0]?.activity;
+    const nextBest = ranked[1]?.activity;
+
+    if (!rejected || !nextBest) {
+      showStatus?.("Could not find a next-best activity.", "error");
+      return;
+    }
+
+    saveActivityFeedback(rejected, "activity_rejected");
+    handleStartActivity?.(nextBest);
+    showStatus?.(
+      `Skipped "${rejected.title}". Starting next best: "${nextBest.title}".`,
+      "success"
     );
   }
 
@@ -171,18 +214,14 @@ export function useActivityFeedback({
 
     const completedTitle = lastCompletedQuest.title;
     clearLastCompletedQuest?.();
-    handleGenerateActivities?.(
-      `The child completed "${completedTitle}" and liked it. Suggest 3 more activities with a similar feeling, but do not repeat the same title.`
-    );
+    regenerateFromFeedback("more-like-this", completedTitle);
     navigate?.("/quest");
   }
 
   function handleCompletedQuestNeedAnotherIdea() {
     const completedTitle = lastCompletedQuest?.title || "the last activity";
     clearLastCompletedQuest?.();
-    handleGenerateActivities?.(
-      `The child finished "${completedTitle}" and wants something different now. Suggest 3 fresh activities that feel different from the completed one.`
-    );
+    regenerateFromFeedback("need-another-idea", completedTitle);
     navigate?.("/quest");
   }
 
@@ -195,8 +234,16 @@ export function useActivityFeedback({
       return;
     }
 
-    clearHistory?.();
-    showStatus?.("Activity history cleared.", "success");
+    void Promise.resolve(clearHistory?.()).then((result) => {
+      if (result?.ok === false) {
+        showStatus?.(
+          "Could not clear synced activity history. Try again.",
+          "error"
+        );
+        return;
+      }
+      showStatus?.("Activity history cleared.", "success");
+    });
   }
 
   return {
@@ -209,6 +256,7 @@ export function useActivityFeedback({
     handleTooHard,
     handleNeedQuieter,
     handleMoreLikeThis,
+    handleTryNextBest,
     handleCompletedQuestMoreLikeThis,
     handleCompletedQuestNeedAnotherIdea,
     clearActivityHistory,
