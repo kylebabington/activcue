@@ -31,6 +31,19 @@ export const STARTER_IDEA_KINDS = [
   "building",
 ];
 
+const childRoleSchema = {
+  type: "object",
+  properties: {
+    childName: { type: "string" },
+    age: { type: "number" },
+    roleTitle: { type: "string" },
+    responsibility: { type: "string" },
+    firstAction: { type: "string" },
+  },
+  required: ["childName", "age", "roleTitle", "responsibility", "firstAction"],
+  additionalProperties: false,
+};
+
 const roleGuideSchema = {
   type: "object",
   properties: {
@@ -38,8 +51,42 @@ const roleGuideSchema = {
     description: { type: "string" },
     goal: { type: "string" },
     firstAction: { type: "string" },
+    childRoles: {
+      type: "array",
+      items: childRoleSchema,
+    },
   },
-  required: ["name", "description", "goal", "firstAction"],
+  required: ["name", "description", "goal", "firstAction", "childRoles"],
+  additionalProperties: false,
+};
+
+const ageFitSchema = {
+  type: "object",
+  properties: {
+    minAge: { type: "number" },
+    maxAge: { type: "number" },
+    targetAges: {
+      type: "array",
+      items: { type: "number" },
+    },
+    maturityLevel: {
+      type: "string",
+      enum: ["young-child", "child", "tween", "teen", "mixed-age"],
+    },
+    independenceLevel: {
+      type: "string",
+      enum: ["adult-led", "some-help", "mostly-independent", "independent"],
+    },
+    ageFitReason: { type: "string" },
+  },
+  required: [
+    "minAge",
+    "maxAge",
+    "targetAges",
+    "maturityLevel",
+    "independenceLevel",
+    "ageFitReason",
+  ],
   additionalProperties: false,
 };
 
@@ -120,6 +167,7 @@ export const activitySuggestionsSchema = {
           kidRole: { type: "string" },
           mission: { type: "string" },
           roleGuide: roleGuideSchema,
+          ageFit: ageFitSchema,
           starterIdeas: {
             type: "array",
             items: starterIdeaSchema,
@@ -219,6 +267,7 @@ export const activitySuggestionsSchema = {
           "kidRole",
           "mission",
           "roleGuide",
+          "ageFit",
           "starterIdeas",
           "starterPrompts",
           "firstMoves",

@@ -280,6 +280,7 @@ function App() {
       activitySessions,
       scoringOptions,
       activityMode,
+      selectedChildProfiles,
     });
   }, [
     activities,
@@ -288,6 +289,7 @@ function App() {
     scoringOptions,
     activitySessions,
     activityMode,
+    selectedChildProfiles,
   ]);
 
   useEffect(() => {

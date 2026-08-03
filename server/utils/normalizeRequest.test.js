@@ -57,6 +57,8 @@ describe("Activity Content V2 normalization", () => {
     expect(derived.steps[0]).toContain("Build your station");
     expect(derived.starterPrompts[0]).toContain("rocket is late");
     expect(derived.roles).toEqual(["Communications Officer"]);
+    expect(derived.roleGuide.childRoles).toEqual([]);
+    expect(derived.ageFit.minAge).toBeLessThanOrEqual(derived.ageFit.maxAge);
     expect(derived.stepDetails[1].roleInstructions[0].roleName).toBe(
       "Evidence Keeper"
     );
@@ -129,5 +131,65 @@ describe("Activity Content V2 normalization", () => {
     expect(normalized.kidRole).toBe("Communications Officer");
     expect(normalized.steps.length).toBeGreaterThan(0);
     expect(normalized.starterPrompts.length).toBeGreaterThan(0);
+    expect(normalized.ageFit).toBeTruthy();
+    expect(normalized.roleGuide.childRoles).toEqual([]);
+  });
+
+  it("normalizes ageFit and childRoles for mixed-age activities", () => {
+    const normalized = normalizeActivity(
+      {
+        title: "Family Design Studio",
+        activityStyle: "simple",
+        theme: "Design",
+        summary: "Build a shared project.",
+        roleGuide: {
+          name: "Studio Lead",
+          description: "You guide the build.",
+          goal: "Finish one shared model.",
+          firstAction: "Pick the materials table.",
+          childRoles: [
+            {
+              childName: "Sam",
+              age: 6,
+              roleTitle: "Parts Sorter",
+              responsibility: "Sort bricks by color.",
+              firstAction: "Make three color piles.",
+            },
+            {
+              childName: "Alex",
+              age: 13,
+              roleTitle: "Lead Designer",
+              responsibility: "Sketch the plan and assign build zones.",
+              firstAction: "Draw a one-page blueprint.",
+            },
+          ],
+        },
+        ageFit: {
+          minAge: 6,
+          maxAge: 13,
+          targetAges: [6, 13],
+          maturityLevel: "mixed-age",
+          independenceLevel: "some-help",
+          ageFitReason: "Gives each sibling a real design role.",
+        },
+        starterIdeas: [],
+        stepDetails: [],
+        categories: ["building"],
+        traits: {
+          setupEffort: "low",
+          structure: "guided",
+          socialMode: "cooperative",
+          creativity: "high",
+          movement: "low",
+        },
+      },
+      "simple",
+      [6, 13]
+    );
+
+    expect(normalized.ageFit.minAge).toBe(6);
+    expect(normalized.ageFit.maxAge).toBe(13);
+    expect(normalized.roleGuide.childRoles).toHaveLength(2);
+    expect(normalized.roles).toEqual(["Parts Sorter", "Lead Designer"]);
   });
 });
