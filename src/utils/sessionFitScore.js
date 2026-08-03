@@ -154,28 +154,6 @@ export function getDurationReliabilityScore(session) {
   return -3;
 }
 
-function durationSuccessMultiplier(session) {
-  const ratio = getDurationReliabilityRatio(session);
-
-  if (ratio == null) {
-    return 1;
-  }
-
-  if (ratio >= 0.9) {
-    return 1.35;
-  }
-
-  if (ratio >= 0.7) {
-    return 1.1;
-  }
-
-  if (ratio >= 0.45) {
-    return 0.85;
-  }
-
-  return 0.55;
-}
-
 /*
  * Map independence ratings + completion failures to a signed signal.
  * worked-great strong+, needed-me slight+, didnt-last/abandoned/canceled negative.
@@ -236,17 +214,6 @@ function spacesAreSimilar(a, b) {
   }
 
   return left.includes(right) || right.includes(left);
-}
-
-function minutesAreSimilar(a, b, tolerance = 10) {
-  const left = Number(a);
-  const right = Number(b);
-
-  if (!Number.isFinite(left) || !Number.isFinite(right) || left <= 0 || right <= 0) {
-    return false;
-  }
-
-  return Math.abs(left - right) <= tolerance;
 }
 
 function enumMatchScore(a, b) {
