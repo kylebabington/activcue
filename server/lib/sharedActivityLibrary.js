@@ -36,12 +36,9 @@ function stripPrivateFields(activity) {
     return {};
   }
 
-  const {
-    whyItFits: _why,
-    presentedAt: _presented,
-    ...safe
-  } = activity;
-
+  const safe = { ...activity };
+  delete safe.whyItFits;
+  delete safe.presentedAt;
   return safe;
 }
 

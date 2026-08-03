@@ -13,7 +13,6 @@ import { ApiRequestError } from "./api/apiClient";
 import { listActivitySessions, resetFamilyData } from "./api/familyMemoryApi";
 import {
   fetchPlanBActivities,
-  fetchRescueActivities,
 } from "./api/sharedActivitiesApi";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import { useFirstRunCoach } from "./hooks/useFirstRunCoach";
