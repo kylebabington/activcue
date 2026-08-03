@@ -90,3 +90,14 @@ export async function changePassword({
     throw updateError;
   }
 }
+
+/*
+ * Permanently delete the signed-in account and server-side family data.
+ */
+export async function deleteAccount() {
+  const response = await authenticatedRequest("/api/account", {
+    method: "DELETE",
+  });
+
+  return response.json();
+}
