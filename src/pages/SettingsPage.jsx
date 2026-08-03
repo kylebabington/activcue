@@ -130,6 +130,11 @@ function SettingsPage() {
           setNewChildName={ctx.setNewChildName}
           newChildAgeRange={ctx.newChildAgeRange}
           setNewChildAgeRange={ctx.setNewChildAgeRange}
+          newChildBirthDate={ctx.newChildBirthDate}
+          setNewChildBirthDate={ctx.setNewChildBirthDate}
+          newChildAgeYears={ctx.newChildAgeYears}
+          setNewChildAgeYears={ctx.setNewChildAgeYears}
+          agePreviewYears={ctx.agePreviewYears}
           newChildInterests={ctx.newChildInterests}
           setNewChildInterests={ctx.setNewChildInterests}
           newChildNeeds={ctx.newChildNeeds}
