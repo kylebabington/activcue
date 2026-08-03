@@ -44,10 +44,40 @@ function formatActivityEvent(row) {
   };
 }
 
+function parseParticipantChildIds(value) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return [
+    ...new Set(
+      value
+        .map((id) => String(id || "").trim())
+        .filter(Boolean)
+    ),
+  ];
+}
+
+function parseSessionScope(value, participantChildIds = []) {
+  const normalized = typeof value === "string" ? value.trim().toLowerCase() : "";
+
+  if (normalized === "group" || normalized === "single") {
+    return normalized;
+  }
+
+  return participantChildIds.length > 1 ? "group" : "single";
+}
+
 function formatActivitySession(row) {
+  const participantChildIds = parseParticipantChildIds(
+    row.participant_child_ids
+  );
+
   return {
     id: row.id,
     childId: row.child_id,
+    sessionScope: parseSessionScope(row.session_scope, participantChildIds),
+    participantChildIds,
     activityTitle: row.activity_title,
     activityStyle: row.activity_style,
     requestedMinutes: row.requested_minutes,
