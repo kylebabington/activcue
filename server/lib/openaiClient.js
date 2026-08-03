@@ -12,9 +12,16 @@ export function createOpenAIClient() {
   });
 }
 
-export async function createStructuredResponse(client, { instructions, input, schemaName, schema }) {
+/**
+ * Structured Responses API call with usage + latency metadata for cost logging.
+ */
+export async function createStructuredResponseWithMeta(
+  client,
+  { instructions, input, schemaName, schema, model = OPENAI_MODEL }
+) {
+  const startedAt = Date.now();
   const response = await client.responses.create({
-    model: OPENAI_MODEL,
+    model,
     instructions,
     input,
     text: {
@@ -27,5 +34,18 @@ export async function createStructuredResponse(client, { instructions, input, sc
     },
   });
 
-  return response.output_text;
+  return {
+    outputText: response.output_text,
+    model: response.model || model,
+    inputTokens: response.usage?.input_tokens ?? null,
+    outputTokens: response.usage?.output_tokens ?? null,
+    latencyMs: Date.now() - startedAt,
+    raw: response,
+  };
+}
+
+/** @returns {Promise<string>} output text only (scripts / simple callers) */
+export async function createStructuredResponse(client, options) {
+  const result = await createStructuredResponseWithMeta(client, options);
+  return result.outputText;
 }

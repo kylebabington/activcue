@@ -111,6 +111,7 @@ export function formatFeedbackLabel(feedbackType) {
   if (feedbackType === "too-hard") return "Too hard";
   if (feedbackType === "need-quieter") return "Needed quieter";
   if (feedbackType === "more-like-this") return "More like this";
+  if (feedbackType === "activity_rejected") return "Skipped for next best";
   return feedbackType;
 }
 

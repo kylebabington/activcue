@@ -1,5 +1,8 @@
 import { Router } from "express";
-import { createStructuredResponse } from "../lib/openaiClient.js";
+import {
+  OPENAI_MODEL,
+  createStructuredResponseWithMeta,
+} from "../lib/openaiClient.js";
 import { requireAuthenticatedUser } from "../middleware/requireAuthenticatedUser.js";
 import { ensureUserProfile } from "../middleware/ensureUserProfile.js";
 import { requirePaidSubscription } from "../middleware/requirePaidSubscription.js";
@@ -15,6 +18,7 @@ import {
   resolveActivityStyle,
 } from "../utils/normalizeRequest.js";
 import { recordAiUsageEvent } from "../lib/aiUsage.js";
+import { expandGenerationIntent } from "../lib/generationIntent.js";
 import { aiSuggestionsRateLimiter } from "../middleware/rateLimits.js";
 
 const router = Router();
@@ -28,6 +32,7 @@ export default function createActivitySuggestionsRouter(client) {
     requirePaidSubscription,
     aiSuggestionsRateLimiter,
     async (req, res) => {
+      const startedAt = Date.now();
       try {
         const {
           currentMoment,
@@ -44,12 +49,16 @@ export default function createActivitySuggestionsRouter(client) {
           activeChildProfile,
           selectedChildProfiles,
           feedbackContext,
+          generationIntent,
           previousActivityTitles,
           safetySettings,
           playModeTheme,
         } = req.body;
 
-        const safeActivityStyle = resolveActivityStyle(activityStyle, activityMode);
+        const safeActivityStyle = resolveActivityStyle(
+          generationIntent?.activityStyle || activityStyle,
+          activityMode
+        );
         const safePlayModeTheme =
           typeof playModeTheme === "string" && playModeTheme.trim()
             ? playModeTheme.trim()
@@ -79,10 +88,12 @@ export default function createActivitySuggestionsRouter(client) {
           });
         }
 
-        const safeFeedbackContext =
+        const safeFeedbackContext = expandGenerationIntent(
+          generationIntent,
           feedbackContext && feedbackContext.trim() !== ""
             ? feedbackContext
-            : "No specific feedback yet.";
+            : ""
+        );
 
         const safePreviousActivityTitles = Array.isArray(previousActivityTitles)
           ? previousActivityTitles
@@ -117,12 +128,13 @@ export default function createActivitySuggestionsRouter(client) {
           playModeTheme: safePlayModeTheme,
         });
 
-        const rawText = await createStructuredResponse(client, {
+        const aiResult = await createStructuredResponseWithMeta(client, {
           instructions,
           input,
           schemaName: "activity_suggestions",
           schema: activitySuggestionsSchema,
         });
+        const rawText = aiResult.outputText;
 
         if (isDebugLogging) {
           console.log("RAW AI RESPONSE:");
@@ -152,6 +164,10 @@ export default function createActivitySuggestionsRouter(client) {
         await recordAiUsageEvent({
           userId: req.auth.userId,
           operation: "activity-suggestions",
+          model: aiResult.model || OPENAI_MODEL,
+          inputTokens: aiResult.inputTokens,
+          outputTokens: aiResult.outputTokens,
+          latencyMs: aiResult.latencyMs,
           success: true,
         });
       } catch (error) {
@@ -165,7 +181,10 @@ export default function createActivitySuggestionsRouter(client) {
         await recordAiUsageEvent({
           userId: req.auth?.userId,
           operation: "activity-suggestions",
+          model: OPENAI_MODEL,
+          latencyMs: Date.now() - startedAt,
           success: false,
+          error,
         });
 
         const isAuthError =
