@@ -50,6 +50,9 @@ function SimpleActivityCard({
   onMoreLikeThis,
   onTooMessy,
   onTooHard,
+  onTooEasy,
+  onTooYoung,
+  onTooOld,
   onNeedQuieter,
 }) {
   return (
@@ -111,6 +114,15 @@ function SimpleActivityCard({
             <button type="button" onClick={onTooHard}>
               Too hard
             </button>
+            <button type="button" onClick={onTooEasy}>
+              Too easy
+            </button>
+            <button type="button" onClick={onTooYoung}>
+              Too young
+            </button>
+            <button type="button" onClick={onTooOld}>
+              Too old
+            </button>
             <button type="button" onClick={onNeedQuieter}>
               Too loud
             </button>
@@ -132,6 +144,9 @@ function ImaginativeActivityCard({
   onMoreLikeThis,
   onTooMessy,
   onTooHard,
+  onTooEasy,
+  onTooYoung,
+  onTooOld,
   onNeedQuieter,
 }) {
   const theme = getVisualThemeMeta(activity.visualTheme);
@@ -213,6 +228,15 @@ function ImaginativeActivityCard({
             <button type="button" onClick={onTooHard}>
               Too hard
             </button>
+            <button type="button" onClick={onTooEasy}>
+              Too easy
+            </button>
+            <button type="button" onClick={onTooYoung}>
+              Too young
+            </button>
+            <button type="button" onClick={onTooOld}>
+              Too old
+            </button>
             <button type="button" onClick={onNeedQuieter}>
               Too loud
             </button>
@@ -232,6 +256,9 @@ function ActivityResults({
   saveFavoriteActivity,
   handleTooMessy,
   handleTooHard,
+  handleTooYoung,
+  handleTooOld,
+  handleTooEasy,
   handleNeedQuieter,
   handleMoreLikeThis,
   handleTryNextBest,
@@ -336,6 +363,9 @@ function ActivityResults({
               onMoreLikeThis: () => handleMoreLikeThis(activity),
               onTooMessy: () => handleTooMessy(activity),
               onTooHard: () => handleTooHard(activity),
+              onTooEasy: () => handleTooEasy(activity),
+              onTooYoung: () => handleTooYoung(activity),
+              onTooOld: () => handleTooOld(activity),
               onNeedQuieter: () => handleNeedQuieter(activity),
             };
 
