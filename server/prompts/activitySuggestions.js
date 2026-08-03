@@ -1,6 +1,7 @@
 import {
   formatChildProfilesForPrompt,
   formatInventoryForPrompt,
+  formatGroupAgeContextForPrompt,
 } from "../utils/promptFormatters.js";
 import { getPlayModePromptFlavor } from "../utils/playModeTheme.js";
 
@@ -28,12 +29,34 @@ The requested activity style is: ${safeActivityStyle}
 
 ACTIVITY FORMAT V2 (required for every activity):
 - Set activityFormatVersion to 2.
-- Fill roleGuide: { name, description, goal, firstAction }.
+- Fill roleGuide: { name, description, goal, firstAction, childRoles[] }.
+- childRoles may be [] for single-child. For family/mixed-age, include one entry per participating child: { childName, age, roleTitle, responsibility, firstAction }.
+- Fill ageFit: { minAge, maxAge, targetAges[], maturityLevel, independenceLevel, ageFitReason }.
+  maturityLevel is one of young-child | child | tween | teen | mixed-age.
+  independenceLevel is one of adult-led | some-help | mostly-independent | independent.
 - Fill starterIdeas: array of { title, example, kind } where kind is one of imagination | choice | dialogue | drawing | building.
 - Fill stepDetails: array of { title, instruction, examples[], doneWhen, ifStuck, roleInstructions[] }.
 - roleInstructions may be [] for solo play. For family mode, add per-role instructions when useful.
 - Also fill legacy mirrors (kidRole, mission, starterPrompts, firstMoves, steps, roles) so older clients work. Prefer mirroring V2 content into those fields.
 - Set visualTheme to one of: space, jungle, detective, animals, fantasy, building, science, art, expedition, neighborhood, rescue, mystery.
+
+AGE APPROPRIATENESS IS A HARD REQUIREMENT.
+- The activity must feel developmentally and socially appropriate for each participating child.
+- Do not simply rename or make a young-child activity more difficult.
+- Avoid infantilizing language, framing, themes, rewards, or roles.
+- For tweens and teens, generally favor: autonomy, strategy, experimentation, creativity with a tangible result, real-world usefulness, technology, photography or video, cooking, music, competition, building, design, outdoor exploration, humor, skill development.
+- Use the child's interests to personalize the activity.
+- Do not infer interests from age or gender.
+- For a 13-year-old, a blanket fort should normally fail unless the profile or context specifically supports it (for example interior design + movie-night space). Even then, frame it age-appropriately ("Design a compact movie lounge using only materials already in the room") — not "Build a magical blanket castle!"
+- ageFit.minAge and ageFit.maxAge must cover every participating child's exact ageYears.
+- ageFit.ageFitReason must briefly explain why this activity fits these ages.
+
+MIXED-AGE / FAMILY ROLE RULES:
+- Every participating child must have a meaningful role in childRoles.
+- Do not make the oldest child merely supervise, read instructions, or manage younger children.
+- Give older children genuine autonomy, strategy, complexity, leadership, design control, or problem-solving.
+- Younger children get simpler but real participation, not token busywork.
+- Do not average ages into one middle age. Respect the full age span.
 
 STYLE RULES:
 
@@ -60,7 +83,7 @@ Good simple examples:
 
 If safeActivityStyle is "imaginative":
 - Set activityStyle to "imaginative".
-- Use vivid theme framing and a clear pretend role.
+- Use vivid theme framing and a clear pretend role that fits the child's age band.
 - mission must be a rich 3-to-5-sentence setup story (world, problem/invitation, who the child is, why it matters, first direction).
 - roleGuide must explain who they are, what they control, their goal, and one immediate first action.
 - Include at least 5 starterIdeas with mixed kinds (imagination, choice, dialogue, drawing, building). Do not make them all vague questions.
@@ -108,7 +131,6 @@ PERSONALIZATION RULES:
 - If an active child profile is provided, personalize ideas to that child's interests and helpful notes.
 - If activity mode is family, suggest activities that multiple children can do together.
 - In family mode, give each child a simple role in roles[] and add roleInstructions on steps when useful.
-- Make sure younger children have simpler roles and older children can lead or take harder roles.
 - Do not mention private notes directly to the child.
 - Avoid repeating previous activity titles.
 - Adapt to the feedback context.
@@ -116,8 +138,8 @@ PERSONALIZATION RULES:
 OUTPUT RULES:
 - Return only valid JSON.
 - Give exactly 3 activities.
-- Use simple kid-friendly language.
-- Every activity MUST include activityFormatVersion, roleGuide, starterIdeas, stepDetails, visualTheme, plus legacy mirrors.
+- Use language that fits the oldest participating child's maturity without talking down.
+- Every activity MUST include activityFormatVersion, roleGuide, ageFit, starterIdeas, stepDetails, visualTheme, plus legacy mirrors.
 
 CATEGORY AND TRAIT RULES:
 - categories: pick 1 to 3 from building, creative, movement, pretend, puzzle, sensory, nature, science, music, reading, social-game, helping.
@@ -145,6 +167,8 @@ export function buildActivitySuggestionsInput({
   kidMood,
   locationPreference,
   childAgeRange,
+  childrenContext,
+  groupAgeContext,
   activeChildProfile,
   safeActivityStyle,
   activityMode,
@@ -155,6 +179,12 @@ export function buildActivitySuggestionsInput({
   safeSafetySettings,
   playModeTheme = "playroom",
 }) {
+  const children = Array.isArray(childrenContext) ? childrenContext : [];
+  const activeResolved =
+    children.find((child) => child.id && child.id === activeChildProfile?.id) ||
+    children[0] ||
+    null;
+
   return `
 Family context:
 - Parent is currently doing: ${safeCurrentMoment.parentActivity}
@@ -166,16 +196,31 @@ Family context:
 - Available supervision level: ${safeCurrentMoment.supervisionLevel}
 - Kid mood/request: ${kidMood}
 - Preferred location: ${locationPreference}
-- Child age range: ${childAgeRange}
+- Legacy age range label (fallback only): ${childAgeRange || "unknown"}
 - Play mode theme: ${playModeTheme}
+- Participating children (server-derived ages — authoritative):
+${
+  children.length > 0
+    ? children
+        .map(
+          (child) =>
+            `  - ${child.name}: ageYears=${child.ageYears}, ageBand=${child.ageBand}, source=${child.ageSource}, interests=${child.interests.join(", ") || "not specified"}, notes=${child.needs || "not specified"}`
+        )
+        .join("\n")
+    : "  - None specified"
+}
+- Group age context: ${formatGroupAgeContextForPrompt(groupAgeContext)}
 - Active child profile:
-  - Name: ${activeChildProfile?.name || "Not specified"}
-  - Interests: ${activeChildProfile?.interests || "Not specified"}
-  - Helpful notes: ${activeChildProfile?.needs || "Not specified"}
+  - Name: ${activeResolved?.name || activeChildProfile?.name || "Not specified"}
+  - Exact age years: ${activeResolved?.ageYears ?? "Not specified"}
+  - Age band: ${activeResolved?.ageBand || "Not specified"}
+  - Interests: ${(activeResolved?.interests || []).join(", ") || activeChildProfile?.interests || "Not specified"}
+  - Helpful notes: ${activeResolved?.needs || activeChildProfile?.needs || "Not specified"}
 - Activity style requested by child: ${safeActivityStyle}
 - Activity mode: ${activityMode || "single-child"}
 - Selected child profiles: ${formatChildProfilesForPrompt(
-    safeSelectedChildProfiles
+    safeSelectedChildProfiles,
+    children
   )}
 - Available toys/supplies by category: ${formatInventoryForPrompt(inventory)}
 - Output style requirement:
@@ -209,7 +254,16 @@ Return JSON in exactly this shape:
         "name": "Role name",
         "description": "What this role controls or does.",
         "goal": "What success looks like.",
-        "firstAction": "One immediate first action."
+        "firstAction": "One immediate first action.",
+        "childRoles": []
+      },
+      "ageFit": {
+        "minAge": 8,
+        "maxAge": 12,
+        "targetAges": [9, 10],
+        "maturityLevel": "child",
+        "independenceLevel": "mostly-independent",
+        "ageFitReason": "Fits elementary kids who can follow multi-step creative tasks."
       },
       "starterIdeas": [
         {

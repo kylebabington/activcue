@@ -31,14 +31,33 @@ export function formatInventoryForPrompt(inventory) {
     .join(" | ");
 }
 
-export function formatChildProfilesForPrompt(childProfiles) {
+export function formatChildProfilesForPrompt(childProfiles, childrenContext = []) {
   if (!Array.isArray(childProfiles) || childProfiles.length === 0) {
     return "No child profiles selected.";
   }
 
+  const byId = new Map(
+    (Array.isArray(childrenContext) ? childrenContext : []).map((child) => [
+      child.id,
+      child,
+    ])
+  );
+
   return childProfiles
     .map((child) => {
+      const resolved = byId.get(child.id);
+      if (resolved) {
+        return `${resolved.name} (ageYears=${resolved.ageYears}, ageBand=${resolved.ageBand}): interests=${resolved.interests.join(", ") || "not specified"}; notes=${resolved.needs || "not specified"}`;
+      }
       return `${child.name || "Unnamed child"} (${child.ageRange || "unknown age"}): interests=${child.interests || "not specified"}; notes=${child.needs || "not specified"}`;
     })
     .join(" | ");
+}
+
+export function formatGroupAgeContextForPrompt(groupAgeContext) {
+  if (!groupAgeContext || typeof groupAgeContext !== "object") {
+    return "Not available.";
+  }
+
+  return `ages=[${(groupAgeContext.ages || []).join(", ")}]; youngest=${groupAgeContext.youngestAge}; oldest=${groupAgeContext.oldestAge}; span=${groupAgeContext.ageSpan}; mixedAge=${groupAgeContext.isMixedAge}`;
 }
