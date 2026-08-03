@@ -818,6 +818,111 @@
   text-align: left;
 }
 
+.quest-content {
+  display: grid;
+  gap: var(--space-2);
+  margin: var(--space-2) 0;
+}
+
+.quest-collapsible-section {
+  border: 1px solid color-mix(in srgb, var(--color-border, #d8d0c4) 80%, transparent);
+  border-radius: var(--radius-medium);
+  background: color-mix(in srgb, var(--color-surface, #fff) 92%, var(--color-bg, #f7f4ef));
+  overflow: clip;
+}
+
+.quest-collapsible-summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 0.85rem 1rem;
+}
+
+.quest-collapsible-summary::-webkit-details-marker {
+  display: none;
+}
+
+.quest-collapsible-summary-text h2 {
+  margin: 0;
+  font-size: var(--font-size-md, 1.05rem);
+}
+
+.quest-collapsible-summary-text p {
+  margin: 0.25rem 0 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.quest-collapsible-body {
+  padding: 0 1rem 1rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.quest-steps-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.quest-step-card {
+  padding: 0.75rem;
+  border-radius: var(--radius-medium);
+  background: color-mix(in srgb, var(--color-surface, #fff) 88%, #000 4%);
+}
+
+.quest-step-card.is-complete.is-compact {
+  opacity: 0.72;
+}
+
+.quest-step-card.is-highlighted {
+  outline: 2px solid var(--activity-theme-accent, var(--color-primary));
+}
+
+.quest-step-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.quest-step-card-header h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.quest-step-complete-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+}
+
+.quest-child-roles {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.quest-finish-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.child-age-preview,
+.child-age-prompt {
+  margin: 0.25rem 0 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.quest-age-fit-reason {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
 .quest-v2-kicker {
   margin: 0 0 0.35rem;
   font-size: var(--font-size-xs);

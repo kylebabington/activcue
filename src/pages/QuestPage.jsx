@@ -187,6 +187,9 @@ function QuestPage() {
         toggleStarterIdea,
         assignRole,
         toggleBuiltInHelp,
+        setOpenSection,
+        openRescueSection,
+        markRescueModeUsed,
         stepHint,
         isHintLoading,
         handleNeedStepHint,
@@ -264,6 +267,9 @@ function QuestPage() {
                     toggleStarterIdea={toggleStarterIdea}
                     assignRole={assignRole}
                     toggleBuiltInHelp={toggleBuiltInHelp}
+                    setOpenSection={setOpenSection}
+                    openRescueSection={openRescueSection}
+                    markRescueModeUsed={markRescueModeUsed}
                     stepHint={stepHint}
                     isHintLoading={isHintLoading}
                     handleNeedStepHint={handleNeedStepHint}
