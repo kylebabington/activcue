@@ -151,7 +151,18 @@ OUTPUT RULES:
   mess,
   adultHelp,
   estimatedMinutes,
-  whyItFits.
+  whyItFits,
+  categories,
+  traits.
+
+CATEGORY AND TRAIT RULES:
+- categories: pick 1 to 3 from building, creative, movement, pretend, puzzle, sensory, nature, science, music, reading, social-game, helping.
+- traits.setupEffort: very-low | low | medium | high (how much prep before play starts).
+- traits.structure: guided | open-ended.
+- traits.socialMode: solo | cooperative | competitive | flexible.
+- traits.creativity: low | medium | high.
+- traits.movement: low | medium | high (physical movement during play — separate from energy).
+- Do NOT put energy, mess, adultHelp, duration, or supplies inside traits. Those stay as top-level fields.
 
 QUALITY BAR:
 
@@ -233,7 +244,7 @@ Family context:
   - Max activity minutes: ${safeSafetySettings.maxActivityMinutes}
   - Adult help allowed: ${safeSafetySettings.adultHelpAllowed}
 
-Every activity object MUST include these fields: title, activityStyle, theme, summary, kidRole, mission, starterPrompts, firstMoves, steps, roles, extensionIdeas, uses, energy, mess, adultHelp, estimatedMinutes, whyItFits.
+Every activity object MUST include these fields: title, activityStyle, theme, summary, kidRole, mission, starterPrompts, firstMoves, steps, roles, extensionIdeas, uses, energy, mess, adultHelp, estimatedMinutes, whyItFits, categories, traits.
 
 Return JSON in exactly this shape:
 
@@ -272,7 +283,15 @@ Return JSON in exactly this shape:
       "mess": "low | medium | high",
       "adultHelp": "none | optional | needed",
       "estimatedMinutes": 20,
-      "whyItFits": "Specific explanation tied to current moment, child profile, activity space, safety settings, and inventory."
+      "whyItFits": "Specific explanation tied to current moment, child profile, activity space, safety settings, and inventory.",
+      "categories": ["building"],
+      "traits": {
+        "setupEffort": "low",
+        "structure": "open-ended",
+        "socialMode": "flexible",
+        "creativity": "medium",
+        "movement": "low"
+      }
     }
   ]
 }`;

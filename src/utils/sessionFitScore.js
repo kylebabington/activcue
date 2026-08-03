@@ -52,7 +52,7 @@ function getSessionStartedAt(session) {
 }
 
 /*
- * Single-child mode: only that child's sessions (strict — no empty childId).
+ * Single-child mode: sessions where this child is primary OR a participant.
  * Family mode / no activeChildId: household-wide sessions.
  */
 export function filterSessionsForFitScore(
@@ -65,7 +65,31 @@ export function filterSessionsForFitScore(
     return list;
   }
 
-  return list.filter((session) => getSessionChildId(session) === activeChildId);
+  return list.filter((session) => {
+    if (getSessionChildId(session) === activeChildId) {
+      return true;
+    }
+
+    const participantIds = Array.isArray(session?.participantChildIds)
+      ? session.participantChildIds
+      : Array.isArray(session?.participant_child_ids)
+        ? session.participant_child_ids
+        : [];
+
+    if (participantIds.map(String).includes(String(activeChildId))) {
+      return true;
+    }
+
+    const participants = Array.isArray(session?.participants)
+      ? session.participants
+      : [];
+
+    return participants.some(
+      (participant) =>
+        String(participant?.childId ?? participant?.child_id ?? "") ===
+        String(activeChildId)
+    );
+  });
 }
 
 function getIndependenceKey(session) {
@@ -192,6 +216,9 @@ function sessionAsActivity(session) {
     mess: session?.activityMess ?? session?.activity_mess,
     uses: session?.activitySupplies ?? session?.activity_supplies,
     summary: session?.summary || "",
+    categories:
+      session?.activityCategories ?? session?.activity_categories ?? [],
+    traits: session?.activityTraits ?? session?.activity_traits ?? {},
   };
 }
 

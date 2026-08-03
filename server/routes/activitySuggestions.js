@@ -19,6 +19,7 @@ import {
 } from "../utils/normalizeRequest.js";
 import { recordAiUsageEvent } from "../lib/aiUsage.js";
 import { expandGenerationIntent } from "../lib/generationIntent.js";
+import { attachRecommendationIds } from "../lib/recommendationIds.js";
 import { aiSuggestionsRateLimiter } from "../middleware/rateLimits.js";
 
 const router = Router();
@@ -150,9 +151,14 @@ export default function createActivitySuggestionsRouter(client) {
           normalizeActivity(activity, safeActivityStyle)
         );
 
+        const withIds = attachRecommendationIds(normalizedActivities);
+        const presentedAt = new Date().toISOString();
         const normalizedResponse = {
-          ...parsed,
-          activities: normalizedActivities,
+          recommendationBatchId: withIds.recommendationBatchId,
+          activities: withIds.activities.map((activity) => ({
+            ...activity,
+            presentedAt,
+          })),
         };
 
         if (isDebugLogging) {

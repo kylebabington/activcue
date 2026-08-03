@@ -1,3 +1,18 @@
+import {
+  ACTIVITY_CATEGORIES,
+  CREATIVITY_VALUES,
+  MOVEMENT_TRAIT_VALUES,
+  SETUP_EFFORT_VALUES,
+  SOCIAL_MODE_VALUES,
+  STRUCTURE_VALUES,
+} from "../schemas/activityTaxonomy.js";
+
+const CATEGORY_SET = new Set(ACTIVITY_CATEGORIES);
+
+function pickEnum(value, allowed, fallback) {
+  return allowed.includes(value) ? value : fallback;
+}
+
 export function resolveActivityStyle(activityStyle, activityMode) {
   if (activityStyle === "simple" || activityStyle === "imaginative") {
     return activityStyle;
@@ -59,6 +74,37 @@ export function buildSafeSafetySettings(safeCurrentMoment, safetySettings) {
   };
 }
 
+export function normalizeCategories(categories) {
+  if (!Array.isArray(categories)) {
+    return [];
+  }
+
+  const unique = [];
+  for (const raw of categories) {
+    if (typeof raw !== "string") {
+      continue;
+    }
+    const value = raw.trim().toLowerCase();
+    if (CATEGORY_SET.has(value) && !unique.includes(value)) {
+      unique.push(value);
+    }
+  }
+  return unique;
+}
+
+export function normalizeTraits(traits) {
+  const source =
+    traits && typeof traits === "object" && !Array.isArray(traits) ? traits : {};
+
+  return {
+    setupEffort: pickEnum(source.setupEffort, SETUP_EFFORT_VALUES, "medium"),
+    structure: pickEnum(source.structure, STRUCTURE_VALUES, "open-ended"),
+    socialMode: pickEnum(source.socialMode, SOCIAL_MODE_VALUES, "flexible"),
+    creativity: pickEnum(source.creativity, CREATIVITY_VALUES, "medium"),
+    movement: pickEnum(source.movement, MOVEMENT_TRAIT_VALUES, "low"),
+  };
+}
+
 export function normalizeActivity(activity, safeActivityStyle) {
   return {
     ...activity,
@@ -77,5 +123,7 @@ export function normalizeActivity(activity, safeActivityStyle) {
       ? activity.extensionIdeas
       : [],
     uses: Array.isArray(activity.uses) ? activity.uses : [],
+    categories: normalizeCategories(activity.categories),
+    traits: normalizeTraits(activity.traits),
   };
 }
