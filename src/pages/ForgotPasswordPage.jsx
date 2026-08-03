@@ -1,38 +1,41 @@
-// src/pages/LoginPage.jsx
+// src/pages/ForgotPasswordPage.jsx
 
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 import "../styles/landing.css";
 
-function LoginPage() {
-  const navigate = useNavigate();
+function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function handleSubmit(event) {
     event.preventDefault();
     setErrorMessage("");
+    setSuccessMessage("");
     setIsSubmitting(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
-      });
+      const redirectTo = `${window.location.origin}/reset-password`;
+      const { error } = await supabase.auth.resetPasswordForEmail(
+        email.trim(),
+        { redirectTo }
+      );
 
       if (error) {
         throw error;
       }
 
-      navigate("/app", { replace: true });
+      setSuccessMessage(
+        "If that email is registered, you will receive a reset link shortly."
+      );
     } catch (error) {
       setErrorMessage(
         error instanceof Error
           ? error.message
-          : "Could not log in. Check your email and password."
+          : "Could not send a reset email. Try again."
       );
     } finally {
       setIsSubmitting(false);
@@ -53,17 +56,17 @@ function LoginPage() {
             />
             <span className="landing-brand-name">FamilyFlow</span>
           </Link>
-          <Link className="landing-topbar-link" to="/signup">
-            Sign up
+          <Link className="landing-topbar-link" to="/login">
+            Log in
           </Link>
         </div>
       </header>
 
-      <section className="landing-auth" aria-labelledby="login-title">
+      <section className="landing-auth" aria-labelledby="forgot-title">
         <div className="landing-auth-panel">
-          <h1 id="login-title">Log in</h1>
+          <h1 id="forgot-title">Forgot password</h1>
           <p className="landing-auth-lead">
-            Welcome back. Pick up where your family left off.
+            Enter your account email and we will send a reset link.
           </p>
 
           <form className="landing-auth-form" onSubmit={handleSubmit}>
@@ -79,22 +82,15 @@ function LoginPage() {
               />
             </label>
 
-            <label className="landing-auth-field">
-              <span>Password</span>
-              <input
-                type="password"
-                name="password"
-                autoComplete="current-password"
-                required
-                minLength={6}
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-              />
-            </label>
-
             {errorMessage ? (
               <p className="landing-auth-error" role="alert">
                 {errorMessage}
+              </p>
+            ) : null}
+
+            {successMessage ? (
+              <p className="landing-auth-lead" role="status">
+                {successMessage}
               </p>
             ) : null}
 
@@ -103,16 +99,12 @@ function LoginPage() {
               type="submit"
               disabled={isSubmitting}
             >
-              {isSubmitting ? "Logging in…" : "Log in"}
+              {isSubmitting ? "Sending…" : "Send reset link"}
             </button>
           </form>
 
           <p className="landing-auth-footer">
-            New here? <Link to="/signup">Create an account</Link>
-            {" · "}
-            <Link to="/forgot-password">Forgot password</Link>
-            {" · "}
-            <Link to="/app">Try sample activities</Link>
+            Remembered it? <Link to="/login">Back to log in</Link>
           </p>
         </div>
       </section>
@@ -120,4 +112,4 @@ function LoginPage() {
   );
 }
 
-export default LoginPage;
+export default ForgotPasswordPage;

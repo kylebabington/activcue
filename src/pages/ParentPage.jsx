@@ -6,6 +6,13 @@ import ReviewMomentModal from "../components/ReviewMomentModal";
 import { getPresetKey } from "../utils/momentPresets";
 import { trackProductEvent } from "../utils/analytics";
 
+const RESCUE_TIME_OPTIONS = [10, 20, 30];
+const RESCUE_NOISE_OPTIONS = [
+  { value: "quiet", label: "Quiet" },
+  { value: "normal", label: "Normal" },
+  { value: "loud", label: "Anything goes" },
+];
+
 function ParentPage({
   defaultParentStatusPresets,
   customParentPresets,
@@ -24,6 +31,8 @@ function ParentPage({
   const [reviewPreset, setReviewPreset] = useState(null);
   const [reviewPresetKey, setReviewPresetKey] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [rescueMinutes, setRescueMinutes] = useState(20);
+  const [rescueNoise, setRescueNoise] = useState("quiet");
 
   function openReviewModal(preset) {
     setReviewPreset(preset);
@@ -67,6 +76,36 @@ function ParentPage({
     return `${getAvailabilityLabel(preset.availability)} · ${preset.timeNeededMinutes} min · ${preset.space}`;
   }
 
+  function applyRescueMode() {
+    const minutes = RESCUE_TIME_OPTIONS.includes(rescueMinutes)
+      ? rescueMinutes
+      : 20;
+    const noise = RESCUE_NOISE_OPTIONS.some((option) => option.value === rescueNoise)
+      ? rescueNoise
+      : "quiet";
+    const activityLabel =
+      noise === "quiet"
+        ? `Need ${minutes} quiet minutes`
+        : `Need ${minutes} minutes`;
+
+    applyMomentDraft(
+      {
+        parentActivity: activityLabel,
+        availability: "do-not-interrupt",
+        timeNeededMinutes: minutes,
+        space: "Living room",
+        messLevel: "low",
+        noiseLevel: noise,
+        supervisionLevel: "independent",
+      },
+      { navigateToKid: true }
+    );
+    trackProductEvent("rescue_mode_started", {
+      timeNeededMinutes: minutes,
+      noiseLevel: noise,
+    });
+  }
+
   return (
     <section className="page-layout page-layout--parent parent-preset-page">
       <section className="page-intro page-intro--minimal">
@@ -78,30 +117,54 @@ function ParentPage({
         <div>
           <p className="rescue-mode-kicker">Rescue Mode</p>
           <p>
-            Need breathing room fast? Set an independent, low-mess 20-minute
-            moment and jump to Kid.
+            Need breathing room fast? Pick a time window, optional noise
+            preference, then jump to Kid.
           </p>
+
+          <div className="rescue-mode-options" role="group" aria-label="Rescue time">
+            {RESCUE_TIME_OPTIONS.map((minutes) => (
+              <button
+                key={minutes}
+                type="button"
+                className={
+                  rescueMinutes === minutes
+                    ? "rescue-mode-chip active"
+                    : "rescue-mode-chip"
+                }
+                onClick={() => setRescueMinutes(minutes)}
+              >
+                {minutes} min
+              </button>
+            ))}
+          </div>
+
+          <div
+            className="rescue-mode-options"
+            role="group"
+            aria-label="Rescue noise preference"
+          >
+            {RESCUE_NOISE_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                className={
+                  rescueNoise === option.value
+                    ? "rescue-mode-chip active"
+                    : "rescue-mode-chip"
+                }
+                onClick={() => setRescueNoise(option.value)}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
         </div>
         <button
           type="button"
           className="rescue-mode-button"
-          onClick={() => {
-            applyMomentDraft(
-              {
-                parentActivity: "Need 20 quiet minutes",
-                availability: "do-not-interrupt",
-                timeNeededMinutes: 20,
-                space: "Living room",
-                messLevel: "low",
-                noiseLevel: "quiet",
-                supervisionLevel: "independent",
-              },
-              { navigateToKid: true }
-            );
-            trackProductEvent("rescue_mode_started");
-          }}
+          onClick={applyRescueMode}
         >
-          I need 20 minutes
+          I need {rescueMinutes} minutes
         </button>
       </div>
 

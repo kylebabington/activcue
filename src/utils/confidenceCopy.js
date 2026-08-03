@@ -1,5 +1,6 @@
 // src/utils/confidenceCopy.js
 
+import { getVerifiedFitFacts } from "./inventoryFit";
 import { getSessionFitBoost } from "./sessionFitScore";
 
 function getSessionChildId(session) {
@@ -87,6 +88,49 @@ export function buildConfidenceCopy(
   }
 
   return "";
+}
+
+/**
+ * 1–3 short human reasons for why an activity card is a good pick.
+ */
+export function buildRecommendationReasons(
+  activity,
+  sessions = [],
+  childName = "",
+  { childId = "", currentMoment = null } = {}
+) {
+  if (!activity) {
+    return [];
+  }
+
+  const reasons = [];
+  const confidence = buildConfidenceCopy(activity, sessions, childName, {
+    childId,
+  });
+
+  if (confidence) {
+    reasons.push(confidence);
+  }
+
+  const facts = getVerifiedFitFacts(activity, currentMoment);
+  facts.slice(0, 2).forEach((fact) => {
+    if (!reasons.some((reason) => reason.includes(fact))) {
+      reasons.push(fact);
+    }
+  });
+
+  if (reasons.length < 3 && currentMoment?.parentActivity) {
+    const momentReason = `Fits while you ${currentMoment.parentActivity}`;
+    if (!reasons.some((reason) => reason.toLowerCase().includes("fits"))) {
+      reasons.push(momentReason);
+    }
+  }
+
+  if (reasons.length === 0 && (activity.energy === "low" || activity.mess === "low")) {
+    reasons.push("Good match for quiet independent time.");
+  }
+
+  return reasons.slice(0, 3);
 }
 
 /**

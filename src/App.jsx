@@ -1,6 +1,6 @@
 // src/App.jsx
 
-import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   useEffect,
   useMemo,
@@ -10,29 +10,19 @@ import {
 import { signOutCurrentUser } from "./api/authApi";
 import { redirectToCheckout } from "./api/billingApi";
 import { ApiRequestError } from "./api/apiClient";
-import { listActivitySessions } from "./api/familyMemoryApi";
+import { listActivitySessions, resetFamilyData } from "./api/familyMemoryApi";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import { useFirstRunCoach } from "./hooks/useFirstRunCoach";
 import { useKidDeviceMode } from "./hooks/useKidDeviceMode";
 import { useAuth } from "./hooks/useAuth";
 import { useUiTheme } from "./hooks/useUiTheme";
-import { getPlayModeUiLine } from "./utils/playModeTheme";
 import { useEntitlement } from "./features/billing";
-import ParentPage from "./pages/ParentPage";
-import KidPage from "./pages/KidPage";
-import QuestPage from "./pages/QuestPage";
-import SettingsPage from "./pages/SettingsPage";
-import ParentPinGate from "./components/ParentPinGate";
 import ParentPinForm from "./components/ParentPinForm";
 import AppHeader from "./components/AppHeader";
-import { AppProvider } from "./context/AppContext";
-import {
-  BillingContext,
-  FamilyContext,
-  QuestContext,
-} from "./context/domainContexts";
+import { AppProviders } from "./context/AppProviders";
+import { AppRoutes } from "./context/AppRoutes";
 import "./App.css";
-import { defaultParentStatusPresets, inventoryCategories } from "./constants/presets";
+import { inventoryCategories } from "./constants/presets";
 import { inventoryPresets } from "./constants/inventoryPresets";
 import {
   buildDefaultFamilySettings,
@@ -457,6 +447,7 @@ function App() {
     handleTooHard,
     handleNeedQuieter,
     handleMoreLikeThis,
+    handleTryNextBest,
     handleCompletedQuestMoreLikeThis,
     handleCompletedQuestNeedAnotherIdea,
     clearActivityHistory,
@@ -573,7 +564,7 @@ function App() {
 
   async function resetSavedData() {
     const confirmed = window.confirm(
-      "Reset all saved family settings and browser data? This cannot be undone."
+      "Reset all saved family settings, favorites, history, and browser data? Your account and subscription stay. This cannot be undone."
     );
 
     if (!confirmed) {
@@ -595,6 +586,8 @@ function App() {
     }
 
     try {
+      await resetFamilyData({ expectedUserId: user?.id });
+
       const resetPromise = saveFamilySettings(
         buildDefaultFamilySettings(),
         {
@@ -605,10 +598,10 @@ function App() {
       familySettingsSaveChainRef.current = resetPromise;
       await resetPromise;
     } catch (error) {
-      console.error("Could not reset server family settings:", error);
+      console.error("Could not reset family data:", error);
       suppressFamilySettingsSavesRef.current = false;
       window.alert(
-        "Could not reset synced family settings on the server. Try again."
+        "Could not reset synced family data on the server. Try again."
       );
       return;
     }
@@ -630,6 +623,7 @@ function App() {
     window.localStorage.removeItem("lastSuccessfulMoment");
     window.localStorage.removeItem("activeActivity");
     window.localStorage.removeItem("lastCompletedQuest");
+    window.localStorage.removeItem("activitySessions");
     window.localStorage.removeItem("uiTheme");
     window.localStorage.removeItem("kidDeviceMode");
     window.location.reload();
@@ -735,6 +729,10 @@ function App() {
     handleTooHard,
     handleNeedQuieter,
     handleMoreLikeThis,
+    handleTryNextBest: () => {
+      trackProductEvent("plan_b_next_best");
+      handleTryNextBest(scoredActivities);
+    },
     handleAutoPickQuest,
     gettingBetterCopy,
     setupNudgeNeeded,
@@ -749,10 +747,21 @@ function App() {
     refreshEntitlement,
   };
 
-  const appContextValue = {
-    ...familyContextValue,
-    ...questContextValue,
-    ...billingContextValue,
+  const activityContextValue = {
+    activities,
+    scoredActivities,
+    isLoading,
+    loadingIntent,
+    handleGenerateActivities,
+    handleGenerateKidActivities,
+    handleStartSomethingForMe,
+    handleStartActivityFromUi,
+    handleAutoPickQuest,
+    saveFavoriteActivity,
+    removeSavedActivity,
+    freeImaginativeUnlockUsed,
+    imBoredDisabled,
+    isDemoMode,
   };
 
   if (familySettingsError) {
@@ -849,108 +858,55 @@ function App() {
         </p>
       )}
 
-      <AppProvider value={appContextValue}>
-        <FamilyContext.Provider value={familyContextValue}>
-          <QuestContext.Provider value={questContextValue}>
-            <BillingContext.Provider value={billingContextValue}>
-        <Routes>
-          <Route
-            path="/app"
-            element={<Navigate to={defaultHomePath} replace />}
-          />
-
-          <Route path="/demo" element={<Navigate to="/parent" replace />} />
-
-          <Route
-            path="/parent"
-            element={
-              parentAreasLocked ? (
-                <ParentPinGate
-                  parentPin={parentPin}
-                  parentPinSet={parentPinSet}
-                  onUnlock={() => setParentAreaUnlocked(true)}
-                />
-              ) : (
-                <ParentPage
-                  defaultParentStatusPresets={defaultParentStatusPresets}
-                  customParentPresets={customParentPresets}
-                  getAvailabilityLabel={formatAvailabilityLabel}
-                  applyMomentDraft={applyMomentDraft}
-                  saveCustomParentPreset={saveCustomParentPreset}
-                  updateCustomParentPreset={updateCustomParentPreset}
-                  deleteCustomParentPreset={deleteCustomParentPreset}
-                  activePresetKey={activePresetKey}
-                  setActivePresetKey={setActivePresetKey}
-                  firstRunHighlightCooking={firstRunCoach.highlightCooking}
-                  onFirstRunMomentSet={firstRunCoach.markMomentSet}
-                  onDismissFirstRun={firstRunCoach.dismiss}
-                  lastSuccessfulMoment={lastSuccessfulMoment}
-                />
-              )
-            }
-          />
-
-          <Route
-            path="/kid"
-            element={
-              <KidPage
-                currentMoment={currentMoment}
-                kidEnergyLevel={kidEnergyLevel}
-                setKidEnergyLevel={setKidEnergyLevel}
-                kidActivityStyle={kidActivityStyle}
-                setKidActivityStyle={setKidActivityStyle}
-                handleGenerateKidActivities={async (options) => {
-                  trackProductEvent(
-                    options?.preferSimpleTemplates ? "quick_ideas" : "im_bored"
-                  );
-                  return handleGenerateKidActivities(options);
-                }}
-                handleStartSomethingForMe={handleStartSomethingForMe}
-                isLoading={isLoading}
-                loadingIntent={loadingIntent}
-                activeChildProfile={activeChildProfile}
-                activityMode={activityMode}
-                childProfiles={childProfiles}
-                playingChildIds={playingChildIds}
-                togglePlayingChild={togglePlayingChild}
-                savedActivities={savedActivities}
-                activityHistory={activityHistory}
-                handleReplaySavedActivity={handleReplaySavedActivity}
-                isDemoMode={isDemoMode}
-                imBoredDisabled={imBoredDisabled}
-                onGetPlus={isDemoMode ? handleGetPlus : null}
-                checkoutBusy={checkoutBusy}
-                firstRunPulseImBored={firstRunCoach.pulseImBored}
-                onFirstRunGenerated={firstRunCoach.markGenerated}
-                playModeLine={getPlayModeUiLine(uiTheme)}
-                kidDeviceMode={kidDeviceMode}
-                gettingBetterCopy={gettingBetterCopy}
-                setupNudgeNeeded={setupNudgeNeeded}
-              />
-            }
-          />
-
-          <Route path="/quest" element={<QuestPage />} />
-
-          <Route
-            path="/settings"
-            element={
-              parentAreasLocked ? (
-                <ParentPinGate
-                  parentPin={parentPin}
-                  parentPinSet={parentPinSet}
-                  onUnlock={() => setParentAreaUnlocked(true)}
-                />
-              ) : (
-                <SettingsPage />
-              )
-            }
-          />
-        </Routes>
-            </BillingContext.Provider>
-          </QuestContext.Provider>
-        </FamilyContext.Provider>
-      </AppProvider>
+      <AppProviders
+        familyContextValue={familyContextValue}
+        questContextValue={questContextValue}
+        billingContextValue={billingContextValue}
+        activityContextValue={activityContextValue}
+      >
+        <AppRoutes
+          defaultHomePath={defaultHomePath}
+          parentAreasLocked={parentAreasLocked}
+          parentPin={parentPin}
+          parentPinSet={parentPinSet}
+          setParentAreaUnlocked={setParentAreaUnlocked}
+          customParentPresets={customParentPresets}
+          formatAvailabilityLabel={formatAvailabilityLabel}
+          applyMomentDraft={applyMomentDraft}
+          saveCustomParentPreset={saveCustomParentPreset}
+          updateCustomParentPreset={updateCustomParentPreset}
+          deleteCustomParentPreset={deleteCustomParentPreset}
+          activePresetKey={activePresetKey}
+          setActivePresetKey={setActivePresetKey}
+          firstRunCoach={firstRunCoach}
+          lastSuccessfulMoment={lastSuccessfulMoment}
+          currentMoment={currentMoment}
+          kidEnergyLevel={kidEnergyLevel}
+          setKidEnergyLevel={setKidEnergyLevel}
+          kidActivityStyle={kidActivityStyle}
+          setKidActivityStyle={setKidActivityStyle}
+          handleGenerateKidActivities={handleGenerateKidActivities}
+          handleStartSomethingForMe={handleStartSomethingForMe}
+          isLoading={isLoading}
+          loadingIntent={loadingIntent}
+          activeChildProfile={activeChildProfile}
+          activityMode={activityMode}
+          childProfiles={childProfiles}
+          playingChildIds={playingChildIds}
+          togglePlayingChild={togglePlayingChild}
+          savedActivities={savedActivities}
+          activityHistory={activityHistory}
+          handleReplaySavedActivity={handleReplaySavedActivity}
+          isDemoMode={isDemoMode}
+          imBoredDisabled={imBoredDisabled}
+          handleGetPlus={handleGetPlus}
+          checkoutBusy={checkoutBusy}
+          uiTheme={uiTheme}
+          kidDeviceMode={kidDeviceMode}
+          gettingBetterCopy={gettingBetterCopy}
+          setupNudgeNeeded={setupNudgeNeeded}
+        />
+      </AppProviders>
     </main>
   );
 }

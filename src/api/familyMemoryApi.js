@@ -84,6 +84,27 @@ export async function appendActivityEvent(event, { expectedUserId } = {}) {
   return response.json();
 }
 
+export async function clearActivityEvents({ expectedUserId } = {}) {
+  const response = await authenticatedRequest(
+    "/api/family-memory/activity-events",
+    {
+      method: "DELETE",
+      expectedUserId,
+    }
+  );
+
+  return response.json();
+}
+
+export async function resetFamilyData({ expectedUserId } = {}) {
+  const response = await authenticatedRequest("/api/family-data", {
+    method: "DELETE",
+    expectedUserId,
+  });
+
+  return response.json();
+}
+
 export async function createActivitySession(session, { expectedUserId } = {}) {
   const response = await authenticatedRequest(
     "/api/family-memory/activity-sessions",

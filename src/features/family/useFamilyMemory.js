@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   appendActivityEvent,
+  clearActivityEvents,
   deleteSavedActivity,
   listActivityEvents,
   listSavedActivities,
@@ -76,7 +77,8 @@ function favoritePayload(activity) {
 
 /*
  * First-class favorites + activity event history (tables), with one-time
- * import from localStorage / legacy JSON when tables are empty.
+ * import from localStorage when tables are empty.
+ * Legacy family_settings JSON memory columns are ignored.
  */
 export function useFamilyMemory({ userId } = {}) {
   const [savedActivities, setSavedActivities] = useLocalStorage(
@@ -166,14 +168,8 @@ export function useFamilyMemory({ userId } = {}) {
           return;
         }
 
-        if (savedRows.length > 0) {
-          setSavedActivities(savedRows.map(flattenSavedRow));
-        }
-
-        if (eventRows.length > 0) {
-          setActivityHistory(eventRows.map(historyFromEvent));
-        }
-
+        setSavedActivities(savedRows.map(flattenSavedRow));
+        setActivityHistory(eventRows.map(historyFromEvent));
         setMemoryReady(true);
       } catch (error) {
         console.warn("Could not hydrate family memory tables:", error);
@@ -210,8 +206,13 @@ export function useFamilyMemory({ userId } = {}) {
             )
           );
         }
+        return { ok: true, savedActivity: row || null };
       } catch (error) {
+        setSavedActivities((current) =>
+          current.filter((item) => item.id !== favoriteActivity.id)
+        );
         console.error("Could not save favorite to cloud:", error);
+        return { ok: false, error };
       }
     },
     [setSavedActivities, userId]
@@ -219,14 +220,21 @@ export function useFamilyMemory({ userId } = {}) {
 
   const removeFavorite = useCallback(
     async (activityId) => {
-      setSavedActivities((current) =>
-        current.filter((activity) => activity.id !== activityId)
-      );
+      let removed = null;
+      setSavedActivities((current) => {
+        removed = current.find((activity) => activity.id === activityId) || null;
+        return current.filter((activity) => activity.id !== activityId);
+      });
 
       try {
         await deleteSavedActivity(activityId, { expectedUserId: userId });
+        return { ok: true };
       } catch (error) {
+        if (removed) {
+          setSavedActivities((current) => [...current, removed]);
+        }
         console.error("Could not delete cloud favorite:", error);
+        return { ok: false, error };
       }
     },
     [setSavedActivities, userId]
@@ -245,9 +253,16 @@ export function useFamilyMemory({ userId } = {}) {
     [setActivityHistory, userId]
   );
 
-  const clearHistory = useCallback(() => {
-    setActivityHistory([]);
-  }, [setActivityHistory]);
+  const clearHistory = useCallback(async () => {
+    try {
+      await clearActivityEvents({ expectedUserId: userId });
+      setActivityHistory([]);
+      return { ok: true };
+    } catch (error) {
+      console.error("Could not clear cloud activity history:", error);
+      return { ok: false, error };
+    }
+  }, [setActivityHistory, userId]);
 
   return {
     savedActivities,

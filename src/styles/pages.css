@@ -885,6 +885,34 @@
   font-weight: 700;
 }
 
+.rescue-mode-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.65rem;
+}
+
+.rescue-mode-chip {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-chip);
+  background: color-mix(in srgb, var(--color-surface, #fff) 88%, transparent);
+  color: var(--color-text);
+  padding: var(--chip-padding-y) var(--chip-padding-x);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+
+.rescue-mode-chip:hover {
+  border-color: color-mix(in srgb, var(--color-primary) 45%, var(--color-border));
+}
+
+.rescue-mode-chip.active {
+  border-color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 14%, transparent);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
 .parent-while-you-ritual {
   display: flex;
   flex-wrap: wrap;
@@ -975,6 +1003,33 @@
   margin: 0;
 }
 
+
+.account-delete-block {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+.account-delete-block h3 {
+  margin: 0;
+  font-size: var(--font-size-md);
+}
+
+.account-legal-links {
+  margin: 0.5rem 0 0;
+}
+
+.account-legal-links a {
+  color: var(--color-primary);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+}
+
+.account-legal-links a:hover {
+  text-decoration: underline;
+}
 .billing-panel {
   display: grid;
   gap: var(--space-3);
