@@ -392,6 +392,100 @@ router.post(
 );
 
 /*
+ * DELETE /api/family-memory/activity-events
+ * Clears all activity event history for the authenticated user.
+ */
+router.delete(
+  "/family-memory/activity-events",
+  requireAuthenticatedUser,
+  ensureUserProfile,
+  async (req, res) => {
+    try {
+      const supabase = getSupabaseAdminClient();
+
+      const { error } = await supabase
+        .from("activity_events")
+        .delete()
+        .eq("user_id", req.auth.userId);
+
+      if (error) {
+        console.error("Could not clear activity events:", error);
+        return res.status(500).json({
+          error: "Could not clear activity history.",
+          code: "ACTIVITY_EVENTS_DELETE_FAILED",
+        });
+      }
+
+      return res.json({ deleted: true });
+    } catch (error) {
+      console.error("Unexpected activity events delete failure:", error);
+      return res.status(500).json({
+        error: "Could not clear activity history.",
+        code: "ACTIVITY_EVENTS_DELETE_FAILED",
+      });
+    }
+  }
+);
+
+/*
+ * DELETE /api/family-data
+ * Full family data reset for the authenticated user.
+ * Keeps account identity and Stripe subscription rows.
+ */
+router.delete(
+  "/family-data",
+  requireAuthenticatedUser,
+  ensureUserProfile,
+  async (req, res) => {
+    const userId = req.auth.userId;
+
+    try {
+      const supabase = getSupabaseAdminClient();
+
+      const deletions = await Promise.all([
+        supabase.from("activity_sessions").delete().eq("user_id", userId),
+        supabase.from("activity_events").delete().eq("user_id", userId),
+        supabase.from("saved_activities").delete().eq("user_id", userId),
+      ]);
+
+      for (const result of deletions) {
+        if (result.error) {
+          console.error("Could not reset family memory tables:", result.error);
+          return res.status(500).json({
+            error: "Could not reset family data.",
+            code: "FAMILY_DATA_RESET_FAILED",
+          });
+        }
+      }
+
+      const { error: settingsError } = await supabase
+        .from("family_settings")
+        .delete()
+        .eq("user_id", userId);
+
+      if (settingsError) {
+        console.error("Could not reset family settings:", settingsError);
+        return res.status(500).json({
+          error: "Could not reset family data.",
+          code: "FAMILY_DATA_RESET_FAILED",
+        });
+      }
+
+      return res.json({
+        reset: true,
+        retained: ["account", "subscription"],
+      });
+    } catch (error) {
+      console.error("Unexpected family data reset failure:", error);
+      return res.status(500).json({
+        error: "Could not reset family data.",
+        code: "FAMILY_DATA_RESET_FAILED",
+      });
+    }
+  }
+);
+
+/*
  * GET /api/family-memory/activity-sessions
  */
 router.get(
