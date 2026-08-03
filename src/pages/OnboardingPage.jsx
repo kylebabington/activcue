@@ -9,8 +9,13 @@ import {
   getActivityRoleLabel,
   getVisualThemeMeta,
 } from "../utils/activityVisualTheme";
+import {
+  ageYearsToAgeRange,
+  birthDateFromAgeYears,
+  calculateAge,
+} from "../utils/childAge";
 
-const AGE_RANGES = ["3-5", "6-9", "10-12"];
+const AGE_RANGES = ["3-5", "6-9", "10-12", "13+"];
 const SUPPLY_CHIPS = [
   "LEGO",
   "Duplo",
@@ -55,25 +60,56 @@ function writeDraft(draft) {
 function ChildStep({ childrenDraft, setChildrenDraft, onNext, onSkip }) {
   const [name, setName] = useState("");
   const [ageRange, setAgeRange] = useState("6-9");
+  const [birthDate, setBirthDate] = useState("");
+  const [ageYears, setAgeYears] = useState("");
   const [interests, setInterests] = useState("");
+
+  const previewAge = (() => {
+    if (birthDate) {
+      const age = calculateAge(birthDate);
+      return Number.isFinite(age) ? age : null;
+    }
+    const n = Math.floor(Number(ageYears));
+    return Number.isFinite(n) && n >= 0 && n <= 25 ? n : null;
+  })();
 
   function addChild() {
     const cleaned = name.trim();
     if (!cleaned) {
       return;
     }
+
+    let resolvedBirthDate = birthDate || null;
+    let resolvedAgeRange = ageRange;
+
+    if (birthDate) {
+      const age = calculateAge(birthDate);
+      if (Number.isFinite(age)) {
+        resolvedAgeRange = ageYearsToAgeRange(age);
+      }
+    } else if (ageYears !== "") {
+      const age = Math.floor(Number(ageYears));
+      if (Number.isFinite(age) && age >= 0 && age <= 25) {
+        resolvedBirthDate = birthDateFromAgeYears(age);
+        resolvedAgeRange = ageYearsToAgeRange(age);
+      }
+    }
+
     setChildrenDraft((current) => [
       ...current,
       {
         id: crypto.randomUUID(),
         name: cleaned,
-        ageRange,
+        ageRange: resolvedAgeRange,
+        birthDate: resolvedBirthDate,
         interests: interests.trim(),
         needs: "",
         createdAt: new Date().toISOString(),
       },
     ]);
     setName("");
+    setBirthDate("");
+    setAgeYears("");
     setInterests("");
   }
 
@@ -93,18 +129,57 @@ function ChildStep({ childrenDraft, setChildrenDraft, onNext, onSkip }) {
           />
         </label>
         <label>
-          Age range
-          <select
-            value={ageRange}
-            onChange={(event) => setAgeRange(event.target.value)}
-          >
-            {AGE_RANGES.map((range) => (
-              <option key={range} value={range}>
-                {range}
-              </option>
-            ))}
-          </select>
+          Birthday
+          <input
+            type="date"
+            value={birthDate}
+            max={new Date().toISOString().slice(0, 10)}
+            onChange={(event) => {
+              setBirthDate(event.target.value);
+              if (event.target.value) {
+                const age = calculateAge(event.target.value);
+                if (Number.isFinite(age)) {
+                  setAgeYears(String(age));
+                }
+              }
+            }}
+          />
         </label>
+        <label>
+          Or exact age
+          <input
+            type="number"
+            min={0}
+            max={25}
+            value={ageYears}
+            onChange={(event) => {
+              setAgeYears(event.target.value);
+              if (event.target.value) {
+                setBirthDate("");
+              }
+            }}
+            placeholder="12"
+          />
+        </label>
+        {previewAge != null ? (
+          <p className="child-age-preview" role="status">
+            Current age: {previewAge}
+          </p>
+        ) : (
+          <label>
+            Age range
+            <select
+              value={ageRange}
+              onChange={(event) => setAgeRange(event.target.value)}
+            >
+              {AGE_RANGES.map((range) => (
+                <option key={range} value={range}>
+                  {range}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         <label>
           Interests
           <input
@@ -125,7 +200,10 @@ function ChildStep({ childrenDraft, setChildrenDraft, onNext, onSkip }) {
         <ul className="onboarding-chip-list">
           {childrenDraft.map((child) => (
             <li key={child.id}>
-              {child.name} · {child.ageRange}
+              {child.name} ·{" "}
+              {child.birthDate
+                ? `age ${calculateAge(child.birthDate)}`
+                : child.ageRange}
               {child.interests ? ` · ${child.interests}` : ""}
             </li>
           ))}
