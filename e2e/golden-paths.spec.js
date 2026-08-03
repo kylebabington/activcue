@@ -33,12 +33,13 @@ test.describe("FamilyFlow golden paths", () => {
     const cooking = page.getByRole("button", { name: /Cooking/i }).first();
     if (await cooking.isVisible().catch(() => false)) {
       await cooking.click();
-      const confirm = page.getByRole("button", {
-        name: /Use this moment|Set moment|Confirm|Save|Go/i,
-      });
-      if (await confirm.first().isVisible({ timeout: 3000 }).catch(() => false)) {
-        await confirm.first().click();
-      }
+      // Exact label inside the review modal — avoid matching Rescue chips like "Anything goes".
+      const dialog = page.getByRole("dialog");
+      await expect(dialog).toBeVisible({ timeout: 10000 });
+      const setMoment = dialog.getByRole("button", { name: /^Set moment$/i });
+      await expect(setMoment).toBeVisible({ timeout: 10000 });
+      await setMoment.click();
+      await expect(dialog).toBeHidden({ timeout: 10000 });
     }
 
     await reachKid(page);
@@ -49,33 +50,36 @@ test.describe("FamilyFlow golden paths", () => {
     await expect(quickIdeas).toBeVisible({ timeout: 20000 });
     await quickIdeas.click();
 
-    await page.goto("/quest");
+    // Activities live in React state — do not full-navigate to /quest or you wipe the board.
+    await expect(page).toHaveURL(/\/quest/, { timeout: 30000 });
     await expect(page.getByRole("heading", { level: 1 }).or(page.getByRole("heading", { level: 2 })).first()).toBeVisible({
       timeout: 20000,
     });
 
-    const startButtons = page.getByRole("button", {
-      name: /Start|Let's go|Begin/i,
-    });
-    if (await startButtons.first().isVisible({ timeout: 8000 }).catch(() => false)) {
-      await startButtons.first().click();
+    const unlockFree = page.getByRole("button", { name: /^Unlock free$/i });
+    const startCard = page.getByRole("button", { name: /^Start$/i });
+    const startThis = page.getByRole("button", { name: /Start this activity/i });
+    const startControl = unlockFree.or(startCard).or(startThis);
+    await expect(startControl.first()).toBeVisible({ timeout: 30000 });
+    if (await unlockFree.first().isVisible().catch(() => false)) {
+      await unlockFree.first().click();
+    } else if (await startCard.first().isVisible().catch(() => false)) {
+      await startCard.first().click();
+    } else {
+      await startThis.first().click();
     }
 
     const finish = page.getByRole("button", {
-      name: /Finish|We're done|All done|Complete/i,
+      name: /^Done$|Finish|We're done|All done|Complete/i,
     });
-    if (await finish.first().isVisible({ timeout: 15000 }).catch(() => false)) {
-      await finish.first().click();
+    await expect(finish.first()).toBeVisible({ timeout: 30000 });
+    await finish.first().click();
 
-      const independence = page.getByRole("button", {
-        name: /Worked great|Needed me|Didn't last|Didn’t last/i,
-      });
-      if (
-        await independence.first().isVisible({ timeout: 8000 }).catch(() => false)
-      ) {
-        await independence.first().click();
-      }
-    }
+    const independence = page.getByRole("button", {
+      name: /Worked great|Needed me|Didn't last|Didn’t last/i,
+    });
+    await expect(independence.first()).toBeVisible({ timeout: 15000 });
+    await independence.first().click();
   });
 
   test("Rescue Mode → Kid → activity surface", async ({ page }) => {
