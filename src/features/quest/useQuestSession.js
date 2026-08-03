@@ -154,19 +154,39 @@ export function useQuestSession({
       Number(currentMoment.timeNeededMinutes) ||
       20;
 
+    const roles = Array.isArray(activity.roles) ? activity.roles : [];
+    const playingChildren =
+      activityMode === "family"
+        ? selectedChildProfiles
+        : activeChildProfile
+          ? [activeChildProfile]
+          : [];
+
     const activityToStart = {
       id: crypto.randomUUID(),
       title: activity.title,
       activityStyle: normalizeActivityStyle(activity, kidActivityStyle),
+      activityFormatVersion: activity.activityFormatVersion || 2,
+      visualTheme: activity.visualTheme || "",
       theme: activity.theme || "",
       summary: activity.summary || "",
       kidRole: activity.kidRole || "",
       mission: activity.mission || "",
+      roleGuide:
+        activity.roleGuide && typeof activity.roleGuide === "object"
+          ? activity.roleGuide
+          : null,
+      starterIdeas: Array.isArray(activity.starterIdeas)
+        ? activity.starterIdeas
+        : [],
       starterPrompts: Array.isArray(activity.starterPrompts)
         ? activity.starterPrompts
         : [],
       firstMoves: Array.isArray(activity.firstMoves) ? activity.firstMoves : [],
-      roles: Array.isArray(activity.roles) ? activity.roles : [],
+      stepDetails: Array.isArray(activity.stepDetails)
+        ? activity.stepDetails
+        : [],
+      roles,
       steps: Array.isArray(activity.steps) ? activity.steps : [],
       extensionIdeas: Array.isArray(activity.extensionIdeas)
         ? activity.extensionIdeas
@@ -187,6 +207,20 @@ export function useQuestSession({
         activity.recommendationBatchId ||
         activity.recommendation_batch_id ||
         null,
+      questPhase: "world",
+      checkedStarterIndexes: [],
+      selectedRoleName:
+        activity.roleGuide?.name || activity.kidRole || roles[0] || "",
+      roleAssignments: Object.fromEntries(
+        playingChildren
+          .filter((child) => child?.id)
+          .map((child, index) => [
+            child.id,
+            roles[index] || roles[0] || activity.roleGuide?.name || "",
+          ])
+      ),
+      showBuiltInHelp: false,
+      showAiHintPanel: false,
       currentStepIndex: 0,
       completedStepIndexes: [],
       showAllSteps: false,
@@ -415,12 +449,16 @@ export function useQuestSession({
     if (!activeActivity) {
       return;
     }
+    const stepDetails = Array.isArray(activeActivity.stepDetails)
+      ? activeActivity.stepDetails
+      : [];
     const steps = Array.isArray(activeActivity.steps) ? activeActivity.steps : [];
-    if (steps.length === 0) {
+    const totalSteps = stepDetails.length || steps.length;
+    if (totalSteps === 0) {
       return;
     }
     const currentStepIndex = Number(activeActivity.currentStepIndex) || 0;
-    const lastStepIndex = steps.length - 1;
+    const lastStepIndex = totalSteps - 1;
     const nextStepIndex = Math.min(currentStepIndex + 1, lastStepIndex);
     const completedStepIndexes = Array.isArray(activeActivity.completedStepIndexes)
       ? activeActivity.completedStepIndexes
@@ -436,6 +474,12 @@ export function useQuestSession({
       ...activeActivity,
       currentStepIndex: nextStepIndex,
       completedStepIndexes: updatedCompletedStepIndexes,
+      showBuiltInHelp: false,
+      showAiHintPanel: false,
+    });
+    trackProductEvent("step_completed", {
+      title: activeActivity.title,
+      stepIndex: currentStepIndex,
     });
   }
 
@@ -448,6 +492,8 @@ export function useQuestSession({
     setActiveActivity({
       ...activeActivity,
       currentStepIndex: Math.max(currentStepIndex - 1, 0),
+      showBuiltInHelp: false,
+      showAiHintPanel: false,
     });
   }
 
@@ -478,30 +524,126 @@ export function useQuestSession({
     });
   }
 
+  function setQuestPhase(questPhase) {
+    if (!activeActivity) {
+      return;
+    }
+    setActiveActivity({
+      ...activeActivity,
+      questPhase,
+      showBuiltInHelp: false,
+      showAiHintPanel: false,
+    });
+    setStepHint("");
+    if (questPhase === "playing") {
+      trackProductEvent("first_step_started", {
+        title: activeActivity.title,
+      });
+    }
+    if (questPhase === "starters") {
+      trackProductEvent("starter_idea_opened", {
+        title: activeActivity.title,
+      });
+    }
+  }
+
+  function toggleStarterIdea(index) {
+    if (!activeActivity) {
+      return;
+    }
+    const checked = Array.isArray(activeActivity.checkedStarterIndexes)
+      ? activeActivity.checkedStarterIndexes
+      : [];
+    const next = checked.includes(index)
+      ? checked.filter((value) => value !== index)
+      : [...checked, index];
+    setActiveActivity({
+      ...activeActivity,
+      checkedStarterIndexes: next,
+    });
+    if (!checked.includes(index)) {
+      trackProductEvent("starter_idea_opened", {
+        title: activeActivity.title,
+        starterIndex: index,
+      });
+    }
+  }
+
+  function assignRole(childId, roleName) {
+    if (!activeActivity || !childId) {
+      return;
+    }
+    setActiveActivity({
+      ...activeActivity,
+      selectedRoleName: roleName,
+      roleAssignments: {
+        ...(activeActivity.roleAssignments || {}),
+        [childId]: roleName,
+      },
+    });
+  }
+
+  function toggleBuiltInHelp() {
+    if (!activeActivity) {
+      return;
+    }
+    setActiveActivity({
+      ...activeActivity,
+      showBuiltInHelp: !activeActivity.showBuiltInHelp,
+      showAiHintPanel: false,
+    });
+    if (!activeActivity.showBuiltInHelp) {
+      trackProductEvent("built_in_help_opened", {
+        title: activeActivity.title,
+      });
+    }
+  }
+
   async function handleNeedStepHint() {
     if (!activeActivity) {
       return;
     }
 
+    const stepDetails = Array.isArray(activeActivity.stepDetails)
+      ? activeActivity.stepDetails
+      : [];
     const steps = Array.isArray(activeActivity.steps) ? activeActivity.steps : [];
     const currentStepIndex = Number(activeActivity.currentStepIndex) || 0;
-    const currentStep = steps[currentStepIndex];
+    const detail = stepDetails[currentStepIndex];
+    const currentStep =
+      detail?.instruction ||
+      detail?.title ||
+      steps[currentStepIndex];
     if (!currentStep) {
       return;
     }
 
+    setActiveActivity({
+      ...activeActivity,
+      showAiHintPanel: true,
+    });
     setIsHintLoading(true);
     setStepHint("");
+    trackProductEvent("ai_hint_requested", {
+      title: activeActivity.title,
+      stepIndex: currentStepIndex,
+    });
 
     try {
       const hint = await getQuestStepHint({
-        activityTitle: activeActivity.title,
-        activityStyle: normalizeActivityStyle(activeActivity),
+        activeActivity: {
+          title: activeActivity.title,
+          theme: activeActivity.theme || "",
+          mission: activeActivity.mission || "",
+          uses: activeActivity.uses || [],
+          kidRole: activeActivity.kidRole || "",
+          activityStyle: normalizeActivityStyle(activeActivity),
+        },
         currentStep,
-        stepIndex: currentStepIndex,
-        totalSteps: steps.length,
-        kidRole: activeActivity.kidRole || "",
-        mission: activeActivity.mission || "",
+        currentStepNumber: currentStepIndex + 1,
+        totalSteps: stepDetails.length || steps.length,
+        currentMoment,
+        activeChildProfile,
       });
       setStepHint(hint?.hint || hint?.message || String(hint || ""));
     } catch (error) {
@@ -534,6 +676,10 @@ export function useQuestSession({
     goToPreviousQuestStep,
     toggleQuestStepComplete,
     toggleShowAllQuestSteps,
+    setQuestPhase,
+    toggleStarterIdea,
+    assignRole,
+    toggleBuiltInHelp,
     handleNeedStepHint,
   };
 }
