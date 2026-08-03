@@ -17,6 +17,14 @@ const FEEDBACK_GUIDANCE = {
     "The previous activity was too messy. Suggest lower-mess alternatives.",
   "too-hard":
     "The previous activity was too hard. Suggest easier alternatives.",
+  "too-easy":
+    "The previous activity was too easy. Suggest a more challenging, age-appropriate alternative.",
+  "too-young":
+    "The previous activity felt too young or infantilizing. Suggest something more mature that still fits the child's interests. Avoid babyish framing.",
+  "too-old":
+    "The previous activity felt too old or advanced. Suggest something simpler and more developmentally appropriate.",
+  "wrong-moment":
+    "The previous activity did not fit the current family moment. Prefer options that better match time, mess, noise, and supervision.",
   "need-quieter":
     "The previous activity was too loud or active. Suggest quieter alternatives.",
   "need-another-idea":

@@ -206,6 +206,9 @@ function QuestPage() {
         selectedChildProfiles,
         handleTooMessy,
         handleTooHard,
+        handleTooYoung,
+        handleTooOld,
+        handleTooEasy,
         handleNeedQuieter,
         handleMoreLikeThis,
         handleTryNextBest,
@@ -343,6 +346,9 @@ function QuestPage() {
                         saveFavoriteActivity={saveFavoriteActivity}
                         handleTooMessy={handleTooMessy}
                         handleTooHard={handleTooHard}
+                        handleTooYoung={handleTooYoung}
+                        handleTooOld={handleTooOld}
+                        handleTooEasy={handleTooEasy}
                         handleNeedQuieter={handleNeedQuieter}
                         handleMoreLikeThis={handleMoreLikeThis}
                         handleTryNextBest={handleTryNextBest}

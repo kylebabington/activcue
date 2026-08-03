@@ -109,6 +109,10 @@ export function formatFeedbackLabel(feedbackType) {
   if (feedbackType === "timer-more-like-this") return "More like this";
   if (feedbackType === "too-messy") return "Too messy";
   if (feedbackType === "too-hard") return "Too hard";
+  if (feedbackType === "too-easy") return "Too easy";
+  if (feedbackType === "too-young") return "Too young";
+  if (feedbackType === "too-old") return "Too old";
+  if (feedbackType === "wrong-moment") return "Wrong moment";
   if (feedbackType === "need-quieter") return "Needed quieter";
   if (feedbackType === "more-like-this") return "More like this";
   if (feedbackType === "activity_rejected") return "Skipped for next best";
