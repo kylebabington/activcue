@@ -270,6 +270,7 @@ export function useActivityGeneration(deps = {}) {
       activitySessions: d.activitySessions,
       scoringOptions: d.scoringOptions,
       activityMode: d.activityMode,
+      selectedChildProfiles: d.selectedChildProfiles,
     });
 
     const scoredOptions = scoreActivitiesForCurrentMoment({
@@ -279,6 +280,7 @@ export function useActivityGeneration(deps = {}) {
       activitySessions: d.activitySessions,
       scoringOptions: d.scoringOptions,
       activityMode: d.activityMode,
+      selectedChildProfiles: d.selectedChildProfiles,
     });
     logActivityScoreTable(
       scoredOptions,

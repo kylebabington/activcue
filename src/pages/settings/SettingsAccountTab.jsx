@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { changePassword, deleteAccount, signOutCurrentUser } from "../../api/authApi";
 import { ApiRequestError } from "../../api/apiClient";
+import { calculateAge, resolveChildAge } from "../../utils/childAge";
 
 const SUPPORT_EMAIL =
   import.meta.env.VITE_SUPPORT_EMAIL || "support@familyflow.app";
@@ -34,6 +35,11 @@ export default function SettingsAccountTab({
   setNewChildName,
   newChildAgeRange,
   setNewChildAgeRange,
+  newChildBirthDate,
+  setNewChildBirthDate,
+  newChildAgeYears,
+  setNewChildAgeYears,
+  agePreviewYears,
   newChildInterests,
   setNewChildInterests,
   newChildNeeds,
@@ -186,17 +192,70 @@ export default function SettingsAccountTab({
                 </label>
 
                 <label>
-                  Age range
-                  <select
-                    value={newChildAgeRange}
-                    onChange={(event) => setNewChildAgeRange(event.target.value)}
-                  >
-                    <option value="3-5">3-5</option>
-                    <option value="6-9">6-9</option>
-                    <option value="10-12">10-12</option>
-                    <option value="13+">13+</option>
-                  </select>
+                  Birthday
+                  <input
+                    type="date"
+                    value={newChildBirthDate}
+                    onChange={(event) => {
+                      setNewChildBirthDate(event.target.value);
+                      if (event.target.value) {
+                        const age = calculateAge(event.target.value);
+                        if (Number.isFinite(age)) {
+                          setNewChildAgeYears(String(age));
+                        }
+                      }
+                    }}
+                    max={new Date().toISOString().slice(0, 10)}
+                  />
                 </label>
+
+                <label>
+                  Or exact current age
+                  <input
+                    type="number"
+                    min={0}
+                    max={25}
+                    inputMode="numeric"
+                    value={newChildAgeYears}
+                    onChange={(event) => {
+                      setNewChildAgeYears(event.target.value);
+                      if (event.target.value) {
+                        setNewChildBirthDate("");
+                      }
+                    }}
+                    placeholder="Example: 12"
+                  />
+                </label>
+
+                {agePreviewYears != null ? (
+                  <p className="child-age-preview" role="status">
+                    Current age: {agePreviewYears}
+                  </p>
+                ) : (
+                  <label>
+                    Age range (if birthday unknown)
+                    <select
+                      value={newChildAgeRange}
+                      onChange={(event) =>
+                        setNewChildAgeRange(event.target.value)
+                      }
+                    >
+                      <option value="3-5">3-5</option>
+                      <option value="6-9">6-9</option>
+                      <option value="10-12">10-12</option>
+                      <option value="13+">13+</option>
+                    </select>
+                  </label>
+                )}
+
+                {editingChildId &&
+                !newChildBirthDate &&
+                !newChildAgeYears ? (
+                  <p className="child-age-prompt" role="status">
+                    Add a birthday or exact age so suggestions stay
+                    age-appropriate as they grow.
+                  </p>
+                ) : null}
 
                 <label>
                   Interests
@@ -248,10 +307,25 @@ export default function SettingsAccountTab({
                     >
                       <div>
                         <h3>{child.name}</h3>
-                        <p>Age: {child.ageRange}</p>
+                        {(() => {
+                          const resolved = resolveChildAge(child);
+                          return (
+                            <p>
+                              Age: {resolved.ageYears}
+                              {child.birthDate
+                                ? ` (birthday ${child.birthDate})`
+                                : ` (${child.ageRange || "range"})`}
+                            </p>
+                          );
+                        })()}
 
                         {child.interests && <p>Interests: {child.interests}</p>}
                         {child.needs && <p>Notes: {child.needs}</p>}
+                        {!child.birthDate ? (
+                          <p className="child-age-prompt">
+                            Birthday not set — edit to add one.
+                          </p>
+                        ) : null}
                       </div>
 
                       <div className="child-profile-actions">

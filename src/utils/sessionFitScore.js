@@ -20,6 +20,7 @@ import {
   normalizeTextValue,
 } from "./activityScoring";
 import { normalizeActivityStyle } from "./activityStyle";
+import { isEligibleForChildren, resolveChildAge } from "./childAge";
 import {
   activityTraitsMatch,
   activitySimilarity,
@@ -676,6 +677,7 @@ export function scoreActivitiesWithSessionFit(
 
 /*
  * Canonical ranking for the activity board, auto-pick, and future recommenders.
+ * Age eligibility is a hard gate before normal scoring.
  */
 export function scoreActivitiesForCurrentMoment({
   activities,
@@ -684,6 +686,8 @@ export function scoreActivitiesForCurrentMoment({
   activitySessions,
   scoringOptions = {},
   activityMode = "single-child",
+  childAges = null,
+  selectedChildProfiles = null,
 } = {}) {
   const activeChildId = scoringOptions.activeChildId || "";
   const sessionsForFit = filterSessionsForFitScore(activitySessions, {
@@ -691,7 +695,22 @@ export function scoreActivitiesForCurrentMoment({
     activityMode,
   });
 
-  return scoreActivitiesWithSessionFit(activities, {
+  const ages =
+    Array.isArray(childAges) && childAges.length > 0
+      ? childAges
+      : Array.isArray(selectedChildProfiles)
+        ? selectedChildProfiles.map(
+            (child) => resolveChildAge(child).ageYears
+          )
+        : [];
+
+  const list = Array.isArray(activities) ? activities : [];
+  const eligible =
+    ages.length === 0
+      ? list
+      : list.filter((activity) => isEligibleForChildren(activity, ages));
+
+  return scoreActivitiesWithSessionFit(eligible, {
     sessions: sessionsForFit,
     currentMoment,
     activeChildId,

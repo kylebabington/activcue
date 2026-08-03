@@ -136,6 +136,39 @@ describe("sessionFitScore", () => {
     ).toBe(0);
   });
 
+  it("gates out age-ineligible activities before ranking", () => {
+    const youngOnly = {
+      title: "Toddler Finger Paint",
+      energy: "low",
+      mess: "high",
+      adultHelp: "needed",
+      estimatedMinutes: 15,
+      uses: [],
+      ageFit: { minAge: 2, maxAge: 4, targetAges: [3] },
+    };
+    const tweenOk = {
+      title: "Photo Scavenger Hunt",
+      energy: "medium",
+      mess: "low",
+      adultHelp: "none",
+      estimatedMinutes: 20,
+      uses: [],
+      ageFit: { minAge: 10, maxAge: 15, targetAges: [13] },
+    };
+
+    const ranked = scoreActivitiesForCurrentMoment({
+      activities: [youngOnly, tweenOk],
+      currentMoment: cookingMoment,
+      activityHistory: [],
+      activitySessions: [],
+      scoringOptions: { inventory: [] },
+      childAges: [13],
+    });
+
+    expect(ranked).toHaveLength(1);
+    expect(ranked[0].activity.title).toBe("Photo Scavenger Hunt");
+  });
+
   it("maps independence ratings and duration reliability", () => {
     expect(
       getIndependenceSignal({ independenceRating: "worked-great" })

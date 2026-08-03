@@ -17,6 +17,11 @@ import {
   normalizeActivity,
   resolveActivityStyle,
 } from "../utils/normalizeRequest.js";
+import {
+  buildChildrenAgeContext,
+  getGroupAgeContext,
+} from "../utils/childAge.js";
+import { filterActivitiesByAgeFit } from "../utils/ageFitValidation.js";
 import { recordAiUsageEvent } from "../lib/aiUsage.js";
 import { expandGenerationIntent } from "../lib/generationIntent.js";
 import { attachRecommendationIds } from "../lib/recommendationIds.js";
@@ -105,6 +110,16 @@ export default function createActivitySuggestionsRouter(client) {
           ? selectedChildProfiles
           : [];
 
+        const childrenContext = buildChildrenAgeContext(
+          safeSelectedChildProfiles.length > 0
+            ? safeSelectedChildProfiles
+            : activeChildProfile
+              ? [activeChildProfile]
+              : []
+        );
+        const childAges = childrenContext.map((child) => child.ageYears);
+        const groupAgeContext = getGroupAgeContext(childAges);
+
         const safeSafetySettings = buildSafeSafetySettings(
           safeCurrentMoment,
           safetySettings
@@ -119,6 +134,8 @@ export default function createActivitySuggestionsRouter(client) {
           kidMood,
           locationPreference,
           childAgeRange,
+          childrenContext,
+          groupAgeContext,
           activeChildProfile,
           safeActivityStyle,
           activityMode,
@@ -149,10 +166,22 @@ export default function createActivitySuggestionsRouter(client) {
           : [];
 
         const normalizedActivities = rawActivities.map((activity) =>
-          normalizeActivity(activity, safeActivityStyle)
+          normalizeActivity(activity, safeActivityStyle, childAges)
         );
 
-        const withIds = attachRecommendationIds(normalizedActivities);
+        const ageFiltered = filterActivitiesByAgeFit(
+          normalizedActivities,
+          childrenContext
+        );
+
+        // Prefer eligible activities; if all fail validation, keep normalized
+        // batch so the family still gets ideas (logged above for quality tracking).
+        const eligibleActivities =
+          ageFiltered.activities.length > 0
+            ? ageFiltered.activities
+            : normalizedActivities;
+
+        const withIds = attachRecommendationIds(eligibleActivities);
         const presentedAt = new Date().toISOString();
         const activitiesWithMeta = withIds.activities.map((activity) => ({
           ...activity,
@@ -168,6 +197,7 @@ export default function createActivitySuggestionsRouter(client) {
         const normalizedResponse = {
           recommendationBatchId: withIds.recommendationBatchId,
           activities: ingested,
+          ageFitRejectedCount: ageFiltered.rejectedCount,
         };
 
         if (isDebugLogging) {

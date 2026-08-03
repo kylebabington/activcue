@@ -200,6 +200,21 @@ export function useActivityFeedback({
     regenerateFromFeedback("too-hard", activity.title);
   }
 
+  function handleTooYoung(activity) {
+    saveActivityFeedback(activity, "too-young");
+    regenerateFromFeedback("too-young", activity.title);
+  }
+
+  function handleTooOld(activity) {
+    saveActivityFeedback(activity, "too-old");
+    regenerateFromFeedback("too-old", activity.title);
+  }
+
+  function handleTooEasy(activity) {
+    saveActivityFeedback(activity, "too-easy");
+    regenerateFromFeedback("too-easy", activity.title);
+  }
+
   function handleNeedQuieter(activity) {
     saveActivityFeedback(activity, "need-quieter");
     regenerateFromFeedback("need-quieter", activity.title);
@@ -314,6 +329,9 @@ export function useActivityFeedback({
     handleTimerMoreLikeThis,
     handleTooMessy,
     handleTooHard,
+    handleTooYoung,
+    handleTooOld,
+    handleTooEasy,
     handleNeedQuieter,
     handleMoreLikeThis,
     handleTryNextBest,

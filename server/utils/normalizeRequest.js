@@ -127,6 +127,25 @@ export function normalizeRoleGuide(roleGuide, fallbacks = {}) {
       ? roleGuide
       : {};
 
+  const childRoles = Array.isArray(source.childRoles)
+    ? source.childRoles
+        .filter((role) => role && typeof role === "object")
+        .map((role) => ({
+          childName: asString(role.childName, "Player"),
+          age: Number.isFinite(Number(role.age)) ? Number(role.age) : 0,
+          roleTitle: asString(role.roleTitle, asString(role.name, "Player")),
+          responsibility: asString(
+            role.responsibility,
+            asString(role.description, "Help with the activity.")
+          ),
+          firstAction: asString(
+            role.firstAction,
+            "Look around and pick a spot to begin."
+          ),
+        }))
+        .filter((role) => role.roleTitle || role.responsibility)
+    : [];
+
   return {
     name: asString(source.name, asString(fallbacks.kidRole, "Player")),
     description: asString(
@@ -137,6 +156,70 @@ export function normalizeRoleGuide(roleGuide, fallbacks = {}) {
     firstAction: asString(
       source.firstAction,
       "Look around and pick a spot to begin."
+    ),
+    childRoles,
+  };
+}
+
+const MATURITY_LEVELS = [
+  "young-child",
+  "child",
+  "tween",
+  "teen",
+  "mixed-age",
+];
+
+const INDEPENDENCE_LEVELS = [
+  "adult-led",
+  "some-help",
+  "mostly-independent",
+  "independent",
+];
+
+export function normalizeAgeFit(ageFit, fallbackAges = []) {
+  const source =
+    ageFit && typeof ageFit === "object" && !Array.isArray(ageFit)
+      ? ageFit
+      : {};
+
+  const ages = (Array.isArray(fallbackAges) ? fallbackAges : [])
+    .map((age) => Number(age))
+    .filter((age) => Number.isFinite(age));
+
+  const fallbackMin = ages.length > 0 ? Math.min(...ages) : 5;
+  const fallbackMax = ages.length > 0 ? Math.max(...ages) : 12;
+
+  let minAge = Number(source.minAge);
+  let maxAge = Number(source.maxAge);
+  if (!Number.isFinite(minAge)) minAge = fallbackMin;
+  if (!Number.isFinite(maxAge)) maxAge = fallbackMax;
+  if (minAge > maxAge) {
+    const swap = minAge;
+    minAge = maxAge;
+    maxAge = swap;
+  }
+
+  const targetAges = Array.isArray(source.targetAges)
+    ? source.targetAges
+        .map((age) => Number(age))
+        .filter((age) => Number.isFinite(age))
+    : ages.length > 0
+      ? ages
+      : [Math.round((minAge + maxAge) / 2)];
+
+  return {
+    minAge,
+    maxAge,
+    targetAges,
+    maturityLevel: pickEnum(source.maturityLevel, MATURITY_LEVELS, "child"),
+    independenceLevel: pickEnum(
+      source.independenceLevel,
+      INDEPENDENCE_LEVELS,
+      "mostly-independent"
+    ),
+    ageFitReason: asString(
+      source.ageFitReason,
+      "Fits the participating children's ages."
     ),
   };
 }
@@ -231,8 +314,9 @@ export function normalizeStepDetails(stepDetails, steps = []) {
 /**
  * Prefer V2 structured fields; always emit V1 mirrors so older UI keeps working.
  */
-export function deriveV1FieldsFromV2(activity) {
+export function deriveV1FieldsFromV2(activity, fallbackAges = []) {
   const roleGuide = normalizeRoleGuide(activity.roleGuide, activity);
+  const ageFit = normalizeAgeFit(activity.ageFit, fallbackAges);
   const starterIdeas = normalizeStarterIdeas(
     activity.starterIdeas,
     activity.starterPrompts
@@ -254,15 +338,22 @@ export function deriveV1FieldsFromV2(activity) {
       ? asStringArray(activity.firstMoves)
       : starterIdeas.slice(0, 4).map((idea) => idea.title);
 
+  const rolesFromChildRoles = roleGuide.childRoles.map(
+    (role) => role.roleTitle || role.childName
+  );
+
   const roles =
     asStringArray(activity.roles).length > 0
       ? asStringArray(activity.roles)
-      : roleGuide.name
-        ? [roleGuide.name]
-        : [];
+      : rolesFromChildRoles.length > 0
+        ? rolesFromChildRoles
+        : roleGuide.name
+          ? [roleGuide.name]
+          : [];
 
   return {
     roleGuide,
+    ageFit,
     starterIdeas,
     stepDetails,
     kidRole: asString(activity.kidRole) || roleGuide.name,
@@ -316,17 +407,20 @@ function inferVisualTheme(activity) {
   return activity.activityStyle === "imaginative" ? "fantasy" : "art";
 }
 
-export function normalizeActivity(activity, safeActivityStyle) {
+export function normalizeActivity(activity, safeActivityStyle, fallbackAges = []) {
   const activityStyle =
     activity.activityStyle === "simple" ||
     activity.activityStyle === "imaginative"
       ? activity.activityStyle
       : safeActivityStyle;
 
-  const derived = deriveV1FieldsFromV2({
-    ...activity,
-    activityStyle,
-  });
+  const derived = deriveV1FieldsFromV2(
+    {
+      ...activity,
+      activityStyle,
+    },
+    fallbackAges
+  );
 
   return {
     ...activity,

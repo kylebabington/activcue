@@ -187,6 +187,9 @@ function QuestPage() {
         toggleStarterIdea,
         assignRole,
         toggleBuiltInHelp,
+        setOpenSection,
+        openRescueSection,
+        markRescueModeUsed,
         stepHint,
         isHintLoading,
         handleNeedStepHint,
@@ -203,6 +206,9 @@ function QuestPage() {
         selectedChildProfiles,
         handleTooMessy,
         handleTooHard,
+        handleTooYoung,
+        handleTooOld,
+        handleTooEasy,
         handleNeedQuieter,
         handleMoreLikeThis,
         handleTryNextBest,
@@ -264,6 +270,9 @@ function QuestPage() {
                     toggleStarterIdea={toggleStarterIdea}
                     assignRole={assignRole}
                     toggleBuiltInHelp={toggleBuiltInHelp}
+                    setOpenSection={setOpenSection}
+                    openRescueSection={openRescueSection}
+                    markRescueModeUsed={markRescueModeUsed}
                     stepHint={stepHint}
                     isHintLoading={isHintLoading}
                     handleNeedStepHint={handleNeedStepHint}
@@ -337,6 +346,9 @@ function QuestPage() {
                         saveFavoriteActivity={saveFavoriteActivity}
                         handleTooMessy={handleTooMessy}
                         handleTooHard={handleTooHard}
+                        handleTooYoung={handleTooYoung}
+                        handleTooOld={handleTooOld}
+                        handleTooEasy={handleTooEasy}
                         handleNeedQuieter={handleNeedQuieter}
                         handleMoreLikeThis={handleMoreLikeThis}
                         handleTryNextBest={handleTryNextBest}
