@@ -412,8 +412,8 @@ Health: `GET /api/health`
 
 CI splits into:
 
-1. **Lint, test, and build** — no cloud secrets
-2. **Playwright e2e** — Chromium against **local Supabase** (`supabase start` on the runner)
+1. **Lint, test, and build** — every PR and push to `main` (no cloud secrets)
+2. **Playwright e2e** — **twice daily** (cron `0 6 * * *` and `0 18 * * *` UTC) plus manual **workflow_dispatch**; Chromium against **local Supabase** (`supabase start` on the runner). Skipped on PRs and on pushes to `main`.
 
 E2E repository secrets (Stripe test + OpenAI only — no second Supabase cloud project):
 

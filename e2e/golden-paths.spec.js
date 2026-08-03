@@ -27,6 +27,15 @@ async function reachParent(page) {
 async function reachKid(page) {
   await page.goto("/kid");
   await waitForAuthSession(page);
+  await expect(page).toHaveURL(/\/kid/, { timeout: 20000 });
+
+  // Close any leftover parent/review dialog so it cannot cover Kid.
+  const dialog = page.getByRole("dialog");
+  if (await dialog.isVisible().catch(() => false)) {
+    await page.keyboard.press("Escape");
+    await expect(dialog).toBeHidden({ timeout: 10000 });
+  }
+
   await expect(
     page.getByRole("heading", { name: /What sounds good/i })
   ).toBeVisible({ timeout: 30000 });
@@ -49,7 +58,12 @@ async function setCookingMoment(page) {
 }
 
 async function startFirstAvailableActivity(page) {
-  await page.goto("/quest");
+  // Activities live in React state — do not full-navigate to /quest after
+  // Quick Ideas or you remount the app and wipe the board.
+  if (!/\/quest/.test(page.url())) {
+    await page.goto("/quest");
+  }
+  await expect(page).toHaveURL(/\/quest/, { timeout: 30000 });
   await expect(
     page.getByRole("heading", { level: 1 }).or(page.getByRole("heading", { level: 2 })).first()
   ).toBeVisible({ timeout: 30000 });
@@ -57,19 +71,28 @@ async function startFirstAvailableActivity(page) {
   const unlockFree = page.getByRole("button", { name: /^Unlock free$/i });
   const startCard = page.getByRole("button", { name: /^Start$/i });
   const startThis = page.getByRole("button", { name: /Start this activity/i });
+  const startControl = unlockFree.or(startCard).or(startThis);
+  await expect(startControl.first()).toBeVisible({ timeout: 30000 });
 
   if (await unlockFree.first().isVisible().catch(() => false)) {
     await unlockFree.first().click();
   } else if (await startCard.first().isVisible().catch(() => false)) {
     await startCard.first().click();
   } else {
-    await expect(startThis.first()).toBeVisible({ timeout: 20000 });
     await startThis.first().click();
   }
 
   const done = page.getByRole("button", { name: /^Done$/i });
   await expect(done.first()).toBeVisible({ timeout: 30000 });
   return done.first();
+}
+
+async function openQuickIdeasAndStart(page) {
+  const quickIdeas = page.getByRole("button", { name: /^Quick ideas/i });
+  await expect(quickIdeas).toBeVisible({ timeout: 20000 });
+  await quickIdeas.click();
+  await expect(page).toHaveURL(/\/quest/, { timeout: 30000 });
+  return startFirstAvailableActivity(page);
 }
 
 test.describe("FamilyFlow golden paths", () => {
@@ -112,11 +135,7 @@ test.describe("FamilyFlow golden paths", () => {
     await expect(simple).toBeVisible({ timeout: 15000 });
     await simple.click();
 
-    const quickIdeas = page.getByRole("button", { name: /^Quick ideas/i });
-    await expect(quickIdeas).toBeVisible({ timeout: 20000 });
-    await quickIdeas.click();
-
-    const doneButton = await startFirstAvailableActivity(page);
+    const doneButton = await openQuickIdeasAndStart(page);
     await doneButton.click();
 
     await expect(
@@ -211,11 +230,7 @@ test.describe("FamilyFlow golden paths", () => {
     const simple = page.getByRole("button", { name: /Simple/i }).first();
     await simple.click();
 
-    const quickIdeas = page.getByRole("button", { name: /^Quick ideas/i });
-    await expect(quickIdeas).toBeVisible({ timeout: 20000 });
-    await quickIdeas.click();
-
-    const doneButton = await startFirstAvailableActivity(page);
+    const doneButton = await openQuickIdeasAndStart(page);
     await doneButton.click();
 
     await expect(page.getByText(/Activity complete/i)).toBeVisible({
@@ -270,11 +285,7 @@ test.describe("FamilyFlow golden paths", () => {
     const simple = page.getByRole("button", { name: /Simple/i }).first();
     await simple.click();
 
-    const quickIdeas = page.getByRole("button", { name: /^Quick ideas/i });
-    await expect(quickIdeas).toBeVisible({ timeout: 20000 });
-    await quickIdeas.click();
-
-    const doneButton = await startFirstAvailableActivity(page);
+    const doneButton = await openQuickIdeasAndStart(page);
 
     const inProgress = await waitForActivitySessions(
       page,

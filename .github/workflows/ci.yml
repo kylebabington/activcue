@@ -8,6 +8,11 @@ on:
   push:
     branches:
       - main
+  schedule:
+    # Twice daily (UTC): ~2am and ~2pm Eastern
+    - cron: "0 6 * * *"
+    - cron: "0 18 * * *"
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -47,8 +52,10 @@ jobs:
 
   # Playwright against local Supabase (Docker). No second cloud project.
   # Production Supabase secrets must NOT be wired into this job.
+  # Runs twice daily (schedule) or on-demand (workflow_dispatch) — not on PRs or pushes.
   e2e:
     name: Playwright e2e
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 40
     needs: unit

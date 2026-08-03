@@ -99,12 +99,12 @@ npm run test:e2e
 
 GitHub Actions splits CI into:
 
-1. **Lint, test, and build** — no cloud secrets
-2. **Playwright e2e** — starts local Supabase, then runs Chromium against `127.0.0.1`
+1. **Lint, test, and build** — runs on every PR and push to `main` (no cloud secrets)
+2. **Playwright e2e** — runs **twice daily** (06:00 and 18:00 UTC) and on manual **Run workflow**; starts local Supabase, then runs Chromium against `127.0.0.1`. Does **not** run on PRs or pushes to `main`.
 
 Required E2E GitHub secrets (no `TEST_SUPABASE_*`): `TEST_STRIPE_SECRET_KEY`, `TEST_STRIPE_WEBHOOK_SECRET`, `TEST_STRIPE_MONTHLY_PRICE_ID`, `TEST_STRIPE_ANNUAL_PRICE_ID`, `TEST_OPENAI_API_KEY`.
 
-CI fails immediately if any of those are missing, or if Supabase is not local. Optionally set repo variable `FAMILYFLOW_BLOCKED_SUPABASE_HOSTS` to your production Supabase hostname.
+Scheduled/manual e2e fails immediately if any of those are missing, or if Supabase is not local. Optionally set repo variable `FAMILYFLOW_BLOCKED_SUPABASE_HOSTS` to your production Supabase hostname.
 
 ## Scripts
 
