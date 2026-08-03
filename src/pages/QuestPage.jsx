@@ -6,7 +6,9 @@ import ActivityResults from "../components/ActivityResults";
 import MomentStatusBanner from "../components/MomentStatusBanner";
 import SimpleActiveActivityPanel from "../components/SimpleActiveActivityPanel";
 import { useAppContext } from "../context/AppContext";
+import { useAuth } from "../hooks/useAuth";
 import { INDEPENDENCE_OUTCOMES } from "../features/quest";
+import { trackProductEvent } from "../utils/analytics";
 
 function QuestCompleteSummary({
     lastCompletedQuest,
@@ -16,6 +18,7 @@ function QuestCompleteSummary({
     saveFavoriteActivity,
     reapplyLastSuccessfulMoment,
     onSessionOutcome,
+    showActivationSignup = false,
 }) {
     const uses = Array.isArray(lastCompletedQuest.uses)
         ? lastCompletedQuest.uses
@@ -112,6 +115,27 @@ function QuestCompleteSummary({
                 ) : null}
             </div>
 
+            {showActivationSignup ? (
+                <div className="activation-signup-panel">
+                    <h3>Remember what worked?</h3>
+                    <p>
+                        Create a free account so favorites, kids, and What Works
+                        for Us stay with your family.
+                    </p>
+                    <Link
+                        className="primary-link-button"
+                        to="/signup"
+                        onClick={() =>
+                            trackProductEvent("activation_signup_prompted", {
+                                source: "quest_complete",
+                            })
+                        }
+                    >
+                        Create free account
+                    </Link>
+                </div>
+            ) : null}
+
             <div className="completion-actions">
                 <button onClick={handleCompletedQuestMoreLikeThis}>
                     More like this
@@ -159,7 +183,10 @@ function QuestPage() {
         goToNextQuestStep,
         goToPreviousQuestStep,
         toggleQuestStepComplete,
-        toggleShowAllQuestSteps,
+        setQuestPhase,
+        toggleStarterIdea,
+        assignRole,
+        toggleBuiltInHelp,
         stepHint,
         isHintLoading,
         handleNeedStepHint,
@@ -173,6 +200,7 @@ function QuestPage() {
         reapplyLastSuccessfulMoment,
         activitySessions,
         activeChildProfile,
+        selectedChildProfiles,
         handleTooMessy,
         handleTooHard,
         handleNeedQuieter,
@@ -183,6 +211,15 @@ function QuestPage() {
         inventoryEmpty,
         gettingBetterCopy,
     } = useAppContext();
+    const { isAnonymous } = useAuth();
+
+    const playingChildren =
+        Array.isArray(selectedChildProfiles) && selectedChildProfiles.length > 0
+            ? selectedChildProfiles
+            : activeChildProfile
+              ? [activeChildProfile]
+              : [];
+
     return (
         <section className="page-layout page-layout--kid">
             <section className="page-intro page-intro--kid page-intro--minimal">
@@ -223,12 +260,16 @@ function QuestPage() {
                     goToNextQuestStep={goToNextQuestStep}
                     goToPreviousQuestStep={goToPreviousQuestStep}
                     toggleQuestStepComplete={toggleQuestStepComplete}
-                    toggleShowAllQuestSteps={toggleShowAllQuestSteps}
+                    setQuestPhase={setQuestPhase}
+                    toggleStarterIdea={toggleStarterIdea}
+                    assignRole={assignRole}
+                    toggleBuiltInHelp={toggleBuiltInHelp}
                     stepHint={stepHint}
                     isHintLoading={isHintLoading}
                     handleNeedStepHint={handleNeedStepHint}
                     canUseAiHints={Boolean(entitlement?.canUseAiHints)}
                     formatTimer={formatTimer}
+                    playingChildren={playingChildren}
                 />
             )}
 
@@ -241,6 +282,7 @@ function QuestPage() {
                     saveFavoriteActivity={saveFavoriteActivity}
                     reapplyLastSuccessfulMoment={reapplyLastSuccessfulMoment}
                     onSessionOutcome={handleSessionOutcome}
+                    showActivationSignup={Boolean(isAnonymous)}
                 />
             )}
 
