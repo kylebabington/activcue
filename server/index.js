@@ -16,8 +16,10 @@ import billingRouter, {
 import presetActivitiesRouter from "./routes/presetActivities.js";
 import familySettingsRouter from "./routes/familySettings.js";
 import familyMemoryRouter from "./routes/familyMemory.js";
+import productEventsRouter from "./routes/productEvents.js";
 import createActivitySuggestionsRouter from "./routes/activitySuggestions.js";
 import createQuestStepHintRouter from "./routes/questStepHint.js";
+import { requestContextMiddleware } from "./middleware/requestContext.js";
 
 /*
  * ES modules do not automatically provide __filename and __dirname.
@@ -186,6 +188,7 @@ app.post(
  * endpoints.
  */
 app.use(express.json());
+app.use(requestContextMiddleware);
 
 /*
  * API ROUTES
@@ -233,6 +236,11 @@ app.use("/api", familySettingsRouter);
  * First-class family memory: saved activities, events, and sessions.
  */
 app.use("/api", familyMemoryRouter);
+
+/*
+ * Sparse product analytics (allowlisted event names only).
+ */
+app.use("/api", productEventsRouter);
 
 /*
  * Protected OpenAI routes.
