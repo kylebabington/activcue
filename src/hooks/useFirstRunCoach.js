@@ -1,54 +1,80 @@
-// Tracks the guided first-run coach so a new family can finish one activity
-// without opening Settings. Stored on-device only.
+// Contextual tips after onboarding — not the primary setup path.
+// Device-local only; onboarding owns first-run setup.
 
 import { useLocalStorage } from "../hooks/useLocalStorage";
 
-export const FIRST_RUN_STORAGE_KEY = "hasCompletedFirstRun";
+export const CONTEXT_COACH_STORAGE_KEY = "ff_context_coach_v1";
 
-export const FIRST_RUN_STEPS = {
-  setMoment: "setMoment",
-  generate: "generate",
+export const CONTEXT_COACH_TIPS = {
+  planB: "planB",
+  rescue: "rescue",
+  learning: "learning",
   done: "done",
 };
 
+const TIP_ORDER = [
+  CONTEXT_COACH_TIPS.planB,
+  CONTEXT_COACH_TIPS.rescue,
+  CONTEXT_COACH_TIPS.learning,
+];
+
+/** @deprecated Use CONTEXT_COACH_* — kept for older imports. */
+export const FIRST_RUN_STORAGE_KEY = CONTEXT_COACH_STORAGE_KEY;
+export const FIRST_RUN_STEPS = CONTEXT_COACH_TIPS;
+
 export function useFirstRunCoach() {
-  const [completed, setCompleted] = useLocalStorage(
-    FIRST_RUN_STORAGE_KEY,
-    false
+  const [dismissedTips, setDismissedTips] = useLocalStorage(
+    CONTEXT_COACH_STORAGE_KEY,
+    []
   );
-  const [step, setStep] = useLocalStorage("firstRunStep", FIRST_RUN_STEPS.setMoment);
+  const dismissed = Array.isArray(dismissedTips) ? dismissedTips : [];
 
-  const active = completed !== true;
+  const nextTip =
+    TIP_ORDER.find((tip) => !dismissed.includes(tip)) || CONTEXT_COACH_TIPS.done;
 
-  function markMomentSet() {
-    if (!active) {
+  function dismissTip(tip = nextTip) {
+    if (!tip || tip === CONTEXT_COACH_TIPS.done) {
       return;
     }
-
-    setStep(FIRST_RUN_STEPS.generate);
-  }
-
-  function markGenerated() {
-    if (!active) {
-      return;
-    }
-
-    setStep(FIRST_RUN_STEPS.done);
-    setCompleted(true);
+    setDismissedTips((current) => {
+      const list = Array.isArray(current) ? current : [];
+      if (list.includes(tip)) {
+        return list;
+      }
+      return [...list, tip];
+    });
   }
 
   function dismiss() {
-    setStep(FIRST_RUN_STEPS.done);
-    setCompleted(true);
+    setDismissedTips([...TIP_ORDER]);
+  }
+
+  // Legacy API used by Parent/Kid pages — keep harmless no-ops / soft mappings.
+  function markMomentSet() {
+    // Onboarding owns moment setup now.
+  }
+
+  function markGenerated() {
+    dismissTip(CONTEXT_COACH_TIPS.planB);
   }
 
   return {
-    active,
-    step: active ? step : FIRST_RUN_STEPS.done,
-    highlightCooking: active && step === FIRST_RUN_STEPS.setMoment,
-    pulseImBored: active && step === FIRST_RUN_STEPS.generate,
+    active: nextTip !== CONTEXT_COACH_TIPS.done,
+    step: nextTip,
+    tip: nextTip,
+    tipCopy: {
+      [CONTEXT_COACH_TIPS.planB]:
+        "Not the right fit? Try the next best one — that’s Plan B.",
+      [CONTEXT_COACH_TIPS.rescue]:
+        "Everything falling apart? Rescue Mode is a calm fallback.",
+      [CONTEXT_COACH_TIPS.learning]:
+        "After activities, say how independent it felt so suggestions improve.",
+    }[nextTip] || "",
+    highlightCooking: false,
+    pulseImBored: false,
     markMomentSet,
     markGenerated,
+    dismissTip,
     dismiss,
   };
 }

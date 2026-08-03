@@ -71,6 +71,12 @@ function formatFamilySettings(row) {
                 : "playroom",
         kidDeviceMode: row.kid_device_mode === true,
         parentPinSet: Boolean(row.parent_pin_hash),
+        onboardingVersion:
+            typeof row.onboarding_version === "number"
+                ? row.onboarding_version
+                : null,
+        onboardingCompletedAt: row.onboarding_completed_at || null,
+        onboardingSkippedAt: row.onboarding_skipped_at || null,
         createdAt: row.created_at,
         updatedAt: row.updated_at,
     };
@@ -210,6 +216,17 @@ function validateSettingsPayload(body) {
         };
     }
 
+    if (
+        body.onboardingVersion !== undefined &&
+        body.onboardingVersion !== null &&
+        typeof body.onboardingVersion !== "number"
+    ) {
+        return {
+            ok: false,
+            error: "onboardingVersion must be a number or null.",
+        };
+    }
+
     return {
         ok: true,
         settings: {
@@ -261,6 +278,18 @@ function validateSettingsPayload(body) {
                     ? body.uiTheme.trim().slice(0, 64)
                     : "playroom",
             kid_device_mode: body.kidDeviceMode === true,
+            onboarding_version:
+                typeof body.onboardingVersion === "number"
+                    ? body.onboardingVersion
+                    : null,
+            onboarding_completed_at:
+                typeof body.onboardingCompletedAt === "string"
+                    ? body.onboardingCompletedAt
+                    : null,
+            onboarding_skipped_at:
+                typeof body.onboardingSkippedAt === "string"
+                    ? body.onboardingSkippedAt
+                    : null,
         },
     };
 }
