@@ -60,6 +60,7 @@ function ActivityDetailsModal({
       onClose={onClose}
       title={activity.title}
       footer={footer}
+      fullPage
     >
       <ActivityDetailsContent
         activity={activity}
