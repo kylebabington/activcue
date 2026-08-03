@@ -6,7 +6,6 @@ import {
   clearOfflineQueue,
   enqueueOfflineEvent,
   readOfflineQueue,
-  replaceOfflineQueue,
 } from "./offlineQueue";
 
 /**
