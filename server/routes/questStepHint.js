@@ -1,5 +1,8 @@
 import { Router } from "express";
-import { createStructuredResponse } from "../lib/openaiClient.js";
+import {
+  OPENAI_MODEL,
+  createStructuredResponseWithMeta,
+} from "../lib/openaiClient.js";
 import { requireAuthenticatedUser } from "../middleware/requireAuthenticatedUser.js";
 import { ensureUserProfile } from "../middleware/ensureUserProfile.js";
 import { requirePaidSubscription } from "../middleware/requirePaidSubscription.js";
@@ -21,6 +24,7 @@ export default function createQuestStepHintRouter(client) {
     requirePaidSubscription,
     aiHintsRateLimiter,
     async (req, res) => {
+      const startedAt = Date.now();
       try {
         const {
           activeActivity,
@@ -50,18 +54,22 @@ export default function createQuestStepHintRouter(client) {
           inventory,
         });
 
-        const rawText = await createStructuredResponse(client, {
+        const aiResult = await createStructuredResponseWithMeta(client, {
           instructions,
           input,
           schemaName: "quest_step_hint",
           schema: questStepHintSchema,
         });
 
-        const parsed = JSON.parse(rawText);
+        const parsed = JSON.parse(aiResult.outputText);
         res.json(parsed);
         await recordAiUsageEvent({
           userId: req.auth.userId,
           operation: "quest-step-hint",
+          model: aiResult.model || OPENAI_MODEL,
+          inputTokens: aiResult.inputTokens,
+          outputTokens: aiResult.outputTokens,
+          latencyMs: aiResult.latencyMs,
           success: true,
         });
       } catch (error) {
@@ -75,7 +83,10 @@ export default function createQuestStepHintRouter(client) {
         await recordAiUsageEvent({
           userId: req.auth?.userId,
           operation: "quest-step-hint",
+          model: OPENAI_MODEL,
+          latencyMs: Date.now() - startedAt,
           success: false,
+          error,
         });
 
         const isAuthError =

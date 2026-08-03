@@ -1,5 +1,8 @@
 import { Router } from "express";
-import { createStructuredResponse } from "../lib/openaiClient.js";
+import {
+  OPENAI_MODEL,
+  createStructuredResponseWithMeta,
+} from "../lib/openaiClient.js";
 import { requireAuthenticatedUser } from "../middleware/requireAuthenticatedUser.js";
 import { ensureUserProfile } from "../middleware/ensureUserProfile.js";
 import { requirePaidSubscription } from "../middleware/requirePaidSubscription.js";
@@ -28,6 +31,7 @@ export default function createActivitySuggestionsRouter(client) {
     requirePaidSubscription,
     aiSuggestionsRateLimiter,
     async (req, res) => {
+      const startedAt = Date.now();
       try {
         const {
           currentMoment,
@@ -117,12 +121,13 @@ export default function createActivitySuggestionsRouter(client) {
           playModeTheme: safePlayModeTheme,
         });
 
-        const rawText = await createStructuredResponse(client, {
+        const aiResult = await createStructuredResponseWithMeta(client, {
           instructions,
           input,
           schemaName: "activity_suggestions",
           schema: activitySuggestionsSchema,
         });
+        const rawText = aiResult.outputText;
 
         if (isDebugLogging) {
           console.log("RAW AI RESPONSE:");
@@ -152,6 +157,10 @@ export default function createActivitySuggestionsRouter(client) {
         await recordAiUsageEvent({
           userId: req.auth.userId,
           operation: "activity-suggestions",
+          model: aiResult.model || OPENAI_MODEL,
+          inputTokens: aiResult.inputTokens,
+          outputTokens: aiResult.outputTokens,
+          latencyMs: aiResult.latencyMs,
           success: true,
         });
       } catch (error) {
@@ -165,7 +174,10 @@ export default function createActivitySuggestionsRouter(client) {
         await recordAiUsageEvent({
           userId: req.auth?.userId,
           operation: "activity-suggestions",
+          model: OPENAI_MODEL,
+          latencyMs: Date.now() - startedAt,
           success: false,
+          error,
         });
 
         const isAuthError =
