@@ -85,6 +85,22 @@ const requiredFullContentFields = [
   "whyItFits",
 ];
 
+/** Optional V2 fields — if present, validate structure. */
+function assertActivityFormatV2(content, label) {
+  if (content.activityFormatVersion !== 2) {
+    return;
+  }
+  if (!content.roleGuide || typeof content.roleGuide !== "object") {
+    throw new Error(`${label}: activityFormatVersion 2 requires roleGuide`);
+  }
+  if (!Array.isArray(content.starterIdeas)) {
+    throw new Error(`${label}: activityFormatVersion 2 requires starterIdeas[]`);
+  }
+  if (!Array.isArray(content.stepDetails) || content.stepDetails.length === 0) {
+    throw new Error(`${label}: activityFormatVersion 2 requires stepDetails[]`);
+  }
+}
+
 /**
  * Extract every JSON object surrounded by:
  *
@@ -159,6 +175,11 @@ jsonbBlocks.forEach((block, index) => {
       );
     }
   });
+  try {
+    assertActivityFormatV2(block, `Activity JSON block ${index + 1}`);
+  } catch (error) {
+    errors.push(error.message);
+  }
 });
 
 const simpleTemplatesPath = path.join(
