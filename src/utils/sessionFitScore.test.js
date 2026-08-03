@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   applySessionFitBoost,
+  calculateMomentSimilarity,
   filterSessionsForFitScore,
   getChildPreferenceScore,
   getDurationReliabilityRatio,
@@ -208,6 +209,43 @@ describe("sessionFitScore", () => {
     });
 
     expect(matchingBoost).toBeGreaterThan(mismatchedBoost);
+  });
+
+
+  it("scores nearly identical moments close to 1", () => {
+    const score = calculateMomentSimilarity(cookingMoment, {
+      availability: "do-not-interrupt",
+      supervisionLevel: "independent",
+      space: "Kitchen",
+      noiseLevel: "quiet",
+      messLevel: "low",
+      timeNeededMinutes: 20,
+    });
+
+    expect(score).toBeGreaterThan(0.85);
+    expect(score).toBeLessThanOrEqual(1);
+  });
+
+  it("clamps learned boost within +/-12", () => {
+    const sessions = Array.from({ length: 12 }, () => ({
+      activityTitle: "LEGO Free Build",
+      independenceRating: "worked-great",
+      actualMinutes: 20,
+      requestedMinutes: 20,
+      parentActivity: "Cooking",
+      parentAvailability: "do-not-interrupt",
+      space: "Kitchen",
+      noiseLimit: "quiet",
+      messLimit: "low",
+      supervisionLevel: "independent",
+    }));
+
+    const boost = getSessionFitBoost(activity, sessions, {
+      currentMoment: cookingMoment,
+    });
+
+    expect(boost).toBeLessThanOrEqual(12);
+    expect(boost).toBeGreaterThanOrEqual(-12);
   });
 
   it("matches trait-similar activities when titles differ", () => {
