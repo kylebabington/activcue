@@ -1,7 +1,8 @@
-/* Minimal app-shell service worker for FamilyFlow.
- * Caches static assets for offline shell; network-first for navigations.
+/* FamilyFlow service worker — app shell + offline Rescue/Plan B helpers.
+ * Never treat cached auth/subscription as server authorization.
  */
-const CACHE_NAME = "familyflow-shell-v1";
+const CACHE_NAME = "familyflow-shell-v2";
+const API_CACHE = "familyflow-api-v1";
 const APP_SHELL = [
   "/",
   "/index.html",
@@ -20,14 +21,26 @@ self.addEventListener("install", (event) => {
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)))
+      Promise.all(
+        keys
+          .filter((key) => key !== CACHE_NAME && key !== API_CACHE)
+          .map((key) => caches.delete(key))
+      )
     ).then(() => self.clients.claim())
   );
 });
 
+function isCacheableApi(pathname) {
+  return (
+    pathname.startsWith("/api/preset-activities") ||
+    pathname === "/api/shared-activities/rescue" ||
+    pathname === "/api/shared-activities/plan-b"
+  );
+}
+
 self.addEventListener("fetch", (event) => {
   const { request } = event;
-  if (request.method !== "GET") {
+  if (request.method !== "GET" && request.method !== "POST") {
     return;
   }
 
@@ -36,7 +49,26 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Never cache API calls.
+  // Network-first for selected offline-useful GET APIs.
+  if (request.method === "GET" && isCacheableApi(url.pathname)) {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            const copy = response.clone();
+            caches.open(API_CACHE).then((cache) => cache.put(request, copy));
+          }
+          return response;
+        })
+        .catch(() => caches.match(request))
+    );
+    return;
+  }
+
+  if (request.method !== "GET") {
+    return;
+  }
+
   if (url.pathname.startsWith("/api/")) {
     return;
   }
@@ -68,4 +100,11 @@ self.addEventListener("fetch", (event) => {
       });
     })
   );
+});
+
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "SYNC_QUEUE") {
+    // Client flushes analytics offline queue; SW acknowledges.
+    event.waitUntil(Promise.resolve());
+  }
 });
