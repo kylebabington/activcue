@@ -29,5 +29,6 @@ export {
   buildActivitySessionPayload,
   buildActivitySessionStartPayload,
   buildActivitySessionExitPatch,
+  resolveActivitySessionId,
   INDEPENDENCE_OUTCOMES,
 } from "./questSessionHelpers";
