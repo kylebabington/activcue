@@ -975,6 +975,33 @@
   margin: 0;
 }
 
+
+.account-delete-block {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+.account-delete-block h3 {
+  margin: 0;
+  font-size: var(--font-size-md);
+}
+
+.account-legal-links {
+  margin: 0.5rem 0 0;
+}
+
+.account-legal-links a {
+  color: var(--color-primary);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+}
+
+.account-legal-links a:hover {
+  text-decoration: underline;
+}
 .billing-panel {
   display: grid;
   gap: var(--space-3);
