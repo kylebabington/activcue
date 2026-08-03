@@ -1,6 +1,7 @@
 // server/middleware/ensureUserProfile.js
 
 import { getSupabaseAdminClient } from "../lib/supabaseAdminClient.js";
+import { ensureUserHousehold } from "../lib/households.js";
 
 const PROFILE_SELECT_FIELDS = [
   "user_id",
@@ -68,10 +69,12 @@ export async function ensureUserProfile(req, res, next) {
         }
 
         req.profile = updatedProfile;
+        void ensureUserHousehold(userId);
         return next();
       }
 
       req.profile = existingProfile;
+      void ensureUserHousehold(userId);
       return next();
     }
 
@@ -107,6 +110,7 @@ export async function ensureUserProfile(req, res, next) {
         }
 
         req.profile = racedProfile;
+        void ensureUserHousehold(userId);
         return next();
       }
 
@@ -114,6 +118,7 @@ export async function ensureUserProfile(req, res, next) {
     }
 
     req.profile = createdProfile;
+    void ensureUserHousehold(userId);
     return next();
   } catch (error) {
     console.error("Could not ensure user profile:", error);

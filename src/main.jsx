@@ -43,6 +43,17 @@ if ("serviceWorker" in navigator) {
       // Offline shell is best-effort.
     });
   });
+
+  window.addEventListener("online", () => {
+    if (navigator.serviceWorker?.controller) {
+      navigator.serviceWorker.controller.postMessage({ type: "SYNC_QUEUE" });
+    }
+    import("./utils/analytics.js")
+      .then(({ flushProductEventBatch }) => flushProductEventBatch())
+      .catch(() => {
+        // ignore
+      });
+  });
 }
 
 ReactDOM.createRoot(

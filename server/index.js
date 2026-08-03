@@ -20,6 +20,7 @@ import familyInsightsRouter from "./routes/familyInsights.js";
 import productEventsRouter from "./routes/productEvents.js";
 import sharedActivitiesRouter from "./routes/sharedActivities.js";
 import aiUsageReportRouter from "./routes/aiUsageReport.js";
+import householdsRouter from "./routes/households.js";
 import accountRouter from "./routes/account.js";
 import createActivitySuggestionsRouter from "./routes/activitySuggestions.js";
 import createQuestStepHintRouter from "./routes/questStepHint.js";
@@ -260,6 +261,11 @@ app.use("/api", sharedActivitiesRouter);
  * AI cost accounting summary for the authenticated user.
  */
 app.use("/api", aiUsageReportRouter);
+
+/*
+ * Household membership + invites (backend-only data path).
+ */
+app.use("/api", householdsRouter);
 
 /*
  * Permanent account deletion (family data, then Auth admin delete).
