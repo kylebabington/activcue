@@ -66,7 +66,7 @@ function topKeyByCount(map) {
   return bestCount > 0 ? { key: bestKey, count: bestCount } : null;
 }
 
-function rateByKey(sessions, getKey) {
+function rateByKey(sessions, getKey, { minAttempts = 3 } = {}) {
   const stats = new Map();
 
   sessions.forEach((session) => {
@@ -86,7 +86,7 @@ function rateByKey(sessions, getKey) {
   let best = null;
 
   for (const [key, value] of stats.entries()) {
-    if (value.attempts < 2) {
+    if (value.attempts < minAttempts) {
       continue;
     }
 
@@ -158,7 +158,7 @@ export function buildFamilyInsights({
   }
 
   const bestParent = rateByKey(sessions, getParentActivity);
-  if (bestParent && bestParent.successes >= 2) {
+  if (bestParent && bestParent.successes >= 3) {
     insights.push({
       id: "parent-activity",
       statement: `${bestParent.key} works best lately.`,
@@ -170,7 +170,7 @@ export function buildFamilyInsights({
     profiles.map((child) => [String(child.id || ""), child.name || "Your kid"])
   );
   const bestChild = rateByKey(sessions, getChildId);
-  if (bestChild && bestChild.successes >= 2) {
+  if (bestChild && bestChild.successes >= 3) {
     const name = childNameById.get(bestChild.key) || "Your kid";
     insights.push({
       id: "child",

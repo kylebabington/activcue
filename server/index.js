@@ -16,6 +16,7 @@ import billingRouter, {
 import presetActivitiesRouter from "./routes/presetActivities.js";
 import familySettingsRouter from "./routes/familySettings.js";
 import familyMemoryRouter from "./routes/familyMemory.js";
+import familyInsightsRouter from "./routes/familyInsights.js";
 import productEventsRouter from "./routes/productEvents.js";
 import sharedActivitiesRouter from "./routes/sharedActivities.js";
 import accountRouter from "./routes/account.js";
@@ -238,6 +239,11 @@ app.use("/api", familySettingsRouter);
  * First-class family memory: saved activities, events, and sessions.
  */
 app.use("/api", familyMemoryRouter);
+
+/*
+ * Non-AI family insights ("What works for us").
+ */
+app.use("/api", familyInsightsRouter);
 
 /*
  * Sparse product analytics (allowlisted event names only).

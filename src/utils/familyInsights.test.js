@@ -26,6 +26,13 @@ describe("buildFamilyInsights", () => {
           activityEnergy: "low",
         },
         {
+          parentActivity: "Cooking",
+          independenceRating: "worked-great",
+          actualMinutes: 20,
+          completionStatus: "finished",
+          activityEnergy: "low",
+        },
+        {
           parentActivity: "Work call",
           independenceRating: "didnt-last",
           actualMinutes: 4,
