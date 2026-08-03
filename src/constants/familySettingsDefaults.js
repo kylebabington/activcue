@@ -154,6 +154,9 @@ export function familySettingsPayloadFromState({
     lastSuccessfulMoment,
     uiTheme,
     kidDeviceMode,
+    onboardingVersion = null,
+    onboardingCompletedAt = null,
+    onboardingSkippedAt = null,
 }) {
     return {
         activityMode,
@@ -176,6 +179,16 @@ export function familySettingsPayloadFromState({
                 : null,
         uiTheme: uiTheme || "playroom",
         kidDeviceMode: kidDeviceMode === true,
+        onboardingVersion:
+            typeof onboardingVersion === "number" ? onboardingVersion : null,
+        onboardingCompletedAt:
+            typeof onboardingCompletedAt === "string"
+                ? onboardingCompletedAt
+                : null,
+        onboardingSkippedAt:
+            typeof onboardingSkippedAt === "string"
+                ? onboardingSkippedAt
+                : null,
     };
 }
 
@@ -246,5 +259,17 @@ export function normalizeFamilySettingsDocument(settings, localMemory = {}) {
                 : "playroom",
         kidDeviceMode: settings?.kidDeviceMode === true,
         parentPinSet: settings?.parentPinSet === true,
+        onboardingVersion:
+            typeof settings?.onboardingVersion === "number"
+                ? settings.onboardingVersion
+                : null,
+        onboardingCompletedAt:
+            typeof settings?.onboardingCompletedAt === "string"
+                ? settings.onboardingCompletedAt
+                : null,
+        onboardingSkippedAt:
+            typeof settings?.onboardingSkippedAt === "string"
+                ? settings.onboardingSkippedAt
+                : null,
     };
 }

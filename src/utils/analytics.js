@@ -50,6 +50,16 @@ export const PRODUCT_EVENT_NAMES = Object.freeze([
   "rescue_successful",
   "rescue_plan_b_used",
   "checkout_started",
+  "onboarding_step_completed",
+  "onboarding_completed",
+  "onboarding_skipped",
+  "activity_details_opened",
+  "first_step_started",
+  "step_completed",
+  "starter_idea_opened",
+  "built_in_help_opened",
+  "ai_hint_requested",
+  "activation_signup_prompted",
 ]);
 
 const PRODUCT_EVENTS = new Set(PRODUCT_EVENT_NAMES);

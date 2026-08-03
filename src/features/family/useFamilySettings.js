@@ -59,6 +59,9 @@ export function useFamilySettings({
   setUiTheme,
   setKidDeviceMode,
   setParentPinSet,
+  setOnboardingVersion,
+  setOnboardingCompletedAt,
+  setOnboardingSkippedAt,
   activityMode,
   activeChildId,
   activePresetKey,
@@ -70,6 +73,9 @@ export function useFamilySettings({
   lastSuccessfulMoment,
   uiTheme,
   kidDeviceMode,
+  onboardingVersion = null,
+  onboardingCompletedAt = null,
+  onboardingSkippedAt = null,
 } = {}) {
   const [familySettingsReady, setFamilySettingsReady] = useState(false);
   const [familySettingsError, setFamilySettingsError] = useState("");
@@ -105,6 +111,9 @@ export function useFamilySettings({
     setUiTheme?.(normalized.uiTheme);
     setKidDeviceMode?.(normalized.kidDeviceMode);
     setParentPinSet?.(normalized.parentPinSet === true);
+    setOnboardingVersion?.(normalized.onboardingVersion);
+    setOnboardingCompletedAt?.(normalized.onboardingCompletedAt);
+    setOnboardingSkippedAt?.(normalized.onboardingSkippedAt);
   }
 
   /*
@@ -167,6 +176,9 @@ export function useFamilySettings({
       lastSuccessfulMoment,
       uiTheme,
       kidDeviceMode,
+      onboardingVersion,
+      onboardingCompletedAt,
+      onboardingSkippedAt,
     });
   }
 
@@ -335,6 +347,9 @@ export function useFamilySettings({
       lastSuccessfulMoment,
       uiTheme,
       kidDeviceMode,
+      onboardingVersion,
+      onboardingCompletedAt,
+      onboardingSkippedAt,
     });
     const saveUserId = userId;
 
@@ -372,6 +387,9 @@ export function useFamilySettings({
     lastSuccessfulMoment,
     uiTheme,
     kidDeviceMode,
+    onboardingVersion,
+    onboardingCompletedAt,
+    onboardingSkippedAt,
   ]);
 
   return {
