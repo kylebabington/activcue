@@ -19,6 +19,7 @@ import familyMemoryRouter from "./routes/familyMemory.js";
 import familyInsightsRouter from "./routes/familyInsights.js";
 import productEventsRouter from "./routes/productEvents.js";
 import sharedActivitiesRouter from "./routes/sharedActivities.js";
+import aiUsageReportRouter from "./routes/aiUsageReport.js";
 import accountRouter from "./routes/account.js";
 import createActivitySuggestionsRouter from "./routes/activitySuggestions.js";
 import createQuestStepHintRouter from "./routes/questStepHint.js";
@@ -254,6 +255,11 @@ app.use("/api", productEventsRouter);
  * Shared activity library — Plan B / Rescue without OpenAI.
  */
 app.use("/api", sharedActivitiesRouter);
+
+/*
+ * AI cost accounting summary for the authenticated user.
+ */
+app.use("/api", aiUsageReportRouter);
 
 /*
  * Permanent account deletion (family data, then Auth admin delete).

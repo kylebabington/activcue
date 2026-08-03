@@ -34,8 +34,10 @@ export async function recordAiUsageEvent({
   model = null,
   inputTokens = null,
   outputTokens = null,
+  totalTokens = null,
   estimatedCost = null,
   latencyMs = null,
+  responseId = null,
   success = true,
   failureType = null,
   error = null,
@@ -46,6 +48,14 @@ export async function recordAiUsageEvent({
 
   const resolvedInputTokens = toNullableInt(inputTokens);
   const resolvedOutputTokens = toNullableInt(outputTokens);
+  let resolvedTotalTokens = toNullableInt(totalTokens);
+  if (
+    resolvedTotalTokens == null &&
+    (resolvedInputTokens != null || resolvedOutputTokens != null)
+  ) {
+    resolvedTotalTokens =
+      (resolvedInputTokens || 0) + (resolvedOutputTokens || 0);
+  }
   const resolvedLatencyMs = toNullableInt(latencyMs);
   const resolvedSuccess = Boolean(success);
 
@@ -82,8 +92,13 @@ export async function recordAiUsageEvent({
       model: typeof model === "string" && model.trim() ? model.trim() : null,
       input_tokens: resolvedInputTokens,
       output_tokens: resolvedOutputTokens,
+      total_tokens: resolvedTotalTokens,
       estimated_cost: resolvedEstimatedCost,
       latency_ms: resolvedLatencyMs,
+      response_id:
+        typeof responseId === "string" && responseId.trim()
+          ? responseId.trim()
+          : null,
       success: resolvedSuccess,
       failure_type: resolvedFailureType,
     });
