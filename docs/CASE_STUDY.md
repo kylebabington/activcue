@@ -14,6 +14,19 @@ A React app that collected a parent “moment,” called OpenAI for three activi
 - Rejection was inferred; time-to-start lived only in the browser
 - Every “try another” risked another paid API call
 
+## Activity Content V2 and independent play
+
+Generated imaginative activities now ship as **Activity Format V2**:
+
+- `roleGuide` — who the child is, their job, and the first action
+- `starterIdeas` — checkable “doors” so kids begin without asking an adult
+- `stepDetails` — title, instruction, examples, `doneWhen`, and built-in `ifStuck`
+- Deterministic `visualTheme` accents (no AI images)
+
+The quest UI leads with **The World → Your Role → Start Here**, then step cards. Built-in help is the default recovery path; AI hints are demoted to “Still stuck?” emergency fallback. Target: AI hints on &lt;5% of started activities.
+
+Landing and `/onboarding` sell that same experience: problem-first hero, live Activity V2 preview, and a first activity as the reward—not a “setup complete” screen.
+
 ## Structured activity taxonomy
 
 Every generated activity now carries:
@@ -25,7 +38,7 @@ Energy, mess, adult help, duration, and supplies stay separate. Categories/trait
 
 ## Behavioral telemetry
 
-Batches get `recommendation_batch_id`; activities get `candidate_id`. Events capture presented → selected → started → rejected/completed/abandoned. Time-to-start and rejection reasons become first-class signals, not guesses from titles.
+Batches get `recommendation_batch_id`; activities get `candidate_id`. Events capture presented → selected → started → rejected/completed/abandoned, plus V2 funnel signals (`starter_idea_opened`, `built_in_help_opened`, `ai_hint_requested`). Time-to-start and rejection reasons become first-class signals, not guesses from titles.
 
 ## Fit Score 3.0
 

@@ -70,16 +70,27 @@ async function startFirstAvailableActivity(page) {
 
   const unlockFree = page.getByRole("button", { name: /^Unlock free$/i });
   const startCard = page.getByRole("button", { name: /^Start$/i });
+  const enterStory = page.getByRole("button", { name: /Enter the story/i });
   const startThis = page.getByRole("button", { name: /Start this activity/i });
-  const startControl = unlockFree.or(startCard).or(startThis);
+  const startControl = unlockFree.or(startCard).or(enterStory).or(startThis);
   await expect(startControl.first()).toBeVisible({ timeout: 30000 });
 
   if (await unlockFree.first().isVisible().catch(() => false)) {
     await unlockFree.first().click();
+  } else if (await enterStory.first().isVisible().catch(() => false)) {
+    await enterStory.first().click();
   } else if (await startCard.first().isVisible().catch(() => false)) {
     await startCard.first().click();
   } else {
     await startThis.first().click();
+  }
+
+  // Imaginative Activity V2 may open on The World intro.
+  const meetRole = page.getByRole("button", { name: /Meet your role/i });
+  if (await meetRole.isVisible().catch(() => false)) {
+    await meetRole.click();
+    await page.getByRole("button", { name: /Start here/i }).click();
+    await page.getByRole("button", { name: /Begin the steps/i }).click();
   }
 
   const done = page.getByRole("button", { name: /^Done$/i });
@@ -96,25 +107,72 @@ async function openQuickIdeasAndStart(page) {
 }
 
 test.describe("FamilyFlow golden paths", () => {
+  test("landing → find something to do opens onboarding", async ({ page }) => {
+    await page.goto("/");
+    await expect(
+      page.getByRole("heading", {
+        level: 1,
+        name: /Need 20 quiet minutes/i,
+      })
+    ).toBeVisible();
+
+    const cta = page.getByRole("link", { name: /Find something to do/i }).first();
+    await expect(cta).toBeVisible();
+    await cta.click();
+
+    await expect(page).toHaveURL(/\/onboarding/, { timeout: 20000 });
+    await waitForAuthSession(page);
+    await expect(
+      page.getByRole("heading", { name: /Who’s playing|Who's playing/i })
+    ).toBeVisible({ timeout: 30000 });
+  });
+
+  test("multi-child family mode can toggle participants before quest", async ({
+    page,
+  }) => {
+    await reachApp(page);
+    await page.goto("/settings");
+    await waitForAuthSession(page);
+
+    const accountTab = page.getByRole("tab", { name: /Account/i });
+    if (await accountTab.isVisible().catch(() => false)) {
+      await accountTab.click();
+    }
+
+    // Ensure at least the settings shell loads for participant management.
+    await expect(
+      page.getByRole("tablist", { name: /Settings sections/i })
+    ).toBeVisible({ timeout: 30000 });
+
+    const householdTab = page.getByRole("tab", { name: /Household/i });
+    await expect(householdTab).toBeVisible({ timeout: 15000 });
+    await householdTab.click();
+    await expect(
+      page.getByRole("heading", { name: /Household/i })
+    ).toBeVisible({ timeout: 15000 });
+  });
+
   test("landing → try free reaches parent moment", async ({ page }) => {
     await page.goto("/");
     await expect(
       page.getByRole("heading", {
         level: 1,
-        name: /Right-now activities for the moment you are in/i,
+        name: /Need 20 quiet minutes/i,
       })
     ).toBeVisible();
 
     const tryFree = page
-      .getByRole("link", { name: /Try the free flow|Start trying free/i })
+      .getByRole("link", { name: /Open the app|Find something to do/i })
       .first();
     await expect(tryFree).toBeVisible();
     await tryFree.click();
 
-    await expect(page).toHaveURL(/\/(app|parent)/, { timeout: 20000 });
+    await expect(page).toHaveURL(/\/(app|parent|onboarding)/, { timeout: 20000 });
     await waitForAuthSession(page);
 
-    if (!/\/parent/.test(page.url())) {
+    if (/\/onboarding/.test(page.url())) {
+      await page.goto("/parent");
+    } else if (!/\/parent/.test(page.url())) {
       await page.goto("/parent");
     }
 

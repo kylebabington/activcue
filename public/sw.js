@@ -1,8 +1,8 @@
-/* FamilyFlow service worker — app shell + offline Rescue/Plan B helpers.
+/* FamilyFlow service worker — app shell + offline Activity V2 / Rescue / Plan B.
  * Never treat cached auth/subscription as server authorization.
  */
-const CACHE_NAME = "familyflow-shell-v2";
-const API_CACHE = "familyflow-api-v1";
+const CACHE_NAME = "familyflow-shell-v3";
+const API_CACHE = "familyflow-api-v2";
 const APP_SHELL = [
   "/",
   "/index.html",
@@ -38,6 +38,21 @@ function isCacheableApi(pathname) {
   );
 }
 
+function isAppNavigation(pathname) {
+  return (
+    pathname === "/" ||
+    pathname === "/app" ||
+    pathname === "/parent" ||
+    pathname === "/kid" ||
+    pathname === "/quest" ||
+    pathname === "/onboarding" ||
+    pathname === "/settings" ||
+    pathname === "/insights" ||
+    pathname === "/login" ||
+    pathname === "/signup"
+  );
+}
+
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET" && request.method !== "POST") {
@@ -49,7 +64,6 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Network-first for selected offline-useful GET APIs.
   if (request.method === "GET" && isCacheableApi(url.pathname)) {
     event.respondWith(
       fetch(request)
@@ -73,7 +87,8 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  if (request.mode === "navigate") {
+  // Keep SPA routes (including active Activity V2 on /quest) available offline.
+  if (request.mode === "navigate" || isAppNavigation(url.pathname)) {
     event.respondWith(
       fetch(request)
         .then((response) => {
@@ -81,7 +96,9 @@ self.addEventListener("fetch", (event) => {
           caches.open(CACHE_NAME).then((cache) => cache.put("/index.html", copy));
           return response;
         })
-        .catch(() => caches.match("/index.html"))
+        .catch(() =>
+          caches.match(request).then((cached) => cached || caches.match("/index.html"))
+        )
     );
     return;
   }
@@ -92,7 +109,7 @@ self.addEventListener("fetch", (event) => {
         return cached;
       }
       return fetch(request).then((response) => {
-        if (response.ok && (url.pathname.startsWith("/assets/") || APP_SHELL.includes(url.pathname))) {
+        if (response.ok && request.url.includes("/assets/")) {
           const copy = response.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
         }
@@ -104,7 +121,6 @@ self.addEventListener("fetch", (event) => {
 
 self.addEventListener("message", (event) => {
   if (event.data?.type === "SYNC_QUEUE") {
-    // Client flushes analytics offline queue; SW acknowledges.
-    event.waitUntil(Promise.resolve());
+    // Client flushes analytics / offline queue when online.
   }
 });

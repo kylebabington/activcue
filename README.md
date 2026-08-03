@@ -2,6 +2,8 @@
 
 A learning recommendation system for real family moments—not just “React + OpenAI kids activities.”
 
+**Current focus:** ship Activity V2 (structured independent play) through quest UX, landing, and onboarding before unrelated features.
+
 [Live Demo](https://familyflow.app) *(placeholder — set to your production URL when deployed)*
 
 **React · Express · Supabase · OpenAI · Stripe · Playwright**
@@ -11,7 +13,7 @@ constraints → structured activities → accept/reject → time-to-start →
 outcomes → similar-moment learning → better recommendations
 ```
 
-Parents name what they can handle *right now*. FamilyFlow generates structured activities with categories and traits, records which ideas are accepted or rejected, measures how quickly play begins, stores real session outcomes (including per-child participants), and improves the next recommendation with Fit Score 3.0 moment similarity—plus Plan B from a shared activity library so the common path does not need another OpenAI call.
+Parents name what they can handle *right now*. FamilyFlow generates structured **Activity V2** content (role, starter doors, step cards with built-in `ifStuck`), records which ideas are accepted or rejected, measures how quickly play begins, stores real session outcomes (including per-child participants), and improves the next recommendation with Fit Score 3.0 moment similarity—plus Plan B from a shared activity library so the common path does not need another OpenAI call.
 
 ## Screenshots
 
@@ -19,9 +21,11 @@ Parents name what they can handle *right now*. FamilyFlow generates structured a
 
 | Screen | What to show |
 |--------|----------------|
+| **Landing** | “Need 20 quiet minutes?” + Activity V2 preview card |
+| **Onboarding** | Kids → supplies → moment → first Enter the story |
 | **Parent Moment** | Moment cards / Rescue Mode (10/20/30 → start) |
 | **Kid Mode** | Energy + Simple vs Imaginative; “I’m Bored” |
-| **Activity (Quest)** | Ranked cards, Plan B, timer, independence outcome |
+| **Activity (Quest)** | World/role/starters intro, step cards, Plan B, independence outcome |
 | **Insights** | “What works for us” with min-sample honesty |
 
 ## Learning loop
