@@ -28,7 +28,9 @@ import ParentPinForm from "./components/ParentPinForm";
 import AppHeader from "./components/AppHeader";
 import { AppProvider } from "./context/AppContext";
 import {
+  ActivityContext,
   BillingContext,
+  EntitlementContext,
   FamilyContext,
   QuestContext,
 } from "./context/domainContexts";
@@ -755,10 +757,30 @@ function App() {
     refreshEntitlement,
   };
 
+  const entitlementContextValue = billingContextValue;
+
+  const activityContextValue = {
+    activities,
+    scoredActivities,
+    isLoading,
+    loadingIntent,
+    handleGenerateActivities,
+    handleGenerateKidActivities,
+    handleStartSomethingForMe,
+    handleStartActivityFromUi,
+    handleAutoPickQuest,
+    saveFavoriteActivity,
+    removeSavedActivity,
+    freeImaginativeUnlockUsed,
+    imBoredDisabled,
+    isDemoMode,
+  };
+
   const appContextValue = {
     ...familyContextValue,
     ...questContextValue,
     ...billingContextValue,
+    ...activityContextValue,
   };
 
   if (familySettingsError) {
@@ -859,6 +881,8 @@ function App() {
         <FamilyContext.Provider value={familyContextValue}>
           <QuestContext.Provider value={questContextValue}>
             <BillingContext.Provider value={billingContextValue}>
+              <EntitlementContext.Provider value={entitlementContextValue}>
+                <ActivityContext.Provider value={activityContextValue}>
         <Routes>
           <Route
             path="/app"
@@ -968,6 +992,8 @@ function App() {
             }
           />
         </Routes>
+                </ActivityContext.Provider>
+              </EntitlementContext.Provider>
             </BillingContext.Provider>
           </QuestContext.Provider>
         </FamilyContext.Provider>
