@@ -7,6 +7,30 @@ import {
 } from "./activityTraits";
 
 describe("inferActivityTraits", () => {
+  it("prefers AI-provided categories and traits", () => {
+    const traits = inferActivityTraits({
+      title: "Cardboard Castle",
+      categories: ["building", "creative"],
+      traits: {
+        setupEffort: "low",
+        structure: "open-ended",
+        socialMode: "cooperative",
+        creativity: "high",
+        movement: "medium",
+      },
+      energy: "medium",
+      mess: "medium",
+    });
+
+    expect(traits.category).toBe("building");
+    expect(traits.categories).toEqual(["building", "creative"]);
+    expect(traits.setupEffort).toBe("low");
+    expect(traits.structure).toBe("open-ended");
+    expect(traits.socialMode).toBe("cooperative");
+    expect(traits.creativity).toBe("high");
+    expect(traits.movement).toBe("medium");
+  });
+
   it("infers building traits from LEGO free build", () => {
     const traits = inferActivityTraits({
       title: "LEGO Free Build",
@@ -17,13 +41,13 @@ describe("inferActivityTraits", () => {
     });
 
     expect(traits.category).toBe("building");
-    expect(traits.interactionStyle).toBe("open-ended");
-    expect(traits.physicality).toBe("medium");
+    expect(traits.structure).toBe("open-ended");
+    expect(traits.movement).toBe("medium");
     expect(traits.setupEffort).toBe("medium");
     expect(ACTIVITY_CATEGORIES).toContain(traits.category);
   });
 
-  it("infers drawing vs reading vs outdoor categories", () => {
+  it("infers creative vs reading vs nature categories", () => {
     expect(
       inferActivityTraits({
         title: "Quiet Drawing",
@@ -31,7 +55,7 @@ describe("inferActivityTraits", () => {
         energy: "low",
         mess: "low",
       }).category
-    ).toBe("drawing");
+    ).toBe("creative");
 
     expect(
       inferActivityTraits({
@@ -49,7 +73,7 @@ describe("inferActivityTraits", () => {
         energy: "high",
         mess: "low",
       }).category
-    ).toBe("outdoor");
+    ).toBe("nature");
   });
 
   it("raises cleanup effort for sensory/high mess", () => {

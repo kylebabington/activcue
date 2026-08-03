@@ -19,6 +19,8 @@ import {
 } from "../utils/normalizeRequest.js";
 import { recordAiUsageEvent } from "../lib/aiUsage.js";
 import { expandGenerationIntent } from "../lib/generationIntent.js";
+import { attachRecommendationIds } from "../lib/recommendationIds.js";
+import { ingestGeneratedActivities } from "../lib/sharedActivityLibrary.js";
 import { aiSuggestionsRateLimiter } from "../middleware/rateLimits.js";
 
 const router = Router();
@@ -150,9 +152,22 @@ export default function createActivitySuggestionsRouter(client) {
           normalizeActivity(activity, safeActivityStyle)
         );
 
+        const withIds = attachRecommendationIds(normalizedActivities);
+        const presentedAt = new Date().toISOString();
+        const activitiesWithMeta = withIds.activities.map((activity) => ({
+          ...activity,
+          presentedAt,
+        }));
+
+        const ingested = await ingestGeneratedActivities({
+          userId: req.auth.userId,
+          activities: activitiesWithMeta,
+          source: "ai",
+        });
+
         const normalizedResponse = {
-          ...parsed,
-          activities: normalizedActivities,
+          recommendationBatchId: withIds.recommendationBatchId,
+          activities: ingested,
         };
 
         if (isDebugLogging) {
@@ -167,6 +182,8 @@ export default function createActivitySuggestionsRouter(client) {
           model: aiResult.model || OPENAI_MODEL,
           inputTokens: aiResult.inputTokens,
           outputTokens: aiResult.outputTokens,
+          totalTokens: aiResult.totalTokens,
+          responseId: aiResult.responseId,
           latencyMs: aiResult.latencyMs,
           success: true,
         });

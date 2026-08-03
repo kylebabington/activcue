@@ -22,6 +22,7 @@ import {
 import { normalizeActivityStyle } from "./activityStyle";
 import {
   activityTraitsMatch,
+  activitySimilarity,
   inferActivityTraits,
   traitsSimilarityScore,
 } from "./activityTraits";
@@ -52,7 +53,7 @@ function getSessionStartedAt(session) {
 }
 
 /*
- * Single-child mode: only that child's sessions (strict — no empty childId).
+ * Single-child mode: sessions where this child is primary OR a participant.
  * Family mode / no activeChildId: household-wide sessions.
  */
 export function filterSessionsForFitScore(
@@ -65,7 +66,31 @@ export function filterSessionsForFitScore(
     return list;
   }
 
-  return list.filter((session) => getSessionChildId(session) === activeChildId);
+  return list.filter((session) => {
+    if (getSessionChildId(session) === activeChildId) {
+      return true;
+    }
+
+    const participantIds = Array.isArray(session?.participantChildIds)
+      ? session.participantChildIds
+      : Array.isArray(session?.participant_child_ids)
+        ? session.participant_child_ids
+        : [];
+
+    if (participantIds.map(String).includes(String(activeChildId))) {
+      return true;
+    }
+
+    const participants = Array.isArray(session?.participants)
+      ? session.participants
+      : [];
+
+    return participants.some(
+      (participant) =>
+        String(participant?.childId ?? participant?.child_id ?? "") ===
+        String(activeChildId)
+    );
+  });
 }
 
 function getIndependenceKey(session) {
@@ -192,6 +217,9 @@ function sessionAsActivity(session) {
     mess: session?.activityMess ?? session?.activity_mess,
     uses: session?.activitySupplies ?? session?.activity_supplies,
     summary: session?.summary || "",
+    categories:
+      session?.activityCategories ?? session?.activity_categories ?? [],
+    traits: session?.activityTraits ?? session?.activity_traits ?? {},
   };
 }
 
@@ -221,9 +249,171 @@ function minutesAreSimilar(a, b, tolerance = 10) {
   return Math.abs(left - right) <= tolerance;
 }
 
+function enumMatchScore(a, b) {
+  const left = normalizeTextValue(a);
+  const right = normalizeTextValue(b);
+  if (!left || !right) {
+    return 0.5;
+  }
+  return left === right ? 1 : 0;
+}
+
+function durationMatchScore(a, b) {
+  const left = Number(a);
+  const right = Number(b);
+  if (!Number.isFinite(left) || !Number.isFinite(right) || left <= 0 || right <= 0) {
+    return 0.5;
+  }
+  const delta = Math.abs(left - right);
+  if (delta <= 5) {
+    return 1;
+  }
+  if (delta <= 10) {
+    return 0.7;
+  }
+  if (delta <= 20) {
+    return 0.4;
+  }
+  return 0.1;
+}
+
+function spaceMatchScore(a, b) {
+  if (spacesAreSimilar(a, b)) {
+    const left = normalizeTextValue(a);
+    const right = normalizeTextValue(b);
+    return left === right ? 1 : 0.7;
+  }
+  return 0.2;
+}
+
+/**
+ * Moment similarity 0.0–1.0 for Fit Score 3.0.
+ * Weights: availability 22%, supervision 18%, space 15%, noise 12%,
+ * mess 12%, duration 12%, kid mood 9%.
+ */
+export function calculateMomentSimilarity(currentMoment, historicalMoment) {
+  if (!currentMoment || !historicalMoment) {
+    return 0;
+  }
+
+  const availability = enumMatchScore(
+    currentMoment.availability ?? currentMoment.parentAvailability,
+    historicalMoment.availability ??
+      historicalMoment.parentAvailability ??
+      historicalMoment.parent_availability
+  );
+  const supervision = enumMatchScore(
+    currentMoment.supervisionLevel,
+    historicalMoment.supervisionLevel ?? historicalMoment.supervision_level
+  );
+  const space = spaceMatchScore(
+    currentMoment.space,
+    historicalMoment.space
+  );
+  const noise = enumMatchScore(
+    currentMoment.noiseLevel ?? currentMoment.noiseLimit,
+    historicalMoment.noiseLevel ??
+      historicalMoment.noiseLimit ??
+      historicalMoment.noise_limit
+  );
+  const mess = enumMatchScore(
+    currentMoment.messLevel ?? currentMoment.messLimit,
+    historicalMoment.messLevel ??
+      historicalMoment.messLimit ??
+      historicalMoment.mess_limit
+  );
+  const duration = durationMatchScore(
+    currentMoment.timeNeededMinutes ?? currentMoment.requestedMinutes,
+    historicalMoment.timeNeededMinutes ??
+      historicalMoment.requestedMinutes ??
+      historicalMoment.requested_minutes
+  );
+  const mood = enumMatchScore(
+    currentMoment.kidMood ?? currentMoment.mood,
+    historicalMoment.kidMood ?? historicalMoment.mood
+  );
+
+  const similarity =
+    availability * 0.22 +
+    supervision * 0.18 +
+    space * 0.15 +
+    noise * 0.12 +
+    mess * 0.12 +
+    duration * 0.12 +
+    mood * 0.09;
+
+  return Math.round(Math.min(1, Math.max(0, similarity)) * 1000) / 1000;
+}
+
+export function sessionToHistoricalMoment(session) {
+  return {
+    parentActivity: session?.parentActivity ?? session?.parent_activity,
+    parentAvailability:
+      session?.parentAvailability ?? session?.parent_availability,
+    availability: session?.parentAvailability ?? session?.parent_availability,
+    space: session?.space,
+    noiseLevel: session?.noiseLimit ?? session?.noise_limit,
+    noiseLimit: session?.noiseLimit ?? session?.noise_limit,
+    messLevel: session?.messLimit ?? session?.mess_limit,
+    messLimit: session?.messLimit ?? session?.mess_limit,
+    supervisionLevel: session?.supervisionLevel ?? session?.supervision_level,
+    timeNeededMinutes: getRequestedMinutes(session),
+    requestedMinutes: getRequestedMinutes(session),
+    kidMood: session?.kidMood ?? session?.context?.kidMood,
+  };
+}
+
+/**
+ * Outcome score roughly in -1..+1 from session signals.
+ */
+export function getOutcomeScore(session) {
+  if (!session) {
+    return 0;
+  }
+
+  let score = 0;
+  const independence = getIndependenceSignal(session);
+  if (independence != null) {
+    score += independence / 8;
+  }
+
+  const status = getCompletionStatus(session);
+  if (status === "finished") {
+    score += 0.35;
+  } else if (status === "abandoned") {
+    score -= 0.6;
+  } else if (status === "canceled" || status === "not-finished") {
+    score -= 0.35;
+  }
+
+  if (session.rejectionReason || session.rejection_reason) {
+    score -= 0.5;
+  }
+
+  const presentedAt = session.presentedAt ?? session.presented_at;
+  const startedAt = session.startedAt ?? session.started_at;
+  const presentedMs = presentedAt ? Date.parse(presentedAt) : NaN;
+  const startedMs = startedAt ? Date.parse(startedAt) : NaN;
+  if (Number.isFinite(presentedMs) && Number.isFinite(startedMs)) {
+    const timeToStart = startedMs - presentedMs;
+    if (timeToStart >= 0 && timeToStart < 60_000) {
+      score += 0.25;
+    } else if (timeToStart > 5 * 60_000) {
+      score -= 0.15;
+    }
+  }
+
+  return Math.min(1, Math.max(-1, score));
+}
+
+function clampLearnedBoost(value) {
+  return Math.min(12, Math.max(-12, value));
+}
+
 /*
  * How closely a prior session's moment matches the current moment.
  * Higher = weigh that session's outcome more heavily.
+ * Kept for backward compatibility; Fit Score 3 prefers calculateMomentSimilarity.
  */
 export function getHistoricalContextSimilarity(
   session,
@@ -234,84 +424,19 @@ export function getHistoricalContextSimilarity(
     return 0;
   }
 
-  let score = 0;
+  const momentSimilarity = calculateMomentSimilarity(
+    currentMoment,
+    sessionToHistoricalMoment(session)
+  );
+
+  let score = momentSimilarity * 10;
 
   const sessionChildId = getSessionChildId(session);
   if (activeChildId && sessionChildId && sessionChildId === activeChildId) {
     score += 3;
   }
 
-  const sessionParentActivity = normalizeTextValue(
-    session.parentActivity ?? session.parent_activity
-  );
-  const momentParentActivity = normalizeTextValue(currentMoment.parentActivity);
-
-  if (
-    sessionParentActivity &&
-    momentParentActivity &&
-    sessionParentActivity === momentParentActivity
-  ) {
-    score += 2;
-  }
-
-  const sessionAvailability = normalizeTextValue(
-    session.parentAvailability ?? session.parent_availability
-  );
-  const momentAvailability = normalizeTextValue(currentMoment.availability);
-
-  if (
-    sessionAvailability &&
-    momentAvailability &&
-    sessionAvailability === momentAvailability
-  ) {
-    score += 2;
-  }
-
-  if (
-    minutesAreSimilar(
-      getRequestedMinutes(session),
-      currentMoment.timeNeededMinutes
-    )
-  ) {
-    score += 1.5;
-  }
-
-  if (spacesAreSimilar(session.space, currentMoment.space)) {
-    score += 2;
-  }
-
-  const sessionNoise = normalizeTextValue(
-    session.noiseLimit ?? session.noise_limit
-  );
-  const momentNoise = normalizeTextValue(currentMoment.noiseLevel);
-
-  if (sessionNoise && momentNoise && sessionNoise === momentNoise) {
-    score += 1;
-  }
-
-  const sessionMess = normalizeTextValue(
-    session.messLimit ?? session.mess_limit
-  );
-  const momentMess = normalizeTextValue(currentMoment.messLevel);
-
-  if (sessionMess && momentMess && sessionMess === momentMess) {
-    score += 1;
-  }
-
-  const sessionSupervision = normalizeTextValue(
-    session.supervisionLevel ?? session.supervision_level
-  );
-  const momentSupervision = normalizeTextValue(currentMoment.supervisionLevel);
-
-  if (
-    sessionSupervision &&
-    momentSupervision &&
-    sessionSupervision === momentSupervision
-  ) {
-    score += 2;
-  }
-
-  return score;
+  return Math.round(score * 10) / 10;
 }
 
 export function getContextSimilarityWeight(session, currentMoment, options = {}) {
@@ -450,6 +575,7 @@ export function getRecentRepetitionPenalty(activity, sessions = [], { now = Date
 
 /*
  * Per-session contribution used by Fit Score 3.0.
+ * historicalValue = outcomeScore * momentSimilarity * activitySimilarity * recencyWeight
  */
 export function scoreHistoricalSession(
   session,
@@ -464,46 +590,47 @@ export function scoreHistoricalSession(
     return null;
   }
 
-  const independence = getIndependenceSignal(session);
-  if (independence == null) {
+  const outcomeScore = getOutcomeScore(session);
+  if (outcomeScore === 0 && getIndependenceSignal(session) == null) {
     return null;
   }
 
-  const contextSimilarity = getHistoricalContextSimilarity(session, currentMoment, {
-    activeChildId,
-  });
-  const contextWeight = getContextSimilarityWeight(session, currentMoment, {
-    activeChildId,
-  });
-  const durationReliability = getDurationReliabilityScore(session);
-  const failureSignals = getFailureSignal(session);
+  const momentSimilarity = currentMoment
+    ? calculateMomentSimilarity(
+        currentMoment,
+        sessionToHistoricalMoment(session)
+      )
+    : 0.5;
+  const actSimilarity = activitySimilarity(
+    activity,
+    sessionAsActivity(session)
+  );
   const recencyWeight = Math.max(0.5, 1.2 - Math.min(sessionIndex, 4) * 0.05);
-  const durationMultiplier = durationSuccessMultiplier(session);
 
-  const historicalActivitySuccess = independence * contextWeight * durationMultiplier;
-  const historicalContextSimilarity = contextSimilarity * 0.35;
+  const historicalValue =
+    outcomeScore * momentSimilarity * Math.max(0.2, actSimilarity) * recencyWeight;
 
-  const contribution =
-    historicalActivitySuccess +
-    historicalContextSimilarity +
-    durationReliability -
-    failureSignals * 0.25;
+  // Scale to roughly the same numeric range as prior boost units (± a few points)
+  const contribution = historicalValue * 10;
 
   return {
-    contribution: contribution * recencyWeight,
-    independence,
-    contextSimilarity,
-    contextWeight,
-    durationReliability,
-    failureSignals,
+    contribution,
+    historicalValue,
+    outcomeScore,
+    momentSimilarity,
+    activitySimilarity: actSimilarity,
+    independence: getIndependenceSignal(session),
+    contextSimilarity: momentSimilarity * 10,
+    contextWeight: 1 + momentSimilarity,
+    durationReliability: getDurationReliabilityScore(session),
+    failureSignals: getFailureSignal(session),
+    activeChildId,
   };
 }
 
 /*
  * Numeric boost for one activity given prior sessions (may be empty).
- * Pass already child-filtered sessions, or use scoreActivitiesForCurrentMoment.
- *
- * Third argument is optional Fit Score 3.0 context (backward compatible).
+ * Clamped to [-12, +12] so one success cannot dominate recommendations.
  */
 export function getSessionFitBoost(activity, sessions = [], options = {}) {
   if (!activity || !Array.isArray(sessions) || sessions.length === 0) {
@@ -542,7 +669,9 @@ export function getSessionFitBoost(activity, sessions = [], options = {}) {
     now,
   });
 
-  const boost = historicalAverage + childPreference - recentRepetition;
+  const boost = clampLearnedBoost(
+    historicalAverage + childPreference - recentRepetition
+  );
 
   return Math.round(boost * 10) / 10;
 }

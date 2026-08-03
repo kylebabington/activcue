@@ -69,6 +69,8 @@ export default function createQuestStepHintRouter(client) {
           model: aiResult.model || OPENAI_MODEL,
           inputTokens: aiResult.inputTokens,
           outputTokens: aiResult.outputTokens,
+          totalTokens: aiResult.totalTokens,
+          responseId: aiResult.responseId,
           latencyMs: aiResult.latencyMs,
           success: true,
         });

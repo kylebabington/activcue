@@ -16,7 +16,11 @@ import billingRouter, {
 import presetActivitiesRouter from "./routes/presetActivities.js";
 import familySettingsRouter from "./routes/familySettings.js";
 import familyMemoryRouter from "./routes/familyMemory.js";
+import familyInsightsRouter from "./routes/familyInsights.js";
 import productEventsRouter from "./routes/productEvents.js";
+import sharedActivitiesRouter from "./routes/sharedActivities.js";
+import aiUsageReportRouter from "./routes/aiUsageReport.js";
+import householdsRouter from "./routes/households.js";
 import accountRouter from "./routes/account.js";
 import createActivitySuggestionsRouter from "./routes/activitySuggestions.js";
 import createQuestStepHintRouter from "./routes/questStepHint.js";
@@ -239,9 +243,29 @@ app.use("/api", familySettingsRouter);
 app.use("/api", familyMemoryRouter);
 
 /*
+ * Non-AI family insights ("What works for us").
+ */
+app.use("/api", familyInsightsRouter);
+
+/*
  * Sparse product analytics (allowlisted event names only).
  */
 app.use("/api", productEventsRouter);
+
+/*
+ * Shared activity library — Plan B / Rescue without OpenAI.
+ */
+app.use("/api", sharedActivitiesRouter);
+
+/*
+ * AI cost accounting summary for the authenticated user.
+ */
+app.use("/api", aiUsageReportRouter);
+
+/*
+ * Household membership + invites (backend-only data path).
+ */
+app.use("/api", householdsRouter);
 
 /*
  * Permanent account deletion (family data, then Auth admin delete).

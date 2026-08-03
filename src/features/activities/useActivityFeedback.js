@@ -1,6 +1,7 @@
 // src/features/activities/useActivityFeedback.js
 
 import { normalizeActivityStyle } from "../../utils/activityStyle";
+import { mapFeedbackToRejectionReason } from "../../utils/rejectionReasons";
 import {
   buildFeedbackIntent,
   intentToLegacyFeedbackContext,
@@ -30,6 +31,16 @@ export function useActivityFeedback({
   kidEnergyLevel,
 } = {}) {
   function saveActivityFeedback(activity, feedbackType) {
+    const rejectionReason = [
+      "too-messy",
+      "too-hard",
+      "need-quieter",
+      "activity_rejected",
+      "need-another-idea",
+    ].includes(feedbackType)
+      ? mapFeedbackToRejectionReason(feedbackType)
+      : null;
+
     const historyItem = {
       id: crypto.randomUUID(),
       title: activity.title,
@@ -47,6 +58,17 @@ export function useActivityFeedback({
       adultHelp: activity.adultHelp || "optional",
       estimatedMinutes: Number(activity.estimatedMinutes) || null,
       uses: Array.isArray(activity.uses) ? activity.uses : [],
+      categories: Array.isArray(activity.categories) ? activity.categories : [],
+      traits:
+        activity.traits && typeof activity.traits === "object"
+          ? activity.traits
+          : {},
+      candidateId: activity.candidateId || activity.candidate_id || null,
+      recommendationBatchId:
+        activity.recommendationBatchId ||
+        activity.recommendation_batch_id ||
+        null,
+      rejectionReason,
       stepsCount: Array.isArray(activity.steps) ? activity.steps.length : 0,
     };
 
@@ -102,6 +124,11 @@ export function useActivityFeedback({
       energy: activity.energy || "medium",
       mess: activity.mess || "low",
       adultHelp: activity.adultHelp || "optional",
+      categories: Array.isArray(activity.categories) ? activity.categories : [],
+      traits:
+        activity.traits && typeof activity.traits === "object"
+          ? activity.traits
+          : {},
       whyItFits: activity.whyItFits || "",
       savedAt: new Date().toISOString(),
     };
@@ -187,15 +214,47 @@ export function useActivityFeedback({
     const ranked = Array.isArray(scoredActivities) ? scoredActivities : [];
     if (ranked.length < 2) {
       showStatus?.("Need at least two ideas to try the next best one.", "info");
-      return;
+      // Caller (App) may fall through to shared library / regenerate.
+      return { usedBatch: false, rejected: ranked[0]?.activity || null };
     }
 
     const rejected = ranked[0]?.activity;
-    const nextBest = ranked[1]?.activity;
+    const unused = ranked.slice(1).map((item) => item?.activity).filter(Boolean);
+
+    // Plan B weight: prefer lower setup, fewer supplies, different category, less adult help
+    const rejectedCategories = new Set(
+      Array.isArray(rejected?.categories) ? rejected.categories : []
+    );
+
+    const scoredUnused = unused
+      .map((activity) => {
+        let score = 0;
+        const setup = activity?.traits?.setupEffort || "medium";
+        if (setup === "very-low") score += 5;
+        else if (setup === "low") score += 4;
+        else if (setup === "medium") score += 2;
+
+        const usesCount = Array.isArray(activity?.uses) ? activity.uses.length : 0;
+        score += Math.max(0, 4 - usesCount);
+
+        const adultHelp = activity?.adultHelp || "optional";
+        if (adultHelp === "none") score += 3;
+        else if (adultHelp === "optional") score += 1;
+
+        const cats = Array.isArray(activity?.categories) ? activity.categories : [];
+        if (cats.some((c) => !rejectedCategories.has(c))) {
+          score += 3;
+        }
+
+        return { activity, score };
+      })
+      .sort((a, b) => b.score - a.score);
+
+    const nextBest = scoredUnused[0]?.activity;
 
     if (!rejected || !nextBest) {
       showStatus?.("Could not find a next-best activity.", "error");
-      return;
+      return { usedBatch: false, rejected };
     }
 
     saveActivityFeedback(rejected, "activity_rejected");
@@ -204,6 +263,7 @@ export function useActivityFeedback({
       `Skipped "${rejected.title}". Starting next best: "${nextBest.title}".`,
       "success"
     );
+    return { usedBatch: true, rejected, nextBest };
   }
 
   function handleCompletedQuestMoreLikeThis() {

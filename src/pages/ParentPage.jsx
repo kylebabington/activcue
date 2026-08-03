@@ -1,17 +1,16 @@
 // src/pages/ParentPage.jsx
 
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import CreateMomentModal from "../components/CreateMomentModal";
 import ReviewMomentModal from "../components/ReviewMomentModal";
+import { fetchRescueActivities } from "../api/sharedActivitiesApi";
+import { useActivityContext } from "../context/domainContexts";
+import { useFamilyContext } from "../context/domainContexts";
 import { getPresetKey } from "../utils/momentPresets";
 import { trackProductEvent } from "../utils/analytics";
 
 const RESCUE_TIME_OPTIONS = [10, 20, 30];
-const RESCUE_NOISE_OPTIONS = [
-  { value: "quiet", label: "Quiet" },
-  { value: "normal", label: "Normal" },
-  { value: "loud", label: "Anything goes" },
-];
 
 function ParentPage({
   defaultParentStatusPresets,
@@ -28,11 +27,17 @@ function ParentPage({
   onDismissFirstRun,
   lastSuccessfulMoment = null,
 }) {
+  const navigate = useNavigate();
+  const { setActivities, handleStartActivityFromUi } = useActivityContext();
+  const family = useFamilyContext();
+  const inventory = family?.inventory || [];
+  const showStatus = family?.showStatus;
+
   const [reviewPreset, setReviewPreset] = useState(null);
   const [reviewPresetKey, setReviewPresetKey] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [rescueMinutes, setRescueMinutes] = useState(20);
-  const [rescueNoise, setRescueNoise] = useState("quiet");
+  const [rescueLoading, setRescueLoading] = useState(false);
 
   function openReviewModal(preset) {
     setReviewPreset(preset);
@@ -76,34 +81,64 @@ function ParentPage({
     return `${getAvailabilityLabel(preset.availability)} · ${preset.timeNeededMinutes} min · ${preset.space}`;
   }
 
-  function applyRescueMode() {
+  async function applyRescueMode() {
     const minutes = RESCUE_TIME_OPTIONS.includes(rescueMinutes)
       ? rescueMinutes
       : 20;
-    const noise = RESCUE_NOISE_OPTIONS.some((option) => option.value === rescueNoise)
-      ? rescueNoise
-      : "quiet";
-    const activityLabel =
-      noise === "quiet"
-        ? `Need ${minutes} quiet minutes`
-        : `Need ${minutes} minutes`;
 
-    applyMomentDraft(
-      {
-        parentActivity: activityLabel,
-        availability: "do-not-interrupt",
-        timeNeededMinutes: minutes,
-        space: "Living room",
-        messLevel: "low",
-        noiseLevel: noise,
-        supervisionLevel: "independent",
-      },
-      { navigateToKid: true }
-    );
-    trackProductEvent("rescue_mode_started", {
+    const rescueMoment = {
+      parentActivity: `Need ${minutes} quiet minutes`,
+      availability:
+        lastSuccessfulMoment?.availability || "do-not-interrupt",
       timeNeededMinutes: minutes,
-      noiseLevel: noise,
-    });
+      space: lastSuccessfulMoment?.space || "Living room",
+      messLevel: "low",
+      noiseLevel: "quiet",
+      supervisionLevel: "independent",
+    };
+
+    applyMomentDraft(rescueMoment, { navigateToKid: false });
+    trackProductEvent("rescue_started", { timeNeededMinutes: minutes });
+    trackProductEvent("rescue_mode_started", { timeNeededMinutes: minutes });
+
+    setRescueLoading(true);
+    try {
+      const response = await fetchRescueActivities({
+        minutes,
+        inventory,
+        currentMoment: rescueMoment,
+      });
+      const activities = Array.isArray(response?.activities)
+        ? response.activities
+        : [];
+
+      if (activities.length > 0) {
+        setActivities?.(activities);
+        handleStartActivityFromUi?.(activities[0]);
+        navigate("/quest");
+        trackProductEvent("rescue_successful", {
+          timeNeededMinutes: minutes,
+          source: response?.source || "shared-library",
+          planBCount: Math.max(0, activities.length - 1),
+        });
+        showStatus?.(
+          `Rescue ready: "${activities[0].title}". Plan B loaded.`,
+          "success"
+        );
+      } else {
+        applyMomentDraft(rescueMoment, { navigateToKid: true });
+        showStatus?.(
+          "No cached rescue ideas yet — pick an activity on Kid.",
+          "info"
+        );
+      }
+    } catch (error) {
+      console.error("Rescue Mode failed:", error);
+      applyMomentDraft(rescueMoment, { navigateToKid: true });
+      showStatus?.("Rescue lookup failed — continuing to Kid.", "info");
+    } finally {
+      setRescueLoading(false);
+    }
   }
 
   return (
@@ -117,8 +152,8 @@ function ParentPage({
         <div>
           <p className="rescue-mode-kicker">Rescue Mode</p>
           <p>
-            Need breathing room fast? Pick a time window, optional noise
-            preference, then jump to Kid.
+            No questionnaire. Pick a time window and FamilyFlow starts a
+            low-setup activity with Plan B already loaded.
           </p>
 
           <div className="rescue-mode-options" role="group" aria-label="Rescue time">
@@ -137,34 +172,16 @@ function ParentPage({
               </button>
             ))}
           </div>
-
-          <div
-            className="rescue-mode-options"
-            role="group"
-            aria-label="Rescue noise preference"
-          >
-            {RESCUE_NOISE_OPTIONS.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                className={
-                  rescueNoise === option.value
-                    ? "rescue-mode-chip active"
-                    : "rescue-mode-chip"
-                }
-                onClick={() => setRescueNoise(option.value)}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
         </div>
         <button
           type="button"
           className="rescue-mode-button"
-          onClick={applyRescueMode}
+          onClick={() => void applyRescueMode()}
+          disabled={rescueLoading}
         >
-          I need {rescueMinutes} minutes
+          {rescueLoading
+            ? "Finding a rescue…"
+            : `I need ${rescueMinutes} minutes`}
         </button>
       </div>
 
@@ -220,7 +237,6 @@ function ParentPage({
       )}
 
       <section className="panel parent-preset-panel">
-
         <div className="preset-grid preset-grid--dense">
           {defaultParentStatusPresets.map((preset) => (
             <button

@@ -15,6 +15,7 @@ const router = Router();
 const MAX_PROPERTY_KEYS = 24;
 const MAX_STRING_LENGTH = 120;
 const MAX_ARRAY_LENGTH = 12;
+const MAX_BATCH = 40;
 
 function sanitizePropertyValue(value, depth = 0) {
   if (depth > 2) {
@@ -83,13 +84,39 @@ function sanitizeProperties(rawProperties, depth = 0) {
   return sanitized;
 }
 
+function parseEventRow(body, userId) {
+  const eventName =
+    typeof body?.eventName === "string"
+      ? body.eventName.trim()
+      : typeof body?.event === "string"
+        ? body.event.trim()
+        : "";
+
+  if (!eventName || !PRODUCT_EVENT_NAME_SET.has(eventName)) {
+    return null;
+  }
+
+  return {
+    user_id: userId,
+    event_name: eventName,
+    properties: sanitizeProperties(body?.properties),
+    session_id:
+      typeof body?.sessionId === "string"
+        ? body.sessionId.trim().slice(0, 120)
+        : typeof body?.session_id === "string"
+          ? body.session_id.trim().slice(0, 120)
+          : null,
+    app_version:
+      typeof body?.appVersion === "string"
+        ? body.appVersion.trim().slice(0, 40)
+        : typeof body?.app_version === "string"
+          ? body.app_version.trim().slice(0, 40)
+          : null,
+  };
+}
+
 /*
  * POST /api/product-events
- *
- * Body: { eventName: string, properties?: object }
- *
- * Authenticated fire-and-forget analytics. Allowlisted event names only.
- * Never stores child notes or prompts.
  */
 router.post(
   "/product-events",
@@ -98,28 +125,16 @@ router.post(
   familyDataRateLimiter,
   async (req, res) => {
     try {
-      const eventName =
-        typeof req.body?.eventName === "string"
-          ? req.body.eventName.trim()
-          : typeof req.body?.event === "string"
-            ? req.body.event.trim()
-            : "";
-
-      if (!eventName || !PRODUCT_EVENT_NAME_SET.has(eventName)) {
+      const row = parseEventRow(req.body, req.auth.userId);
+      if (!row) {
         return res.status(400).json({
           error: "Unknown or disallowed product event.",
           code: "PRODUCT_EVENT_NOT_ALLOWED",
         });
       }
 
-      const properties = sanitizeProperties(req.body?.properties);
-
       const supabase = getSupabaseAdminClient();
-      const { error } = await supabase.from("product_events").insert({
-        user_id: req.auth.userId,
-        event_name: eventName,
-        properties,
-      });
+      const { error } = await supabase.from("product_events").insert(row);
 
       if (error) {
         console.error("Could not insert product event:", error);
@@ -135,6 +150,51 @@ router.post(
       return res.status(500).json({
         error: "Could not record product event.",
         code: "PRODUCT_EVENT_FAILED",
+      });
+    }
+  }
+);
+
+/*
+ * POST /api/product-events/batch
+ */
+router.post(
+  "/product-events/batch",
+  requireAuthenticatedUser,
+  ensureUserProfile,
+  familyDataRateLimiter,
+  async (req, res) => {
+    try {
+      const events = Array.isArray(req.body?.events) ? req.body.events : [];
+      const rows = events
+        .slice(0, MAX_BATCH)
+        .map((event) => parseEventRow(event, req.auth.userId))
+        .filter(Boolean);
+
+      if (rows.length === 0) {
+        return res.status(400).json({
+          error: "No valid product events in batch.",
+          code: "PRODUCT_EVENT_BATCH_EMPTY",
+        });
+      }
+
+      const supabase = getSupabaseAdminClient();
+      const { error } = await supabase.from("product_events").insert(rows);
+
+      if (error) {
+        console.error("Could not insert product event batch:", error);
+        return res.status(500).json({
+          error: "Could not record product events.",
+          code: "PRODUCT_EVENT_BATCH_FAILED",
+        });
+      }
+
+      return res.status(202).json({ recorded: rows.length });
+    } catch (error) {
+      console.error("Unexpected product event batch failure:", error);
+      return res.status(500).json({
+        error: "Could not record product events.",
+        code: "PRODUCT_EVENT_BATCH_FAILED",
       });
     }
   }

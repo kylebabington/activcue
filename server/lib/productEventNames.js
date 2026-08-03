@@ -22,6 +22,20 @@ export const PRODUCT_EVENT_NAMES = Object.freeze([
   "regenerate",
   "time_to_start",
   "plan_b_next_best",
+  "moment_created",
+  "generation_requested",
+  "recommendations_shown",
+  "activity_selected",
+  "activity_rejected",
+  "activity_completed",
+  "plan_b_used",
+  "plan_b_offered",
+  "plan_b_started",
+  "plan_b_rejected",
+  "rescue_started",
+  "rescue_successful",
+  "rescue_plan_b_used",
+  "checkout_started",
 ]);
 
 export const PRODUCT_EVENT_NAME_SET = new Set(PRODUCT_EVENT_NAMES);

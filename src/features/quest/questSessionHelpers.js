@@ -51,6 +51,13 @@ export function buildCompletedQuestSummary(activeActivity, { finishedAt = Date.n
     energy: activeActivity.energy || "medium",
     mess: activeActivity.mess || "low",
     adultHelp: activeActivity.adultHelp || "optional",
+    categories: Array.isArray(activeActivity.categories)
+      ? activeActivity.categories
+      : [],
+    traits:
+      activeActivity.traits && typeof activeActivity.traits === "object"
+        ? activeActivity.traits
+        : {},
     activity: activeActivity,
   };
 }
@@ -92,6 +99,13 @@ export function buildFinishedHistoryItem(
     adultHelp: activeActivity.adultHelp || "optional",
     estimatedMinutes: Number(activeActivity.estimatedMinutes) || null,
     uses: Array.isArray(activeActivity.uses) ? activeActivity.uses : [],
+    categories: Array.isArray(activeActivity.categories)
+      ? activeActivity.categories
+      : [],
+    traits:
+      activeActivity.traits && typeof activeActivity.traits === "object"
+        ? activeActivity.traits
+        : {},
     stepsCount: steps.length,
     steps,
     theme: activeActivity.theme || "",
@@ -198,6 +212,19 @@ export function buildActivitySessionPayload(
     activityMess: activeActivity?.mess || null,
     activityAdultHelp: activeActivity?.adultHelp || null,
     activitySupplies: Array.isArray(activeActivity?.uses) ? activeActivity.uses : [],
+    activityCategories: Array.isArray(activeActivity?.categories)
+      ? activeActivity.categories
+      : [],
+    activityTraits:
+      activeActivity?.traits &&
+      typeof activeActivity.traits === "object" &&
+      !Array.isArray(activeActivity.traits)
+        ? activeActivity.traits
+        : {},
+    candidateId: activeActivity?.candidateId || null,
+    recommendationBatchId: activeActivity?.recommendationBatchId || null,
+    presentedAt: activeActivity?.presentedAt || null,
+    selectedAt: activeActivity?.selectedAt || null,
     actualMinutes: minutesWorked,
     completionStatus,
     independenceRating,

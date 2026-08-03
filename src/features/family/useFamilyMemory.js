@@ -64,6 +64,12 @@ function eventFromHistoryItem(item) {
       locationPreference: item.locationPreference || "",
       childAgeRange: item.childAgeRange || "",
       activityMode: item.activityMode || "",
+      categories: Array.isArray(item.categories) ? item.categories : [],
+      traits:
+        item.traits && typeof item.traits === "object" ? item.traits : {},
+      candidateId: item.candidateId || null,
+      recommendationBatchId: item.recommendationBatchId || null,
+      rejectionReason: item.rejectionReason || null,
     },
   };
 }

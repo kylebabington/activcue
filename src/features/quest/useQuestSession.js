@@ -29,6 +29,7 @@ export function useQuestSession({
   currentMoment,
   activityMode,
   activeChildProfile,
+  selectedChildProfiles = [],
   kidActivityStyle,
   kidMood,
   messLevel,
@@ -171,11 +172,21 @@ export function useQuestSession({
         ? activity.extensionIdeas
         : [],
       uses: Array.isArray(activity.uses) ? activity.uses : [],
+      categories: Array.isArray(activity.categories) ? activity.categories : [],
+      traits:
+        activity.traits && typeof activity.traits === "object"
+          ? activity.traits
+          : {},
       estimatedMinutes: Number(activity.estimatedMinutes) || durationMinutes,
       energy: activity.energy || "medium",
       mess: activity.mess || "low",
       adultHelp: activity.adultHelp || "optional",
       whyItFits: activity.whyItFits || "",
+      candidateId: activity.candidateId || activity.candidate_id || null,
+      recommendationBatchId:
+        activity.recommendationBatchId ||
+        activity.recommendation_batch_id ||
+        null,
       currentStepIndex: 0,
       completedStepIndexes: [],
       showAllSteps: false,
@@ -191,12 +202,27 @@ export function useQuestSession({
     saveActivityFeedback?.(activity, "started");
     showStatus?.(`Started: "${activity.title}". Timer is running.`, "success");
 
+    const playingChildIds = (
+      activityMode === "family"
+        ? selectedChildProfiles
+        : activeChildProfile
+          ? [activeChildProfile]
+          : []
+    )
+      .map((child) => child?.id)
+      .filter(Boolean);
+
     const childIdForSession =
       activityMode === "family" ? "" : activeChildProfile?.id || "";
 
     const creationPromise = createActivitySession(
       buildActivitySessionStartPayload(activityToStart, currentMoment, {
         childId: childIdForSession,
+        sessionScope:
+          playingChildIds.length > 1 || activityMode === "family"
+            ? "group"
+            : "single",
+        participantChildIds: playingChildIds,
       }),
       { expectedUserId: userId }
     )
