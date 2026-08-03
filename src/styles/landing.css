@@ -498,6 +498,45 @@ button.landing-btn:disabled {
   border-radius: 0.35rem;
 }
 
+.landing-footer-inner a {
+  color: var(--color-primary);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+}
+
+.landing-footer-inner a:hover {
+  text-decoration: underline;
+}
+
+.landing-footer-sep {
+  opacity: 0.55;
+}
+
+.legal-doc-panel {
+  max-width: 40rem;
+}
+
+.legal-doc-body {
+  margin-top: 1.25rem;
+  color: var(--color-text);
+  line-height: 1.55;
+}
+
+.legal-doc-body h2 {
+  margin: 1.25rem 0 0.4rem;
+  font-size: var(--font-size-md);
+}
+
+.legal-doc-body p {
+  margin: 0 0 0.75rem;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.legal-doc-body a {
+  color: var(--color-primary);
+}
+
 @media (max-width: 639px) /* below Small */ {
   .landing-hero-inner {
     padding-top: 5.5rem;
