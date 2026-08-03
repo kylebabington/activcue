@@ -344,6 +344,63 @@
   line-height: 1.35;
 }
 
+.recommendation-reasons {
+  margin: 0.35rem 0 0.45rem;
+  padding-left: 1.1rem;
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
+}
+
+.recommendation-reasons li + li {
+  margin-top: 0.15rem;
+}
+
+.plan-b-button {
+  margin-top: 0.65rem;
+}
+
+.insights-panel {
+  max-width: 40rem;
+}
+
+.insights-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-3);
+}
+
+.insights-item {
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.insights-item:last-child {
+  border-bottom: none;
+}
+
+.insights-statement {
+  margin: 0;
+  font-size: var(--font-size-md, 1rem);
+  font-weight: var(--font-weight-medium, 600);
+  line-height: 1.35;
+}
+
+.insights-detail {
+  margin: 0.35rem 0 0;
+  color: var(--color-text-muted, var(--color-text));
+  font-size: var(--font-size-sm);
+}
+
+.insights-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
 .hint-button--plus {
   opacity: 0.72;
   cursor: not-allowed;

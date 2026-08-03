@@ -2,5 +2,11 @@
 
 export * from "./activityService";
 export * from "./activityGenerationHelpers";
-export { useActivityGeneration } from "./useActivityGeneration";
-export { useActivityFeedback } from "./useActivityFeedback";
+export * from "./activityIntent";
+export * from "./activityGenerationService";
+export * from "./activityDemoService";
+export { useActivityFeedback } from "./activityFeedback";
+export {
+  useActivityController,
+  useActivityGeneration,
+} from "./useActivityController";

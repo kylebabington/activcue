@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { ActivityDetailsModal } from "./ActivityDetailsModal";
 import { getVerifiedFitFacts, buildWhyThisFits } from "../utils/inventoryFit";
-import { buildConfidenceCopy } from "../utils/confidenceCopy";
+import { buildRecommendationReasons } from "../utils/confidenceCopy";
 
 function ActivityResults({
   activities,
@@ -16,6 +16,7 @@ function ActivityResults({
   handleTooHard,
   handleNeedQuieter,
   handleMoreLikeThis,
+  handleTryNextBest,
   activitySessions = [],
   activeChildName = "",
   activeChildId = "",
@@ -70,6 +71,9 @@ function ActivityResults({
     (entry) => entry.activity.title === detailsActivityTitle
   );
 
+  const canTryNextBest =
+    typeof handleTryNextBest === "function" && displayActivities.length >= 2;
+
   return (
     <>
       <section className="panel results-panel activity-board-panel">
@@ -81,6 +85,15 @@ function ActivityResults({
                 Mark a few supplies in Settings so &quot;why this fits&quot; can
                 name toys you actually have.
               </p>
+            ) : null}
+            {canTryNextBest ? (
+              <button
+                type="button"
+                className="secondary-action plan-b-button"
+                onClick={handleTryNextBest}
+              >
+                Try the next best one
+              </button>
             ) : null}
           </div>
         </div>
@@ -94,11 +107,11 @@ function ActivityResults({
             const feedbackIsOpen = feedbackActivityTitle === activity.title;
             const fitFacts = getVerifiedFitFacts(activity, currentMoment);
             const whyThisFits = buildWhyThisFits(activity, currentMoment);
-            const confidenceCopy = buildConfidenceCopy(
+            const recommendationReasons = buildRecommendationReasons(
               activity,
               activitySessions,
               activeChildName,
-              { childId: activeChildId }
+              { childId: activeChildId, currentMoment }
             );
 
             return (
@@ -125,8 +138,12 @@ function ActivityResults({
                       <p className="why-this-fits">{whyThisFits}</p>
                     ) : null}
 
-                    {confidenceCopy ? (
-                      <p className="confidence-copy">{confidenceCopy}</p>
+                    {recommendationReasons.length > 0 ? (
+                      <ul className="recommendation-reasons">
+                        {recommendationReasons.map((reason) => (
+                          <li key={reason}>{reason}</li>
+                        ))}
+                      </ul>
                     ) : null}
 
                     {fitFacts.length > 0 && (
