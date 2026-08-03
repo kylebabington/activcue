@@ -4,7 +4,6 @@ import { Link } from "react-router-dom";
 import ActiveActivityPanel from "../components/ActiveActivityPanel";
 import ActivityResults from "../components/ActivityResults";
 import MomentStatusBanner from "../components/MomentStatusBanner";
-import SimpleActiveActivityPanel from "../components/SimpleActiveActivityPanel";
 import { useAppContext } from "../context/AppContext";
 import { useAuth } from "../hooks/useAuth";
 import { INDEPENDENCE_OUTCOMES } from "../features/quest";
@@ -240,20 +239,7 @@ function QuestPage() {
             <div className="kid-center-column">
                 <MomentStatusBanner currentMoment={currentMoment} kidFacing />
 
-            {activeActivity?.activityStyle === "simple" && (
-                <SimpleActiveActivityPanel
-                    activeActivity={activeActivity}
-                    currentMoment={currentMoment}
-                    stepHint={stepHint}
-                    isHintLoading={isHintLoading}
-                    handleNeedStepHint={handleNeedStepHint}
-                    canUseAiHints={Boolean(entitlement?.canUseAiHints)}
-                    finishActiveActivity={finishActiveActivity}
-                    cancelActiveActivity={cancelActiveActivity}
-                />
-            )}
-
-            {activeActivity && activeActivity.activityStyle !== "simple" && (
+            {activeActivity ? (
                 <ActiveActivityPanel
                     activeActivity={activeActivity}
                     currentMoment={currentMoment}
@@ -280,7 +266,7 @@ function QuestPage() {
                     formatTimer={formatTimer}
                     playingChildren={playingChildren}
                 />
-            )}
+            ) : null}
 
             {!activeActivity && lastCompletedQuest && (
                 <QuestCompleteSummary
