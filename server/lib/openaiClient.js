@@ -39,6 +39,8 @@ export async function createStructuredResponseWithMeta(
     model: response.model || model,
     inputTokens: response.usage?.input_tokens ?? null,
     outputTokens: response.usage?.output_tokens ?? null,
+    totalTokens: response.usage?.total_tokens ?? null,
+    responseId: response.id || null,
     latencyMs: Date.now() - startedAt,
     raw: response,
   };

@@ -2,10 +2,16 @@
 
 import { authenticatedRequest } from "../api/apiClient";
 import { supabase } from "../lib/supabaseClient";
+import {
+  clearOfflineQueue,
+  enqueueOfflineEvent,
+  readOfflineQueue,
+  replaceOfflineQueue,
+} from "./offlineQueue";
 
 /**
  * Lightweight product analytics — console in development, localStorage cache,
- * and fire-and-forget POST to /api/product-events when authenticated.
+ * batched POST to /api/product-events when authenticated.
  *
  * Keep names in sync with server/lib/productEventNames.js
  */
@@ -31,9 +37,25 @@ export const PRODUCT_EVENT_NAMES = Object.freeze([
   "regenerate",
   "time_to_start",
   "plan_b_next_best",
+  "moment_created",
+  "generation_requested",
+  "recommendations_shown",
+  "activity_selected",
+  "activity_rejected",
+  "activity_completed",
+  "plan_b_used",
+  "plan_b_offered",
+  "plan_b_started",
+  "plan_b_rejected",
+  "rescue_started",
+  "rescue_successful",
+  "rescue_plan_b_used",
+  "checkout_started",
 ]);
 
 const PRODUCT_EVENTS = new Set(PRODUCT_EVENT_NAMES);
+const SESSION_KEY = "ff_analytics_session";
+const APP_VERSION = import.meta.env.VITE_APP_VERSION || "dev";
 
 const BLOCKED_PROPERTY_KEYS = new Set([
   "note",
@@ -49,6 +71,10 @@ const BLOCKED_PROPERTY_KEYS = new Set([
   "instructions",
   "input",
 ]);
+
+let pendingBatch = [];
+let flushTimer = null;
+let listenersBound = false;
 
 function sanitizeClientProperties(payload) {
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
@@ -72,6 +98,19 @@ function sanitizeClientProperties(payload) {
   return next;
 }
 
+export function getAnalyticsSessionId() {
+  try {
+    let id = window.sessionStorage.getItem(SESSION_KEY);
+    if (!id) {
+      id = crypto.randomUUID();
+      window.sessionStorage.setItem(SESSION_KEY, id);
+    }
+    return id;
+  } catch {
+    return "anonymous-session";
+  }
+}
+
 function cacheLocally(entry) {
   try {
     const key = "ff_product_events";
@@ -83,7 +122,16 @@ function cacheLocally(entry) {
   }
 }
 
-async function postProductEventIfAuthenticated(eventName, properties) {
+async function postBatch(events) {
+  if (!events.length) {
+    return;
+  }
+
+  if (typeof navigator !== "undefined" && navigator.onLine === false) {
+    events.forEach((event) => enqueueOfflineEvent(event));
+    return;
+  }
+
   try {
     const {
       data: sessionData,
@@ -93,16 +141,71 @@ async function postProductEventIfAuthenticated(eventName, properties) {
       return;
     }
 
-    await authenticatedRequest("/api/product-events", {
+    await authenticatedRequest("/api/product-events/batch", {
       method: "POST",
-      body: JSON.stringify({
-        eventName,
-        properties,
-      }),
+      body: JSON.stringify({ events }),
     });
   } catch {
-    // Fire-and-forget: localStorage remains the fallback cache.
+    // Fall back to single-event posts.
+    for (const event of events) {
+      try {
+        await authenticatedRequest("/api/product-events", {
+          method: "POST",
+          body: JSON.stringify(event),
+        });
+      } catch {
+        enqueueOfflineEvent(event);
+      }
+    }
   }
+}
+
+export async function flushProductEventBatch() {
+  const offline = readOfflineQueue();
+  const batch = [...offline, ...pendingBatch];
+  pendingBatch = [];
+  if (flushTimer) {
+    clearTimeout(flushTimer);
+    flushTimer = null;
+  }
+  if (!batch.length) {
+    return;
+  }
+  clearOfflineQueue();
+  await postBatch(batch);
+}
+
+function scheduleFlush() {
+  if (flushTimer) {
+    return;
+  }
+  flushTimer = setTimeout(() => {
+    void flushProductEventBatch();
+  }, 2000);
+}
+
+function ensureAnalyticsListeners() {
+  if (listenersBound || typeof window === "undefined") {
+    return;
+  }
+  listenersBound = true;
+
+  const flush = () => {
+    void flushProductEventBatch();
+  };
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") {
+      flush();
+    }
+  });
+  window.addEventListener("pagehide", flush);
+  window.addEventListener("online", () => {
+    void flushProductEventBatch();
+    if (navigator.serviceWorker?.controller) {
+      navigator.serviceWorker.controller.postMessage({ type: "SYNC_QUEUE" });
+    }
+  });
 }
 
 export function trackProductEvent(eventName, payload = {}) {
@@ -110,10 +213,21 @@ export function trackProductEvent(eventName, payload = {}) {
     return;
   }
 
+  ensureAnalyticsListeners();
+
   const properties = sanitizeClientProperties(payload);
+  const event = {
+    eventName,
+    properties,
+    sessionId: getAnalyticsSessionId(),
+    appVersion: APP_VERSION,
+  };
+
   const entry = {
     event: eventName,
     at: new Date().toISOString(),
+    sessionId: event.sessionId,
+    appVersion: APP_VERSION,
     ...properties,
   };
 
@@ -122,5 +236,16 @@ export function trackProductEvent(eventName, payload = {}) {
   }
 
   cacheLocally(entry);
-  void postProductEventIfAuthenticated(eventName, properties);
+
+  if (typeof navigator !== "undefined" && navigator.onLine === false) {
+    enqueueOfflineEvent(event);
+    return;
+  }
+
+  pendingBatch.push(event);
+  if (pendingBatch.length >= 5) {
+    void flushProductEventBatch();
+  } else {
+    scheduleFlush();
+  }
 }
