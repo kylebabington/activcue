@@ -5,8 +5,47 @@ import { Link } from "react-router-dom";
 
 import { redirectToCheckout } from "../api/billingApi";
 import { ApiRequestError } from "../api/apiClient";
+import { LANDING_ACTIVITY_PREVIEW } from "../constants/landingActivityPreview";
 import { supabase } from "../lib/supabaseClient";
+import {
+  getActivityMissionText,
+  getActivityRoleLabel,
+  getStarterIdeas,
+  getVisualThemeMeta,
+} from "../utils/activityVisualTheme";
 import "../styles/landing.css";
+
+function ActivityV2Preview() {
+  const activity = LANDING_ACTIVITY_PREVIEW;
+  const theme = getVisualThemeMeta(activity.visualTheme);
+  const role = getActivityRoleLabel(activity);
+  const mission = getActivityMissionText(activity);
+  const starters = getStarterIdeas(activity).slice(0, 4);
+
+  return (
+    <article
+      className={`landing-preview-card activity-card--theme-${theme.key}`}
+      style={{ "--activity-theme-accent": theme.accent }}
+      aria-label="Sample Activity V2 preview"
+    >
+      <div className="landing-preview-band">
+        <span aria-hidden="true">{theme.icon}</span>
+        <span>{theme.label} story</span>
+      </div>
+      <h3>{activity.title}</h3>
+      <p className="landing-preview-mission">{mission}</p>
+      <p className="landing-preview-role">
+        <span>You are</span> <strong>{role}</strong>
+      </p>
+      <ul className="landing-preview-starters">
+        {starters.map((idea) => (
+          <li key={idea.title}>{idea.title}</li>
+        ))}
+      </ul>
+      <p className="landing-preview-cta-label">Enter the story →</p>
+    </article>
+  );
+}
 
 function LandingPage() {
   const [canSubscribe, setCanSubscribe] = useState(false);
@@ -94,8 +133,8 @@ function LandingPage() {
             <Link className="landing-topbar-link" to="/login">
               Log in
             </Link>
-            <Link className="landing-topbar-cta" to="/signup">
-              Sign up
+            <Link className="landing-topbar-cta" to="/onboarding">
+              Find something to do
             </Link>
           </div>
         </div>
@@ -103,74 +142,75 @@ function LandingPage() {
 
       <section className="landing-hero" id="top" aria-labelledby="landing-hero-title">
         <div className="landing-hero-wash" aria-hidden="true" />
-        <div className="landing-hero-inner">
-          <p className="landing-hero-brand">FamilyFlow</p>
-          <h1 id="landing-hero-title" className="landing-hero-title">
-            Right-now activities for the moment you are in
-          </h1>
-          <p className="landing-hero-support">
-            Match a parent moment and your kid’s energy to simple play or pretend
-            adventures—without a long planning session.
-          </p>
-          <div className="landing-hero-actions">
-            <Link className="landing-btn landing-btn--primary" to="/app">
-              Try the free flow
-            </Link>
-            <Link className="landing-btn landing-btn--ghost" to="/login">
-              Log in
-            </Link>
+        <div className="landing-hero-inner landing-hero-inner--split">
+          <div className="landing-hero-copy">
+            <p className="landing-hero-brand">FamilyFlow</p>
+            <h1 id="landing-hero-title" className="landing-hero-title">
+              Need 20 quiet minutes?
+            </h1>
+            <p className="landing-hero-support">
+              Match the moment you are in, then hand your kid a story they can
+              start without asking you what to do next.
+            </p>
+            <div className="landing-hero-actions">
+              <Link className="landing-btn landing-btn--primary" to="/onboarding">
+                Find something to do
+              </Link>
+              <Link className="landing-btn landing-btn--ghost" to="/app">
+                Open the app
+              </Link>
+            </div>
           </div>
+          <ActivityV2Preview />
         </div>
       </section>
 
-      <section className="landing-section" aria-labelledby="how-it-works-title">
+      <section className="landing-section" aria-labelledby="moment-title">
         <div className="landing-section-inner">
-          <h2 id="how-it-works-title">How it works</h2>
+          <h2 id="moment-title">Built for the moment, not a plan</h2>
           <p className="landing-section-lead">
-            Three quick choices, then ideas your family can start right away.
+            FamilyFlow matches parent availability, kid energy, supplies, and
+            mess/noise limits—then opens a guided activity kids can run.
           </p>
           <ol className="landing-steps">
             <li>
-              <span className="landing-step-label">Parent moment</span>
+              <span className="landing-step-label">Moment matching</span>
               <span className="landing-step-text">
-                Quiet call, dinner prep, low mess—set what the house can handle.
+                Quiet call, dinner prep, or low mess—set what the house can handle.
               </span>
             </li>
             <li>
-              <span className="landing-step-label">Kid energy &amp; style</span>
+              <span className="landing-step-label">Kid profiles</span>
               <span className="landing-step-text">
-                Calm or energetic. Simple play or imaginative pretend.
+                Ages and interests shape roles, starters, and step difficulty.
               </span>
             </li>
             <li>
-              <span className="landing-step-label">Guided activity</span>
+              <span className="landing-step-label">Independent play</span>
               <span className="landing-step-text">
-                Pick an idea, follow kid-friendly steps, and finish with a win.
+                World, role, starter doors, and built-in “I’m stuck” help—before any AI hint.
               </span>
             </li>
           </ol>
         </div>
       </section>
 
-      <section className="landing-section landing-section--tint" aria-labelledby="try-free-title">
+      <section className="landing-section landing-section--tint" aria-labelledby="safety-net-title">
         <div className="landing-section-inner">
-          <h2 id="try-free-title">Try free</h2>
+          <h2 id="safety-net-title">When the first idea stalls</h2>
           <p className="landing-section-lead">
-            No account needed. Open the full app with sample ideas—set a moment,
-            pick kid energy, and run a guided activity. Unlock one pretend adventure
-            free.
+            What Works for Us remembers successes. Plan B offers the next best fit.
+            Rescue Mode recovers when everything falls apart—and useful pieces still
+            work offline.
           </p>
           <ul className="landing-perk-list">
-            <li>Set a parent moment and kid energy or style</li>
-            <li>Get sample Quick ideas and I&apos;m Bored presets</li>
-            <li>Unlock one pretend activity free and follow the steps</li>
-            <li>
-              After that unlock, more pretend needs Plus—simple Quick ideas still
-              work
-            </li>
+            <li>What Works for Us — learn from finished activities</li>
+            <li>Plan B — try the next best option without regenerating</li>
+            <li>Rescue Mode — calm fallback when the house needs a reset</li>
+            <li>Offline shell — keep running a started Activity V2 without Wi‑Fi</li>
           </ul>
-          <Link className="landing-btn landing-btn--primary" to="/app">
-            Start trying free
+          <Link className="landing-btn landing-btn--primary" to="/onboarding">
+            Get your first activity
           </Link>
         </div>
       </section>
@@ -181,23 +221,21 @@ function LandingPage() {
         aria-labelledby="plus-title"
       >
         <div className="landing-section-inner">
-          <h2 id="plus-title">With FamilyFlow Plus</h2>
+          <h2 id="plus-title">Free to try. Plus when you want more.</h2>
           <p className="landing-section-lead">
-            Free lets you try the full flow with samples. Plus personalizes
-            unlimited AI ideas to your supplies, kid energy, and the moment
-            you are in.
+            Start without an account. Create a free account when you want to
+            remember what worked. Plus unlocks unlimited personalized ideas.
           </p>
           <ul className="landing-perk-list landing-perk-list--plus">
-            <li>Unlimited AI ideas tailored to inventory and the current moment</li>
+            <li>Unlimited personalized ideas for your supplies and moment</li>
             <li>Unlimited imaginative pretend activities</li>
-            <li>AI step hints when an activity gets stuck</li>
-            <li>AI personalization that learns what works for your kids</li>
-            <li>Favorites and history sync when you are signed in</li>
+            <li>Emergency AI hints only after built-in help</li>
+            <li>Favorites and history sync when signed in</li>
           </ul>
           <p className="landing-plus-note">
             {canSubscribe
-              ? "Subscribe to Plus to unlock personalized AI ideas for your family."
-              : "Create a free account, then subscribe to Plus when you are ready."}
+              ? "Subscribe to Plus when you are ready for unlimited personalized ideas."
+              : "Create a free account after your first win, then upgrade when it helps."}
           </p>
           {checkoutError ? (
             <p className="landing-plus-note" role="alert">
