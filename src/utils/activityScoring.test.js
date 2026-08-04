@@ -168,4 +168,46 @@ describe("getTotalActivityScore", () => {
       getTotalActivityScore(messyActivity, quietMoment, history)
     );
   });
+
+  it("soft-penalizes activities matching child avoids", () => {
+    const pretendActivity = {
+      title: "Pretend restaurant",
+      mess: "low",
+      energy: "medium",
+      adultHelp: "optional",
+      estimatedMinutes: 20,
+      steps: ["Play"],
+      uses: [],
+      firstMoves: [],
+      starterPrompts: [],
+      theme: "pretend play restaurant",
+    };
+
+    const buildingActivity = {
+      ...pretendActivity,
+      title: "LEGO tower",
+      theme: "building",
+    };
+
+    const options = {
+      activeChildProfile: {
+        avoids: ["pretend"],
+        interests: "LEGO",
+        independenceLevel: "usually-independent",
+      },
+      activityPreferences: {
+        messTolerance: "a-little",
+        setupEffort: "a-few-minutes",
+        independencePreference: "mostly-independent",
+        activityStylePreference: "mix",
+        indoorOutdoorPreference: "either",
+      },
+    };
+
+    expect(
+      getTotalActivityScore(buildingActivity, quietMoment, [], options)
+    ).toBeGreaterThan(
+      getTotalActivityScore(pretendActivity, quietMoment, [], options)
+    );
+  });
 });

@@ -137,7 +137,7 @@ SAFETY RULES:
 
 PERSONALIZATION RULES:
 - Use the family's inventory when possible.
-- If an active child profile is provided, personalize ideas to that child's interests and helpful notes.
+- If an active child profile is provided, personalize ideas to that child's interests, things they usually avoid, independence level, and helpful notes.
 - If activity mode is family, suggest activities that multiple children can do together.
 - In family mode, give each child a simple role in roles[] and add roleInstructions on steps when useful.
 - Do not mention private notes directly to the child.
@@ -187,12 +187,17 @@ export function buildActivitySuggestionsInput({
   safePreviousActivityTitles,
   safeSafetySettings,
   playModeTheme = "playroom",
+  activityPreferences = null,
 }) {
   const children = Array.isArray(childrenContext) ? childrenContext : [];
   const activeResolved =
     children.find((child) => child.id && child.id === activeChildProfile?.id) ||
     children[0] ||
     null;
+  const prefs =
+    activityPreferences && typeof activityPreferences === "object"
+      ? activityPreferences
+      : {};
 
   return `
 Family context:
@@ -206,14 +211,19 @@ Family context:
 - Kid mood/request: ${kidMood}
 - Preferred location: ${locationPreference}
 - Legacy age range label (fallback only): ${childAgeRange || "unknown"}
-- Play mode theme: ${playModeTheme}
+- Activity style preference (family default): ${prefs.activityStylePreference || "mix"}
+- Typical mess tolerance: ${prefs.messTolerance || "a-little"}
+- Typical setup preference: ${prefs.setupEffort || "a-few-minutes"}
+- Typical independence preference: ${prefs.independencePreference || "mostly-independent"}
+- Indoor/outdoor preference: ${prefs.indoorOutdoorPreference || "either"}
+- Play mode flavor: ${playModeTheme}
 - Participating children (server-derived ages — authoritative):
 ${
   children.length > 0
     ? children
         .map(
           (child) =>
-            `  - ${child.name}: ageYears=${child.ageYears}, ageBand=${child.ageBand}, source=${child.ageSource}, interests=${child.interests.join(", ") || "not specified"}, notes=${child.needs || "not specified"}`
+            `  - ${child.name}: ageYears=${child.ageYears}, ageBand=${child.ageBand}, source=${child.ageSource}, interests=${child.interests.join(", ") || "not specified"}, usually avoids=${(child.avoids || []).join(", ") || "none"}, independence=${child.independenceLevel || "usually-independent"}, notes=${child.needs || "not specified"}`
         )
         .join("\n")
     : "  - None specified"
@@ -224,6 +234,8 @@ ${
   - Exact age years: ${activeResolved?.ageYears ?? "Not specified"}
   - Age band: ${activeResolved?.ageBand || "Not specified"}
   - Interests: ${(activeResolved?.interests || []).join(", ") || activeChildProfile?.interests || "Not specified"}
+  - Usually avoids: ${(activeResolved?.avoids || []).join(", ") || (Array.isArray(activeChildProfile?.avoids) ? activeChildProfile.avoids.join(", ") : "None specified")}
+  - Independence: ${activeResolved?.independenceLevel || activeChildProfile?.independenceLevel || "usually-independent"}
   - Helpful notes: ${activeResolved?.needs || activeChildProfile?.needs || "Not specified"}
 - Activity style requested by child: ${safeActivityStyle}
 - Activity mode: ${activityMode || "single-child"}

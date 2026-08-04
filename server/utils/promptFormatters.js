@@ -47,9 +47,9 @@ export function formatChildProfilesForPrompt(childProfiles, childrenContext = []
     .map((child) => {
       const resolved = byId.get(child.id);
       if (resolved) {
-        return `${resolved.name} (ageYears=${resolved.ageYears}, ageBand=${resolved.ageBand}): interests=${resolved.interests.join(", ") || "not specified"}; notes=${resolved.needs || "not specified"}`;
+        return `${resolved.name} (ageYears=${resolved.ageYears}, ageBand=${resolved.ageBand}): interests=${resolved.interests.join(", ") || "not specified"}; usually avoids=${(resolved.avoids || []).join(", ") || "none"}; independence=${resolved.independenceLevel || "usually-independent"}; notes=${resolved.needs || "not specified"}`;
       }
-      return `${child.name || "Unnamed child"} (${child.ageRange || "unknown age"}): interests=${child.interests || "not specified"}; notes=${child.needs || "not specified"}`;
+      return `${child.name || "Unnamed child"} (${child.ageRange || "unknown age"}): interests=${child.interests || "not specified"}; usually avoids=${Array.isArray(child.avoids) ? child.avoids.join(", ") : child.avoids || "none"}; independence=${child.independenceLevel || "usually-independent"}; notes=${child.needs || "not specified"}`;
     })
     .join(" | ");
 }

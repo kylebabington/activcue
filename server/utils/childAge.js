@@ -183,6 +183,12 @@ export function buildChildrenAgeContext(profiles, today = new Date()) {
         typeof child?.needs === "string" && child.needs.trim()
           ? child.needs.trim()
           : "",
+      avoids: parseInterestsList(child?.avoids),
+      independenceLevel:
+        typeof child?.independenceLevel === "string" &&
+        child.independenceLevel.trim()
+          ? child.independenceLevel.trim()
+          : "usually-independent",
       birthDate: child?.birthDate || null,
       ageRange: child?.ageRange || ageYearsToAgeRange(resolved.ageYears),
     };

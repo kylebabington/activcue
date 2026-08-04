@@ -60,6 +60,7 @@ export default function createActivitySuggestionsRouter(client) {
           previousActivityTitles,
           safetySettings,
           playModeTheme,
+          activityPreferences,
         } = req.body;
 
         const safeActivityStyle = resolveActivityStyle(
@@ -145,6 +146,10 @@ export default function createActivitySuggestionsRouter(client) {
           safePreviousActivityTitles,
           safeSafetySettings,
           playModeTheme: safePlayModeTheme,
+          activityPreferences:
+            activityPreferences && typeof activityPreferences === "object"
+              ? activityPreferences
+              : null,
         });
 
         const aiResult = await createStructuredResponseWithMeta(client, {
@@ -232,6 +237,10 @@ export default function createActivitySuggestionsRouter(client) {
               ],
               safeSafetySettings,
               playModeTheme: safePlayModeTheme,
+              activityPreferences:
+                activityPreferences && typeof activityPreferences === "object"
+                  ? activityPreferences
+                  : null,
             });
 
             const retryResult = await createStructuredResponseWithMeta(
