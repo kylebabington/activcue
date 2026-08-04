@@ -1,28 +1,97 @@
 // src/pages/SignupPage.jsx
 
-import { useState } from "react";
-import { Link } from "react-router-dom";
-import { checkEmailAvailability } from "../api/authApi";
+import { useEffect, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { ApiRequestError } from "../api/apiClient";
+import { convertAnonymousAccount } from "../api/authApi";
+import { redirectToCheckout } from "../api/billingApi";
 import { useAuth } from "../hooks/useAuth";
 import { supabase } from "../lib/supabaseClient";
+import { parseSignupCheckoutIntent } from "../utils/signupUrls";
 import "../styles/landing.css";
 
-const PENDING_SIGNUP_EMAIL_KEY =
-  "familyflow.pendingSignupEmail";
-
 function SignupPage() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, isAnonymous } = useAuth();
+  const checkoutIntent = parseSignupCheckoutIntent(
+    searchParams.toString()
+  );
 
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
-  const [infoMessage, setInfoMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [checkoutBusy, setCheckoutBusy] = useState(false);
+
+  async function startCheckout(expectedUserId) {
+    setCheckoutBusy(true);
+    setErrorMessage("");
+
+    try {
+      await redirectToCheckout({
+        plan: checkoutIntent.plan,
+        expectedUserId,
+      });
+    } catch (error) {
+      setCheckoutBusy(false);
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Could not start checkout. Try again."
+      );
+    }
+  }
+
+  /*
+   * Permanent users who arrived with Plus intent skip the form and go to Stripe.
+   */
+  useEffect(() => {
+    if (isAnonymous || !user?.id || !checkoutIntent.shouldCheckout) {
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    (async () => {
+      if (cancelled) {
+        return;
+      }
+
+      setCheckoutBusy(true);
+
+      try {
+        await redirectToCheckout({
+          plan: checkoutIntent.plan,
+          expectedUserId: user.id,
+        });
+      } catch (error) {
+        if (!cancelled) {
+          setCheckoutBusy(false);
+          setErrorMessage(
+            error instanceof Error
+              ? error.message
+              : "Could not start checkout. Try again."
+          );
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    checkoutIntent.plan,
+    checkoutIntent.shouldCheckout,
+    isAnonymous,
+    user?.id,
+  ]);
 
   async function handleSubmit(event) {
     event.preventDefault();
 
     setErrorMessage("");
-    setInfoMessage("");
 
     const normalizedEmail = email.trim().toLowerCase();
 
@@ -31,10 +100,6 @@ function SignupPage() {
       return;
     }
 
-    /*
-     * This page converts an anonymous user. It must not create a second Auth
-     * user with signUp().
-     */
     if (!isAnonymous) {
       setErrorMessage(
         "This session is already connected to a permanent account."
@@ -42,77 +107,85 @@ function SignupPage() {
       return;
     }
 
+    if (password.length < 8) {
+      setErrorMessage(
+        "Use a password that is at least 8 characters long."
+      );
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setErrorMessage("The two passwords do not match.");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
       /*
-       * Reject emails that already belong to another Auth user before asking
-       * Supabase to send a confirmation message.
+       * Convert the current anonymous user in place (same UUID). Do not call
+       * signUp() — that would create a second Auth user.
        */
-      const availability =
-        await checkEmailAvailability(normalizedEmail);
+      const conversion = await convertAnonymousAccount({
+        email: normalizedEmail,
+        password,
+        confirmPassword,
+      });
 
-      if (availability?.available === false) {
-        setErrorMessage(
-          availability.message ||
-            "If this address can be used, we will continue. Otherwise, try logging in."
-        );
+      const convertedUserId =
+        conversion?.user?.id || user?.id || null;
+
+      /*
+       * Replace the anonymous JWT with a permanent email/password session for
+       * the same user so billing and /auth/me see a non-anonymous identity.
+       */
+      const {
+        data: signInData,
+        error: signInError,
+      } = await supabase.auth.signInWithPassword({
+        email: normalizedEmail,
+        password,
+      });
+
+      if (signInError) {
+        throw signInError;
+      }
+
+      const expectedUserId =
+        signInData.user?.id || convertedUserId;
+
+      if (checkoutIntent.shouldCheckout) {
+        await startCheckout(expectedUserId);
         return;
       }
 
-      const emailRedirectTo =
-        `${window.location.origin}/complete-signup`;
-
-      /*
-       * Add an email identity to the current anonymous Supabase user.
-       *
-       * The existing user UUID remains the same. That means:
-       *
-       * - profiles.user_id stays the same
-       * - the free imaginative unlock stays attached
-       * - a future Stripe customer stays attached
-       */
-      const { error } = await supabase.auth.updateUser(
-        {
-          email: normalizedEmail,
-        },
-        {
-          emailRedirectTo,
-        }
-      );
-
-      if (error) {
-        throw error;
-      }
-
-      /*
-       * This is only used to display the email on the password-completion
-       * page. It is not trusted for authentication or authorization.
-       */
-      window.sessionStorage.setItem(
-        PENDING_SIGNUP_EMAIL_KEY,
-        normalizedEmail
-      );
-
-      setInfoMessage(
-        `We sent a confirmation link to ${normalizedEmail}. Open that email and click the link to finish creating your account.`
-      );
+      navigate("/app", { replace: true });
     } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : "Could not connect this email to your account.";
-
-      if (
-        message.toLowerCase().includes("already") ||
-        message.toLowerCase().includes("registered") ||
-        message.toLowerCase().includes("exists")
-      ) {
-        setErrorMessage(
-          "That email may already belong to an account. Log in instead, or use a different email."
-        );
+      if (error instanceof ApiRequestError) {
+        if (error.code === "EMAIL_ALREADY_REGISTERED") {
+          setErrorMessage(
+            "That email may already belong to an account. Log in instead, or use a different email."
+          );
+        } else {
+          setErrorMessage(error.message);
+        }
       } else {
-        setErrorMessage(message);
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Could not create your account.";
+
+        if (
+          message.toLowerCase().includes("already") ||
+          message.toLowerCase().includes("registered") ||
+          message.toLowerCase().includes("exists")
+        ) {
+          setErrorMessage(
+            "That email may already belong to an account. Log in instead, or use a different email."
+          );
+        } else {
+          setErrorMessage(message);
+        }
       }
     } finally {
       setIsSubmitting(false);
@@ -120,9 +193,9 @@ function SignupPage() {
   }
 
   /*
-   * A permanent user does not need to run the conversion flow again.
+   * A permanent user without checkout intent does not need the conversion form.
    */
-  if (!isAnonymous) {
+  if (!isAnonymous && !checkoutIntent.shouldCheckout) {
     return (
       <div className="landing landing--auth">
         <header className="landing-topbar">
@@ -174,6 +247,65 @@ function SignupPage() {
     );
   }
 
+  if (!isAnonymous && checkoutIntent.shouldCheckout) {
+    return (
+      <div className="landing landing--auth">
+        <header className="landing-topbar">
+          <div className="landing-topbar-inner">
+            <Link
+              className="landing-brand"
+              to="/"
+              aria-label="FamilyFlow home"
+            >
+              <img
+                className="landing-brand-mark"
+                src="/logo.svg"
+                alt=""
+                width="36"
+                height="36"
+              />
+              <span className="landing-brand-name">
+                FamilyFlow
+              </span>
+            </Link>
+
+            <Link className="landing-topbar-link" to="/app">
+              Open app
+            </Link>
+          </div>
+        </header>
+
+        <section
+          className="landing-auth"
+          aria-labelledby="signup-title"
+        >
+          <div className="landing-auth-panel">
+            <h1 id="signup-title">Starting checkout</h1>
+
+            <p className="landing-auth-lead">
+              Taking you to Stripe to finish FamilyFlow Plus.
+            </p>
+
+            {errorMessage ? (
+              <p className="landing-auth-error" role="alert">
+                {errorMessage}
+              </p>
+            ) : null}
+
+            <button
+              className="landing-btn landing-btn--primary"
+              type="button"
+              disabled={checkoutBusy}
+              onClick={() => startCheckout(user?.id)}
+            >
+              {checkoutBusy ? "Starting checkout…" : "Continue to checkout"}
+            </button>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
   return (
     <div className="landing landing--auth">
       <header className="landing-topbar">
@@ -206,13 +338,16 @@ function SignupPage() {
         aria-labelledby="signup-title"
       >
         <div className="landing-auth-panel">
-          <p className="landing-eyebrow">Step 1 of 2</p>
-
-          <h1 id="signup-title">Save your FamilyFlow account</h1>
+          <h1 id="signup-title">
+            {checkoutIntent.shouldCheckout
+              ? "Create your account to get Plus"
+              : "Save your FamilyFlow account"}
+          </h1>
 
           <p className="landing-auth-lead">
-            Add an email to keep your free activity unlock and
-            protect future Plus access.
+            {checkoutIntent.shouldCheckout
+              ? "Add an email and password, then continue to secure checkout."
+              : "Add an email and password to keep your free unlock and protect future Plus access."}
           </p>
 
           <form
@@ -234,26 +369,56 @@ function SignupPage() {
               />
             </label>
 
+            <label className="landing-auth-field">
+              <span>Password</span>
+
+              <input
+                type="password"
+                name="password"
+                autoComplete="new-password"
+                required
+                minLength={8}
+                value={password}
+                onChange={(event) =>
+                  setPassword(event.target.value)
+                }
+              />
+            </label>
+
+            <label className="landing-auth-field">
+              <span>Confirm password</span>
+
+              <input
+                type="password"
+                name="confirmPassword"
+                autoComplete="new-password"
+                required
+                minLength={8}
+                value={confirmPassword}
+                onChange={(event) =>
+                  setConfirmPassword(event.target.value)
+                }
+              />
+            </label>
+
             {errorMessage ? (
               <p className="landing-auth-error" role="alert">
                 {errorMessage}
               </p>
             ) : null}
 
-            {infoMessage ? (
-              <p className="landing-auth-info" role="status">
-                {infoMessage}
-              </p>
-            ) : null}
-
             <button
               className="landing-btn landing-btn--primary"
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || checkoutBusy}
             >
-              {isSubmitting
-                ? "Sending confirmation…"
-                : "Send confirmation email"}
+              {isSubmitting || checkoutBusy
+                ? checkoutIntent.shouldCheckout
+                  ? "Creating account…"
+                  : "Saving account…"
+                : checkoutIntent.shouldCheckout
+                  ? "Create account and continue"
+                  : "Create account"}
             </button>
           </form>
 

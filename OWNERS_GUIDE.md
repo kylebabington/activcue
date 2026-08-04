@@ -50,7 +50,7 @@ Auth, Postgres, and row-level security live in Supabase so we do not invent acco
 
 ### Why anonymous auth exists
 
-Parents should tap “Try the free flow” and be inside the app in seconds. `AuthProvider` either restores a session or calls `signInAnonymously()`. Later, signup **converts** that anonymous user into a permanent one so favorites and settings do not vanish. That conversion path is why email-check and complete-signup exist.
+Parents should tap “Try the free flow” and be inside the app in seconds. `AuthProvider` either restores a session or calls `signInAnonymously()`. Later, signup **converts** that anonymous user into a permanent one (email + password in one step) so favorites and settings do not vanish.
 
 ### Why so much still feels “App.jsx-shaped”
 
@@ -89,17 +89,17 @@ Everything else—scoring, presets, AI prompts, Fit Score, Rescue Mode—is in s
 
 **Why it is thin:** The landing’s job is trust and one CTA—not a dashboard preview.
 
-### 4.2 Login / Signup / Complete signup
+### 4.2 Login / Signup
 
 | Page | Use it when |
 |------|-------------|
 | `/login` | Returning permanent user |
-| `/signup` | Convert anonymous → email account (or create account) |
-| `/complete-signup` | After email confirmation, set password |
+| `/signup` | Convert anonymous → email + password account (one step) |
+| `/complete-signup` | Legacy redirect → `/signup` (old confirmation-email links) |
 
-**Why soft email checks:** Signup should not advertise whether an email is already registered in a harsh way. The server’s check-email path is intentionally gentle for conversion UX and privacy.
+**Why soft email checks:** Signup should not advertise whether an email is already registered in a harsh way. The server’s check-email path is intentionally gentle for conversion UX and privacy. Conversion itself is `POST /api/auth/convert-anonymous` (Admin sets email + password with `email_confirm: true`—no confirmation-link gate before use or checkout).
 
-**Billing note:** Stripe Checkout requires a **permanent** account. Anonymous users who hit Upgrade are sent toward signup first (`ACCOUNT_REQUIRED`).
+**Billing note:** Stripe Checkout requires a **permanent** account. Anonymous users who hit Upgrade go to `/signup?next=checkout&plan=…`, convert in one step, then continue straight to Checkout (`ACCOUNT_REQUIRED` is the server-side guard).
 
 ### 4.3 Parent (`/parent`)
 
@@ -268,7 +268,7 @@ family-activity-helper/
 | Area | Role |
 |------|------|
 | `index.js` | Boot, env validation, Helmet CSP, CORS (dev), webhook raw body, route mounts, `dist/` SPA |
-| `routes/auth.js` | `/me`, check-email |
+| `routes/auth.js` | `/me`, check-email, convert-anonymous |
 | `routes/billing.js` | Checkout, cancel, resume, Stripe webhook |
 | `routes/presetActivities.js` | List presets + free imaginative unlock |
 | `routes/familySettings.js` | GET/PUT durable family document |
@@ -499,7 +499,7 @@ Use `scripts/` generators/emitters, then land SQL under `supabase/migrations/` (
 4. On Quest, start an activity, watch the timer, complete it.
 5. Tap an independence outcome.
 6. Open Settings → add a toy to inventory → set a child profile → flip theme to Storybook → try Kid again and notice the play-mode line.
-7. Create an account, upgrade with Stripe test mode, confirm AI generation and hints unlock after checkout return—without a hard refresh.
+7. Create an account (email + password in one step), upgrade with Stripe test mode, confirm AI generation and hints unlock after checkout return—without a hard refresh.
 
 If that path feels smooth, the product thesis is working.
 

@@ -4,13 +4,13 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import {
   BrowserRouter,
+  Navigate,
   Route,
   Routes,
 } from "react-router-dom";
 
 import App from "./App.jsx";
 import { AuthProvider } from "./context/AuthProvider.jsx";
-import CompleteSignupPage from "./pages/CompleteSignupPage.jsx";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage.jsx";
 import LandingPage from "./pages/LandingPage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
@@ -102,7 +102,8 @@ ReactDOM.createRoot(
         <Route path="/reset-password" element={<ResetPasswordPage />} />
 
         {/*
-         * Signup means converting the current visitor into a permanent user.
+         * Signup means converting the current visitor into a permanent user
+         * (email + password in one step).
          *
          * AuthProvider restores an existing anonymous session or creates one
          * before SignupPage runs.
@@ -117,18 +118,12 @@ ReactDOM.createRoot(
         />
 
         {/*
-         * Supabase redirects email confirmation links here.
-         *
-         * AuthProvider restores the confirmed session before the user chooses
-         * a password.
+         * Old confirmation-email links landed here. Redirect to the one-step
+         * signup page so bookmarks and stale emails still work.
          */}
         <Route
           path="/complete-signup"
-          element={
-            <AuthProvider>
-              <CompleteSignupPage />
-            </AuthProvider>
-          }
+          element={<Navigate to="/signup" replace />}
         />
 
         {/*

@@ -3,6 +3,7 @@
 import { Link } from "react-router-dom";
 import { formatKidMomentMessage } from "../utils/activityFormatters";
 import { getRecentPlayAgainActivities } from "../utils/playAgainActivities";
+import { buildSignupUrl } from "../utils/signupUrls";
 
 function KidPage({
   currentMoment,
@@ -114,7 +115,9 @@ function KidPage({
                     {checkoutBusy ? "Starting checkout…" : "FamilyFlow Plus"}
                   </button>
                 ) : (
-                  <Link to="/signup">FamilyFlow Plus</Link>
+                  <Link to={buildSignupUrl({ next: "checkout", plan: "monthly" })}>
+                    FamilyFlow Plus
+                  </Link>
                 )}
                 . Keep using Simple / Quick ideas anytime.
               </p>
@@ -139,7 +142,10 @@ function KidPage({
                   <>
                     <strong>FamilyFlow Plus</strong> will tailor activities to
                     the current parent moment, kid energy/style, and supplies.{" "}
-                    <Link to="/signup">Sign up</Link> to subscribe.
+                    <Link to={buildSignupUrl({ next: "checkout", plan: "monthly" })}>
+                      Sign up
+                    </Link>{" "}
+                    to subscribe.
                   </>
                 )}
               </p>
