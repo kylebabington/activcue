@@ -2,6 +2,17 @@
 
 Record a deterministic walkthrough of the public `/demo` route (no OpenAI, no auth).
 
+## Story the video should show
+
+1. Choose child (Maya) and moment (Making dinner)
+2. Three Fit Score match cards with why-fit chips
+3. Open an activity — Overview, Your Role, Starter Ideas
+4. Start activity → check a starter idea → complete a step
+5. Open built-in Stuck? help (no AI call)
+6. Close back to recommendations
+7. Didn't land? Try another (Plan B)
+8. End on Find something now
+
 ## Commands
 
 ```bash
@@ -20,3 +31,4 @@ Commit `public/demos/familyflow-demo.webm` (and optional poster) when you want t
 - Do **not** run this on Railway deploys.
 - Re-record after landing/`/demo` UI changes; review the video before committing.
 - Cursor timing is intentionally slow for marketing clarity.
+- Target runtime is under a minute (landing copy: “under a minute”).
