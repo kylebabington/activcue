@@ -488,7 +488,6 @@ const NEW_SIMPLE = [
     categories: ["creative", "nature"],
     minAge: 5,
     maxAge: 10,
-    mess: "medium",
     creativity: "high",
   }),
   simpleActivity({

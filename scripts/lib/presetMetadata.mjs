@@ -41,7 +41,6 @@ export function buildAgeFit({
 
 export function defaultTraits({
   energy = "medium",
-  mess = "low",
   setupEffort = "low",
   structure = "guided",
   socialMode = "solo",
@@ -69,6 +68,17 @@ function normalizeTraitStructure(value) {
   return "guided";
 }
 
+const ENRICH_STRIP_KEYS = [
+  "minAge",
+  "maxAge",
+  "setupEffort",
+  "structure",
+  "socialMode",
+  "creativity",
+  "movement",
+  "ageFitReason",
+];
+
 export function enrichActivity(activity) {
   const minAge = Number(activity.minAge ?? activity.ageFit?.minAge ?? 5);
   const maxAge = Number(activity.maxAge ?? activity.ageFit?.maxAge ?? 12);
@@ -81,7 +91,6 @@ export function enrichActivity(activity) {
       ? activity.traits
       : defaultTraits({
           energy: activity.energy,
-          mess: activity.mess,
           setupEffort: activity.setupEffort,
           structure: activity.structure,
           socialMode: activity.socialMode,
@@ -113,17 +122,10 @@ export function enrichActivity(activity) {
           ageFitReason: activity.ageFitReason,
         });
 
-  const {
-    minAge: _min,
-    maxAge: _max,
-    setupEffort: _setup,
-    structure: _structure,
-    socialMode: _social,
-    creativity: _creativity,
-    movement: _movement,
-    ageFitReason: _reason,
-    ...rest
-  } = activity;
+  const rest = { ...activity };
+  for (const key of ENRICH_STRIP_KEYS) {
+    delete rest[key];
+  }
 
   return {
     ...rest,
