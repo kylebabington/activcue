@@ -1,0 +1,47 @@
+/**
+ * Copy the newest Playwright webm from scripts/demo/output into public/demos.
+ *
+ * Usage (after demo:record):
+ *   node scripts/demo/publish-demo-video.mjs
+ */
+
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const outputDir = path.join(__dirname, "output");
+const publicDemos = path.resolve(__dirname, "../../public/demos");
+
+function findVideos(dir, acc = []) {
+  if (!fs.existsSync(dir)) return acc;
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) findVideos(full, acc);
+    else if (entry.name.endsWith(".webm")) acc.push(full);
+  }
+  return acc;
+}
+
+const videos = findVideos(outputDir).sort(
+  (a, b) => fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs
+);
+
+if (videos.length === 0) {
+  console.error(
+    "No .webm files found under scripts/demo/output. Run npm run demo:record first."
+  );
+  process.exit(1);
+}
+
+fs.mkdirSync(publicDemos, { recursive: true });
+const dest = path.join(publicDemos, "familyflow-demo.webm");
+fs.copyFileSync(videos[0], dest);
+console.log(`Published ${videos[0]} -> ${dest}`);
+
+const posterSrc = path.join(publicDemos, "familyflow-demo-poster.webp");
+if (!fs.existsSync(posterSrc)) {
+  console.log(
+    "Optional: add `public/demos/familyflow-demo-poster.svg` (or `.webp`) as a 1280×720 poster frame."
+  );
+}

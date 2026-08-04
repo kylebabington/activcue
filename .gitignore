@@ -32,3 +32,8 @@ server/.env
 *.njsproj
 *.sln
 *.sw?
+
+# Playwright / demo recording scratch
+scripts/demo/output
+test-results
+playwright-report
