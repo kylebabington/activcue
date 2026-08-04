@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { buildDefaultFamilySettings } from "../../constants/familySettingsDefaults";
+import { createActivityMoment } from "../../api/recommendationTelemetryApi";
 import { markMomentCreatedAt } from "../../utils/timeToStart";
 
 export function parentStatusFromMoment(moment) {
@@ -18,14 +19,17 @@ export function useParentMoment({
   setParentStatus,
   lastSuccessfulMoment,
   setLastCompletedQuest,
+  getChildIds,
+  kidMood,
 } = {}) {
   const [currentMoment, setCurrentMoment] = useState(
     () => buildDefaultFamilySettings().currentMoment
   );
   const [customParentPresets, setCustomParentPresets] = useState([]);
   const [activePresetKey, setActivePresetKey] = useState("");
+  const [activeMomentId, setActiveMomentId] = useState(null);
 
-  function applyMomentDraft(draft, options = {}) {
+  async function applyMomentDraft(draft, options = {}) {
     setCurrentMoment({
       parentActivity: draft.parentActivity,
       availability: draft.availability,
@@ -35,7 +39,26 @@ export function useParentMoment({
       noiseLevel: draft.noiseLevel,
       supervisionLevel: draft.supervisionLevel,
     });
-    markMomentCreatedAt();
+
+    let momentId = null;
+    try {
+      const childIds =
+        typeof getChildIds === "function" ? getChildIds() || [] : [];
+      const result = await createActivityMoment({
+        moment: draft,
+        childIds,
+        kidMood: kidMood || null,
+        rescueMode: Boolean(options.rescueMode),
+      });
+      momentId = result?.moment?.id || null;
+      if (momentId) {
+        setActiveMomentId(momentId);
+      }
+    } catch (error) {
+      console.warn("Could not persist activity moment:", error);
+    }
+
+    markMomentCreatedAt(undefined, { momentId });
     setParentStatus?.(parentStatusFromMoment(draft));
     showStatus?.(
       `Live for kids now: "${draft.parentActivity}".`,
@@ -46,6 +69,8 @@ export function useParentMoment({
       firstRunCoach?.markMomentSet?.();
       navigate?.("/kid");
     }
+
+    return momentId;
   }
 
   function saveCustomParentPreset(label, draft) {
@@ -142,6 +167,8 @@ export function useParentMoment({
   return {
     currentMoment,
     setCurrentMoment,
+    activeMomentId,
+    setActiveMomentId,
     customParentPresets,
     setCustomParentPresets,
     activePresetKey,

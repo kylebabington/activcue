@@ -27,9 +27,68 @@ import {
   buildKidBoredFeedbackContext,
   filterStartableActivities,
 } from "./activityGenerationHelpers";
-import { markSuggestionsShownAt } from "../../utils/timeToStart";
+import { markSuggestionsShownAt, getTimeToStartTiming } from "../../utils/timeToStart";
 import { resolveChildAge } from "../../utils/childAge";
 import { playModeFlavorFromActivityStyle } from "../../constants/activityPreferences";
+import { createRecommendationBatch } from "../../api/recommendationTelemetryApi";
+import { trackProductEvent } from "../../utils/analytics";
+
+async function recordLocalBatch(activities, { source, momentId, mode = "normal" }) {
+  if (!Array.isArray(activities) || activities.length === 0) {
+    return { activities, recommendationBatchId: null, momentId: momentId || null };
+  }
+
+  try {
+    const result = await createRecommendationBatch({
+      source,
+      mode,
+      momentId: momentId || getTimeToStartTiming()?.momentId || null,
+      activities,
+    });
+    return {
+      activities: Array.isArray(result?.activities) ? result.activities : activities,
+      recommendationBatchId: result?.recommendationBatchId || null,
+      momentId: result?.momentId || momentId || null,
+    };
+  } catch (error) {
+    console.warn("Could not persist recommendation batch:", error);
+    return {
+      activities,
+      recommendationBatchId: null,
+      momentId: momentId || null,
+    };
+  }
+}
+
+function markBoardShown(activities, { recommendationBatchId = null, momentId = null } = {}) {
+  if (!Array.isArray(activities) || activities.length === 0) {
+    return;
+  }
+  markSuggestionsShownAt(undefined, {
+    recommendationBatchId,
+    momentId: momentId || getTimeToStartTiming()?.momentId || null,
+    candidateIds: activities
+      .map((activity) => activity?.candidateId || activity?.candidate_id)
+      .filter(Boolean),
+  });
+}
+
+async function presentLocalBoard(deps, activities, source = "templates") {
+  const recorded = await recordLocalBatch(activities, {
+    source,
+    momentId: deps.activeMomentId || getTimeToStartTiming()?.momentId || null,
+  });
+  const normalized = normalizeActivitiesToInventory(
+    recorded.activities,
+    deps.inventory
+  );
+  deps.setActivities?.(normalized);
+  markBoardShown(normalized, {
+    recommendationBatchId: recorded.recommendationBatchId,
+    momentId: recorded.momentId,
+  });
+  return normalized;
+}
 
 function resolveOldestChildAgeYears(deps) {
   const profiles =
@@ -98,8 +157,14 @@ export function useActivityGeneration(deps = {}) {
           .slice(-10)
           .map((historyItem) => historyItem.title);
 
-        return getActivitySuggestions({
+        trackProductEvent("generation_requested", {
+          momentId: d.activeMomentId || getTimeToStartTiming()?.momentId || null,
+          activityStyle: intent?.activityStyle || d.kidActivityStyle,
+        });
+
+        const result = await getActivitySuggestions({
           currentMoment: d.currentMoment,
+          momentId: d.activeMomentId || getTimeToStartTiming()?.momentId || null,
           parentActivity: d.currentMoment.parentActivity,
           parentAvailability: d.currentMoment.availability,
           inventory: d.inventory,
@@ -124,17 +189,48 @@ export function useActivityGeneration(deps = {}) {
           ),
           activityPreferences: d.activityPreferences,
         });
+
+        if (result?.momentId && d.setActiveMomentId) {
+          d.setActiveMomentId(result.momentId);
+        }
+
+        trackProductEvent("activity_generated", {
+          momentId: result?.momentId || d.activeMomentId || null,
+          recommendationBatchId: result?.recommendationBatchId || null,
+          candidateCount: Array.isArray(result?.activities)
+            ? result.activities.length
+            : 0,
+        });
+
+        return result;
       }
 
-      function finalizeActivities(rawActivities) {
+      async function finalizeActivities(rawActivities, meta = {}) {
+        let activities = Array.isArray(rawActivities) ? rawActivities : [];
+        let recommendationBatchId = meta.recommendationBatchId || null;
+        let momentId =
+          meta.momentId ||
+          d.activeMomentId ||
+          getTimeToStartTiming()?.momentId ||
+          null;
+
+        if (!recommendationBatchId && activities.length > 0) {
+          const recorded = await recordLocalBatch(activities, {
+            source: meta.source || "templates",
+            momentId,
+            mode: meta.mode || "normal",
+          });
+          activities = recorded.activities;
+          recommendationBatchId = recorded.recommendationBatchId;
+          momentId = recorded.momentId || momentId;
+        }
+
         const normalized = normalizeActivitiesToInventory(
-          rawActivities,
+          activities,
           d.inventory
         );
         d.setActivities?.(normalized);
-        if (normalized.length > 0) {
-          markSuggestionsShownAt();
-        }
+        markBoardShown(normalized, { recommendationBatchId, momentId });
         return normalized;
       }
 
@@ -149,7 +245,7 @@ export function useActivityGeneration(deps = {}) {
 
           if (templateActivities.length > 0) {
             d.showStatus?.("Quick ideas ready — no wait.", "success");
-            return finalizeActivities(templateActivities);
+            return finalizeActivities(templateActivities, { source: "templates" });
           }
 
           const { activities: presetActivities } = await getPresetActivities({
@@ -161,7 +257,7 @@ export function useActivityGeneration(deps = {}) {
 
           if (unlockedPresets.length > 0) {
             d.showStatus?.("Quick ideas from the free library.", "success");
-            return finalizeActivities(unlockedPresets);
+            return finalizeActivities(unlockedPresets, { source: "curated" });
           }
 
           d.showStatus?.(
@@ -171,7 +267,8 @@ export function useActivityGeneration(deps = {}) {
           return [];
         }
 
-        let generatedActivities = await requestActivities(combinedFeedback);
+        let generated = await requestActivities(combinedFeedback);
+        let generatedActivities = generated?.activities || [];
         let normalized = normalizeActivitiesToInventory(
           generatedActivities,
           d.inventory
@@ -192,14 +289,19 @@ export function useActivityGeneration(deps = {}) {
             .filter(Boolean)
             .join("\n\n");
 
-          generatedActivities = await requestActivities(strongerFeedback);
+          generated = await requestActivities(strongerFeedback);
+          generatedActivities = generated?.activities || [];
           normalized = normalizeActivitiesToInventory(
             generatedActivities,
             d.inventory
           );
         }
 
-        return finalizeActivities(normalized);
+        return finalizeActivities(normalized, {
+          recommendationBatchId: generated?.recommendationBatchId,
+          momentId: generated?.momentId,
+          source: "openai",
+        });
       } catch (error) {
         console.error(error);
 
@@ -245,7 +347,7 @@ export function useActivityGeneration(deps = {}) {
               "Couldn’t reach the idea server — showing quick simple ideas from your supplies.",
               "info"
             );
-            return finalizeActivities(templateActivities);
+            return finalizeActivities(templateActivities, { source: "templates" });
           }
         }
 
@@ -351,14 +453,7 @@ export function useActivityGeneration(deps = {}) {
 
           if (templateActivities.length > 0) {
             clearStickyQuestForNewBoard();
-            const normalized = normalizeActivitiesToInventory(
-              templateActivities,
-              d.inventory
-            );
-            d.setActivities?.(normalized);
-            if (normalized.length > 0) {
-              markSuggestionsShownAt();
-            }
+            await presentLocalBoard(d, templateActivities, "templates");
             d.showStatus?.("Quick ideas ready — no wait.", "success");
             d.navigate?.("/quest");
             return;
@@ -412,12 +507,7 @@ export function useActivityGeneration(deps = {}) {
               });
 
               if (templateActivities.length > 0) {
-                const normalized = normalizeActivitiesToInventory(
-                  templateActivities,
-                  d.inventory
-                );
-                d.setActivities?.(normalized);
-                markSuggestionsShownAt();
+                await presentLocalBoard(d, templateActivities, "templates");
                 d.showStatus?.("Quick ideas ready — no wait.", "success");
                 d.navigate?.("/quest");
                 return;
@@ -443,10 +533,7 @@ export function useActivityGeneration(deps = {}) {
                 return;
               }
 
-              d.setActivities?.(
-                normalizeActivitiesToInventory(slice, d.inventory)
-              );
-              markSuggestionsShownAt();
+              await presentLocalBoard(d, slice, "curated");
               d.showStatus?.(
                 "Sample presets — Plus personalizes to this moment.",
                 "success"
@@ -475,10 +562,7 @@ export function useActivityGeneration(deps = {}) {
               return;
             }
 
-            d.setActivities?.(
-              normalizeActivitiesToInventory(slice, d.inventory)
-            );
-            markSuggestionsShownAt();
+            await presentLocalBoard(d, slice, "curated");
             d.showStatus?.(
               "Showing sample presets — Plus personalizes to this moment.",
               "success"
@@ -516,10 +600,7 @@ export function useActivityGeneration(deps = {}) {
             return;
           }
 
-          d.setActivities?.(
-            normalizeActivitiesToInventory(slice, d.inventory)
-          );
-          markSuggestionsShownAt();
+          await presentLocalBoard(d, slice, "curated");
           d.showStatus?.(
             "Showing sample presets — Plus personalizes to this moment. Unlock one pretend activity free when you start.",
             "success"

@@ -238,6 +238,8 @@ function App() {
   const {
     currentMoment,
     setCurrentMoment,
+    activeMomentId,
+    setActiveMomentId,
     customParentPresets,
     setCustomParentPresets,
     activePresetKey,
@@ -256,6 +258,9 @@ function App() {
     setLastCompletedQuest: (value) => {
       setLastCompletedQuestBridge.current?.(value);
     },
+    getChildIds: () =>
+      (childProfiles || []).map((child) => child?.id).filter(Boolean),
+    kidMood,
   });
 
   const {
@@ -424,6 +429,8 @@ function App() {
     activityMode,
     activeChildId,
     currentMoment,
+    activeMomentId,
+    setActiveMomentId,
     inventory: effectiveInventory,
     kidMood,
     kidEnergyLevel,
@@ -494,6 +501,7 @@ function App() {
   const { handleTryNextBestWithLibrary } = usePlanBRescue({
     inventory: effectiveInventory,
     currentMoment,
+    activeMomentId,
     scoredActivities,
     handleTryNextBest,
     handleStartActivityFromUi,

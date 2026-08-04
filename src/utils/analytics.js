@@ -27,6 +27,7 @@ export const PRODUCT_EVENT_NAMES = Object.freeze([
   "subscription_resumed",
   "AI_error",
   "rescue_mode_started",
+  "rescue_mode_opened",
   "im_bored",
   "quick_ideas",
   "unlock_used",

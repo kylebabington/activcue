@@ -6,6 +6,8 @@ import {
   buildFeedbackIntent,
   intentToLegacyFeedbackContext,
 } from "./activityIntent";
+import { trackProductEvent } from "../../utils/analytics";
+import { recordSharedActivityOutcome } from "../../api/sharedActivitiesApi";
 
 export function useActivityFeedback({
   kidMood,
@@ -73,6 +75,25 @@ export function useActivityFeedback({
     };
 
     appendHistory?.(historyItem);
+
+    if (rejectionReason) {
+      trackProductEvent("activity_rejected", {
+        reason: rejectionReason,
+        feedbackType,
+        candidateId: historyItem.candidateId,
+        recommendationBatchId: historyItem.recommendationBatchId,
+      });
+      if (historyItem.candidateId) {
+        void recordSharedActivityOutcome({
+          candidateId: historyItem.candidateId,
+          outcome: "rejected",
+        }).catch(() => {});
+      }
+    }
+
+    if (feedbackType === "need-another-idea" || feedbackType === "regenerate") {
+      trackProductEvent("regenerate", { feedbackType });
+    }
   }
 
   function regenerateFromFeedback(feedbackIntent, previousActivityTitle) {

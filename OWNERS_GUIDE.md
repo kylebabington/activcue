@@ -218,7 +218,7 @@ Utilities under `src/utils/` and `src/features/activities/` score candidates aga
 - Current moment (time, mess, noise, supervision, space)
 - Soft inventory match
 - History / preference signals
-- **Session Fit Score 2.0** — boosts or penalizes based on past session outcomes for similar activities
+- **Session Fit Score 3.0** — boosts or penalizes based on past session outcomes for similar activities under similar moments (outcome × moment similarity × activity similarity × recency)
 
 Then the UI can auto-pick the top score (“Start for me”) or let the kid choose.
 
@@ -291,11 +291,13 @@ family-activity-helper/
 |---------|------------------|
 | Core product | `profiles`, `subscriptions`, `preset_activities` |
 | Family document | `family_settings` (+ JSON memory columns) |
-| First-class memory | `saved_activities`, `activity_events`, `activity_sessions` |
-| Ops / safety | `stripe_webhook_events`, `ai_usage_events` (tokens, estimated cost, latency, failure type) |
+| First-class memory | `saved_activities`, `activity_events`, `activity_sessions`, `activity_session_participants` |
+| Recommendation spine | `activity_moments`, `recommendation_batches`, `recommendation_candidates` |
+| Shared library | `shared_activity_candidates`, `user_candidate_impressions` |
+| Ops / safety | `stripe_webhook_events`, `ai_usage_events` (tokens, estimated cost, latency, `response_id`, optional `recommendation_batch_id`) |
 | Product analytics | `product_events` (allowlisted names; no child notes/prompts) |
-| Household sharing (foundation) | `households`, `household_members`; nullable `family_settings.household_id` future FK — children/inventory stay on `family_settings` until sharing UI ships |
-| Billing nuance | `cancel_at_period_end` on subscriptions |
+| Household sharing (foundation) | `households`, `household_members`, `household_invites`; nullable `household_id` on memory/telemetry tables |
+| Billing nuance | `cancel_at_period_end` on subscriptions; `profiles.billing_exempt` |
 
 Migrations are the source of truth for other environments even if production already applied them.
 
