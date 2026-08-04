@@ -6,6 +6,7 @@ import {
   getStepDetails,
   getVisualThemeMeta,
 } from "../utils/activityVisualTheme";
+import { trackProductEvent } from "../utils/analytics";
 
 function ActiveActivityPanel({
   activeActivity,
@@ -24,12 +25,6 @@ function ActiveActivityPanel({
   assignRole,
   toggleBuiltInHelp,
   setOpenSection,
-  openRescueSection,
-  markRescueModeUsed,
-  stepHint,
-  isHintLoading,
-  handleNeedStepHint,
-  canUseAiHints = true,
   formatTimer,
   playingChildren = [],
 }) {
@@ -52,10 +47,6 @@ function ActiveActivityPanel({
   );
   const focusStepIndex =
     firstIncompleteIndex >= 0 ? firstIncompleteIndex : steps.length - 1;
-  const highlightedStuckStepIndex =
-    typeof activeActivity.highlightedStuckStepIndex === "number"
-      ? activeActivity.highlightedStuckStepIndex
-      : null;
   const didScrollOnMount = useRef(false);
 
   // Keep unused phased helpers referenced so callers stay stable during migration.
@@ -86,16 +77,14 @@ function ActiveActivityPanel({
     [activeActivity.extensionIdeas]
   );
 
-  function handleImStuck(stepIndex) {
-    markRescueModeUsed?.();
-    openRescueSection?.(stepIndex);
-    requestAnimationFrame(() => {
-      document
-        .getElementById("quest-section-rescue")
-        ?.scrollIntoView?.({ behavior: "smooth", block: "start" });
-      document
-        .getElementById("quest-rescue-focus")
-        ?.scrollIntoView?.({ behavior: "smooth", block: "nearest" });
+  function handleImStuck(stepIndex, promptIndex) {
+    trackProductEvent("built_in_help_opened", {
+      title: activeActivity.title,
+      stepIndex,
+      promptIndex,
+      candidateId: activeActivity.candidateId || null,
+      recommendationBatchId: activeActivity.recommendationBatchId || null,
+      momentId: activeActivity.momentId || null,
     });
   }
 
@@ -118,17 +107,12 @@ function ActiveActivityPanel({
         onToggleStep={toggleQuestStepComplete}
         onToggleStarter={toggleStarterIdea}
         onImStuck={handleImStuck}
-        highlightedStuckStepIndex={highlightedStuckStepIndex}
         focusStepIndex={focusStepIndex}
         playingChildren={playingChildren}
         roleAssignments={activeActivity.roleAssignments}
         onAssignRole={assignRole}
         selectedRoleName={activeActivity.selectedRoleName || roleName}
         extensionIdeas={extensionIdeas}
-        stepHint={stepHint}
-        isHintLoading={isHintLoading}
-        canUseAiHints={canUseAiHints}
-        onNeedStepHint={handleNeedStepHint}
         onFinish={finishActiveActivity}
         timerSecondsRemaining={timerSecondsRemaining}
         formatTimer={formatTimer}
@@ -137,7 +121,6 @@ function ActiveActivityPanel({
         onTimerNotFinished={handleTimerNotFinished}
         onTimerNeedAnotherIdea={handleTimerNeedAnotherIdea}
         onTimerMoreLikeThis={handleTimerMoreLikeThis}
-        usedRescueMode={Boolean(activeActivity.usedRescueMode)}
       />
 
       <div className="simple-active-actions quest-v2-global-actions">

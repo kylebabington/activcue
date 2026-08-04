@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   formatActivityStyleLabel,
   formatAdultHelpLabel,
@@ -11,6 +12,7 @@ import {
   getActivityRoleLabel,
   getStarterIdeas,
   getStepDetails,
+  getStepStuckPrompts,
   getVisualThemeMeta,
 } from "../../utils/activityVisualTheme";
 import CollapsibleQuestSection from "./CollapsibleQuestSection";
@@ -28,6 +30,17 @@ function QuestStepCard({
   onImStuck,
 }) {
   const examples = Array.isArray(step?.examples) ? step.examples : [];
+  const stuckPrompts = getStepStuckPrompts(step);
+  const [stuckPromptIndex, setStuckPromptIndex] = useState(-1);
+  const visibleStuckPrompt =
+    stuckPromptIndex >= 0 ? stuckPrompts[stuckPromptIndex] : "";
+
+  function handleStuckClick() {
+    if (stuckPrompts.length === 0) return;
+    const nextIndex = (stuckPromptIndex + 1) % stuckPrompts.length;
+    setStuckPromptIndex(nextIndex);
+    onImStuck?.(index, nextIndex);
+  }
 
   return (
     <article
@@ -78,10 +91,6 @@ function QuestStepCard({
             <p className="step-done-when">Done when: {step.doneWhen}</p>
           ) : null}
 
-          {step?.ifStuck ? (
-            <p className="step-if-stuck">If stuck: {step.ifStuck}</p>
-          ) : null}
-
           {Array.isArray(step?.roleInstructions) &&
           step.roleInstructions.length > 0 ? (
             <ul className="step-role-instructions">
@@ -93,14 +102,24 @@ function QuestStepCard({
             </ul>
           ) : null}
 
-          {mode === "active" && step?.ifStuck ? (
-            <button
-              type="button"
-              className="secondary-action"
-              onClick={() => onImStuck?.(index)}
-            >
-              I’m stuck
-            </button>
+          {mode === "active" && stuckPrompts.length > 0 ? (
+            <div className="quest-step-stuck-help">
+              <button
+                type="button"
+                className="secondary-action"
+                onClick={handleStuckClick}
+              >
+                I’m stuck
+              </button>
+              {visibleStuckPrompt ? (
+                <div className="quest-v2-if-stuck" aria-live="polite">
+                  <p className="quest-step-stuck-counter">
+                    Idea {stuckPromptIndex + 1} of {stuckPrompts.length}
+                  </p>
+                  <p>{visibleStuckPrompt}</p>
+                </div>
+              ) : null}
+            </div>
           ) : null}
         </>
       ) : null}
@@ -149,10 +168,6 @@ export default function QuestContent({
   onAssignRole,
   selectedRoleName = "",
   extensionIdeas = [],
-  stepHint = "",
-  isHintLoading = false,
-  canUseAiHints = true,
-  onNeedStepHint,
   onFinish,
   timerSecondsRemaining,
   formatTimer,
@@ -161,7 +176,6 @@ export default function QuestContent({
   onTimerNotFinished,
   onTimerNeedAnotherIdea,
   onTimerMoreLikeThis,
-  usedRescueMode = false,
 }) {
   if (!activity) return null;
 
@@ -334,8 +348,7 @@ export default function QuestContent({
             ) : null}
             {roleGuide?.firstAction ? (
               <p>
-                <em>Start with:</em> {roleGuide.firstAction}
-              </p>
+                <em>Start with:</em> {roleGuide.firstAction}</p>
             ) : null}
           </>
         )}
@@ -483,56 +496,6 @@ export default function QuestContent({
             })}
           </div>
         )}
-      </CollapsibleQuestSection>
-
-      <CollapsibleQuestSection
-        {...sectionProps(
-          "rescue",
-          "Stuck?",
-          usedRescueMode ? "Rescue Mode used" : "Help when you need it",
-          false
-        )}
-      >
-        <p>
-          Try the simpler version of the current step. Skip fancy setup and do
-          the smallest useful action.
-        </p>
-        {highlightedStuckStepIndex != null &&
-        steps[highlightedStuckStepIndex]?.ifStuck ? (
-          <p className="quest-v2-if-stuck" id="quest-rescue-focus">
-            {steps[highlightedStuckStepIndex].ifStuck}
-          </p>
-        ) : (
-          <ul>
-            {steps
-              .filter((step) => step.ifStuck)
-              .map((step, index) => (
-                <li key={`stuck-${step.title}-${index}`}>
-                  <strong>{step.title}:</strong> {step.ifStuck}
-                </li>
-              ))}
-          </ul>
-        )}
-
-        {mode === "active" ? (
-          <div className="quest-v2-ai-fallback">
-            <button
-              type="button"
-              className={
-                canUseAiHints ? "text-action" : "text-action hint-button--plus"
-              }
-              onClick={onNeedStepHint}
-              disabled={isHintLoading || !canUseAiHints}
-            >
-              {isHintLoading
-                ? "Thinking..."
-                : canUseAiHints
-                  ? "Still stuck? Get another idea"
-                  : "Plus hint"}
-            </button>
-            {stepHint ? <p className="quest-v2-ai-hint">{stepHint}</p> : null}
-          </div>
-        ) : null}
       </CollapsibleQuestSection>
 
       <CollapsibleQuestSection
