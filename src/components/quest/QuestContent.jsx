@@ -257,7 +257,7 @@ export default function QuestContent({
       <CollapsibleQuestSection
         {...sectionProps(
           "mission",
-          "Your Mission",
+          "Overview",
           formatEstimatedMinutes(activity.estimatedMinutes) || undefined,
           true
         )}
@@ -536,7 +536,7 @@ export default function QuestContent({
       </CollapsibleQuestSection>
 
       <CollapsibleQuestSection
-        {...sectionProps("finish", "Finish the Quest", undefined, false)}
+        {...sectionProps("finish", "Finish the Activity", undefined, false)}
       >
         {extensions.length > 0 ? (
           <>

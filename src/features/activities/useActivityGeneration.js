@@ -479,7 +479,7 @@ export function useActivityGeneration(deps = {}) {
           );
           markSuggestionsShownAt();
           d.showStatus?.(
-            "Showing sample presets — Plus personalizes to this moment. Unlock one pretend quest free when you start.",
+            "Showing sample presets — Plus personalizes to this moment. Unlock one pretend activity free when you start.",
             "success"
           );
           d.navigate?.("/quest");

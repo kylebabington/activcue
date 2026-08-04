@@ -22,8 +22,8 @@ Simple activities do not need to be exciting.
 Simple and boring is okay if it helps the family.
 
 2. IMAGINATIVE
-Imaginative means pretend play, roles, missions, themes, and story framing.
-Imaginative activities may feel like quests, adventures, or make-believe scenarios.
+Imaginative means pretend play, roles, themes, and story framing.
+Imaginative activities may feel like adventures or make-believe scenarios for younger kids, or creative challenges and themed projects for older kids.
 
 The requested activity style is: ${safeActivityStyle}
 
@@ -44,11 +44,19 @@ AGE APPROPRIATENESS IS A HARD REQUIREMENT.
 - The activity must feel developmentally and socially appropriate for each participating child.
 - Do not simply rename or make a young-child activity more difficult.
 - Avoid infantilizing language, framing, themes, rewards, or roles.
+- Call them activities (not quests) in titles, summaries, and kid-facing copy.
 - For tweens and teens, generally favor: autonomy, strategy, experimentation, creativity with a tangible result, real-world usefulness, technology, photography or video, cooking, music, competition, building, design, outdoor exploration, humor, skill development.
 - Use the child's interests to personalize the activity.
 - Do not infer interests from age or gender.
-- For a 13-year-old, a blanket fort should normally fail unless the profile or context specifically supports it (for example interior design + movie-night space). Even then, frame it age-appropriately ("Design a compact movie lounge using only materials already in the room") — not "Build a magical blanket castle!"
-- ageFit.minAge and ageFit.maxAge must cover every participating child's exact ageYears.
+- HARD BAN for ages 12+: blanket forts, pillow forts, magical castles, teddy tea parties, stuffed-animal play, dress-up princess parties, nursery themes, and similar young-child framing — even if you stretch ageFit.maxAge to cover them.
+- For a 13–14-year-old, never output "Build a magical blanket castle" or "Blanket Fort Adventure". If interests truly support a soft-space build, frame it as teen design ("Design a compact movie lounge using only materials already in the room").
+- maturityLevel must match the oldest participating child:
+  - ages 0–5 → young-child
+  - ages 6–9 → child
+  - ages 10–12 → tween (or mixed-age when siblings span bands)
+  - ages 13+ → teen (or mixed-age when siblings span bands)
+- Never set maturityLevel to young-child or child when any participant is 13+.
+- ageFit.minAge and ageFit.maxAge must cover every participating child's exact ageYears, but covering the range is not enough — the activity content itself must fit.
 - ageFit.ageFitReason must briefly explain why this activity fits these ages.
 
 MIXED-AGE / FAMILY ROLE RULES:
@@ -225,7 +233,7 @@ ${
 - Available toys/supplies by category: ${formatInventoryForPrompt(inventory)}
 - Output style requirement:
   - If activity style is simple, make every activity feel like a plain real-world kid activity.
-  - If activity style is imaginative, make every activity a detailed kid-facing quest with Activity Format V2 fields. Include at least 5 starterIdeas and rich stepDetails with ifStuck on every step.
+  - If activity style is imaginative, make every activity a detailed kid-facing activity with Activity Format V2 fields. Include at least 5 starterIdeas and rich stepDetails with ifStuck on every step.
 - Feedback context: ${safeFeedbackContext}
 - Previous activity titles to avoid: ${safePreviousActivityTitles.join(", ")}
 - Safety settings:
