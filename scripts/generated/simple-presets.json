@@ -17,7 +17,30 @@
     "energy": "low",
     "mess": "low",
     "adultHelp": "none",
-    "whyItFits": "It is quiet, familiar, and needs very little setup."
+    "whyItFits": "It is quiet, familiar, and needs very little setup.",
+    "activityStyle": "simple",
+    "categories": [
+      "creative"
+    ],
+    "traits": {
+      "setupEffort": "low",
+      "structure": "open-ended",
+      "socialMode": "solo",
+      "creativity": "high",
+      "movement": "low"
+    },
+    "ageFit": {
+      "minAge": 5,
+      "maxAge": 12,
+      "targetAges": [
+        5,
+        9,
+        12
+      ],
+      "maturityLevel": "mixed-age",
+      "independenceLevel": "independent",
+      "ageFitReason": "Familiar quiet drawing works across early school ages."
+    }
   },
   {
     "slug": "color-a-page",
@@ -37,7 +60,30 @@
     "energy": "low",
     "mess": "low",
     "adultHelp": "none",
-    "whyItFits": "It is calm, clear, and uses art supplies you already have."
+    "whyItFits": "It is calm, clear, and uses art supplies you already have.",
+    "activityStyle": "simple",
+    "categories": [
+      "creative"
+    ],
+    "traits": {
+      "setupEffort": "low",
+      "structure": "guided",
+      "socialMode": "solo",
+      "creativity": "medium",
+      "movement": "low"
+    },
+    "ageFit": {
+      "minAge": 5,
+      "maxAge": 12,
+      "targetAges": [
+        5,
+        9,
+        12
+      ],
+      "maturityLevel": "mixed-age",
+      "independenceLevel": "independent",
+      "ageFitReason": "Coloring is clear and calm for a wide age band."
+    }
   },
   {
     "slug": "build-a-tower",
@@ -57,7 +103,30 @@
     "energy": "medium",
     "mess": "low",
     "adultHelp": "none",
-    "whyItFits": "It is easy to begin and uses a familiar building toy."
+    "whyItFits": "It is easy to begin and uses a familiar building toy.",
+    "activityStyle": "simple",
+    "categories": [
+      "building"
+    ],
+    "traits": {
+      "setupEffort": "low",
+      "structure": "open-ended",
+      "socialMode": "solo",
+      "creativity": "medium",
+      "movement": "low"
+    },
+    "ageFit": {
+      "minAge": 4,
+      "maxAge": 9,
+      "targetAges": [
+        4,
+        7,
+        9
+      ],
+      "maturityLevel": "child",
+      "independenceLevel": "independent",
+      "ageFitReason": "Block towers fit younger builders without complex planning."
+    }
   },
   {
     "slug": "do-a-puzzle",
@@ -75,7 +144,30 @@
     "energy": "low",
     "mess": "low",
     "adultHelp": "none",
-    "whyItFits": "It is structured, screen-free, and easy to understand."
+    "whyItFits": "It is structured, screen-free, and easy to understand.",
+    "activityStyle": "simple",
+    "categories": [
+      "puzzle"
+    ],
+    "traits": {
+      "setupEffort": "low",
+      "structure": "guided",
+      "socialMode": "solo",
+      "creativity": "low",
+      "movement": "low"
+    },
+    "ageFit": {
+      "minAge": 5,
+      "maxAge": 12,
+      "targetAges": [
+        5,
+        9,
+        12
+      ],
+      "maturityLevel": "mixed-age",
+      "independenceLevel": "independent",
+      "ageFitReason": "Puzzle difficulty can flex across elementary ages."
+    }
   },
   {
     "slug": "make-a-reading-nook",
@@ -95,7 +187,30 @@
     "energy": "low",
     "mess": "low",
     "adultHelp": "none",
-    "whyItFits": "It gives a calm activity that can last as long as needed."
+    "whyItFits": "It gives a calm activity that can last as long as needed.",
+    "activityStyle": "simple",
+    "categories": [
+      "reading"
+    ],
+    "traits": {
+      "setupEffort": "low",
+      "structure": "open-ended",
+      "socialMode": "solo",
+      "creativity": "low",
+      "movement": "low"
+    },
+    "ageFit": {
+      "minAge": 5,
+      "maxAge": 12,
+      "targetAges": [
+        5,
+        9,
+        12
+      ],
+      "maturityLevel": "mixed-age",
+      "independenceLevel": "independent",
+      "ageFitReason": "A cozy reading spot suits independent quiet time for many ages."
+    }
   },
   {
     "slug": "play-a-simple-card-game",
@@ -115,7 +230,30 @@
     "energy": "low",
     "mess": "low",
     "adultHelp": "optional",
-    "whyItFits": "It uses an existing collection and provides a clear task."
+    "whyItFits": "It uses an existing collection and provides a clear task.",
+    "activityStyle": "simple",
+    "categories": [
+      "social-game"
+    ],
+    "traits": {
+      "setupEffort": "low",
+      "structure": "guided",
+      "socialMode": "cooperative",
+      "creativity": "low",
+      "movement": "low"
+    },
+    "ageFit": {
+      "minAge": 5,
+      "maxAge": 12,
+      "targetAges": [
+        5,
+        9,
+        12
+      ],
+      "maturityLevel": "mixed-age",
+      "independenceLevel": "some-help",
+      "ageFitReason": "Simple card rules work for kids who can take turns."
+    }
   },
   {
     "slug": "build-a-cozy-fort",
@@ -135,7 +273,31 @@
     "energy": "medium",
     "mess": "medium",
     "adultHelp": "optional",
-    "whyItFits": "It turns ordinary household items into a clear building project."
+    "whyItFits": "It turns ordinary household items into a clear building project.",
+    "activityStyle": "simple",
+    "categories": [
+      "building",
+      "pretend"
+    ],
+    "traits": {
+      "setupEffort": "medium",
+      "structure": "open-ended",
+      "socialMode": "solo",
+      "creativity": "high",
+      "movement": "medium"
+    },
+    "ageFit": {
+      "minAge": 4,
+      "maxAge": 9,
+      "targetAges": [
+        4,
+        7,
+        9
+      ],
+      "maturityLevel": "child",
+      "independenceLevel": "some-help",
+      "ageFitReason": "Blanket forts are a sweet spot for younger builders."
+    }
   },
   {
     "slug": "make-play-doh-shapes",
@@ -154,7 +316,31 @@
     "energy": "low",
     "mess": "medium",
     "adultHelp": "none",
-    "whyItFits": "It is hands-on, contained, and easy to start alone."
+    "whyItFits": "It is hands-on, contained, and easy to start alone.",
+    "activityStyle": "simple",
+    "categories": [
+      "sensory",
+      "creative"
+    ],
+    "traits": {
+      "setupEffort": "low",
+      "structure": "open-ended",
+      "socialMode": "solo",
+      "creativity": "high",
+      "movement": "low"
+    },
+    "ageFit": {
+      "minAge": 4,
+      "maxAge": 9,
+      "targetAges": [
+        4,
+        7,
+        9
+      ],
+      "maturityLevel": "child",
+      "independenceLevel": "independent",
+      "ageFitReason": "Play-Doh play is hands-on and self-directed for younger kids."
+    }
   },
   {
     "slug": "ball-play-outside",
@@ -174,6 +360,29 @@
     "energy": "high",
     "mess": "low",
     "adultHelp": "none",
-    "whyItFits": "It gives an energetic child a simple activity with clear boundaries."
+    "whyItFits": "It gives an energetic child a simple activity with clear boundaries.",
+    "activityStyle": "simple",
+    "categories": [
+      "movement"
+    ],
+    "traits": {
+      "setupEffort": "low",
+      "structure": "open-ended",
+      "socialMode": "solo",
+      "creativity": "low",
+      "movement": "high"
+    },
+    "ageFit": {
+      "minAge": 5,
+      "maxAge": 12,
+      "targetAges": [
+        5,
+        9,
+        12
+      ],
+      "maturityLevel": "mixed-age",
+      "independenceLevel": "independent",
+      "ageFitReason": "Outdoor ball play burns energy across elementary ages."
+    }
   }
 ]

@@ -193,6 +193,96 @@ export async function ingestGeneratedActivities({
   return resolved;
 }
 
+/**
+ * Upsert curated presets into the shared library without user impressions.
+ * Idempotent on content_hash. Use source "preset-import".
+ */
+export async function ingestPresetCandidates({
+  activities = [],
+  source = "preset-import",
+} = {}) {
+  if (!Array.isArray(activities) || activities.length === 0) {
+    return { inserted: 0, updated: 0, skipped: 0, candidates: [] };
+  }
+
+  const supabase = getSupabaseAdminClient();
+  let inserted = 0;
+  let updated = 0;
+  let skipped = 0;
+  const candidates = [];
+
+  for (const activity of activities) {
+    const row = toLibraryRow(activity, { source });
+    const { data: existing } = await supabase
+      .from("shared_activity_candidates")
+      .select("*")
+      .eq("content_hash", row.content_hash)
+      .maybeSingle();
+
+    if (existing) {
+      const { data: saved, error } = await supabase
+        .from("shared_activity_candidates")
+        .update({
+          activity_data: row.activity_data,
+          activity_style: row.activity_style,
+          categories: row.categories,
+          traits: row.traits,
+          energy: row.energy,
+          mess: row.mess,
+          adult_help: row.adult_help,
+          estimated_minutes: row.estimated_minutes,
+          supplies: row.supplies,
+          source: row.source,
+          is_active: true,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", existing.id)
+        .select("*")
+        .single();
+
+      if (error || !saved) {
+        skipped += 1;
+        continue;
+      }
+      updated += 1;
+      candidates.push(formatSharedCandidate(saved));
+      continue;
+    }
+
+    const { data: insertedRow, error } = await supabase
+      .from("shared_activity_candidates")
+      .insert({
+        ...row,
+        times_served: 0,
+        times_started: 0,
+        times_completed: 0,
+        times_rejected: 0,
+      })
+      .select("*")
+      .single();
+
+    if (error) {
+      const { data: raced } = await supabase
+        .from("shared_activity_candidates")
+        .select("*")
+        .eq("content_hash", row.content_hash)
+        .maybeSingle();
+      if (raced) {
+        updated += 1;
+        candidates.push(formatSharedCandidate(raced));
+      } else {
+        skipped += 1;
+      }
+      continue;
+    }
+
+    inserted += 1;
+    candidates.push(formatSharedCandidate(insertedRow));
+  }
+
+  return { inserted, updated, skipped, candidates };
+}
+
 function inventoryOverlapScore(supplies, inventory) {
   const inventoryText = (Array.isArray(inventory) ? inventory : [])
     .map((item) =>
