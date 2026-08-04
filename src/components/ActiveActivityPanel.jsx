@@ -25,7 +25,6 @@ function ActiveActivityPanel({
   toggleBuiltInHelp,
   setOpenSection,
   openRescueSection,
-  markRescueModeUsed,
   stepHint,
   isHintLoading,
   handleNeedStepHint,
@@ -87,16 +86,9 @@ function ActiveActivityPanel({
   );
 
   function handleImStuck(stepIndex) {
-    markRescueModeUsed?.();
+    // Keep the existing built-in-help telemetry/state hook, but do not navigate
+    // away from the step. QuestStepCard displays and cycles the prompt inline.
     openRescueSection?.(stepIndex);
-    requestAnimationFrame(() => {
-      document
-        .getElementById("quest-section-rescue")
-        ?.scrollIntoView?.({ behavior: "smooth", block: "start" });
-      document
-        .getElementById("quest-rescue-focus")
-        ?.scrollIntoView?.({ behavior: "smooth", block: "nearest" });
-    });
   }
 
   return (
