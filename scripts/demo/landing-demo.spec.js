@@ -84,15 +84,19 @@ test("record FamilyFlow landing demo", async ({ page }, testInfo) => {
   await doneToggle.click();
   await pause(page, 2200);
 
-  // 9. Built-in Stuck? help (no AI call)
-  await page.getByRole("button", { name: /^Stuck\?$/i }).click();
-  await pause(page, 1400);
-  const rescue = detail.locator("#quest-section-rescue");
-  await rescue.scrollIntoViewIfNeeded();
-  await expect(
-    page.getByText(/simpler version of the current step/i)
-  ).toBeVisible();
-  await pause(page, 3200);
+  // 9. Step-local I'm stuck help (no AI call). Show the cycle in the video.
+  const stuckButton = detail.getByRole("button", { name: /^I’m stuck$/i }).first();
+  await expect(stuckButton).toBeVisible();
+  await stuckButton.scrollIntoViewIfNeeded();
+  await stuckButton.click();
+  await expect(detail.locator(".quest-v2-if-stuck").first()).toBeVisible();
+  await expect(detail.locator(".quest-step-stuck-counter").first()).toContainText(
+    /Idea 1 of/i
+  );
+  await pause(page, 2400);
+
+  await stuckButton.click();
+  await pause(page, 2200);
 
   // 10. Return to recommendations
   await page.getByRole("button", { name: /^Close$/i }).click();
