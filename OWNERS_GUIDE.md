@@ -86,7 +86,7 @@ Everything else—scoring, presets, AI prompts, Fit Score, Rescue Mode—is in s
 
 - **Find something now** → enters onboarding / the authenticated app. An anonymous session is created if needed.
 - **Try the demo** on `/` — fully client-side; no session, no OpenAI.
-- **`/demo`** — public walkthrough page for Playwright marketing recordings (child + moment → Fit Score matches → Start / Steps / Stuck? → Plan B; no AuthProvider).
+- **`/demo`** — interactive playground (client-side Fit Score; no AuthProvider). Landing launch video is recorded from the **real app** via `npm run demo:record` (see `scripts/demo/README.md`).
 - **Log in / Create account** → permanent accounts for people who already converted or want Plus.
 
 **Why the demo is offline:** Marketing must not burn OpenAI tokens or create anonymous users on every visitor click.
@@ -465,7 +465,7 @@ npm run presets:import-shared          # DB → shared_activity_candidates
 # or: npm run presets:import-shared -- --from-json
 ```
 
-Marketing demo recording (full FamilyFlow story on `/demo`): `npm run demo:record` then `npm run demo:publish` (see `scripts/demo/README.md`).
+Marketing demo recording (real-app launch video): `npm run demo:record` then `npm run demo:publish`. Optional `/demo` playground re-record: `npm run demo:record:playground` (see `scripts/demo/README.md`).
 
 ### Touching billing
 

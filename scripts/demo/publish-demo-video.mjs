@@ -34,10 +34,14 @@ if (videos.length === 0) {
   process.exit(1);
 }
 
+// Prefer the real-app recording when both exist.
+const preferred =
+  videos.find((file) => /app-demo/i.test(file)) || videos[0];
+
 fs.mkdirSync(publicDemos, { recursive: true });
 const dest = path.join(publicDemos, "familyflow-demo.webm");
-fs.copyFileSync(videos[0], dest);
-console.log(`Published ${videos[0]} -> ${dest}`);
+fs.copyFileSync(preferred, dest);
+console.log(`Published ${preferred} -> ${dest}`);
 
 const posterSrc = path.join(publicDemos, "familyflow-demo-poster.webp");
 if (!fs.existsSync(posterSrc)) {
