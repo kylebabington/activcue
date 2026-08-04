@@ -6,7 +6,7 @@ import QuestContent from "../components/quest/QuestContent";
 import { getDefaultOpenSections } from "../components/quest/questSectionDefaults";
 import { DEMO_MOMENT_LIST, getDemoMoment } from "../constants/demoMoments";
 import { getDemoChild } from "../constants/demoChildren";
-import { matchDemoActivities } from "../features/demo";
+import { matchDemoActivities, rotateDemoResults } from "../features/demo";
 import "../styles/landing.css";
 import "../styles/demo.css";
 
@@ -20,22 +20,30 @@ function DemoPage() {
   const childId = searchParams.get("child") || "maya";
   const activitySlug = searchParams.get("activity") || "";
 
-  const match = useMemo(
-    () => matchDemoActivities({ momentId, childId, limit: 6 }),
+  const baseMatch = useMemo(
+    () => matchDemoActivities({ momentId, childId, limit: 3 }),
     [momentId, childId]
   );
 
-  const deepLinked = useMemo(() => {
-    if (!activitySlug) return match.results[0]?.activity || null;
-    return (
-      match.rankedActivities.find((activity) => activity.slug === activitySlug) ||
-      match.results[0]?.activity ||
-      null
-    );
-  }, [activitySlug, match]);
+  const [matchResult, setMatchResult] = useState(baseMatch);
 
-  const [activity, setActivity] = useState(deepLinked);
-  const [mode, setMode] = useState(searchParams.get("start") === "1" ? "active" : "preview");
+  useEffect(() => {
+    setMatchResult(baseMatch);
+  }, [baseMatch]);
+
+  const deepLinkedActivity = useMemo(() => {
+    if (!activitySlug) return null;
+    return (
+      matchResult.rankedActivities.find(
+        (activity) => activity.slug === activitySlug
+      ) || null
+    );
+  }, [activitySlug, matchResult]);
+
+  const [activity, setActivity] = useState(deepLinkedActivity);
+  const [mode, setMode] = useState(
+    searchParams.get("start") === "1" ? "active" : "preview"
+  );
   const [openSections, setOpenSections] = useState(() =>
     getDefaultOpenSections({
       rescue: searchParams.get("stuck") === "1",
@@ -45,11 +53,44 @@ function DemoPage() {
   const [completedSteps, setCompletedSteps] = useState([]);
 
   useEffect(() => {
-    setActivity(deepLinked);
-  }, [deepLinked]);
+    setActivity(deepLinkedActivity);
+    if (!activitySlug) {
+      setMode("preview");
+      setOpenSections(getDefaultOpenSections());
+      setCheckedStarters([]);
+      setCompletedSteps([]);
+    }
+  }, [deepLinkedActivity, activitySlug, momentId, childId]);
+
+  useEffect(() => {
+    if (activitySlug && searchParams.get("start") === "1") {
+      setMode("active");
+    }
+    if (activitySlug && searchParams.get("stuck") === "1") {
+      setOpenSections((prev) => ({ ...prev, rescue: true, steps: true }));
+    }
+  }, [activitySlug, searchParams]);
 
   const moment = getDemoMoment(momentId);
   const child = getDemoChild(childId);
+
+  function handleTryAnother() {
+    const next = rotateDemoResults(matchResult, { childId, momentId });
+    setMatchResult(next);
+    setActivity(null);
+    setMode("preview");
+    setOpenSections(getDefaultOpenSections());
+    setCheckedStarters([]);
+    setCompletedSteps([]);
+  }
+
+  function handleClose() {
+    setActivity(null);
+    setMode("preview");
+    setOpenSections(getDefaultOpenSections());
+    setCheckedStarters([]);
+    setCompletedSteps([]);
+  }
 
   return (
     <div className="landing demo-page">
@@ -70,7 +111,7 @@ function DemoPage() {
               Back to landing
             </Link>
             <Link className="landing-topbar-cta" to="/onboarding">
-              Find something to do
+              Find something now
             </Link>
           </div>
         </div>
@@ -121,7 +162,7 @@ function DemoPage() {
 
         <section className="demo-page-results" aria-label="Matched activities">
           <ul className="moment-demo-card-list">
-            {match.results.map((entry) => (
+            {matchResult.results.map((entry) => (
               <li key={entry.activity.slug || entry.activity.title}>
                 <button
                   type="button"
@@ -134,7 +175,9 @@ function DemoPage() {
                     setCompletedSteps([]);
                   }}
                 >
-                  <span className="moment-demo-card-fit">{entry.fitPercent}% fit</span>
+                  <span className="moment-demo-card-fit">
+                    {entry.fitPercent}% fit
+                  </span>
                   <h4>{entry.activity.title}</h4>
                   <p>{entry.activity.summary}</p>
                   <ul className="moment-demo-fit-chips">
@@ -146,6 +189,21 @@ function DemoPage() {
               </li>
             ))}
           </ul>
+
+          <div className="moment-demo-why">
+            <h4>Why these fit</h4>
+            <p>
+              Matched with FamilyFlow&apos;s real Fit Score — time, mess, noise,
+              supervision, and age — not a random list.
+            </p>
+            <button
+              type="button"
+              className="landing-btn landing-btn--ghost"
+              onClick={handleTryAnother}
+            >
+              Didn&apos;t land? Try another
+            </button>
+          </div>
         </section>
 
         {activity ? (
@@ -157,7 +215,16 @@ function DemoPage() {
                   <button
                     type="button"
                     className="landing-btn landing-btn--primary"
-                    onClick={() => setMode("active")}
+                    onClick={() => {
+                      setMode("active");
+                      setOpenSections(
+                        getDefaultOpenSections({
+                          starters: true,
+                          steps: true,
+                          rescue: false,
+                        })
+                      );
+                    }}
                   >
                     Start activity
                   </button>
@@ -166,18 +233,29 @@ function DemoPage() {
                     type="button"
                     className="landing-btn landing-btn--ghost"
                     onClick={() =>
-                      setOpenSections((prev) => ({ ...prev, rescue: true, steps: true }))
+                      setOpenSections((prev) => ({
+                        ...prev,
+                        rescue: true,
+                        steps: true,
+                      }))
                     }
                   >
                     Stuck?
                   </button>
                 )}
+                <button
+                  type="button"
+                  className="landing-btn landing-btn--ghost"
+                  onClick={handleClose}
+                >
+                  Close
+                </button>
               </div>
             </div>
             <QuestContent
               activity={activity}
               mode={mode}
-              currentMoment={match.moment}
+              currentMoment={matchResult.moment}
               openSections={openSections}
               onSectionOpenChange={(key, nextOpen) =>
                 setOpenSections((prev) => ({ ...prev, [key]: nextOpen }))
@@ -206,7 +284,7 @@ function DemoPage() {
         <section className="demo-page-final-cta">
           <h2>Here&apos;s something that works right now.</h2>
           <Link className="landing-btn landing-btn--primary" to="/onboarding">
-            Try FamilyFlow
+            Find something now
           </Link>
         </section>
       </main>

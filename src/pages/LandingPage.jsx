@@ -67,10 +67,11 @@ function DemoVideoSection() {
   return (
     <section className="landing-section" aria-labelledby="video-title">
       <div className="landing-section-inner">
-        <h2 id="video-title">See the whole flow in 35 seconds</h2>
+        <h2 id="video-title">See the whole flow in under a minute</h2>
         <p className="landing-section-lead">
-          Moment in, matched activities out — then Start, Steps, and Stuck?
-          help when the first idea stalls.
+          Pick a child and moment, get three Fit Score matches, Start an
+          activity, check Steps and Stuck? help — then try Plan B if the first
+          idea doesn&apos;t land.
         </p>
         <video
           className="landing-demo-video"
