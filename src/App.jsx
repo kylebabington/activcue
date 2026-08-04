@@ -1,38 +1,22 @@
 // src/App.jsx
 
 import { useNavigate } from "react-router-dom";
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-import { signOutCurrentUser } from "./api/authApi";
-import { redirectToCheckout } from "./api/billingApi";
-import { buildSignupUrl } from "./utils/signupUrls";
-import { ApiRequestError } from "./api/apiClient";
-import { listActivitySessions, resetFamilyData } from "./api/familyMemoryApi";
-import {
-  fetchPlanBActivities,
-} from "./api/sharedActivitiesApi";
+import { useEffect, useRef, useState } from "react";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import { useFirstRunCoach } from "./hooks/useFirstRunCoach";
 import { useKidDeviceMode } from "./hooks/useKidDeviceMode";
 import { useAuth } from "./hooks/useAuth";
 import { useUiTheme } from "./hooks/useUiTheme";
 import { useEntitlement } from "./features/billing";
-import ParentPinForm from "./components/ParentPinForm";
-import AppHeader from "./components/AppHeader";
+import {
+  AppShell,
+  AppShellError,
+  AppShellLoading,
+} from "./components/AppShell";
 import { AppProviders } from "./context/AppProviders";
 import { AppRoutes } from "./context/AppRoutes";
 import "./App.css";
-import { inventoryCategories } from "./constants/presets";
-import { inventoryPresets } from "./constants/inventoryPresets";
 import {
-  buildDefaultFamilySettings,
-  clearFamilySettingsLocalStorage,
-  saveFamilySettings,
-  saveParentPin as saveParentPinRemote,
   useFamilySettings,
   useFamilyMemory,
   useInventory,
@@ -41,21 +25,29 @@ import {
 } from "./features/family";
 import { useQuestSession } from "./features/quest";
 import {
-  logActivityScoreTable,
-  scoreActivitiesForCurrentMoment,
   useActivityGeneration,
   useActivityFeedback,
   buildFeedbackIntent,
   intentToLegacyFeedbackContext,
 } from "./features/activities";
 import {
-  formatAvailabilityLabel,
-  formatFeedbackLabel,
-  formatTimer,
-} from "./utils/activityFormatters";
+  buildActivityContextValue,
+  buildBillingContextValue,
+  buildFamilyContextValue,
+  buildQuestContextValue,
+  useActivitySessions,
+  useFamilyDataReset,
+  useHeaderLogout,
+  useOnboardingDraft,
+  useParentPinGate,
+  usePlanBRescue,
+  usePlusCheckout,
+  useSafetySettings,
+  useScoredActivities,
+  useStatusMessage,
+} from "./features/app";
+import { formatAvailabilityLabel } from "./utils/activityFormatters";
 import { isFreeImaginativeUnlockUsed } from "./utils/presetDemo";
-import { buildGettingBetterCopy } from "./utils/confidenceCopy";
-import { trackProductEvent } from "./utils/analytics";
 
 function App() {
   const navigate = useNavigate();
@@ -64,47 +56,39 @@ function App() {
   const { theme: uiTheme, setTheme: setUiTheme, themes: uiThemes } =
     useUiTheme();
 
-  const {
-    kidDeviceMode,
-    setKidDeviceMode,
-  } = useKidDeviceMode();
-
+  const { kidDeviceMode, setKidDeviceMode } = useKidDeviceMode();
   const firstRunCoach = useFirstRunCoach();
 
-  useEffect(() => {
-    try {
-      const params = new URLSearchParams(window.location.search);
-      if (params.get("kid") === "1") {
-        setKidDeviceMode(true);
-      }
-    } catch {
-      // Ignore malformed search strings.
-    }
-  }, [setKidDeviceMode]);
+  const {
+    statusMessage,
+    statusType,
+    setStatusMessage,
+    setStatusType,
+    showStatus,
+  } = useStatusMessage();
 
-  const [headerLogoutBusy, setHeaderLogoutBusy] = useState(false);
-  const [headerLogoutError, setHeaderLogoutError] = useState("");
-  const [parentPin, setParentPin] = useLocalStorage("parentPin", "");
-  const [parentPinSet, setParentPinSet] = useState(Boolean(parentPin));
-  const [parentAreaUnlocked, setParentAreaUnlocked] = useState(false);
+  const {
+    headerLogoutBusy,
+    headerLogoutError,
+    handleHeaderLogout,
+  } = useHeaderLogout();
+
+  const {
+    parentPin,
+    parentPinSet,
+    setParentPinSet,
+    setParentAreaUnlocked,
+    parentAreasLocked,
+    saveParentPin,
+  } = useParentPinGate({
+    userId: user?.id,
+    showStatus,
+  });
+
   const [, setParentStatus] = useLocalStorage("parentStatus", {
     activity: "Cleaning the kitchen",
     availability: "helper-welcome",
   });
-
-  const [statusMessage, setStatusMessage] = useState("");
-  const [statusType, setStatusType] = useState("info");
-
-  function showStatus(message, type = "info") {
-    if (!message) {
-      setStatusMessage("");
-      setStatusType("info");
-      return;
-    }
-
-    setStatusMessage(message);
-    setStatusType(type);
-  }
 
   const {
     inventory,
@@ -122,9 +106,6 @@ function App() {
   } = useInventory({ showStatus });
 
   const [childAgeRange] = useLocalStorage("childAgeRange", "6-9");
-  const [onboardingVersion, setOnboardingVersion] = useState(null);
-  const [onboardingCompletedAt, setOnboardingCompletedAt] = useState(null);
-  const [onboardingSkippedAt, setOnboardingSkippedAt] = useState(null);
 
   const {
     childProfiles,
@@ -168,13 +149,24 @@ function App() {
     null
   );
 
-  const [safetySettings, setSafetySettings] = useState(
-    () => buildDefaultFamilySettings().safetySettings
-  );
+  const {
+    safetySettings,
+    setSafetySettings,
+    updateSafetySetting,
+    toggleSafetySetting,
+  } = useSafetySettings();
 
   const [activities, setActivities] = useState([]);
-  const [activitySessions, setActivitySessions] = useState([]);
-  const [checkoutBusy, setCheckoutBusy] = useState(false);
+  const { activitySessions, setActivitySessions } = useActivitySessions({
+    userId: user?.id,
+  });
+
+  const { checkoutBusy, handleGetPlus } = usePlusCheckout({
+    isAnonymous,
+    navigate,
+    setStatusMessage,
+    setStatusType,
+  });
 
   const [kidMood, setKidMood] = useLocalStorage("kidMood", "neutral");
   const [kidEnergyLevel, setKidEnergyLevel] = useLocalStorage(
@@ -199,32 +191,6 @@ function App() {
     appendHistory,
     clearHistory,
   } = useFamilyMemory({ userId: user?.id });
-
-  useEffect(() => {
-    if (!user?.id) {
-      return;
-    }
-
-    let cancelled = false;
-
-    listActivitySessions({ limit: 80 }, { expectedUserId: user.id })
-      .then((payload) => {
-        if (cancelled) {
-          return;
-        }
-        const sessions = Array.isArray(payload?.activitySessions)
-          ? payload.activitySessions
-          : [];
-        setActivitySessions(sessions);
-      })
-      .catch((error) => {
-        console.warn("Could not load activity sessions:", error);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [user?.id]);
 
   const saveActivityFeedbackRef = useRef(null);
   const handleStartActivityRef = useRef(null);
@@ -265,61 +231,36 @@ function App() {
     },
   });
 
-  const scoringOptions = useMemo(
-    () => ({
-      inventory,
-      activeChildId: activityMode === "family" ? "" : activeChildId || "",
-    }),
-    [inventory, activityMode, activeChildId]
-  );
+  const {
+    onboardingVersion,
+    setOnboardingVersion,
+    onboardingCompletedAt,
+    setOnboardingCompletedAt,
+    onboardingSkippedAt,
+    setOnboardingSkippedAt,
+    applyOnboardingDraft,
+  } = useOnboardingDraft({
+    setChildProfiles,
+    applyPlayingSelection,
+    setInventory,
+    applyMomentDraft,
+  });
 
-  const scoredActivities = useMemo(() => {
-    return scoreActivitiesForCurrentMoment({
-      activities,
-      currentMoment,
-      activityHistory,
-      activitySessions,
-      scoringOptions,
-      activityMode,
-      selectedChildProfiles,
-    });
-  }, [
+  const {
+    scoringOptions,
+    scoredActivities,
+    gettingBetterCopy,
+  } = useScoredActivities({
     activities,
     currentMoment,
     activityHistory,
-    scoringOptions,
     activitySessions,
+    inventory,
     activityMode,
+    activeChildId,
+    activeChildProfile,
     selectedChildProfiles,
-  ]);
-
-  useEffect(() => {
-    if (activities.length === 0) {
-      return;
-    }
-
-    logActivityScoreTable(
-      scoredActivities,
-      currentMoment,
-      activityHistory,
-      scoringOptions
-    );
-  }, [
-    activities.length,
-    scoredActivities,
-    currentMoment,
-    activityHistory,
-    scoringOptions,
-  ]);
-
-  const gettingBetterCopy = useMemo(
-    () =>
-      buildGettingBetterCopy(activitySessions, {
-        childId: activityMode === "family" ? "" : activeChildId || "",
-        childName: activeChildProfile?.name || "",
-      }),
-    [activitySessions, activityMode, activeChildId, activeChildProfile]
-  );
+  });
 
   const {
     familySettingsReady,
@@ -509,6 +450,23 @@ function App() {
 
   saveActivityFeedbackRef.current = saveActivityFeedback;
 
+  const { handleTryNextBestWithLibrary } = usePlanBRescue({
+    inventory,
+    currentMoment,
+    scoredActivities,
+    handleTryNextBest,
+    handleStartActivityFromUi,
+    handleGenerateActivities,
+    showStatus,
+  });
+
+  const { resetSavedData } = useFamilyDataReset({
+    userId: user?.id,
+    suppressFamilySettingsSavesRef,
+    familySettingsSaveTimeoutRef,
+    familySettingsSaveChainRef,
+  });
+
   useEffect(() => {
     if (!activeActivity?.id) {
       return;
@@ -519,150 +477,6 @@ function App() {
       ?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [activeActivity?.id]);
 
-  function updateSafetySetting(settingName, newValue) {
-    setSafetySettings({
-      ...safetySettings,
-      [settingName]: newValue,
-    });
-  }
-
-  function toggleSafetySetting(settingName) {
-    setSafetySettings({
-      ...safetySettings,
-      [settingName]: !safetySettings[settingName],
-    });
-  }
-
-  async function saveParentPin(newPin) {
-    const cleanedPin = newPin.trim();
-
-    if (cleanedPin.length < 4) {
-      showStatus("PIN must be at least 4 digits.", "error");
-      return;
-    }
-
-    try {
-      await saveParentPinRemote(cleanedPin, {
-        expectedUserId: user?.id,
-      });
-      setParentPin(cleanedPin);
-      setParentPinSet(true);
-      showStatus("Parent PIN saved.", "success");
-    } catch (error) {
-      console.error("Could not save parent PIN:", error);
-      /*
-       * Fall back to local PIN if settings row is not ready yet.
-       */
-      setParentPin(cleanedPin);
-      setParentPinSet(true);
-      showStatus(
-        error instanceof Error
-          ? error.message
-          : "Parent PIN saved on this device only for now.",
-        "info"
-      );
-    }
-  }
-
-  async function handleGetPlus() {
-    if (isAnonymous) {
-      navigate(buildSignupUrl({ next: "checkout", plan: "monthly" }));
-      return;
-    }
-
-    setCheckoutBusy(true);
-    setStatusMessage("");
-    trackProductEvent("plus_checkout_started");
-
-    try {
-      await redirectToCheckout();
-    } catch (error) {
-      if (
-        error instanceof ApiRequestError &&
-        error.code === "ACCOUNT_REQUIRED"
-      ) {
-        navigate(buildSignupUrl({ next: "checkout", plan: "monthly" }));
-        return;
-      }
-
-      setStatusMessage(
-        error?.message ||
-        "Could not start checkout. Try again in a moment."
-      );
-      setStatusType("error");
-      setCheckoutBusy(false);
-    }
-  }
-
-  async function resetSavedData() {
-    const confirmed = window.confirm(
-      "Reset all saved family settings, favorites, history, and browser data? Your account and subscription stay. This cannot be undone."
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
-    suppressFamilySettingsSavesRef.current = true;
-
-    if (familySettingsSaveTimeoutRef.current !== null) {
-      window.clearTimeout(familySettingsSaveTimeoutRef.current);
-      familySettingsSaveTimeoutRef.current = null;
-    }
-
-    await familySettingsSaveChainRef.current.catch(() => { });
-
-    if (familySettingsSaveTimeoutRef.current !== null) {
-      window.clearTimeout(familySettingsSaveTimeoutRef.current);
-      familySettingsSaveTimeoutRef.current = null;
-    }
-
-    try {
-      await resetFamilyData({ expectedUserId: user?.id });
-
-      const resetPromise = saveFamilySettings(
-        buildDefaultFamilySettings(),
-        {
-          expectedUserId: user?.id,
-        }
-      );
-
-      familySettingsSaveChainRef.current = resetPromise;
-      await resetPromise;
-    } catch (error) {
-      console.error("Could not reset family data:", error);
-      suppressFamilySettingsSavesRef.current = false;
-      window.alert(
-        "Could not reset synced family data on the server. Try again."
-      );
-      return;
-    }
-
-    clearFamilySettingsLocalStorage();
-    window.localStorage.removeItem("appMode");
-    window.localStorage.removeItem("parentPin");
-    window.localStorage.removeItem("parentStatus");
-    window.localStorage.removeItem("kidMood");
-    window.localStorage.removeItem("kidEnergyLevel");
-    window.localStorage.removeItem("kidActivityStyle");
-    window.localStorage.removeItem("messLevel");
-    window.localStorage.removeItem("locationPreference");
-    window.localStorage.removeItem("activitySpace");
-    window.localStorage.removeItem("customActivitySpace");
-    window.localStorage.removeItem("childAgeRange");
-    window.localStorage.removeItem("activityHistory");
-    window.localStorage.removeItem("savedActivities");
-    window.localStorage.removeItem("lastSuccessfulMoment");
-    window.localStorage.removeItem("activeActivity");
-    window.localStorage.removeItem("lastCompletedQuest");
-    window.localStorage.removeItem("activitySessions");
-    window.localStorage.removeItem("uiTheme");
-    window.localStorage.removeItem("kidDeviceMode");
-    window.location.reload();
-  }
-
-  const parentAreasLocked =
-    (parentPinSet || Boolean(parentPin)) && !parentAreaUnlocked;
   const defaultHomePath =
     parentPin && inventory.length > 0 ? "/kid" : "/parent";
 
@@ -670,60 +484,13 @@ function App() {
   const childProfilesEmpty = childProfiles.length === 0;
   const setupNudgeNeeded = inventoryEmpty && childProfilesEmpty;
 
-  function applyOnboardingDraft({
-    children = [],
-    inventory: nextInventory = [],
-    moment = null,
-    skipped = false,
-  } = {}) {
-    if (Array.isArray(children) && children.length > 0) {
-      setChildProfiles(children);
-      applyPlayingSelection(
-        [children[0].id],
-        children
-      );
-    }
-
-    if (Array.isArray(nextInventory) && nextInventory.length > 0) {
-      setInventory(nextInventory);
-    }
-
-    if (moment && typeof moment === "object") {
-      applyMomentDraft(moment);
-    }
-
-    const completedAt = new Date().toISOString();
-    setOnboardingVersion(1);
-    if (skipped) {
-      setOnboardingSkippedAt(completedAt);
-      setOnboardingCompletedAt(null);
-    } else {
-      setOnboardingCompletedAt(completedAt);
-      setOnboardingSkippedAt(null);
-    }
-    try {
-      window.localStorage.setItem(
-        "ff_onboarding_meta",
-        JSON.stringify({
-          onboardingVersion: 1,
-          onboardingCompletedAt: skipped ? null : completedAt,
-          onboardingSkippedAt: skipped ? completedAt : null,
-        })
-      );
-    } catch {
-      // ignore
-    }
-  }
-
-  const familyContextValue = {
+  const familyContextValue = buildFamilyContextValue({
     currentMoment,
     inventory,
     showStatus,
     safetySettings,
     toggleSafetySetting,
     updateSafetySetting,
-    inventoryCategories,
-    inventoryPresets,
     normalizedInventory,
     customInventoryItems,
     isInventoryItemSelected,
@@ -736,7 +503,7 @@ function App() {
     removeInventoryItem,
     childProfiles,
     activeChildId,
-    setActiveChildId: (childId) => applyPlayingSelection([childId]),
+    applyPlayingSelection,
     activeChildProfile,
     selectedChildProfiles,
     playingChildIds,
@@ -762,14 +529,12 @@ function App() {
     addChildProfile,
     deleteChildProfile,
     parentPin,
-    ParentPinForm,
     saveParentPin,
     savedActivities,
     handleReplaySavedActivity,
     removeSavedActivity,
     activityHistory,
     clearActivityHistory,
-    formatFeedbackLabel,
     resetSavedData,
     uiTheme,
     setUiTheme,
@@ -780,9 +545,9 @@ function App() {
     setupNudgeNeeded,
     inventoryEmpty,
     gettingBetterCopy,
-  };
+  });
 
-  const questContextValue = {
+  const questContextValue = buildQuestContextValue({
     currentMoment,
     activeActivity,
     lastCompletedQuest,
@@ -810,12 +575,11 @@ function App() {
     stepHint,
     isHintLoading,
     handleNeedStepHint,
-    formatTimer,
     activities,
     scoredActivities,
     activitySessions,
     isLoading,
-    handleStartActivity: handleStartActivityFromUi,
+    handleStartActivityFromUi,
     saveFavoriteActivity,
     handleTooMessy,
     handleTooHard,
@@ -824,58 +588,7 @@ function App() {
     handleTooEasy,
     handleNeedQuieter,
     handleMoreLikeThis,
-    handleTryNextBest: async () => {
-      trackProductEvent("plan_b_offered", { source: "batch" });
-      const result = handleTryNextBest(scoredActivities);
-      if (result?.usedBatch) {
-        trackProductEvent("plan_b_started", { source: "batch" });
-        trackProductEvent("plan_b_used", { source: "batch" });
-        return;
-      }
-
-      const rejected = result?.rejected || scoredActivities[0]?.activity;
-      if (rejected) {
-        trackProductEvent("plan_b_rejected", {
-          source: "batch-exhausted",
-        });
-      }
-
-      try {
-        const response = await fetchPlanBActivities({
-          inventory,
-          currentMoment,
-          excludeCandidateIds: [
-            rejected?.candidateId,
-            ...scoredActivities
-              .map((item) => item?.activity?.candidateId)
-              .filter(Boolean),
-          ].filter(Boolean),
-          excludeCategories: Array.isArray(rejected?.categories)
-            ? rejected.categories
-            : [],
-          limit: 3,
-        });
-        const next = response?.activities?.[0];
-        if (next) {
-          trackProductEvent("plan_b_started", { source: "shared-library" });
-          trackProductEvent("plan_b_used", { source: "shared-library" });
-          handleStartActivityFromUi(next);
-          showStatus?.(
-            `Plan B from the library: "${next.title}".`,
-            "success"
-          );
-          return;
-        }
-      } catch (error) {
-        console.error("Plan B library lookup failed:", error);
-      }
-
-      showStatus?.(
-        "No Plan B left in this batch or library. Generating fresh ideas…",
-        "info"
-      );
-      handleGenerateActivities?.();
-    },
+    handleTryNextBestWithLibrary,
     handleAutoPickQuest,
     gettingBetterCopy,
     selectedChildProfiles,
@@ -883,15 +596,15 @@ function App() {
     inventoryEmpty,
     entitlement,
     entitlementHydrated,
-  };
+  });
 
-  const billingContextValue = {
+  const billingContextValue = buildBillingContextValue({
     entitlement,
     entitlementHydrated,
     refreshEntitlement,
-  };
+  });
 
-  const activityContextValue = {
+  const activityContextValue = buildActivityContextValue({
     activities,
     setActivities,
     scoredActivities,
@@ -907,102 +620,32 @@ function App() {
     freeImaginativeUnlockUsed,
     imBoredDisabled,
     isDemoMode,
-  };
+  });
 
   if (familySettingsError) {
-    return (
-      <main
-        role="alert"
-        style={{
-          minHeight: "100vh",
-          display: "grid",
-          placeItems: "center",
-          padding: "2rem",
-          textAlign: "center",
-        }}
-      >
-        <section>
-          <p>{familySettingsError}</p>
-          <button type="button" onClick={() => window.location.reload()}>
-            Try again
-          </button>
-        </section>
-      </main>
-    );
+    return <AppShellError message={familySettingsError} />;
   }
 
   if (!familySettingsReady) {
-    return (
-      <main
-        role="status"
-        aria-live="polite"
-        style={{
-          minHeight: "100vh",
-          display: "grid",
-          placeItems: "center",
-          padding: "2rem",
-        }}
-      >
-        <p>Loading family settings…</p>
-      </main>
-    );
+    return <AppShellLoading />;
   }
 
   return (
-    <main className={`app-shell${kidDeviceMode ? " app-shell--kid-device" : ""}`}>
-      <AppHeader
-        kidDeviceMode={kidDeviceMode}
-        parentAreasLocked={parentAreasLocked}
-        isAnonymous={isAnonymous}
-        headerLogoutBusy={headerLogoutBusy}
-        headerLogoutError={headerLogoutError}
-        uiTheme={uiTheme}
-        setUiTheme={setUiTheme}
-        uiThemes={uiThemes}
-        onLogout={async () => {
-          setHeaderLogoutError("");
-          setHeaderLogoutBusy(true);
-
-          try {
-            await signOutCurrentUser();
-            window.location.assign("/login");
-          } catch (error) {
-            console.error("Could not log out:", error);
-            setHeaderLogoutError(
-              error instanceof Error
-                ? error.message
-                : "Could not log out. Try again."
-            );
-            setHeaderLogoutBusy(false);
-          }
-        }}
-      />
-
-      {familySettingsSaveStatus === "error" ? (
-        <div
-          className="status-message status-message--error family-settings-save-error"
-          role="alert"
-        >
-          <p>
-            Your latest changes were not saved. Check your connection and try
-            again.
-          </p>
-          <button type="button" onClick={retryFamilySettingsSave}>
-            Try again
-          </button>
-        </div>
-      ) : null}
-
-      {statusMessage && (
-        <p
-          className={`status-message status-message--${statusType}`}
-          role="status"
-          aria-live="polite"
-        >
-          {statusMessage}
-        </p>
-      )}
-
+    <AppShell
+      kidDeviceMode={kidDeviceMode}
+      parentAreasLocked={parentAreasLocked}
+      isAnonymous={isAnonymous}
+      headerLogoutBusy={headerLogoutBusy}
+      headerLogoutError={headerLogoutError}
+      uiTheme={uiTheme}
+      setUiTheme={setUiTheme}
+      uiThemes={uiThemes}
+      onLogout={handleHeaderLogout}
+      familySettingsSaveStatus={familySettingsSaveStatus}
+      retryFamilySettingsSave={retryFamilySettingsSave}
+      statusMessage={statusMessage}
+      statusType={statusType}
+    >
       <AppProviders
         familyContextValue={familyContextValue}
         questContextValue={questContextValue}
@@ -1054,7 +697,7 @@ function App() {
           handleStartActivityFromUi={handleStartActivityFromUi}
         />
       </AppProviders>
-    </main>
+    </AppShell>
   );
 }
 
