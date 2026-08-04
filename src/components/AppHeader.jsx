@@ -59,6 +59,24 @@ export default function AppHeader({
         </NavLink>
 
         <NavLink
+          to="/my-activities"
+          className={({ isActive }) =>
+            isActive ? "active" : parentAreasLocked ? "nav-muted" : ""
+          }
+          title={parentAreasLocked ? "My Activities are locked" : undefined}
+          aria-label={
+            parentAreasLocked ? "My Activities (locked)" : "My Activities"
+          }
+        >
+          My Activities
+          {parentAreasLocked && (
+            <span className="nav-lock-mark" aria-hidden="true">
+              ·
+            </span>
+          )}
+        </NavLink>
+
+        <NavLink
           to="/insights"
           className={({ isActive }) =>
             isActive ? "active" : parentAreasLocked ? "nav-muted" : ""

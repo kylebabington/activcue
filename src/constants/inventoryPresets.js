@@ -202,6 +202,16 @@ const defaultInventoryNames = [
   "bubbles",
 ];
 
+/** Common household items FamilyFlow can assume when the flag is on. */
+export const HOUSEHOLD_BASICS = [
+  { name: "paper", category: "Art supplies" },
+  { name: "pencil", category: "Art supplies" },
+  { name: "towels", category: "Other" },
+  { name: "cups", category: "Building toys" },
+  { name: "cardboard", category: "Building toys" },
+  { name: "blankets", category: "Quiet activities" },
+];
+
 export function createInventoryItem(name, category, id = crypto.randomUUID()) {
   return { id, name, category };
 }
@@ -219,6 +229,35 @@ export function buildDefaultInventory() {
       preset?.category ?? "Other"
     );
   });
+}
+
+/**
+ * Merge selected inventory with assumed household basics (by name, case-insensitive).
+ */
+export function mergeInventoryWithHouseholdBasics(
+  inventory,
+  assumeHouseholdBasics
+) {
+  const list = Array.isArray(inventory) ? inventory : [];
+  if (!assumeHouseholdBasics) {
+    return list;
+  }
+
+  const names = new Set(
+    list
+      .map((item) =>
+        typeof item?.name === "string" ? item.name.trim().toLowerCase() : ""
+      )
+      .filter(Boolean)
+  );
+
+  const extras = HOUSEHOLD_BASICS.filter(
+    (basic) => !names.has(basic.name.toLowerCase())
+  ).map((basic) =>
+    createInventoryItem(basic.name, basic.category, `basic:${basic.name}`)
+  );
+
+  return [...list, ...extras];
 }
 
 export function isPresetInventoryItem(name) {

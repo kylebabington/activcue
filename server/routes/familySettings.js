@@ -27,6 +27,14 @@ const DEFAULT_SAFETY_SETTINGS = {
     adultHelpAllowed: "optional",
 };
 
+const DEFAULT_ACTIVITY_PREFERENCES = {
+    messTolerance: "a-little",
+    setupEffort: "a-few-minutes",
+    independencePreference: "mostly-independent",
+    activityStylePreference: "mix",
+    indoorOutdoorPreference: "either",
+};
+
 const DEFAULT_CURRENT_MOMENT = {
     parentActivity: "Cleaning the kitchen",
     availability: "helper-welcome",
@@ -53,6 +61,12 @@ function formatFamilySettings(row) {
         childProfiles: row.child_profiles,
         inventory: row.inventory,
         safetySettings: row.safety_settings,
+        activityPreferences:
+            row.activity_preferences &&
+            typeof row.activity_preferences === "object"
+                ? row.activity_preferences
+                : {},
+        assumeHouseholdBasics: row.assume_household_basics !== false,
         currentMoment: row.current_moment,
         customParentPresets: row.custom_parent_presets,
         /*
@@ -217,6 +231,27 @@ function validateSettingsPayload(body) {
     }
 
     if (
+        body.assumeHouseholdBasics !== undefined &&
+        typeof body.assumeHouseholdBasics !== "boolean"
+    ) {
+        return {
+            ok: false,
+            error: "assumeHouseholdBasics must be a boolean.",
+        };
+    }
+
+    if (
+        body.activityPreferences !== undefined &&
+        body.activityPreferences !== null &&
+        !isPlainObject(body.activityPreferences)
+    ) {
+        return {
+            ok: false,
+            error: "activityPreferences must be an object.",
+        };
+    }
+
+    if (
         body.onboardingVersion !== undefined &&
         body.onboardingVersion !== null &&
         typeof body.onboardingVersion !== "number"
@@ -251,6 +286,13 @@ function validateSettingsPayload(body) {
                       ...body.safetySettings,
                   }
                 : DEFAULT_SAFETY_SETTINGS,
+            activity_preferences: isPlainObject(body.activityPreferences)
+                ? {
+                      ...DEFAULT_ACTIVITY_PREFERENCES,
+                      ...body.activityPreferences,
+                  }
+                : DEFAULT_ACTIVITY_PREFERENCES,
+            assume_household_basics: body.assumeHouseholdBasics !== false,
             current_moment: isPlainObject(body.currentMoment)
                 ? {
                       ...DEFAULT_CURRENT_MOMENT,

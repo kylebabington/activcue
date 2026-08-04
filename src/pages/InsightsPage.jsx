@@ -89,7 +89,7 @@ function InsightsPage() {
           <Link className="secondary-action" to="/parent">
             Set a moment
           </Link>
-          <Link className="ghost-button" to="/settings">
+          <Link className="ghost-button" to="/my-activities">
             View history
           </Link>
         </div>

@@ -5,6 +5,10 @@ import {
   calculateAge,
   resolveChildAge,
 } from "../../utils/childAge";
+import {
+  normalizeChildAvoids,
+  normalizeChildIndependenceLevel,
+} from "../../constants/activityPreferences";
 
 function normalizeBirthDateInput(value) {
   if (typeof value !== "string") {
@@ -67,7 +71,12 @@ export function useChildProfiles({
   const [newChildAgeYears, setNewChildAgeYears] = useState("");
   const [newChildInterests, setNewChildInterests] = useState("");
   const [newChildNeeds, setNewChildNeeds] = useState("");
+  const [newChildAvoids, setNewChildAvoids] = useState("");
+  const [newChildIndependenceLevel, setNewChildIndependenceLevel] = useState(
+    "usually-independent"
+  );
   const [editingChildId, setEditingChildId] = useState("");
+  const [showChildForm, setShowChildForm] = useState(false);
 
   function applyPlayingSelection(nextIds, profiles = childProfiles) {
     const profileIds = new Set(profiles.map((child) => child.id));
@@ -111,6 +120,9 @@ export function useChildProfiles({
     setNewChildAgeYears("");
     setNewChildInterests("");
     setNewChildNeeds("");
+    setNewChildAvoids("");
+    setNewChildIndependenceLevel("usually-independent");
+    setShowChildForm(false);
   }
 
   function resolveBirthDateForSave(existingChild = null) {
@@ -168,6 +180,10 @@ export function useChildProfiles({
     const cleanedName = newChildName.trim();
     const cleanedInterests = newChildInterests.trim();
     const cleanedNeeds = newChildNeeds.trim();
+    const cleanedAvoids = normalizeChildAvoids(newChildAvoids);
+    const independenceLevel = normalizeChildIndependenceLevel(
+      newChildIndependenceLevel
+    );
 
     if (cleanedName === "") {
       showStatus?.("Child name is required.", "error");
@@ -208,6 +224,8 @@ export function useChildProfiles({
           birthDate: resolved.birthDate,
           interests: cleanedInterests,
           needs: cleanedNeeds,
+          avoids: cleanedAvoids,
+          independenceLevel,
         };
       });
 
@@ -224,6 +242,8 @@ export function useChildProfiles({
       birthDate: resolved.birthDate,
       interests: cleanedInterests,
       needs: cleanedNeeds,
+      avoids: cleanedAvoids,
+      independenceLevel,
       createdAt: new Date().toISOString(),
     };
 
@@ -245,6 +265,7 @@ export function useChildProfiles({
         : "6-9");
 
     setEditingChildId(child.id);
+    setShowChildForm(true);
     setNewChildName(asTextField(child.name) || "");
     setNewChildAgeRange(ageRange);
     setNewChildBirthDate(normalizedBirth || "");
@@ -253,7 +274,28 @@ export function useChildProfiles({
     );
     setNewChildInterests(asTextField(child.interests));
     setNewChildNeeds(asTextField(child.needs));
+    setNewChildAvoids(
+      Array.isArray(child.avoids)
+        ? child.avoids.join(", ")
+        : asTextField(child.avoids)
+    );
+    setNewChildIndependenceLevel(
+      normalizeChildIndependenceLevel(child.independenceLevel)
+    );
 
+    if (typeof window !== "undefined") {
+      window.requestAnimationFrame(() => {
+        document
+          .getElementById("child-profile-form")
+          ?.scrollIntoView?.({ behavior: "smooth", block: "nearest" });
+        document.getElementById("child-profile-name-input")?.focus?.();
+      });
+    }
+  }
+
+  function beginAddingChildProfile() {
+    cancelEditingChildProfile();
+    setShowChildForm(true);
     if (typeof window !== "undefined") {
       window.requestAnimationFrame(() => {
         document
@@ -354,8 +396,14 @@ export function useChildProfiles({
     setNewChildInterests,
     newChildNeeds,
     setNewChildNeeds,
+    newChildAvoids,
+    setNewChildAvoids,
+    newChildIndependenceLevel,
+    setNewChildIndependenceLevel,
     editingChildId,
     setEditingChildId,
+    showChildForm,
+    beginAddingChildProfile,
     applyPlayingSelection,
     togglePlayingChild,
     addChildProfile,
