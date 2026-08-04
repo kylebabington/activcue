@@ -7,6 +7,7 @@ import { redirectToCheckout } from "../api/billingApi";
 import { ApiRequestError } from "../api/apiClient";
 import { LANDING_ACTIVITY_PREVIEW } from "../constants/landingActivityPreview";
 import { supabase } from "../lib/supabaseClient";
+import { buildSignupUrl } from "../utils/signupUrls";
 import {
   getActivityMissionText,
   getActivityRoleLabel,
@@ -102,7 +103,9 @@ function LandingPage() {
         error instanceof ApiRequestError &&
         error.code === "ACCOUNT_REQUIRED"
       ) {
-        window.location.assign("/signup");
+        window.location.assign(
+          buildSignupUrl({ next: "checkout", plan: "monthly" })
+        );
         return;
       }
 
@@ -253,8 +256,11 @@ function LandingPage() {
                 {checkoutBusy ? "Starting checkout…" : "Get FamilyFlow Plus"}
               </button>
             ) : (
-              <Link className="landing-btn landing-btn--primary" to="/signup">
-                Sign up free
+              <Link
+                className="landing-btn landing-btn--primary"
+                to={buildSignupUrl({ next: "checkout", plan: "monthly" })}
+              >
+                Sign up for Plus
               </Link>
             )}
             <a className="landing-btn landing-btn--ghost" href="#top">

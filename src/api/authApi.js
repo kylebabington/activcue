@@ -45,6 +45,30 @@ export async function checkEmailAvailability(email) {
 }
 
 /*
+ * Convert the current anonymous Supabase user into a permanent email account
+ * in one step (email + password; no confirmation-link gate).
+ */
+export async function convertAnonymousAccount({
+  email,
+  password,
+  confirmPassword,
+}) {
+  const response = await authenticatedRequest(
+    "/api/auth/convert-anonymous",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        email,
+        password,
+        confirmPassword,
+      }),
+    }
+  );
+
+  return response.json();
+}
+
+/*
  * Re-authenticate with the current password, then set a new password.
  */
 export async function changePassword({

@@ -63,7 +63,6 @@ async function restoreOrCreateSession() {
  * Once it finishes, clear the shared reference. A later provider mount must
  * inspect Supabase again because the user may have:
  *
- * - confirmed an email
  * - converted from anonymous to permanent
  * - logged into another account
  * - refreshed their session
@@ -109,9 +108,7 @@ export function AuthProvider({ children }) {
          * Listen for all future Supabase Auth changes:
          *
          * - anonymous sign-in
-         * - email confirmation
          * - permanent account conversion
-         * - password setup
          * - token refresh
          * - login
          * - logout

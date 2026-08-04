@@ -2,6 +2,7 @@
 
 import { Router } from "express";
 import { checkEmailAvailabilityForUser } from "../lib/authEmailAvailability.js";
+import { convertAnonymousUser } from "../lib/convertAnonymousUser.js";
 import { getUserEntitlement } from "../lib/entitlements.js";
 import { requireAuthenticatedUser } from "../middleware/requireAuthenticatedUser.js";
 import { ensureUserProfile } from "../middleware/ensureUserProfile.js";
@@ -92,8 +93,7 @@ router.get(
  *
  * Body: { "email": "parent@example.com" }
  *
- * Used during anonymous → permanent conversion so we do not send a
- * confirmation email for an address that already belongs to another account.
+ * Soft pre-check during anonymous → permanent conversion.
  */
 router.post(
   "/auth/check-email",
@@ -149,6 +149,62 @@ router.post(
         error:
           "Could not verify whether that email is available.",
         code: "EMAIL_CHECK_FAILED",
+      });
+    }
+  }
+);
+
+/*
+ * POST /api/auth/convert-anonymous
+ *
+ * Body: { email, password, confirmPassword }
+ *
+ * Converts the current anonymous Auth user into a permanent email account in
+ * one step (no confirmation-link gate). Same user UUID is preserved.
+ */
+router.post(
+  "/auth/convert-anonymous",
+  authRateLimiter,
+  requireAuthenticatedUser,
+  ensureUserProfile,
+  async (req, res) => {
+    if (!req.auth.isAnonymous) {
+      return res.status(400).json({
+        error:
+          "This session is already connected to a permanent account.",
+        code: "ALREADY_PERMANENT",
+      });
+    }
+
+    try {
+      const result = await convertAnonymousUser({
+        userId: req.auth.userId,
+        email: req.body?.email,
+        password: req.body?.password,
+        confirmPassword: req.body?.confirmPassword,
+      });
+
+      if (!result.ok) {
+        return res.status(result.status).json({
+          error: result.error,
+          code: result.code,
+        });
+      }
+
+      return res.json({
+        converted: true,
+        user: result.user,
+      });
+    } catch (error) {
+      console.error(
+        "Could not convert anonymous account:",
+        error
+      );
+
+      return res.status(500).json({
+        error:
+          "Could not create your permanent account. Try again.",
+        code: "CONVERT_ANONYMOUS_FAILED",
       });
     }
   }

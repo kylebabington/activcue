@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { changePassword, deleteAccount, signOutCurrentUser } from "../../api/authApi";
 import { ApiRequestError } from "../../api/apiClient";
 import { calculateAge, resolveChildAge } from "../../utils/childAge";
+import { buildSignupUrl } from "../../utils/signupUrls";
 
 const SUPPORT_EMAIL =
   import.meta.env.VITE_SUPPORT_EMAIL || "support@familyflow.app";
@@ -776,9 +777,9 @@ export default function SettingsAccountTab({
 
                   <Link
                     className="billing-account-link"
-                    to="/signup"
+                    to={buildSignupUrl({ next: "checkout", plan: "monthly" })}
                   >
-                    Create free account
+                    Create account to subscribe
                   </Link>
                 </div>
               ) : (

@@ -9,6 +9,7 @@ import {
 } from "react";
 import { signOutCurrentUser } from "./api/authApi";
 import { redirectToCheckout } from "./api/billingApi";
+import { buildSignupUrl } from "./utils/signupUrls";
 import { ApiRequestError } from "./api/apiClient";
 import { listActivitySessions, resetFamilyData } from "./api/familyMemoryApi";
 import {
@@ -565,7 +566,7 @@ function App() {
 
   async function handleGetPlus() {
     if (isAnonymous) {
-      navigate("/signup");
+      navigate(buildSignupUrl({ next: "checkout", plan: "monthly" }));
       return;
     }
 
@@ -580,7 +581,7 @@ function App() {
         error instanceof ApiRequestError &&
         error.code === "ACCOUNT_REQUIRED"
       ) {
-        navigate("/signup");
+        navigate(buildSignupUrl({ next: "checkout", plan: "monthly" }));
         return;
       }
 
