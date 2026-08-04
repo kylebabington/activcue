@@ -38,6 +38,8 @@ export async function recordAiUsageEvent({
   estimatedCost = null,
   latencyMs = null,
   responseId = null,
+  recommendationBatchId = null,
+  householdId = null,
   success = true,
   failureType = null,
   error = null,
@@ -98,6 +100,15 @@ export async function recordAiUsageEvent({
       response_id:
         typeof responseId === "string" && responseId.trim()
           ? responseId.trim()
+          : null,
+      recommendation_batch_id:
+        typeof recommendationBatchId === "string" &&
+        recommendationBatchId.trim()
+          ? recommendationBatchId.trim()
+          : null,
+      household_id:
+        typeof householdId === "string" && householdId.trim()
+          ? householdId.trim()
           : null,
       success: resolvedSuccess,
       failure_type: resolvedFailureType,

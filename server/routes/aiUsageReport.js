@@ -23,7 +23,7 @@ router.get(
       const { data, error } = await supabase
         .from("ai_usage_events")
         .select(
-          "estimated_cost, operation, success, created_at, input_tokens, output_tokens, total_tokens"
+          "estimated_cost, operation, success, created_at, input_tokens, output_tokens, total_tokens, recommendation_batch_id"
         )
         .eq("user_id", req.auth.userId)
         .order("created_at", { ascending: false })
@@ -51,29 +51,54 @@ router.get(
         .filter((row) => Date.parse(row.created_at) >= cutoff)
         .reduce((sum, row) => sum + (Number(row.estimated_cost) || 0), 0);
 
-      // Library hit rate proxy: plan_b / rescue events vs generations (optional)
-      const { data: productRows } = await supabase
-        .from("product_events")
-        .select("event_name")
+      const { data: batchRows } = await supabase
+        .from("recommendation_batches")
+        .select("id, source")
         .eq("user_id", req.auth.userId)
-        .in("event_name", [
-          "plan_b_used",
-          "rescue_successful",
-          "activity_generated",
-        ])
-        .limit(500);
+        .limit(1000);
 
-      const product = productRows || [];
-      const libraryServed = product.filter((row) =>
-        ["plan_b_used", "rescue_successful"].includes(row.event_name)
-      ).length;
-      const generated = product.filter(
-        (row) => row.event_name === "activity_generated"
+      const batches = batchRows || [];
+      const openaiBatches = batches.filter((row) => row.source === "openai").length;
+      const libraryBatches = batches.filter((row) =>
+        ["shared_library", "curated", "current_batch"].includes(row.source)
       ).length;
       const libraryHitRate =
-        libraryServed + generated > 0
-          ? libraryServed / (libraryServed + generated)
+        batches.length > 0 ? libraryBatches / batches.length : null;
+
+      const linkedAiCost = successful
+        .filter((row) => row.recommendation_batch_id)
+        .reduce((sum, row) => sum + (Number(row.estimated_cost) || 0), 0);
+      const costPerAiBatch =
+        openaiBatches > 0
+          ? Math.round((linkedAiCost / openaiBatches) * 1_000_000) / 1_000_000
           : null;
+
+      // Fallback product-event proxy when no batches yet
+      let resolvedLibraryHitRate = libraryHitRate;
+      if (resolvedLibraryHitRate == null) {
+        const { data: productRows } = await supabase
+          .from("product_events")
+          .select("event_name")
+          .eq("user_id", req.auth.userId)
+          .in("event_name", [
+            "plan_b_used",
+            "rescue_successful",
+            "activity_generated",
+          ])
+          .limit(500);
+
+        const product = productRows || [];
+        const libraryServed = product.filter((row) =>
+          ["plan_b_used", "rescue_successful"].includes(row.event_name)
+        ).length;
+        const generated = product.filter(
+          (row) => row.event_name === "activity_generated"
+        ).length;
+        resolvedLibraryHitRate =
+          libraryServed + generated > 0
+            ? libraryServed / (libraryServed + generated)
+            : null;
+      }
 
       return res.json({
         totalEstimatedCost: Math.round(totalEstimatedCost * 1_000_000) / 1_000_000,
@@ -84,7 +109,11 @@ router.get(
               1_000_000
             : 0,
         costLast30Days: Math.round(costLast30Days * 1_000_000) / 1_000_000,
-        libraryHitRate,
+        costPerAiBatch,
+        libraryHitRate: resolvedLibraryHitRate,
+        batchCount: batches.length,
+        openaiBatchCount: openaiBatches,
+        libraryBatchCount: libraryBatches,
         eventCount: rows.length,
       });
     } catch (error) {

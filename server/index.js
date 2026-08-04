@@ -19,6 +19,7 @@ import familyMemoryRouter from "./routes/familyMemory.js";
 import familyInsightsRouter from "./routes/familyInsights.js";
 import productEventsRouter from "./routes/productEvents.js";
 import sharedActivitiesRouter from "./routes/sharedActivities.js";
+import recommendationTelemetryRouter from "./routes/recommendationTelemetry.js";
 import aiUsageReportRouter from "./routes/aiUsageReport.js";
 import householdsRouter from "./routes/households.js";
 import accountRouter from "./routes/account.js";
@@ -256,6 +257,11 @@ app.use("/api", productEventsRouter);
  * Shared activity library — Plan B / Rescue without OpenAI.
  */
 app.use("/api", sharedActivitiesRouter);
+
+/*
+ * Activity moments + recommendation batch telemetry spine.
+ */
+app.use("/api", recommendationTelemetryRouter);
 
 /*
  * AI cost accounting summary for the authenticated user.
