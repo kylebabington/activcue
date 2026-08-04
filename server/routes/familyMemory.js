@@ -158,6 +158,7 @@ function formatActivitySession(row, participants = []) {
     activityTraits: parseTraits(row.activity_traits),
     candidateId: row.candidate_id || null,
     recommendationBatchId: row.recommendation_batch_id || null,
+    momentId: row.moment_id || null,
     presentedAt: row.presented_at || null,
     selectedAt: row.selected_at || null,
     rejectionReason: row.rejection_reason || null,
@@ -755,6 +756,7 @@ router.post(
           recommendation_batch_id: parseOptionalString(
             body.recommendationBatchId ?? body.recommendation_batch_id
           ),
+          moment_id: parseOptionalString(body.momentId ?? body.moment_id),
           presented_at: parseOptionalString(
             body.presentedAt ?? body.presented_at
           ),

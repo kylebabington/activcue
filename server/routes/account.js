@@ -40,11 +40,14 @@ router.delete(
       const supabase = getSupabaseAdminClient();
 
       const memoryTables = [
+        "recommendation_batches",
+        "activity_moments",
         "activity_sessions",
         "activity_events",
         "saved_activities",
         "ai_usage_events",
         "product_events",
+        "user_candidate_impressions",
       ];
 
       for (const table of memoryTables) {

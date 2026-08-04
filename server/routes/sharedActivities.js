@@ -8,7 +8,14 @@ import {
   querySharedCandidatesForUser,
   recordCandidateOutcome,
 } from "../lib/sharedActivityLibrary.js";
+import {
+  createActivityMoment,
+  createRecommendationBatch,
+} from "../lib/recommendationTelemetry.js";
 import { getSupabaseAdminClient } from "../lib/supabaseAdminClient.js";
+import {
+  attachRecommendationIds,
+} from "../lib/recommendationIds.js";
 
 const router = Router();
 
@@ -44,9 +51,37 @@ router.post(
         limit: Math.min(Math.max(Number(body.limit) || 3, 1), 10),
       });
 
+      let momentId =
+        typeof body.momentId === "string" && body.momentId.trim()
+          ? body.momentId.trim()
+          : null;
+
+      if (!momentId && isPlainObject(body.currentMoment)) {
+        const momentSnapshot = await createActivityMoment({
+          userId: req.auth.userId,
+          moment: body.currentMoment,
+          kidMood: body.kidMood || null,
+          childIds: Array.isArray(body.childIds) ? body.childIds : [],
+          rescueMode: false,
+        });
+        momentId = momentSnapshot?.id || null;
+      }
+
+      const withIds = attachRecommendationIds(candidates);
+      const batch = await createRecommendationBatch({
+        userId: req.auth.userId,
+        momentId,
+        source: "shared_library",
+        mode: "normal",
+        activities: withIds.activities,
+        batchId: withIds.recommendationBatchId,
+      });
+
       return res.json({
         source: "shared-library",
-        activities: candidates,
+        recommendationBatchId: batch.recommendationBatchId,
+        momentId,
+        activities: batch.activities,
       });
     } catch (error) {
       console.error("Plan B library lookup failed:", error);
@@ -122,9 +157,39 @@ router.post(
         activities = [...activities, ...presetActivities].slice(0, 4);
       }
 
+      let momentId =
+        typeof body.momentId === "string" && body.momentId.trim()
+          ? body.momentId.trim()
+          : null;
+
+      if (!momentId) {
+        const momentSnapshot = await createActivityMoment({
+          userId: req.auth.userId,
+          moment: currentMoment,
+          kidMood: body.kidMood || null,
+          childIds: Array.isArray(body.childIds) ? body.childIds : [],
+          rescueMode: true,
+        });
+        momentId = momentSnapshot?.id || null;
+      }
+
+      const source =
+        activities[0]?.source === "preset" ? "curated" : "shared_library";
+      const withIds = attachRecommendationIds(activities);
+      const batch = await createRecommendationBatch({
+        userId: req.auth.userId,
+        momentId,
+        source,
+        mode: "rescue",
+        activities: withIds.activities,
+        batchId: withIds.recommendationBatchId,
+      });
+
       return res.json({
         source: activities[0]?.source || "shared-library",
-        activities,
+        recommendationBatchId: batch.recommendationBatchId,
+        momentId,
+        activities: batch.activities,
         rescueMoment: currentMoment,
       });
     } catch (error) {

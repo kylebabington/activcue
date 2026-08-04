@@ -26,6 +26,10 @@ import { recordAiUsageEvent } from "../lib/aiUsage.js";
 import { expandGenerationIntent } from "../lib/generationIntent.js";
 import { attachRecommendationIds } from "../lib/recommendationIds.js";
 import { ingestGeneratedActivities } from "../lib/sharedActivityLibrary.js";
+import {
+  createActivityMoment,
+  createRecommendationBatch,
+} from "../lib/recommendationTelemetry.js";
 import { aiSuggestionsRateLimiter } from "../middleware/rateLimits.js";
 
 const router = Router();
@@ -329,9 +333,43 @@ export default function createActivitySuggestionsRouter(client) {
           source: "ai",
         });
 
-        const normalizedResponse = {
-          recommendationBatchId: withIds.recommendationBatchId,
+        const requestMomentId =
+          typeof req.body?.momentId === "string" && req.body.momentId.trim()
+            ? req.body.momentId.trim()
+            : typeof req.body?.moment_id === "string" && req.body.moment_id.trim()
+              ? req.body.moment_id.trim()
+              : null;
+
+        let momentId = requestMomentId;
+        if (!momentId) {
+          const momentSnapshot = await createActivityMoment({
+            userId: req.auth.userId,
+            moment: safeCurrentMoment,
+            kidMood,
+            childIds: [
+              ...(activeChildProfile?.id ? [activeChildProfile.id] : []),
+              ...safeSelectedChildProfiles.map((c) => c?.id).filter(Boolean),
+            ],
+            rescueMode: false,
+          });
+          momentId = momentSnapshot?.id || null;
+        }
+
+        const batch = await createRecommendationBatch({
+          userId: req.auth.userId,
+          momentId,
+          source: "openai",
+          mode: "normal",
+          model: usageMeta.model || OPENAI_MODEL,
+          latencyMs: Date.now() - startedAt,
           activities: ingested,
+          batchId: withIds.recommendationBatchId,
+        });
+
+        const normalizedResponse = {
+          recommendationBatchId: batch.recommendationBatchId,
+          momentId,
+          activities: batch.activities,
           ageFitRejectedCount: totalAgeFitRejected,
         };
 
@@ -349,6 +387,7 @@ export default function createActivitySuggestionsRouter(client) {
           outputTokens: usageMeta.outputTokens,
           totalTokens: usageMeta.totalTokens,
           responseId: usageMeta.responseId,
+          recommendationBatchId: batch.recommendationBatchId,
           latencyMs: Date.now() - startedAt,
           success: true,
         });
