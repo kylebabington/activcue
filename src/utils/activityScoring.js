@@ -659,7 +659,123 @@ export function getTotalActivityScore(
     activityHistory,
     options
   );
-  return currentMomentScore + historyScore;
+  const preferenceScore = scoreActivityFromFamilyPreferences(
+    activity,
+    currentMoment,
+    options
+  );
+  return currentMomentScore + historyScore + preferenceScore;
+}
+
+/**
+ * Soft ranking from durable family/child preferences.
+ * Current Moment hard constraints still dominate via scoreActivityForCurrentMoment.
+ */
+export function scoreActivityFromFamilyPreferences(
+  activity,
+  currentMoment,
+  options = {}
+) {
+  let score = 0;
+  const prefs = options.activityPreferences || {};
+  const child = options.activeChildProfile || null;
+
+  const searchable = [
+    activity?.title,
+    activity?.summary,
+    activity?.theme,
+    activity?.category,
+    activity?.activityStyle,
+    ...(Array.isArray(activity?.tags) ? activity.tags : []),
+    ...(Array.isArray(activity?.uses) ? activity.uses : []),
+  ]
+    .join(" ")
+    .toLowerCase();
+
+  const avoids = Array.isArray(child?.avoids) ? child.avoids : [];
+  for (const avoid of avoids) {
+    const needle = normalizeTextValue(avoid);
+    if (needle && searchable.includes(needle)) {
+      score -= 4;
+    }
+  }
+
+  const interests =
+    typeof child?.interests === "string"
+      ? child.interests.split(",").map((item) => item.trim()).filter(Boolean)
+      : Array.isArray(child?.interests)
+        ? child.interests
+        : [];
+  for (const interest of interests) {
+    const needle = normalizeTextValue(interest);
+    if (needle && searchable.includes(needle)) {
+      score += 2;
+    }
+  }
+
+  const activityAdultHelp = normalizeTextValue(activity?.adultHelp);
+  const momentSupervision = normalizeTextValue(currentMoment?.supervisionLevel);
+  const independence =
+    child?.independenceLevel || prefs.independencePreference || "";
+
+  if (!momentSupervision || momentSupervision === "independent") {
+    if (
+      (independence === "very-independent" ||
+        independence === "fully-independent") &&
+      (activityAdultHelp === "none" || activityAdultHelp === "optional")
+    ) {
+      score += 2;
+    }
+    if (
+      (independence === "needs-help" || independence === "parent-led") &&
+      activityAdultHelp === "needed"
+    ) {
+      score += 2;
+    }
+    if (
+      (independence === "very-independent" ||
+        independence === "fully-independent") &&
+      activityAdultHelp === "needed"
+    ) {
+      score -= 2;
+    }
+  }
+
+  const setupEffort = normalizeTextValue(
+    activity?.traits?.setupEffort || activity?.setupEffort
+  );
+  if (prefs.setupEffort === "almost-none") {
+    if (setupEffort === "very-low" || setupEffort === "low") score += 2;
+    if (setupEffort === "high") score -= 2;
+  } else if (prefs.setupEffort === "bigger-ok") {
+    if (setupEffort === "medium" || setupEffort === "high") score += 1;
+  }
+
+  const activityMess = normalizeTextValue(activity?.mess);
+  const momentMess = normalizeTextValue(currentMoment?.messLevel);
+  if (!momentMess || momentMess === "medium") {
+    if (prefs.messTolerance === "clean" && activityMess === "low") score += 2;
+    if (prefs.messTolerance === "clean" && activityMess === "high") score -= 3;
+    if (prefs.messTolerance === "fine" && activityMess === "high") score += 1;
+  }
+
+  const style = normalizeTextValue(activity?.activityStyle);
+  if (prefs.activityStylePreference === "mostly-simple" && style === "simple") {
+    score += 2;
+  }
+  if (
+    prefs.activityStylePreference === "mostly-imaginative" &&
+    style === "imaginative"
+  ) {
+    score += 2;
+  }
+
+  const outdoorWords = ["outside", "outdoor", "yard", "backyard"];
+  const isOutdoor = outdoorWords.some((word) => searchable.includes(word));
+  if (prefs.indoorOutdoorPreference === "indoor" && isOutdoor) score -= 2;
+  if (prefs.indoorOutdoorPreference === "outdoor" && isOutdoor) score += 2;
+
+  return score;
 }
 
 export function buildStructuredPreferenceContext(activityHistory, options = {}) {

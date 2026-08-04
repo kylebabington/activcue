@@ -29,6 +29,7 @@ import {
 } from "./activityGenerationHelpers";
 import { markSuggestionsShownAt } from "../../utils/timeToStart";
 import { resolveChildAge } from "../../utils/childAge";
+import { playModeFlavorFromActivityStyle } from "../../constants/activityPreferences";
 
 function resolveOldestChildAgeYears(deps) {
   const profiles =
@@ -118,7 +119,10 @@ export function useActivityGeneration(deps = {}) {
           feedbackContext,
           generationIntent: intent || undefined,
           previousActivityTitles,
-          playModeTheme: d.uiTheme,
+          playModeTheme: playModeFlavorFromActivityStyle(
+            d.activityPreferences?.activityStylePreference
+          ),
+          activityPreferences: d.activityPreferences,
         });
       }
 

@@ -17,13 +17,23 @@ export function useScoredActivities({
   activeChildId,
   activeChildProfile,
   selectedChildProfiles,
+  activityPreferences,
 } = {}) {
   const scoringOptions = useMemo(
     () => ({
       inventory,
       activeChildId: activityMode === "family" ? "" : activeChildId || "",
+      activeChildProfile:
+        activityMode === "family" ? null : activeChildProfile || null,
+      activityPreferences: activityPreferences || {},
     }),
-    [inventory, activityMode, activeChildId]
+    [
+      inventory,
+      activityMode,
+      activeChildId,
+      activeChildProfile,
+      activityPreferences,
+    ]
   );
 
   const scoredActivities = useMemo(() => {
