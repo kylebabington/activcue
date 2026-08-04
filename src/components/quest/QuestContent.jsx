@@ -376,7 +376,7 @@ export default function QuestContent({
         <CollapsibleQuestSection
           {...sectionProps(
             "starters",
-            "Choose a Starting Idea",
+            "Starter Ideas",
             `${starterIdeas.length} ideas`,
             true
           )}

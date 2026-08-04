@@ -13,6 +13,7 @@ import App from "./App.jsx";
 import { AuthProvider } from "./context/AuthProvider.jsx";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage.jsx";
 import LandingPage from "./pages/LandingPage.jsx";
+import DemoPage from "./pages/DemoPage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage.jsx";
 import ResetPasswordPage from "./pages/ResetPasswordPage.jsx";
@@ -83,6 +84,8 @@ ReactDOM.createRoot(
           path="/"
           element={<LandingPage />}
         />
+
+        <Route path="/demo" element={<DemoPage />} />
 
         <Route path="/privacy" element={<PrivacyPolicyPage />} />
         <Route path="/terms" element={<TermsPage />} />

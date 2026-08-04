@@ -60,6 +60,19 @@ export const PRODUCT_EVENT_NAMES = Object.freeze([
   "built_in_help_opened",
   "ai_hint_requested",
   "activation_signup_prompted",
+  "landing_demo_moment_selected",
+  "landing_demo_results_viewed",
+  "landing_demo_activity_opened",
+  "landing_demo_video_played",
+  "landing_demo_cta_clicked",
+  "landing_demo_age_toggled",
+  "landing_demo_plan_b_clicked",
+  "demo_page_moment_selected",
+  "demo_page_results_viewed",
+  "demo_page_activity_opened",
+  "demo_page_cta_clicked",
+  "demo_page_age_toggled",
+  "demo_page_plan_b_clicked",
 ]);
 
 const PRODUCT_EVENTS = new Set(PRODUCT_EVENT_NAMES);

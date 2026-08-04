@@ -78,16 +78,18 @@ Everything else—scoring, presets, AI prompts, Fit Score, Rescue Mode—is in s
 
 ## 4. How to use the product (every surface)
 
-### 4.1 Landing (`/`)
+### 4.1 Landing (`/`) and marketing demo (`/demo`)
 
-**What you see:** Brand-forward hero, short pitch, free vs Plus, “How it works.”
+**What you see:** Brand-forward hero, interactive moment demo (pick a situation + child age → three Fit Score matches), optional recorded walkthrough video, problem statement, age adaptation, free vs Plus.
 
 **How to use it:**
 
-- **Try the free flow** → enters the authenticated app (`/app` and friends). An anonymous session is created if needed.
+- **Find something now** → enters onboarding / the authenticated app. An anonymous session is created if needed.
+- **Try the demo** on `/` — fully client-side; no session, no OpenAI.
+- **`/demo`** — public walkthrough page for Playwright marketing recordings (same curated pool + Fit Score; no AuthProvider).
 - **Log in / Create account** → permanent accounts for people who already converted or want Plus.
 
-**Why it is thin:** The landing’s job is trust and one CTA—not a dashboard preview.
+**Why the demo is offline:** Marketing must not burn OpenAI tokens or create anonymous users on every visitor click.
 
 ### 4.2 Login / Signup
 
@@ -451,6 +453,18 @@ Edit the page under `src/pages/` and shared pieces under `src/components/`. Keep
 
 Use `scripts/` generators/emitters, then land SQL under `supabase/migrations/` (or seed updates). Presets are the free tier’s backbone—treat them as product content, not scrap.
 
+Expanded library (~75–100 with `ageFit` + traits):
+
+```bash
+npm run presets:build-expanded
+npm run presets:verify-expanded
+node scripts/emitExpandedPresetMigration.mjs
+npm run presets:import-shared          # DB → shared_activity_candidates
+# or: npm run presets:import-shared -- --from-json
+```
+
+Marketing demo recording: `npm run demo:record` then `npm run demo:publish` (see `scripts/demo/README.md`).
+
 ### Touching billing
 
 - Client: `src/api/billingApi.js`, `src/features/billing/`, Settings billing panel
@@ -476,7 +490,7 @@ Use `scripts/` generators/emitters, then land SQL under `supabase/migrations/` (
 ## 11. Design decisions worth defending (the “why” list)
 
 1. **Moment-first, not profile-first** — Profiles help; the live moment decides.
-2. **Free must complete the loop** — Presets + one imaginative unlock beat a locked demo video.
+2. **Free must complete the loop** — Presets + one imaginative unlock beat a locked teaser. The public landing also has an **interactive moment demo** (client-side Fit Score on curated presets, no OpenAI) and an optional Playwright-recorded video under `public/demos/` — marketing helps explain the product; it does not replace the free in-app loop.
 3. **Anonymous start, convert later** — Reduce signup friction; preserve continuity.
 4. **Server-trusted entitlement** — Never let the client decide Plus.
 5. **Idempotent webhooks + retrieve-current** — Stripe will retry; subscription rows must not lie.

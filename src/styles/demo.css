@@ -1,0 +1,48 @@
+/* Public /demo page — reuses landing tokens */
+
+.demo-page-main {
+  width: min(1100px, 100%);
+  margin: 0 auto;
+  padding: 6rem 1.25rem 4rem;
+  display: grid;
+  gap: 2.5rem;
+}
+
+.demo-page-hero h1 {
+  margin: 0.35rem 0 0.65rem;
+  font-family: var(--font-heading);
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+  letter-spacing: -0.02em;
+}
+
+.demo-page-support {
+  margin: 0 0 1rem;
+  color: var(--color-text-muted);
+  max-width: 38rem;
+  line-height: 1.5;
+}
+
+.demo-page-quest {
+  padding: 1.25rem;
+  border-radius: 1rem;
+  border: 1px solid color-mix(in srgb, var(--color-text) 12%, transparent);
+  background: color-mix(in srgb, var(--color-surface) 94%, white);
+}
+
+.demo-page-final-cta {
+  text-align: center;
+  display: grid;
+  gap: 1rem;
+  justify-items: center;
+  padding: 2rem 0 1rem;
+}
+
+.demo-page-final-cta h2 {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: clamp(1.4rem, 3vw, 1.9rem);
+}
+
+.demo-page-embed-landing .moment-demo-cta-row {
+  display: none;
+}
