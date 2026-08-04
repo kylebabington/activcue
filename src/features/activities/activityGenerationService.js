@@ -26,11 +26,13 @@ export function createSimpleTemplateActivities({
   inventory,
   currentMoment,
   count = 3,
+  oldestChildAgeYears = null,
 }) {
   return buildSimpleActivitiesFromTemplates({
     inventory,
     currentMoment,
     count,
+    oldestChildAgeYears,
   });
 }
 
@@ -59,10 +61,12 @@ export function buildOfflineFallbackActivities({
   inventory,
   currentMoment,
   count = 3,
+  oldestChildAgeYears = null,
 }) {
   return buildSimpleActivitiesFromTemplates({
     inventory,
     currentMoment,
     count,
+    oldestChildAgeYears,
   });
 }

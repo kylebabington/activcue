@@ -461,6 +461,7 @@ function App() {
     handleStartActivity: (...args) =>
       handleStartActivityRef.current?.(...args),
     setActiveActivity,
+    clearLastCompletedQuest,
     scoringOptions,
   });
 
