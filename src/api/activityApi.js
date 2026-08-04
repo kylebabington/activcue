@@ -16,7 +16,11 @@ export async function getActivitySuggestions(activityRequest) {
 
     const data = await response.json();
 
-    return data.activities;
+    return {
+        activities: Array.isArray(data.activities) ? data.activities : [],
+        recommendationBatchId: data.recommendationBatchId || null,
+        momentId: data.momentId || null,
+    };
 }
 
 /*

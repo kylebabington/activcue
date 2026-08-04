@@ -38,32 +38,39 @@ export function getTimeToStartTiming() {
   return readTiming();
 }
 
-export function markMomentCreatedAt(at = nowIso()) {
+export function markMomentCreatedAt(at = nowIso(), { momentId = null } = {}) {
   const current = readTiming();
   writeTiming({
     ...current,
     momentCreatedAt: at,
+    momentId: momentId || current.momentId || null,
     suggestionsShownAt: null,
     activityStartedAt: null,
     recommendationBatchId: null,
     candidateId: null,
   });
+
+  trackProductEvent("moment_created", {
+    momentId: momentId || null,
+  });
 }
 
 export function markSuggestionsShownAt(
   at = nowIso(),
-  { recommendationBatchId = null, candidateIds = [] } = {}
+  { recommendationBatchId = null, candidateIds = [], momentId = null } = {}
 ) {
   const current = readTiming();
   writeTiming({
     ...current,
     suggestionsShownAt: at,
+    momentId: momentId || current.momentId || null,
     recommendationBatchId:
       recommendationBatchId || current.recommendationBatchId || null,
     candidateIds: Array.isArray(candidateIds) ? candidateIds : [],
   });
 
   trackProductEvent("recommendations_shown", {
+    momentId: momentId || current.momentId || null,
     recommendationBatchId: recommendationBatchId || null,
     candidateCount: Array.isArray(candidateIds) ? candidateIds.length : 0,
   });
@@ -71,18 +78,20 @@ export function markSuggestionsShownAt(
 
 export function markActivitySelectedAt(
   at = nowIso(),
-  { candidateId = null, recommendationBatchId = null } = {}
+  { candidateId = null, recommendationBatchId = null, momentId = null } = {}
 ) {
   const current = readTiming();
   writeTiming({
     ...current,
     activitySelectedAt: at,
+    momentId: momentId || current.momentId || null,
     candidateId: candidateId || current.candidateId || null,
     recommendationBatchId:
       recommendationBatchId || current.recommendationBatchId || null,
   });
 
   trackProductEvent("activity_selected", {
+    momentId: momentId || current.momentId || null,
     candidateId: candidateId || null,
     recommendationBatchId: recommendationBatchId || null,
   });
@@ -90,12 +99,13 @@ export function markActivitySelectedAt(
 
 export function markActivityStartedAt(
   at = nowIso(),
-  { candidateId = null, recommendationBatchId = null } = {}
+  { candidateId = null, recommendationBatchId = null, momentId = null } = {}
 ) {
   const current = readTiming();
   const next = {
     ...current,
     activityStartedAt: at,
+    momentId: momentId || current.momentId || null,
     candidateId: candidateId || current.candidateId || null,
     recommendationBatchId:
       recommendationBatchId || current.recommendationBatchId || null,
@@ -108,6 +118,7 @@ export function markActivityStartedAt(
   const selectedMs = toMs(next.activitySelectedAt);
 
   const payload = {
+    momentId: next.momentId || null,
     momentCreatedAt: next.momentCreatedAt || null,
     suggestionsShownAt: next.suggestionsShownAt || null,
     activityStartedAt: at,
@@ -129,6 +140,11 @@ export function markActivityStartedAt(
     payload.msMomentToSuggestions = suggestionsMs - momentMs;
   }
 
+  trackProductEvent("activity_started", {
+    momentId: next.momentId || null,
+    candidateId: next.candidateId || null,
+    recommendationBatchId: next.recommendationBatchId || null,
+  });
   trackProductEvent("time_to_start", payload);
   return payload;
 }

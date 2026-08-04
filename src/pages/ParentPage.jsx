@@ -9,6 +9,7 @@ import { useActivityContext } from "../context/domainContexts";
 import { useFamilyContext } from "../context/domainContexts";
 import { getPresetKey } from "../utils/momentPresets";
 import { trackProductEvent } from "../utils/analytics";
+import { markMomentCreatedAt } from "../utils/timeToStart";
 
 const RESCUE_TIME_OPTIONS = [10, 20, 30];
 
@@ -97,7 +98,7 @@ function ParentPage({
       supervisionLevel: "independent",
     };
 
-    applyMomentDraft(rescueMoment, { navigateToKid: false });
+    applyMomentDraft(rescueMoment, { navigateToKid: false, rescueMode: true });
     trackProductEvent("rescue_started", { timeNeededMinutes: minutes });
     trackProductEvent("rescue_mode_started", { timeNeededMinutes: minutes });
 
@@ -112,6 +113,10 @@ function ParentPage({
         ? response.activities
         : [];
 
+      if (response?.momentId) {
+        markMomentCreatedAt(undefined, { momentId: response.momentId });
+      }
+
       if (activities.length > 0) {
         setActivities?.(activities);
         handleStartActivityFromUi?.(activities[0]);
@@ -119,6 +124,8 @@ function ParentPage({
         trackProductEvent("rescue_successful", {
           timeNeededMinutes: minutes,
           source: response?.source || "shared-library",
+          recommendationBatchId: response?.recommendationBatchId || null,
+          momentId: response?.momentId || null,
           planBCount: Math.max(0, activities.length - 1),
         });
         showStatus?.(

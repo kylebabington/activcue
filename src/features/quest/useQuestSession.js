@@ -10,7 +10,12 @@ import {
 import { useLocalStorage } from "../../hooks/useLocalStorage";
 import { normalizeActivityStyle } from "../../utils/activityStyle";
 import { trackProductEvent } from "../../utils/analytics";
-import { markActivityStartedAt } from "../../utils/timeToStart";
+import {
+  markActivitySelectedAt,
+  markActivityStartedAt,
+  getTimeToStartTiming,
+} from "../../utils/timeToStart";
+import { recordSharedActivityOutcome } from "../../api/sharedActivitiesApi";
 import { getDefaultOpenSections } from "../../components/quest/questSectionDefaults";
 import {
   buildActivitySessionExitPatch,
@@ -212,6 +217,13 @@ export function useQuestSession({
         activity.recommendationBatchId ||
         activity.recommendation_batch_id ||
         null,
+      momentId:
+        activity.momentId ||
+        activity.moment_id ||
+        getTimeToStartTiming()?.momentId ||
+        null,
+      presentedAt: activity.presentedAt || activity.presented_at || null,
+      selectedAt: new Date().toISOString(),
       questPhase: "playing",
       checkedStarterIndexes: [],
       selectedRoleName:
@@ -258,11 +270,26 @@ export function useQuestSession({
       activitySessionId: null,
     };
 
+    const timingIds = {
+      candidateId: activityToStart.candidateId,
+      recommendationBatchId: activityToStart.recommendationBatchId,
+      momentId: activityToStart.momentId,
+    };
+
     setStepHint("");
     setLastCompletedQuest(null);
     setActiveActivity(activityToStart);
-    markActivityStartedAt();
+    markActivitySelectedAt(activityToStart.selectedAt, timingIds);
+    markActivityStartedAt(undefined, timingIds);
     saveActivityFeedback?.(activity, "started");
+    if (activityToStart.candidateId) {
+      void recordSharedActivityOutcome({
+        candidateId: activityToStart.candidateId,
+        outcome: "started",
+      }).catch((error) => {
+        console.warn("Could not record shared candidate start:", error);
+      });
+    }
     showStatus?.(`Started: "${activity.title}". Timer is running.`, "success");
 
     const playingChildIds = (
@@ -347,7 +374,25 @@ export function useQuestSession({
     setActiveActivity(null);
     setStepHint("");
     showStatus?.(`Finished: "${finishedActivity.title}". Nice work.`, "success");
-    trackProductEvent("activity_finished", { title: finishedActivity.title });
+    trackProductEvent("activity_finished", {
+      title: finishedActivity.title,
+      candidateId: finishedActivity.candidateId || null,
+      recommendationBatchId: finishedActivity.recommendationBatchId || null,
+      momentId: finishedActivity.momentId || null,
+    });
+    trackProductEvent("activity_completed", {
+      candidateId: finishedActivity.candidateId || null,
+      recommendationBatchId: finishedActivity.recommendationBatchId || null,
+      momentId: finishedActivity.momentId || null,
+    });
+    if (finishedActivity.candidateId) {
+      void recordSharedActivityOutcome({
+        candidateId: finishedActivity.candidateId,
+        outcome: "completed",
+      }).catch((error) => {
+        console.warn("Could not record shared candidate complete:", error);
+      });
+    }
 
     persistSessionExit(finishedActivity, "finished", {
       finishedAt,
@@ -419,6 +464,18 @@ export function useQuestSession({
     setActiveActivity(null);
     setStepHint("");
     showStatus?.(`Canceled: "${canceledActivity.title}".`, "info");
+    trackProductEvent("activity_abandoned", {
+      reason: "canceled",
+      candidateId: canceledActivity.candidateId || null,
+      recommendationBatchId: canceledActivity.recommendationBatchId || null,
+      momentId: canceledActivity.momentId || null,
+    });
+    if (canceledActivity.candidateId) {
+      void recordSharedActivityOutcome({
+        candidateId: canceledActivity.candidateId,
+        outcome: "rejected",
+      }).catch(() => {});
+    }
     persistSessionExit(canceledActivity, "canceled");
   }
 
@@ -467,6 +524,23 @@ export function useQuestSession({
     });
     setActiveActivity(null);
     persistSessionExit(activity, "abandoned");
+    trackProductEvent("activity_abandoned", {
+      reason: "need-another-idea",
+      candidateId: activity.candidateId || null,
+      recommendationBatchId: activity.recommendationBatchId || null,
+      momentId: activity.momentId || null,
+    });
+    trackProductEvent("activity_rejected", {
+      reason: "need-another-idea",
+      candidateId: activity.candidateId || null,
+      recommendationBatchId: activity.recommendationBatchId || null,
+    });
+    if (activity.candidateId) {
+      void recordSharedActivityOutcome({
+        candidateId: activity.candidateId,
+        outcome: "rejected",
+      }).catch(() => {});
+    }
     onNeedAnotherIdea?.(previousTitle);
   }
 

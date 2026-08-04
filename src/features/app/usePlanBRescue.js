@@ -7,6 +7,7 @@ import { trackProductEvent } from "../../utils/analytics";
 export function usePlanBRescue({
   inventory,
   currentMoment,
+  activeMomentId,
   scoredActivities,
   handleTryNextBest,
   handleStartActivityFromUi,
@@ -15,10 +16,11 @@ export function usePlanBRescue({
 } = {}) {
   const handleTryNextBestWithLibrary = useCallback(async () => {
     trackProductEvent("plan_b_offered", { source: "batch" });
+    trackProductEvent("plan_b_next_best", { source: "batch" });
     const result = handleTryNextBest?.(scoredActivities);
     if (result?.usedBatch) {
-      trackProductEvent("plan_b_started", { source: "batch" });
-      trackProductEvent("plan_b_used", { source: "batch" });
+      trackProductEvent("plan_b_started", { source: "current_batch" });
+      trackProductEvent("plan_b_used", { source: "current_batch" });
       return;
     }
 
@@ -33,6 +35,7 @@ export function usePlanBRescue({
       const response = await fetchPlanBActivities({
         inventory,
         currentMoment,
+        momentId: activeMomentId || null,
         excludeCandidateIds: [
           rejected?.candidateId,
           ...(scoredActivities || [])
@@ -46,8 +49,14 @@ export function usePlanBRescue({
       });
       const next = response?.activities?.[0];
       if (next) {
-        trackProductEvent("plan_b_started", { source: "shared-library" });
-        trackProductEvent("plan_b_used", { source: "shared-library" });
+        trackProductEvent("plan_b_started", {
+          source: "shared_library",
+          recommendationBatchId: response?.recommendationBatchId || null,
+        });
+        trackProductEvent("plan_b_used", {
+          source: "shared_library",
+          recommendationBatchId: response?.recommendationBatchId || null,
+        });
         handleStartActivityFromUi?.(next);
         showStatus?.(`Plan B from the library: "${next.title}".`, "success");
         return;
@@ -60,10 +69,12 @@ export function usePlanBRescue({
       "No Plan B left in this batch or library. Generating fresh ideas…",
       "info"
     );
+    trackProductEvent("regenerate", { source: "plan_b_exhausted" });
     handleGenerateActivities?.();
   }, [
     inventory,
     currentMoment,
+    activeMomentId,
     scoredActivities,
     handleTryNextBest,
     handleStartActivityFromUi,

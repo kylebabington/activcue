@@ -2,26 +2,29 @@
 
 import { authenticatedRequest } from "./apiClient";
 
-export function fetchPlanBActivities(payload, options = {}) {
-  return authenticatedRequest("/api/shared-activities/plan-b", {
+export async function fetchPlanBActivities(payload, options = {}) {
+  const response = await authenticatedRequest("/api/shared-activities/plan-b", {
     method: "POST",
     body: JSON.stringify(payload),
     ...options,
   });
+  return response.json();
 }
 
-export function fetchRescueActivities(payload, options = {}) {
-  return authenticatedRequest("/api/shared-activities/rescue", {
+export async function fetchRescueActivities(payload, options = {}) {
+  const response = await authenticatedRequest("/api/shared-activities/rescue", {
     method: "POST",
     body: JSON.stringify(payload),
     ...options,
   });
+  return response.json();
 }
 
-export function recordSharedActivityOutcome(payload, options = {}) {
-  return authenticatedRequest("/api/shared-activities/outcome", {
+export async function recordSharedActivityOutcome(payload, options = {}) {
+  const response = await authenticatedRequest("/api/shared-activities/outcome", {
     method: "POST",
     body: JSON.stringify(payload),
     ...options,
   });
+  return response.json();
 }

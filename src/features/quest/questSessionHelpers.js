@@ -224,6 +224,7 @@ export function buildActivitySessionPayload(
         : {},
     candidateId: activeActivity?.candidateId || null,
     recommendationBatchId: activeActivity?.recommendationBatchId || null,
+    momentId: activeActivity?.momentId || null,
     presentedAt: activeActivity?.presentedAt || null,
     selectedAt: activeActivity?.selectedAt || null,
     actualMinutes: minutesWorked,
