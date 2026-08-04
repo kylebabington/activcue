@@ -5,46 +5,87 @@ import { Link } from "react-router-dom";
 
 import { redirectToCheckout } from "../api/billingApi";
 import { ApiRequestError } from "../api/apiClient";
-import { LANDING_ACTIVITY_PREVIEW } from "../constants/landingActivityPreview";
+import MomentDemo from "../components/landing/MomentDemo";
+import { matchDemoActivities } from "../features/demo";
 import { supabase } from "../lib/supabaseClient";
+import { trackProductEvent } from "../utils/analytics";
 import { buildSignupUrl } from "../utils/signupUrls";
-import {
-  getActivityMissionText,
-  getActivityRoleLabel,
-  getStarterIdeas,
-  getVisualThemeMeta,
-} from "../utils/activityVisualTheme";
 import "../styles/landing.css";
 
-function ActivityV2Preview() {
-  const activity = LANDING_ACTIVITY_PREVIEW;
-  const theme = getVisualThemeMeta(activity.visualTheme);
-  const role = getActivityRoleLabel(activity);
-  const mission = getActivityMissionText(activity);
-  const starters = getStarterIdeas(activity).slice(0, 4);
+function AgeAdaptationPreview() {
+  const young = matchDemoActivities({
+    momentId: "dinner",
+    childId: "leo",
+    limit: 1,
+  });
+  const teen = matchDemoActivities({
+    momentId: "dinner",
+    childId: "jack",
+    limit: 1,
+  });
+  const youngTitle = young.results[0]?.activity?.title || "Secret Animal Rescue";
+  const teenTitle =
+    teen.results[0]?.activity?.title || "Phone Photography Challenge";
 
   return (
-    <article
-      className={`landing-preview-card activity-card--theme-${theme.key}`}
-      style={{ "--activity-theme-accent": theme.accent }}
-      aria-label="Sample Activity V2 preview"
-    >
-      <div className="landing-preview-band">
-        <span aria-hidden="true">{theme.icon}</span>
-        <span>{theme.label} story</span>
+    <div className="landing-age-compare">
+      <article>
+        <p className="landing-age-kicker">Age 6</p>
+        <h3>{youngTitle}</h3>
+        <p>Same dinner moment. Younger roles, simpler starters.</p>
+      </article>
+      <article>
+        <p className="landing-age-kicker">Age 13</p>
+        <h3>{teenTitle}</h3>
+        <p>Same constraints. Different challenge and independence.</p>
+      </article>
+    </div>
+  );
+}
+
+function DemoVideoSection() {
+  const [hasVideo, setHasVideo] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/demos/familyflow-demo.webm", { method: "HEAD" })
+      .then((response) => {
+        if (!cancelled) setHasVideo(response.ok);
+      })
+      .catch(() => {
+        if (!cancelled) setHasVideo(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (!hasVideo) {
+    return null;
+  }
+
+  return (
+    <section className="landing-section" aria-labelledby="video-title">
+      <div className="landing-section-inner">
+        <h2 id="video-title">See the whole flow in 35 seconds</h2>
+        <p className="landing-section-lead">
+          Moment in, matched activities out — then Start, Steps, and Stuck?
+          help when the first idea stalls.
+        </p>
+        <video
+          className="landing-demo-video"
+          controls
+          muted
+          playsInline
+          poster="/demos/familyflow-demo-poster.svg"
+          onPlay={() =>
+            trackProductEvent("landing_demo_video_played", { source: "landing" })
+          }
+        >
+          <source src="/demos/familyflow-demo.webm" type="video/webm" />
+        </video>
       </div>
-      <h3>{activity.title}</h3>
-      <p className="landing-preview-mission">{mission}</p>
-      <p className="landing-preview-role">
-        <span>You are</span> <strong>{role}</strong>
-      </p>
-      <ul className="landing-preview-starters">
-        {starters.map((idea) => (
-          <li key={idea.title}>{idea.title}</li>
-        ))}
-      </ul>
-      <p className="landing-preview-cta-label">Enter the story →</p>
-    </article>
+    </section>
   );
 }
 
@@ -103,9 +144,7 @@ function LandingPage() {
         error instanceof ApiRequestError &&
         error.code === "ACCOUNT_REQUIRED"
       ) {
-        window.location.assign(
-          buildSignupUrl({ next: "checkout", plan: "monthly" })
-        );
+        window.location.assign("/signup");
         return;
       }
 
@@ -136,8 +175,16 @@ function LandingPage() {
             <Link className="landing-topbar-link" to="/login">
               Log in
             </Link>
-            <Link className="landing-topbar-cta" to="/onboarding">
-              Find something to do
+            <Link
+              className="landing-topbar-cta"
+              to="/onboarding"
+              onClick={() =>
+                trackProductEvent("landing_demo_cta_clicked", {
+                  source: "topbar",
+                })
+              }
+            >
+              Find something now
             </Link>
           </div>
         </div>
@@ -145,66 +192,78 @@ function LandingPage() {
 
       <section className="landing-hero" id="top" aria-labelledby="landing-hero-title">
         <div className="landing-hero-wash" aria-hidden="true" />
-        <div className="landing-hero-inner landing-hero-inner--split">
-          <div className="landing-hero-copy">
+        <div className="landing-hero-inner">
+          <div className="landing-hero-copy landing-hero-copy--centered">
             <p className="landing-hero-brand">FamilyFlow</p>
             <h1 id="landing-hero-title" className="landing-hero-title">
-              Need 20 quiet minutes?
+              Activities that fit the moment you&apos;re actually in.
             </h1>
             <p className="landing-hero-support">
-              Match the moment you are in, then hand your kid a story they can
-              start without asking you what to do next.
+              Tell FamilyFlow what the house can handle right now — time,
+              energy, mess, supervision, age, and supplies — and get activities
+              your kids can actually start.
             </p>
             <div className="landing-hero-actions">
-              <Link className="landing-btn landing-btn--primary" to="/onboarding">
-                Find something to do
+              <Link
+                className="landing-btn landing-btn--primary"
+                to="/onboarding"
+                onClick={() =>
+                  trackProductEvent("landing_demo_cta_clicked", {
+                    source: "hero",
+                  })
+                }
+              >
+                Find something now
               </Link>
-              <Link className="landing-btn landing-btn--ghost" to="/app">
-                Open the app
-              </Link>
+              <a className="landing-btn landing-btn--ghost" href="#try-demo">
+                Try the demo
+              </a>
             </div>
           </div>
-          <ActivityV2Preview />
         </div>
       </section>
 
-      <section className="landing-section" aria-labelledby="moment-title">
+      <section
+        className="landing-section landing-section--demo"
+        id="try-demo"
+        aria-labelledby="try-demo-title"
+      >
+        <div className="landing-section-inner landing-section-inner--wide">
+          <MomentDemo />
+        </div>
+      </section>
+
+      <DemoVideoSection />
+
+      <section className="landing-section" aria-labelledby="problem-title">
         <div className="landing-section-inner">
-          <h2 id="moment-title">Built for the moment, not a plan</h2>
+          <h2 id="problem-title">Lists give ideas. FamilyFlow answers the moment.</h2>
           <p className="landing-section-lead">
-            FamilyFlow matches parent availability, kid energy, supplies, and
-            mess/noise limits—then opens a guided activity kids can run.
+            Pinterest gives you ideas. FamilyFlow answers: what can{" "}
+            <em>this</em> kid do, with <em>this</em> amount of time, while{" "}
+            <em>you&apos;re</em> making dinner, without destroying the house?
           </p>
-          <ol className="landing-steps">
-            <li>
-              <span className="landing-step-label">Moment matching</span>
-              <span className="landing-step-text">
-                Quiet call, dinner prep, or low mess—set what the house can handle.
-              </span>
-            </li>
-            <li>
-              <span className="landing-step-label">Kid profiles</span>
-              <span className="landing-step-text">
-                Ages and interests shape roles, starters, and step difficulty.
-              </span>
-            </li>
-            <li>
-              <span className="landing-step-label">Independent play</span>
-              <span className="landing-step-text">
-                World, role, starter doors, and built-in “I’m stuck” help—before any AI hint.
-              </span>
-            </li>
-          </ol>
         </div>
       </section>
 
-      <section className="landing-section landing-section--tint" aria-labelledby="safety-net-title">
+      <section className="landing-section landing-section--tint" aria-labelledby="age-title">
+        <div className="landing-section-inner">
+          <h2 id="age-title">Same moment. Different child.</h2>
+          <p className="landing-section-lead">
+            Age is a hard gate and a soft adaptation — roles, starters, and
+            challenge change with the kid in front of you.
+          </p>
+          <AgeAdaptationPreview />
+        </div>
+      </section>
+
+      <section className="landing-section" aria-labelledby="safety-net-title">
         <div className="landing-section-inner">
           <h2 id="safety-net-title">When the first idea stalls</h2>
           <p className="landing-section-lead">
-            What Works for Us remembers successes. Plan B offers the next best fit.
-            Rescue Mode recovers when everything falls apart—and useful pieces still
-            work offline.
+            Didn&apos;t land? Try another already-matched candidate. Plan B,
+            Rescue Mode, and offline Activity V2 keep the house moving without
+            regenerating from scratch.
           </p>
           <ul className="landing-perk-list">
             <li>What Works for Us — learn from finished activities</li>

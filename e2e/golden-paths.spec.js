@@ -107,16 +107,16 @@ async function openQuickIdeasAndStart(page) {
 }
 
 test.describe("FamilyFlow golden paths", () => {
-  test("landing → find something to do opens onboarding", async ({ page }) => {
+  test("landing → find something now opens onboarding", async ({ page }) => {
     await page.goto("/");
     await expect(
       page.getByRole("heading", {
         level: 1,
-        name: /Need 20 quiet minutes/i,
+        name: /Activities that fit the moment/i,
       })
     ).toBeVisible();
 
-    const cta = page.getByRole("link", { name: /Find something to do/i }).first();
+    const cta = page.getByRole("link", { name: /Find something now/i }).first();
     await expect(cta).toBeVisible();
     await cta.click();
 
@@ -125,6 +125,15 @@ test.describe("FamilyFlow golden paths", () => {
     await expect(
       page.getByRole("heading", { name: /Who’s playing|Who's playing/i })
     ).toBeVisible({ timeout: 30000 });
+  });
+
+  test("landing moment demo matches without auth", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: /I'm making dinner/i }).click();
+    await expect(
+      page.getByRole("heading", { name: /three activities that fit/i })
+    ).toBeVisible({ timeout: 10000 });
+    await expect(page.locator(".moment-demo-card").first()).toBeVisible();
   });
 
   test("multi-child family mode can toggle participants before quest", async ({

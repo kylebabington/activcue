@@ -77,8 +77,6 @@ export function AppRoutes({
         element={<Navigate to={defaultHomePath} replace />}
       />
 
-      <Route path="/demo" element={<Navigate to="/parent" replace />} />
-
       <Route
         path="/onboarding"
         element={
