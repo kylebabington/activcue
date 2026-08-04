@@ -24,7 +24,7 @@ function escapeSql(value) {
 }
 
 function toFullContent(activity) {
-  return {
+  const content = {
     kidRole: activity.kidRole || "",
     mission: activity.mission || "",
     starterPrompts: activity.starterPrompts || [],
@@ -38,6 +38,46 @@ function toFullContent(activity) {
     adultHelp: activity.adultHelp || "optional",
     whyItFits: activity.whyItFits || "",
   };
+
+  if (Array.isArray(activity.categories)) {
+    content.categories = activity.categories;
+  }
+  if (activity.traits && typeof activity.traits === "object") {
+    content.traits = activity.traits;
+  }
+  if (activity.ageFit && typeof activity.ageFit === "object") {
+    content.ageFit = activity.ageFit;
+  }
+  if (activity.activityFormatVersion === 2) {
+    content.activityFormatVersion = 2;
+    if (activity.roleGuide) content.roleGuide = activity.roleGuide;
+    if (Array.isArray(activity.starterIdeas)) {
+      content.starterIdeas = activity.starterIdeas;
+    }
+    if (Array.isArray(activity.stepDetails)) {
+      content.stepDetails = activity.stepDetails;
+    }
+  }
+  if (activity.visualTheme) {
+    content.visualTheme = activity.visualTheme;
+  }
+  if (activity.activityStyle) {
+    content.activityStyle = activity.activityStyle;
+  }
+  if (activity.estimatedMinutes != null) {
+    content.estimatedMinutes = Number(activity.estimatedMinutes) || 20;
+  }
+  if (activity.title) {
+    content.title = activity.title;
+  }
+  if (activity.summary) {
+    content.summary = activity.summary;
+  }
+  if (activity.theme) {
+    content.theme = activity.theme;
+  }
+
+  return content;
 }
 
 function toTuple(activity, style, displayOrder) {

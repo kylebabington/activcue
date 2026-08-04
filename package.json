@@ -14,7 +14,10 @@
     "test": "vitest run --exclude \"e2e/**\"",
     "test:watch": "vitest --exclude \"e2e/**\"",
     "test:e2e": "playwright test",
-    "create-subscription-product": "node server/scripts/createSubscriptionProduct.js"
+    "create-subscription-product": "node server/scripts/createSubscriptionProduct.js",
+    "presets:build-expanded": "node scripts/buildExpandedPresets.mjs",
+    "presets:verify-expanded": "node scripts/verifyExpandedPresets.mjs",
+    "presets:import-shared": "node scripts/importPresetsToSharedLibrary.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.8",
