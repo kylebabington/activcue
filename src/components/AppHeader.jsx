@@ -55,7 +55,7 @@ export default function AppHeader({
           to="/quest"
           className={({ isActive }) => (isActive ? "active" : "")}
         >
-          Quest
+          Activity
         </NavLink>
 
         <NavLink

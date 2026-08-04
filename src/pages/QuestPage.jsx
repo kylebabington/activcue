@@ -162,8 +162,8 @@ function QuestCompleteSummary({
     );
 }
 
-// This page owns the quest experience.
-// It shows the current running quest and the generated quest choices.
+// This page owns the activity experience.
+// It shows the current running activity and the generated activity choices.
 
 function QuestPage() {
     const {

@@ -1,5 +1,3 @@
-// src/features/family/useChildProfiles.js
-
 import { useState } from "react";
 import {
   ageYearsToAgeRange,
@@ -16,11 +14,43 @@ function normalizeBirthDateInput(value) {
   if (!trimmed) {
     return null;
   }
+
+  // Prefer strict YYYY-MM-DD from date inputs.
+  const isoDay = trimmed.slice(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(isoDay)) {
+    const [year, month, day] = isoDay.split("-").map(Number);
+    const local = new Date(year, month - 1, day);
+    if (
+      local.getFullYear() !== year ||
+      local.getMonth() !== month - 1 ||
+      local.getDate() !== day
+    ) {
+      return null;
+    }
+    return isoDay;
+  }
+
   const parsed = new Date(trimmed);
   if (Number.isNaN(parsed.getTime())) {
     return null;
   }
-  return trimmed.slice(0, 10);
+  const year = parsed.getFullYear();
+  const month = String(parsed.getMonth() + 1).padStart(2, "0");
+  const day = String(parsed.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function asTextField(value) {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => (typeof item === "string" ? item.trim() : ""))
+      .filter(Boolean)
+      .join(", ");
+  }
+  if (typeof value === "string") {
+    return value;
+  }
+  return "";
 }
 
 export function useChildProfiles({
@@ -83,7 +113,7 @@ export function useChildProfiles({
     setNewChildNeeds("");
   }
 
-  function resolveBirthDateForSave() {
+  function resolveBirthDateForSave(existingChild = null) {
     const fromInput = normalizeBirthDateInput(newChildBirthDate);
     if (fromInput) {
       const age = calculateAge(fromInput);
@@ -98,7 +128,12 @@ export function useChildProfiles({
     }
 
     const ageYears = Math.floor(Number(newChildAgeYears));
-    if (Number.isFinite(ageYears) && ageYears >= 0 && ageYears <= 25) {
+    if (
+      newChildAgeYears !== "" &&
+      Number.isFinite(ageYears) &&
+      ageYears >= 0 &&
+      ageYears <= 25
+    ) {
       const synthetic = birthDateFromAgeYears(ageYears);
       return {
         birthDate: synthetic,
@@ -107,10 +142,24 @@ export function useChildProfiles({
       };
     }
 
-    // Keep ageRange fallback when neither birthday nor exact age provided.
+    // Editing: keep previous birthDate when age fields were left blank.
+    if (editingChildId && existingChild?.birthDate) {
+      const kept = normalizeBirthDateInput(existingChild.birthDate);
+      if (kept) {
+        const age = calculateAge(kept);
+        return {
+          birthDate: kept,
+          ageRange: Number.isFinite(age)
+            ? ageYearsToAgeRange(age)
+            : existingChild.ageRange || newChildAgeRange || "6-9",
+          ageYears: Number.isFinite(age) ? age : null,
+        };
+      }
+    }
+
     return {
       birthDate: null,
-      ageRange: newChildAgeRange || "6-9",
+      ageRange: newChildAgeRange || existingChild?.ageRange || "6-9",
       ageYears: null,
     };
   }
@@ -136,7 +185,11 @@ export function useChildProfiles({
       return;
     }
 
-    const resolved = resolveBirthDateForSave();
+    const existingChild = editingChildId
+      ? childProfiles.find((child) => child.id === editingChildId) || null
+      : null;
+
+    const resolved = resolveBirthDateForSave(existingChild);
     if (resolved.error) {
       showStatus?.(resolved.error, "error");
       return;
@@ -183,18 +236,32 @@ export function useChildProfiles({
   }
 
   function startEditingChildProfile(child) {
+    const normalizedBirth = normalizeBirthDateInput(child.birthDate || "");
+    const resolved = resolveChildAge(child);
+    const ageRange =
+      child.ageRange ||
+      (Number.isFinite(resolved.ageYears)
+        ? ageYearsToAgeRange(resolved.ageYears)
+        : "6-9");
+
     setEditingChildId(child.id);
-    setNewChildName(child.name || "");
-    setNewChildAgeRange(child.ageRange || "6-9");
-    setNewChildBirthDate(child.birthDate || "");
-    if (child.birthDate) {
-      const age = calculateAge(child.birthDate);
-      setNewChildAgeYears(Number.isFinite(age) ? String(age) : "");
-    } else {
-      setNewChildAgeYears("");
+    setNewChildName(asTextField(child.name) || "");
+    setNewChildAgeRange(ageRange);
+    setNewChildBirthDate(normalizedBirth || "");
+    setNewChildAgeYears(
+      Number.isFinite(resolved.ageYears) ? String(resolved.ageYears) : ""
+    );
+    setNewChildInterests(asTextField(child.interests));
+    setNewChildNeeds(asTextField(child.needs));
+
+    if (typeof window !== "undefined") {
+      window.requestAnimationFrame(() => {
+        document
+          .getElementById("child-profile-form")
+          ?.scrollIntoView?.({ behavior: "smooth", block: "nearest" });
+        document.getElementById("child-profile-name-input")?.focus?.();
+      });
     }
-    setNewChildInterests(child.interests || "");
-    setNewChildNeeds(child.needs || "");
   }
 
   function deleteChildProfile(childIdToDelete) {
@@ -255,7 +322,12 @@ export function useChildProfiles({
       return Number.isFinite(age) ? age : null;
     }
     const ageYears = Math.floor(Number(newChildAgeYears));
-    if (Number.isFinite(ageYears) && ageYears >= 0 && ageYears <= 25) {
+    if (
+      newChildAgeYears !== "" &&
+      Number.isFinite(ageYears) &&
+      ageYears >= 0 &&
+      ageYears <= 25
+    ) {
       return ageYears;
     }
     return null;

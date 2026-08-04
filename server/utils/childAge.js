@@ -23,9 +23,26 @@ export function calculateAge(birthDate, today = new Date()) {
     return NaN;
   }
 
-  const birthday = new Date(birthDate);
-  if (Number.isNaN(birthday.getTime())) {
-    return NaN;
+  const trimmed = birthDate.trim();
+  const isoDay = trimmed.slice(0, 10);
+  let birthday;
+
+  // Parse YYYY-MM-DD as local calendar date (avoid UTC off-by-one).
+  if (/^\d{4}-\d{2}-\d{2}$/.test(isoDay)) {
+    const [year, month, day] = isoDay.split("-").map(Number);
+    birthday = new Date(year, month - 1, day);
+    if (
+      birthday.getFullYear() !== year ||
+      birthday.getMonth() !== month - 1 ||
+      birthday.getDate() !== day
+    ) {
+      return NaN;
+    }
+  } else {
+    birthday = new Date(trimmed);
+    if (Number.isNaN(birthday.getTime())) {
+      return NaN;
+    }
   }
 
   let age = today.getFullYear() - birthday.getFullYear();

@@ -10,6 +10,110 @@ const BABYSITTER_PATTERN =
   /\b(supervise|babysit|watch(ing)? the (younger|little)|manage (the )?younger|help(ing)? (the )?younger|look after|take care of (the )?younger)\b/i;
 
 /**
+ * Themes/language that feel young-child even when ageFit.maxAge is stretched.
+ * Applied when the oldest participant is 12+.
+ */
+const YOUNG_CHILD_CONTENT_PATTERNS = [
+  /\bblanket\s+fort\b/i,
+  /\bpillow\s+fort\b/i,
+  /\bcushion\s+fort\b/i,
+  /\bmagical\s+(blanket|pillow|castle|fort|kingdom)\b/i,
+  /\b(build|make|create)\s+a\s+(magical\s+)?(blanket\s+)?castle\b/i,
+  /\bteddy(\s+bear)?\s+(tea|picnic|party)\b/i,
+  /\btea\s+party\b/i,
+  /\bstuffed\s+animal\b/i,
+  /\bbaby\s+doll\b/i,
+  /\bplay\s+kitchen\b/i,
+  /\bnursery\b/i,
+  /\bcuddle\s+(fort|pile|time)\b/i,
+  /\bfairy\s+(tea|garden|castle|dust)\b/i,
+  /\bprincess\s+(castle|tea|dress[- ]?up)\b/i,
+  /\bdress[- ]?up\s+(party|time|clothes)\b/i,
+];
+
+const AGE_APPROPRIATE_FORT_EXCEPTION =
+  /\b(movie\s+lounge|media\s+nook|design\s+(a\s+)?(lounge|studio|space)|interior\s+design|cozy\s+screening)\b/i;
+
+function collectActivityText(activity) {
+  const parts = [
+    activity?.title,
+    activity?.summary,
+    activity?.theme,
+    activity?.mission,
+    activity?.kidRole,
+    activity?.ageFit?.ageFitReason,
+    activity?.roleGuide?.name,
+    activity?.roleGuide?.description,
+    activity?.roleGuide?.goal,
+    activity?.roleGuide?.firstAction,
+  ];
+
+  for (const idea of Array.isArray(activity?.starterIdeas)
+    ? activity.starterIdeas
+    : []) {
+    parts.push(idea?.title, idea?.example);
+  }
+
+  for (const step of Array.isArray(activity?.stepDetails)
+    ? activity.stepDetails
+    : []) {
+    parts.push(step?.title, step?.instruction, step?.doneWhen, step?.ifStuck);
+    if (Array.isArray(step?.examples)) {
+      parts.push(...step.examples);
+    }
+  }
+
+  for (const prompt of Array.isArray(activity?.starterPrompts)
+    ? activity.starterPrompts
+    : []) {
+    parts.push(prompt);
+  }
+
+  return parts.filter((part) => typeof part === "string" && part.trim()).join("\n");
+}
+
+/**
+ * Reject infantilizing maturity labels / young-child content for older kids.
+ * ageFit ranges alone are not enough — models often set maxAge high for forts.
+ * @returns {{ ok: boolean, reasons: string[] }}
+ */
+export function validateAgeContentFit(activity, childrenContext = []) {
+  const reasons = [];
+  const ages = (Array.isArray(childrenContext) ? childrenContext : [])
+    .map((child) => Number(child.ageYears))
+    .filter((age) => Number.isFinite(age));
+
+  if (ages.length === 0) {
+    return { ok: true, reasons };
+  }
+
+  const oldest = Math.max(...ages);
+  const maturity = String(activity?.ageFit?.maturityLevel || "").trim();
+  const text = collectActivityText(activity);
+
+  if (oldest >= 13) {
+    if (maturity === "young-child" || maturity === "child") {
+      reasons.push("maturity-too-young");
+    }
+  } else if (oldest >= 12 && maturity === "young-child") {
+    reasons.push("maturity-too-young");
+  }
+
+  if (oldest >= 12) {
+    const hitsYoungContent = YOUNG_CHILD_CONTENT_PATTERNS.some((pattern) =>
+      pattern.test(text)
+    );
+    const hasAgeAppropriateFrame = AGE_APPROPRIATE_FORT_EXCEPTION.test(text);
+
+    if (hitsYoungContent && !hasAgeAppropriateFrame) {
+      reasons.push("young-child-content-for-older");
+    }
+  }
+
+  return { ok: reasons.length === 0, reasons };
+}
+
+/**
  * Heuristic mixed-age role quality checks.
  * @returns {{ ok: boolean, reasons: string[] }}
  */
@@ -82,14 +186,17 @@ export function evaluateActivityAgeQuality(activity, childrenContext = []) {
   );
   const ageFitOk = validateAgeFit(activity, ages);
   const mixed = validateMixedAgeRoles(activity, childrenContext);
+  const content = validateAgeContentFit(activity, childrenContext);
 
   return {
-    ok: ageFitOk && mixed.ok,
+    ok: ageFitOk && mixed.ok && content.ok,
     ageFitOk,
     mixedAgeOk: mixed.ok,
+    contentOk: content.ok,
     reasons: [
       ...(ageFitOk ? [] : ["age-fit-range"]),
       ...mixed.reasons,
+      ...content.reasons,
     ],
   };
 }

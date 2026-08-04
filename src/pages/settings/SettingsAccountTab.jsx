@@ -181,10 +181,24 @@ export default function SettingsAccountTab({
                 </div>
               </div>
 
-              <div className="child-profile-form">
+              <div
+                className={
+                  editingChildId
+                    ? "child-profile-form child-profile-form--editing"
+                    : "child-profile-form"
+                }
+                id="child-profile-form"
+              >
+                {editingChildId ? (
+                  <p className="child-age-prompt" role="status">
+                    Editing profile — update the fields below, then save.
+                  </p>
+                ) : null}
+
                 <label>
                   Child name
                   <input
+                    id="child-profile-name-input"
                     value={newChildName}
                     onChange={(event) => setNewChildName(event.target.value)}
                     placeholder="Example: Mia"
@@ -197,11 +211,21 @@ export default function SettingsAccountTab({
                     type="date"
                     value={newChildBirthDate}
                     onChange={(event) => {
-                      setNewChildBirthDate(event.target.value);
-                      if (event.target.value) {
-                        const age = calculateAge(event.target.value);
+                      const next = event.target.value;
+                      setNewChildBirthDate(next);
+                      if (next) {
+                        const age = calculateAge(next);
                         if (Number.isFinite(age)) {
                           setNewChildAgeYears(String(age));
+                          setNewChildAgeRange(
+                            age <= 5
+                              ? "3-5"
+                              : age <= 9
+                                ? "6-9"
+                                : age <= 12
+                                  ? "10-12"
+                                  : "13+"
+                          );
                         }
                       }
                     }}
@@ -218,42 +242,69 @@ export default function SettingsAccountTab({
                     inputMode="numeric"
                     value={newChildAgeYears}
                     onChange={(event) => {
-                      setNewChildAgeYears(event.target.value);
-                      if (event.target.value) {
-                        setNewChildBirthDate("");
+                      const next = event.target.value;
+                      setNewChildAgeYears(next);
+                      // Keep birthday unless the typed age no longer matches it.
+                      if (next !== "" && newChildBirthDate) {
+                        const fromBirthday = calculateAge(newChildBirthDate);
+                        const typed = Math.floor(Number(next));
+                        if (
+                          Number.isFinite(fromBirthday) &&
+                          Number.isFinite(typed) &&
+                          fromBirthday !== typed
+                        ) {
+                          setNewChildBirthDate("");
+                        }
+                      }
+                      const typed = Math.floor(Number(next));
+                      if (Number.isFinite(typed) && typed >= 0 && typed <= 25) {
+                        setNewChildAgeRange(
+                          typed <= 5
+                            ? "3-5"
+                            : typed <= 9
+                              ? "6-9"
+                              : typed <= 12
+                                ? "10-12"
+                                : "13+"
+                        );
                       }
                     }}
-                    placeholder="Example: 12"
+                    placeholder="Example: 14"
                   />
+                </label>
+
+                <label>
+                  Age range fallback
+                  <select
+                    value={newChildAgeRange}
+                    onChange={(event) =>
+                      setNewChildAgeRange(event.target.value)
+                    }
+                  >
+                    <option value="3-5">3-5</option>
+                    <option value="6-9">6-9</option>
+                    <option value="10-12">10-12</option>
+                    <option value="13+">13+</option>
+                  </select>
                 </label>
 
                 {agePreviewYears != null ? (
                   <p className="child-age-preview" role="status">
-                    Current age: {agePreviewYears}
+                    Current age used for suggestions: {agePreviewYears}
                   </p>
                 ) : (
-                  <label>
-                    Age range (if birthday unknown)
-                    <select
-                      value={newChildAgeRange}
-                      onChange={(event) =>
-                        setNewChildAgeRange(event.target.value)
-                      }
-                    >
-                      <option value="3-5">3-5</option>
-                      <option value="6-9">6-9</option>
-                      <option value="10-12">10-12</option>
-                      <option value="13+">13+</option>
-                    </select>
-                  </label>
+                  <p className="child-age-prompt" role="status">
+                    Add a birthday or exact age when you can. Age range is only
+                    a temporary fallback.
+                  </p>
                 )}
 
                 {editingChildId &&
                 !newChildBirthDate &&
                 !newChildAgeYears ? (
                   <p className="child-age-prompt" role="status">
-                    Add a birthday or exact age so suggestions stay
-                    age-appropriate as they grow.
+                    This profile still uses an age range only. Add a birthday or
+                    exact age so suggestions stay age-appropriate.
                   </p>
                 ) : null}
 
@@ -499,7 +550,7 @@ export default function SettingsAccountTab({
 
                   <p>
                     Unlock AI-generated activities,
-                    personalized ideas, and AI quest
+                    personalized ideas, and AI activity
                     hints. Favorites and history stay
                     free on this device (and sync when
                     you are signed in).
@@ -841,7 +892,7 @@ export default function SettingsAccountTab({
                   <h2>Danger zone</h2>
 
                   <p>
-                    Reset synced family settings and this browser&apos;s local quest
+                    Reset synced family settings and this browser&apos;s local activity
                     data. This cannot be undone.
                   </p>
 

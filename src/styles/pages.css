@@ -2099,6 +2099,11 @@
   padding: var(--space-2);
 }
 
+.child-profile-form--editing {
+  border-color: color-mix(in srgb, var(--color-primary) 45%, var(--color-border));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-primary) 20%, transparent);
+}
+
 .child-profile-form-actions {
   display: flex;
   gap: var(--space-1);
