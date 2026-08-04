@@ -4,7 +4,7 @@ const VALID_CHECKOUT_PLANS = new Set(["monthly", "annual"]);
 
 /*
  * Build the /signup URL, optionally carrying Plus checkout intent through
- * anonymous → permanent conversion.
+ * anonymous-to-permanent conversion.
  */
 export function buildSignupUrl({
   next = null,
