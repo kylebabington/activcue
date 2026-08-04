@@ -1,6 +1,10 @@
 // src/constants/familySettingsDefaults.js
 
 import { buildDefaultInventory } from "./inventoryPresets";
+import {
+    DEFAULT_ACTIVITY_PREFERENCES,
+    normalizeActivityPreferences,
+} from "./activityPreferences";
 
 export const FAMILY_SETTINGS_LOCAL_KEYS = [
     "currentMoment",
@@ -36,6 +40,8 @@ export const DEFAULT_SAFETY_SETTINGS = {
     adultHelpAllowed: "optional",
 };
 
+export { DEFAULT_ACTIVITY_PREFERENCES };
+
 export function buildDefaultFamilySettings() {
     return {
         activityMode: "single-child",
@@ -44,6 +50,8 @@ export function buildDefaultFamilySettings() {
         childProfiles: [],
         inventory: buildDefaultInventory(),
         safetySettings: { ...DEFAULT_SAFETY_SETTINGS },
+        activityPreferences: { ...DEFAULT_ACTIVITY_PREFERENCES },
+        assumeHouseholdBasics: true,
         currentMoment: { ...DEFAULT_CURRENT_MOMENT },
         customParentPresets: [],
         savedActivities: [],
@@ -149,6 +157,8 @@ export function familySettingsPayloadFromState({
     childProfiles,
     inventory,
     safetySettings,
+    activityPreferences,
+    assumeHouseholdBasics,
     currentMoment,
     customParentPresets,
     lastSuccessfulMoment,
@@ -165,6 +175,8 @@ export function familySettingsPayloadFromState({
         childProfiles,
         inventory,
         safetySettings,
+        activityPreferences: normalizeActivityPreferences(activityPreferences),
+        assumeHouseholdBasics: assumeHouseholdBasics !== false,
         currentMoment,
         customParentPresets,
         /*
@@ -236,6 +248,10 @@ export function normalizeFamilySettingsDocument(settings, localMemory = {}) {
             ...defaults.safetySettings,
             ...(settings?.safetySettings || {}),
         },
+        activityPreferences: normalizeActivityPreferences(
+            settings?.activityPreferences
+        ),
+        assumeHouseholdBasics: settings?.assumeHouseholdBasics !== false,
         currentMoment: {
             ...defaults.currentMoment,
             ...(settings?.currentMoment || {}),

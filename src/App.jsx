@@ -1,7 +1,7 @@
 // src/App.jsx
 
 import { useNavigate } from "react-router-dom";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import { useFirstRunCoach } from "./hooks/useFirstRunCoach";
 import { useKidDeviceMode } from "./hooks/useKidDeviceMode";
@@ -43,11 +43,14 @@ import {
   usePlanBRescue,
   usePlusCheckout,
   useSafetySettings,
+  useActivityPreferences,
   useScoredActivities,
   useStatusMessage,
 } from "./features/app";
 import { formatAvailabilityLabel } from "./utils/activityFormatters";
 import { isFreeImaginativeUnlockUsed } from "./utils/presetDemo";
+import { mergeInventoryWithHouseholdBasics } from "./constants/inventoryPresets";
+import { kidActivityStyleFromPreference } from "./constants/activityPreferences";
 
 function App() {
   const navigate = useNavigate();
@@ -129,7 +132,13 @@ function App() {
     setNewChildInterests,
     newChildNeeds,
     setNewChildNeeds,
+    newChildAvoids,
+    setNewChildAvoids,
+    newChildIndependenceLevel,
+    setNewChildIndependenceLevel,
     editingChildId,
+    showChildForm,
+    beginAddingChildProfile,
     applyPlayingSelection,
     togglePlayingChild,
     addChildProfile,
@@ -156,6 +165,14 @@ function App() {
     toggleSafetySetting,
   } = useSafetySettings();
 
+  const {
+    activityPreferences,
+    setActivityPreferences,
+    updateActivityPreference,
+    assumeHouseholdBasics,
+    setAssumeHouseholdBasics,
+  } = useActivityPreferences();
+
   const [activities, setActivities] = useState([]);
   const { activitySessions, setActivitySessions } = useActivitySessions({
     userId: user?.id,
@@ -177,6 +194,16 @@ function App() {
     "kidActivityStyle",
     "simple"
   );
+
+  useEffect(() => {
+    const fromPrefs = kidActivityStyleFromPreference(
+      activityPreferences?.activityStylePreference
+    );
+    if (fromPrefs) {
+      setKidActivityStyle(fromPrefs);
+    }
+  }, [activityPreferences?.activityStylePreference, setKidActivityStyle]);
+
   const [messLevel] = useLocalStorage("messLevel", "low");
   const [locationPreference] = useLocalStorage(
     "locationPreference",
@@ -246,6 +273,15 @@ function App() {
     applyMomentDraft,
   });
 
+  const effectiveInventory = useMemo(
+    () =>
+      mergeInventoryWithHouseholdBasics(
+        normalizedInventory,
+        assumeHouseholdBasics
+      ),
+    [normalizedInventory, assumeHouseholdBasics]
+  );
+
   const {
     scoringOptions,
     scoredActivities,
@@ -255,11 +291,12 @@ function App() {
     currentMoment,
     activityHistory,
     activitySessions,
-    inventory,
+    inventory: effectiveInventory,
     activityMode,
     activeChildId,
     activeChildProfile,
     selectedChildProfiles,
+    activityPreferences,
   });
 
   const {
@@ -279,6 +316,8 @@ function App() {
     setPlayingChildIds,
     setInventory,
     setSafetySettings,
+    setActivityPreferences,
+    setAssumeHouseholdBasics,
     setCurrentMoment,
     setCustomParentPresets,
     setParentStatus,
@@ -295,6 +334,8 @@ function App() {
     childProfiles,
     inventory,
     safetySettings,
+    activityPreferences,
+    assumeHouseholdBasics,
     currentMoment,
     customParentPresets,
     lastSuccessfulMoment,
@@ -383,7 +424,7 @@ function App() {
     activityMode,
     activeChildId,
     currentMoment,
-    inventory,
+    inventory: effectiveInventory,
     kidMood,
     kidEnergyLevel,
     kidActivityStyle,
@@ -391,7 +432,7 @@ function App() {
     activeChildProfile,
     selectedChildProfiles,
     safetySettings,
-    uiTheme,
+    activityPreferences,
     setKidMood,
     navigate,
     entitlement,
@@ -451,7 +492,7 @@ function App() {
   saveActivityFeedbackRef.current = saveActivityFeedback;
 
   const { handleTryNextBestWithLibrary } = usePlanBRescue({
-    inventory,
+    inventory: effectiveInventory,
     currentMoment,
     scoredActivities,
     handleTryNextBest,
@@ -480,9 +521,24 @@ function App() {
   const defaultHomePath =
     parentPin && inventory.length > 0 ? "/kid" : "/parent";
 
-  const inventoryEmpty = normalizedInventory.length === 0;
+  const inventoryEmpty = effectiveInventory.length === 0;
   const childProfilesEmpty = childProfiles.length === 0;
   const setupNudgeNeeded = inventoryEmpty && childProfilesEmpty;
+
+  function resetLearnedRecommendations() {
+    const confirmed = window.confirm(
+      "Reset what FamilyFlow has learned from activity history? Children, supplies, account, and subscription stay."
+    );
+    if (!confirmed) {
+      return;
+    }
+    clearActivityHistory();
+    setActivitySessions([]);
+    showStatus?.(
+      "Cleared learned recommendation signals from activity history.",
+      "success"
+    );
+  }
 
   const familyContextValue = buildFamilyContextValue({
     currentMoment,
@@ -491,6 +547,10 @@ function App() {
     safetySettings,
     toggleSafetySetting,
     updateSafetySetting,
+    activityPreferences,
+    updateActivityPreference,
+    assumeHouseholdBasics,
+    setAssumeHouseholdBasics,
     normalizedInventory,
     customInventoryItems,
     isInventoryItemSelected,
@@ -523,7 +583,13 @@ function App() {
     setNewChildInterests,
     newChildNeeds,
     setNewChildNeeds,
+    newChildAvoids,
+    setNewChildAvoids,
+    newChildIndependenceLevel,
+    setNewChildIndependenceLevel,
     editingChildId,
+    showChildForm,
+    beginAddingChildProfile,
     startEditingChildProfile,
     cancelEditingChildProfile,
     addChildProfile,
@@ -535,6 +601,7 @@ function App() {
     removeSavedActivity,
     activityHistory,
     clearActivityHistory,
+    resetLearnedRecommendations,
     resetSavedData,
     uiTheme,
     setUiTheme,
@@ -689,7 +756,7 @@ function App() {
           imBoredDisabled={imBoredDisabled}
           handleGetPlus={handleGetPlus}
           checkoutBusy={checkoutBusy}
-          uiTheme={uiTheme}
+          activityPreferences={activityPreferences}
           kidDeviceMode={kidDeviceMode}
           gettingBetterCopy={gettingBetterCopy}
           setupNudgeNeeded={setupNudgeNeeded}

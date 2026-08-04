@@ -52,6 +52,8 @@ export function useFamilySettings({
   setPlayingChildIds,
   setInventory,
   setSafetySettings,
+  setActivityPreferences,
+  setAssumeHouseholdBasics,
   setCurrentMoment,
   setCustomParentPresets,
   setParentStatus,
@@ -68,6 +70,8 @@ export function useFamilySettings({
   childProfiles,
   inventory,
   safetySettings,
+  activityPreferences,
+  assumeHouseholdBasics,
   currentMoment,
   customParentPresets,
   lastSuccessfulMoment,
@@ -104,6 +108,8 @@ export function useFamilySettings({
     );
     setInventory(normalized.inventory);
     setSafetySettings(normalized.safetySettings);
+    setActivityPreferences?.(normalized.activityPreferences);
+    setAssumeHouseholdBasics?.(normalized.assumeHouseholdBasics !== false);
     setCurrentMoment(normalized.currentMoment);
     setCustomParentPresets(normalized.customParentPresets);
     setParentStatus(parentStatusFromMoment(normalized.currentMoment));
@@ -171,6 +177,8 @@ export function useFamilySettings({
       childProfiles,
       inventory,
       safetySettings,
+      activityPreferences,
+      assumeHouseholdBasics,
       currentMoment,
       customParentPresets,
       lastSuccessfulMoment,
@@ -342,6 +350,8 @@ export function useFamilySettings({
       childProfiles,
       inventory,
       safetySettings,
+      activityPreferences,
+      assumeHouseholdBasics,
       currentMoment,
       customParentPresets,
       lastSuccessfulMoment,
@@ -382,6 +392,8 @@ export function useFamilySettings({
     childProfiles,
     inventory,
     safetySettings,
+    activityPreferences,
+    assumeHouseholdBasics,
     currentMoment,
     customParentPresets,
     lastSuccessfulMoment,

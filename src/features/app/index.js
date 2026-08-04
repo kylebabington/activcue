@@ -9,6 +9,7 @@ export { usePlanBRescue } from "./usePlanBRescue";
 export { useActivitySessions } from "./useActivitySessions";
 export { useHeaderLogout } from "./useHeaderLogout";
 export { useSafetySettings } from "./useSafetySettings";
+export { useActivityPreferences } from "./useActivityPreferences";
 export { useScoredActivities } from "./useScoredActivities";
 export {
   buildFamilyContextValue,

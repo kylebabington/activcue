@@ -7,10 +7,10 @@ import KidPage from "../pages/KidPage";
 import QuestPage from "../pages/QuestPage";
 import ParentPinGate from "../components/ParentPinGate";
 import { defaultParentStatusPresets } from "../constants/presets";
-import { getPlayModeUiLine } from "../utils/playModeTheme";
 import { trackProductEvent } from "../utils/analytics";
 
 const SettingsPage = lazy(() => import("../pages/SettingsPage"));
+const MyActivitiesPage = lazy(() => import("../pages/MyActivitiesPage"));
 const InsightsPage = lazy(() => import("../pages/InsightsPage"));
 const OnboardingPage = lazy(() => import("../pages/OnboardingPage"));
 
@@ -63,7 +63,7 @@ export function AppRoutes({
   imBoredDisabled,
   handleGetPlus,
   checkoutBusy,
-  uiTheme,
+  activityPreferences,
   kidDeviceMode,
   gettingBetterCopy,
   setupNudgeNeeded,
@@ -150,7 +150,15 @@ export function AppRoutes({
             checkoutBusy={checkoutBusy}
             firstRunPulseImBored={firstRunCoach.pulseImBored}
             onFirstRunGenerated={firstRunCoach.markGenerated}
-            playModeLine={getPlayModeUiLine(uiTheme)}
+            playModeLine={
+              activityPreferences?.activityStylePreference ===
+              "mostly-imaginative"
+                ? "Preferring imaginative ideas from your family defaults."
+                : activityPreferences?.activityStylePreference ===
+                    "mostly-simple"
+                  ? "Preferring simple ideas from your family defaults."
+                  : ""
+            }
             kidDeviceMode={kidDeviceMode}
             gettingBetterCopy={gettingBetterCopy}
             setupNudgeNeeded={setupNudgeNeeded}
@@ -159,6 +167,23 @@ export function AppRoutes({
       />
 
       <Route path="/quest" element={<QuestPage />} />
+
+      <Route
+        path="/my-activities"
+        element={
+          parentAreasLocked ? (
+            <ParentPinGate
+              parentPin={parentPin}
+              parentPinSet={parentPinSet}
+              onUnlock={() => setParentAreaUnlocked(true)}
+            />
+          ) : (
+            <Suspense fallback={<RouteFallback />}>
+              <MyActivitiesPage />
+            </Suspense>
+          )
+        }
+      />
 
       <Route
         path="/insights"
