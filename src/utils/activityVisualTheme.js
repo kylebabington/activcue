@@ -14,6 +14,7 @@ export const VISUAL_THEME_META = {
   rescue: { label: "Rescue", icon: "🛟", accent: "#c44b3c" },
   mystery: { label: "Mystery", icon: "🔮", accent: "#4a3f6b" },
 };
+
 export function getVisualThemeMeta(visualTheme) {
   const key =
     typeof visualTheme === "string" && VISUAL_THEME_META[visualTheme]
@@ -46,6 +47,37 @@ export function getStarterIdeas(activity) {
     }));
   }
   return [];
+}
+
+/**
+ * Return at most three deterministic, step-local recovery prompts.
+ *
+ * Newer activities may provide stuckPrompts directly. Older Activity V2 data
+ * already includes ifStuck plus concrete examples, so those become the
+ * fallback pool. This keeps the button useful without making another AI call.
+ */
+export function getStepStuckPrompts(step) {
+  if (!step || typeof step !== "object") return [];
+
+  const explicit = Array.isArray(step.stuckPrompts) ? step.stuckPrompts : [];
+  const examples = Array.isArray(step.examples) ? step.examples : [];
+  const candidates = [
+    ...explicit,
+    step.ifStuck,
+    ...examples.map((example) => `Try this: ${example}`),
+  ];
+
+  const seen = new Set();
+  return candidates
+    .map((value) => (typeof value === "string" ? value.trim() : ""))
+    .filter((value) => {
+      if (!value) return false;
+      const key = value.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, 3);
 }
 
 export function getStepDetails(activity) {
