@@ -28,6 +28,21 @@ import {
   filterStartableActivities,
 } from "./activityGenerationHelpers";
 import { markSuggestionsShownAt } from "../../utils/timeToStart";
+import { resolveChildAge } from "../../utils/childAge";
+
+function resolveOldestChildAgeYears(deps) {
+  const profiles =
+    Array.isArray(deps.selectedChildProfiles) &&
+    deps.selectedChildProfiles.length > 0
+      ? deps.selectedChildProfiles
+      : deps.activeChildProfile
+        ? [deps.activeChildProfile]
+        : [];
+  const ages = profiles
+    .map((profile) => resolveChildAge(profile).ageYears)
+    .filter((age) => Number.isFinite(age));
+  return ages.length > 0 ? Math.max(...ages) : null;
+}
 
 export function useActivityGeneration(deps = {}) {
   const [isLoading, setIsLoading] = useState(false);
@@ -62,6 +77,8 @@ export function useActivityGeneration(deps = {}) {
       setIsLoading(true);
       d.showStatus?.("");
       d.setActivities?.([]);
+      d.setActiveActivity?.(null);
+      d.clearLastCompletedQuest?.();
 
       const preferenceContext = buildStructuredPreferenceContext(
         d.activityHistory,
@@ -123,6 +140,7 @@ export function useActivityGeneration(deps = {}) {
             inventory: d.inventory,
             currentMoment: d.currentMoment,
             count: 3,
+            oldestChildAgeYears: resolveOldestChildAgeYears(d),
           });
 
           if (templateActivities.length > 0) {
@@ -201,11 +219,21 @@ export function useActivityGeneration(deps = {}) {
           return null;
         }
 
+        if (error instanceof ApiRequestError && error.status === 422) {
+          d.showStatus?.(
+            error.message ||
+              "Could not generate age-appropriate activities. Try regenerating.",
+            "info"
+          );
+          return [];
+        }
+
         if (allowOfflineFallback || d.kidActivityStyle === "simple") {
           const templateActivities = buildSimpleActivitiesFromTemplates({
             inventory: d.inventory,
             currentMoment: d.currentMoment,
             count: 3,
+            oldestChildAgeYears: resolveOldestChildAgeYears(d),
           });
 
           if (templateActivities.length > 0) {
@@ -298,6 +326,12 @@ export function useActivityGeneration(deps = {}) {
       setLoadingIntent(options.preferSimpleTemplates ? "quick" : "board");
 
       const preferSimpleTemplates = Boolean(options.preferSimpleTemplates);
+      const oldestChildAgeYears = resolveOldestChildAgeYears(d);
+
+      function clearStickyQuestForNewBoard() {
+        d.setActiveActivity?.(null);
+        d.clearLastCompletedQuest?.();
+      }
 
       if (!d.entitlementHydrated && preferSimpleTemplates) {
         setIsLoading(true);
@@ -308,9 +342,11 @@ export function useActivityGeneration(deps = {}) {
             inventory: d.inventory,
             currentMoment: d.currentMoment,
             count: 3,
+            oldestChildAgeYears,
           });
 
           if (templateActivities.length > 0) {
+            clearStickyQuestForNewBoard();
             const normalized = normalizeActivitiesToInventory(
               templateActivities,
               d.inventory
@@ -359,6 +395,7 @@ export function useActivityGeneration(deps = {}) {
 
         setIsLoading(true);
         d.showStatus?.("");
+        clearStickyQuestForNewBoard();
 
         try {
           if (preferSimpleTemplates || d.kidActivityStyle === "simple") {
@@ -367,6 +404,7 @@ export function useActivityGeneration(deps = {}) {
                 inventory: d.inventory,
                 currentMoment: d.currentMoment,
                 count: 3,
+                oldestChildAgeYears,
               });
 
               if (templateActivities.length > 0) {

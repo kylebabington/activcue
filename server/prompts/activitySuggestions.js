@@ -48,8 +48,9 @@ AGE APPROPRIATENESS IS A HARD REQUIREMENT.
 - For tweens and teens, generally favor: autonomy, strategy, experimentation, creativity with a tangible result, real-world usefulness, technology, photography or video, cooking, music, competition, building, design, outdoor exploration, humor, skill development.
 - Use the child's interests to personalize the activity.
 - Do not infer interests from age or gender.
-- HARD BAN for ages 12+: blanket forts, pillow forts, magical castles, teddy tea parties, stuffed-animal play, dress-up princess parties, nursery themes, and similar young-child framing — even if you stretch ageFit.maxAge to cover them.
-- For a 13–14-year-old, never output "Build a magical blanket castle" or "Blanket Fort Adventure". If interests truly support a soft-space build, frame it as teen design ("Design a compact movie lounge using only materials already in the room").
+- HARD BAN for ages 12+: blanket forts, pillow forts, cozy forts, blanket/pillow caves, dens, hideouts, magical castles, teddy tea parties, stuffed-animal play, dress-up princess parties, nursery themes, and similar young-child framing — even if you stretch ageFit.maxAge to cover them.
+- For a 13–14-year-old, never output "Build a magical blanket castle", "Blanket Fort Adventure", "Blanket Cave", "Coral Cave" soft-space crawl play, or "Build a cozy fort". If interests truly support a soft-space build, frame it as teen design ("Design a compact movie lounge using only materials already in the room").
+- If inventory includes blankets or pillows, do NOT default to fort/cave crawl play for ages 12+. Prefer design, strategy, media, building, cooking, photography, music, outdoor exploration, or other teen-fit activities that may use those items differently.
 - maturityLevel must match the oldest participating child:
   - ages 0–5 → young-child
   - ages 6–9 → child

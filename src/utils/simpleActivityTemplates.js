@@ -89,6 +89,7 @@ const TEMPLATE_LIBRARY = [
     mess: "low",
     energy: "low",
     adultHelp: "none",
+    maxAge: 11,
     steps: ["Lay down a blanket.", "Seat your stuffed animals.", "Serve a pretend snack."],
   },
   {
@@ -99,6 +100,7 @@ const TEMPLATE_LIBRARY = [
     mess: "medium",
     energy: "medium",
     adultHelp: "optional",
+    maxAge: 11,
     steps: ["Gather blankets and pillows.", "Drape a blanket over chairs or the couch.", "Crawl inside and get cozy."],
   },
   {
@@ -251,6 +253,7 @@ export function buildSimpleActivitiesFromTemplates({
   inventory,
   currentMoment,
   count = 3,
+  oldestChildAgeYears = null,
 }) {
   const targetMinutes = Number(currentMoment?.timeNeededMinutes) || 20;
   const momentMess = normalizeTextValue(currentMoment?.messLevel) || "low";
@@ -259,8 +262,17 @@ export function buildSimpleActivitiesFromTemplates({
   const availability = normalizeTextValue(currentMoment?.availability);
   const space = currentMoment?.space || "Living room";
   const outdoorOk = spaceAllowsOutdoor(space);
+  const oldestAge = Number(oldestChildAgeYears);
 
   const candidates = TEMPLATE_LIBRARY.map((template) => {
+    if (
+      Number.isFinite(oldestAge) &&
+      Number.isFinite(template.maxAge) &&
+      oldestAge > template.maxAge
+    ) {
+      return null;
+    }
+
     const uses = pickMatchingItems(template, inventory);
     let score = uses.length * 3;
 
@@ -290,7 +302,7 @@ export function buildSimpleActivitiesFromTemplates({
 
     return { template, uses, score };
   })
-    .filter((entry) => entry.score > -10)
+    .filter((entry) => entry && entry.score > -10)
     .sort((a, b) => b.score - a.score);
 
   const selected = candidates.slice(0, count);

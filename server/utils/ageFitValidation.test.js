@@ -75,6 +75,42 @@ describe("ageFitValidation", () => {
     expect(result.reasons).toContain("young-child-content-for-older");
   });
 
+  it("rejects blanket cave content for a 13-year-old", () => {
+    const result = validateAgeContentFit(
+      {
+        title: "Blanket Cave Explorer",
+        summary: "Crawl into a cozy blanket cave and find soft treasures.",
+        ageFit: {
+          minAge: 5,
+          maxAge: 16,
+          maturityLevel: "teen",
+          ageFitReason: "Covers the age range",
+        },
+      },
+      [{ name: "Jordan", ageYears: 13 }]
+    );
+    expect(result.ok).toBe(false);
+    expect(result.reasons).toContain("young-child-content-for-older");
+  });
+
+  it("rejects cozy fort content for a 13-year-old", () => {
+    const result = validateAgeContentFit(
+      {
+        title: "Build a cozy fort",
+        summary: "Gather blankets and pillows and make a cozy fort to crawl into.",
+        ageFit: {
+          minAge: 5,
+          maxAge: 16,
+          maturityLevel: "teen",
+          ageFitReason: "Building challenge",
+        },
+      },
+      [{ name: "Jordan", ageYears: 13 }]
+    );
+    expect(result.ok).toBe(false);
+    expect(result.reasons).toContain("young-child-content-for-older");
+  });
+
   it("rejects child maturityLevel for teens", () => {
     const result = validateAgeContentFit(
       {

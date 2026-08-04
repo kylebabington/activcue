@@ -154,6 +154,13 @@ export default function createActivitySuggestionsRouter(client) {
           schema: activitySuggestionsSchema,
         });
         const rawText = aiResult.outputText;
+        let usageMeta = {
+          model: aiResult.model || OPENAI_MODEL,
+          inputTokens: aiResult.inputTokens,
+          outputTokens: aiResult.outputTokens,
+          totalTokens: aiResult.totalTokens,
+          responseId: aiResult.responseId,
+        };
 
         if (isDebugLogging) {
           console.log("RAW AI RESPONSE:");
@@ -169,17 +176,136 @@ export default function createActivitySuggestionsRouter(client) {
           normalizeActivity(activity, safeActivityStyle, childAges)
         );
 
-        const ageFiltered = filterActivitiesByAgeFit(
+        let ageFiltered = filterActivitiesByAgeFit(
           normalizedActivities,
           childrenContext
         );
+        let totalAgeFitRejected = ageFiltered.rejectedCount;
 
-        // Prefer eligible activities; if all fail validation, keep normalized
-        // batch so the family still gets ideas (logged above for quality tracking).
-        const eligibleActivities =
-          ageFiltered.activities.length > 0
-            ? ageFiltered.activities
-            : normalizedActivities;
+        const oldestAge =
+          childAges.length > 0 ? Math.max(...childAges) : null;
+        const enforceTeenAgeFit =
+          Number.isFinite(oldestAge) && oldestAge >= 12;
+
+        let eligibleActivities = ageFiltered.activities;
+
+        if (eligibleActivities.length === 0) {
+          if (enforceTeenAgeFit) {
+            const rejectionTitles = (ageFiltered.rejectionDetails || [])
+              .map((detail) => detail.title)
+              .filter(Boolean)
+              .slice(0, 5);
+            const retrySteer = [
+              "AGE RETRY: The previous activity batch was rejected for age fit.",
+              "Suggest mature alternatives for ages 12+.",
+              "Avoid blanket forts, cozy forts, blanket/pillow caves, dens, hideouts, stuffed-animal play, magical castles, and other young-child framing.",
+              "Prefer autonomy, strategy, design, building, cooking, photography, music, outdoor exploration, or skill challenges.",
+              rejectionTitles.length > 0
+                ? `Rejected titles to avoid repeating: ${rejectionTitles
+                    .map((title) => `"${title}"`)
+                    .join(", ")}.`
+                : "",
+            ]
+              .filter(Boolean)
+              .join("\n");
+
+            const retryFeedback = [safeFeedbackContext, retrySteer]
+              .filter(Boolean)
+              .join("\n\n");
+
+            const retryInput = buildActivitySuggestionsInput({
+              safeCurrentMoment,
+              kidMood,
+              locationPreference,
+              childAgeRange,
+              childrenContext,
+              groupAgeContext,
+              activeChildProfile,
+              safeActivityStyle,
+              activityMode,
+              safeSelectedChildProfiles,
+              inventory,
+              safeFeedbackContext: retryFeedback,
+              safePreviousActivityTitles: [
+                ...safePreviousActivityTitles,
+                ...rejectionTitles,
+              ],
+              safeSafetySettings,
+              playModeTheme: safePlayModeTheme,
+            });
+
+            const retryResult = await createStructuredResponseWithMeta(
+              client,
+              {
+                instructions,
+                input: retryInput,
+                schemaName: "activity_suggestions",
+                schema: activitySuggestionsSchema,
+              }
+            );
+            const retryRawText = retryResult.outputText;
+            usageMeta = {
+              model: retryResult.model || usageMeta.model,
+              inputTokens:
+                (usageMeta.inputTokens || 0) + (retryResult.inputTokens || 0),
+              outputTokens:
+                (usageMeta.outputTokens || 0) +
+                (retryResult.outputTokens || 0),
+              totalTokens:
+                (usageMeta.totalTokens || 0) + (retryResult.totalTokens || 0),
+              responseId: retryResult.responseId || usageMeta.responseId,
+            };
+
+            if (isDebugLogging) {
+              console.log("RAW AI AGE-RETRY RESPONSE:");
+              console.log(retryRawText);
+            }
+
+            const retryParsed = JSON.parse(retryRawText);
+            const retryRawActivities = Array.isArray(retryParsed.activities)
+              ? retryParsed.activities
+              : [];
+            const retryNormalized = retryRawActivities.map((activity) =>
+              normalizeActivity(activity, safeActivityStyle, childAges)
+            );
+            ageFiltered = filterActivitiesByAgeFit(
+              retryNormalized,
+              childrenContext
+            );
+            totalAgeFitRejected += ageFiltered.rejectedCount;
+            eligibleActivities = ageFiltered.activities;
+
+            if (eligibleActivities.length === 0) {
+              console.warn("[ageFit] age retry still empty for 12+", {
+                oldestAge,
+                totalAgeFitRejected,
+                details: ageFiltered.rejectionDetails,
+              });
+              await recordAiUsageEvent({
+                userId: req.auth.userId,
+                operation: "activity-suggestions",
+                model: usageMeta.model,
+                inputTokens: usageMeta.inputTokens,
+                outputTokens: usageMeta.outputTokens,
+                totalTokens: usageMeta.totalTokens,
+                responseId: usageMeta.responseId,
+                latencyMs: Date.now() - startedAt,
+                success: false,
+                error: { message: "age-fit-empty-after-retry" },
+              });
+              return res.status(422).json({
+                error:
+                  "Could not generate age-appropriate activities for this child. Try regenerating or updating interests.",
+                message:
+                  "Could not generate age-appropriate activities for this child. Try regenerating or updating interests.",
+                ageFitRejectedCount: totalAgeFitRejected,
+              });
+            }
+          } else {
+            // Younger kids / unknown ages: keep normalized batch so the family still gets ideas.
+            eligibleActivities = normalizedActivities;
+          }
+        }
 
         const withIds = attachRecommendationIds(eligibleActivities);
         const presentedAt = new Date().toISOString();
@@ -197,7 +323,7 @@ export default function createActivitySuggestionsRouter(client) {
         const normalizedResponse = {
           recommendationBatchId: withIds.recommendationBatchId,
           activities: ingested,
-          ageFitRejectedCount: ageFiltered.rejectedCount,
+          ageFitRejectedCount: totalAgeFitRejected,
         };
 
         if (isDebugLogging) {
@@ -209,12 +335,12 @@ export default function createActivitySuggestionsRouter(client) {
         await recordAiUsageEvent({
           userId: req.auth.userId,
           operation: "activity-suggestions",
-          model: aiResult.model || OPENAI_MODEL,
-          inputTokens: aiResult.inputTokens,
-          outputTokens: aiResult.outputTokens,
-          totalTokens: aiResult.totalTokens,
-          responseId: aiResult.responseId,
-          latencyMs: aiResult.latencyMs,
+          model: usageMeta.model,
+          inputTokens: usageMeta.inputTokens,
+          outputTokens: usageMeta.outputTokens,
+          totalTokens: usageMeta.totalTokens,
+          responseId: usageMeta.responseId,
+          latencyMs: Date.now() - startedAt,
           success: true,
         });
       } catch (error) {
