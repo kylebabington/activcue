@@ -208,7 +208,9 @@ export default function createActivitySuggestionsRouter(client) {
               "AGE RETRY: The previous activity batch was rejected for age fit.",
               "Suggest mature alternatives for ages 12+.",
               "Avoid blanket forts, cozy forts, blanket/pillow caves, dens, hideouts, stuffed-animal play, magical castles, and other young-child framing.",
+              "For imaginative style: do NOT invent pretend story worlds or fantasy roleplay. Use creative thinking challenges — design briefs, strategy, invention, puzzles, skill challenges.",
               "Prefer autonomy, strategy, design, building, cooking, photography, music, outdoor exploration, or skill challenges.",
+              "mission should be a short challenge brief; roleGuide should be a job/brief title (Designer, Strategist, Inventor), not a make-believe character.",
               rejectionTitles.length > 0
                 ? `Rejected titles to avoid repeating: ${rejectionTitles
                     .map((title) => `"${title}"`)

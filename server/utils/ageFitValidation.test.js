@@ -140,6 +140,23 @@ describe("ageFitValidation", () => {
     expect(result.ok).toBe(true);
   });
 
+  it("rejects pretend story framing for teens", () => {
+    const result = validateAgeContentFit(
+      {
+        title: "Hero Quest Adventure",
+        mission: "You are a brave hero on a magical quest to save the kingdom.",
+        ageFit: {
+          minAge: 12,
+          maxAge: 16,
+          maturityLevel: "teen",
+        },
+      },
+      [{ name: "Jordan", ageYears: 13 }]
+    );
+    expect(result.ok).toBe(false);
+    expect(result.reasons).toContain("teen-pretend-story");
+  });
+
   it("filters a batch and keeps eligible activities", () => {
     const { activities, rejectedCount } = filterActivitiesByAgeFit(
       [

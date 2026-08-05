@@ -34,6 +34,17 @@ const YOUNG_CHILD_CONTENT_PATTERNS = [
   /\bfairy\s+(tea|garden|castle|dust)\b/i,
   /\bprincess\s+(castle|tea|dress[- ]?up)\b/i,
   /\bdress[- ]?up\s+(party|time|clothes)\b/i,
+  /\bpretend\s+you\s+are\s+(a\s+)?(baby|fairy|princess|teddy|superhero|wizard)\b/i,
+  /\bmake[- ]?believe\s+(world|kingdom|adventure)\b/i,
+];
+
+/** Extra pretend-story framing that feels too young for teens (13+). */
+const TEEN_PRETEND_STORY_PATTERNS = [
+  /\byou\s+are\s+(a\s+)?(brave\s+)?(hero|knight|wizard|fairy|princess|space\s+cadet|pirate\s+captain)\b/i,
+  /\bmagical\s+(quest|kingdom|adventure|mission)\b/i,
+  /\bpretend\s+(play|world|adventure)\b/i,
+  /\bonce\s+upon\s+a\s+time\b/i,
+  /\byour\s+(magical|enchanted)\s+(powers|wand|castle)\b/i,
 ];
 
 const AGE_APPROPRIATE_FORT_EXCEPTION =
@@ -112,6 +123,15 @@ export function validateAgeContentFit(activity, childrenContext = []) {
 
     if (hitsYoungContent && !hasAgeAppropriateFrame) {
       reasons.push("young-child-content-for-older");
+    }
+  }
+
+  if (oldest >= 13) {
+    const hitsPretendStory = TEEN_PRETEND_STORY_PATTERNS.some((pattern) =>
+      pattern.test(text)
+    );
+    if (hitsPretendStory) {
+      reasons.push("teen-pretend-story");
     }
   }
 

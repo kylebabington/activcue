@@ -269,8 +269,8 @@ function KidPage({
               onClick={() => setKidActivityStyle("imaginative")}
               disabled={isLoading}
             >
-              <span>Pretend</span>
-              <small>Story play</small>
+              <span>Imaginative</span>
+              <small>Creative thinking</small>
             </button>
           </div>
 
