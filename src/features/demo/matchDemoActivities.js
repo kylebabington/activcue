@@ -5,6 +5,7 @@ import { resolveChildAge } from "../../utils/childAge";
 import { DEMO_ACTIVITY_POOL } from "../../constants/demoActivityPool";
 import { getDemoMoment } from "../../constants/demoMoments";
 import { DEMO_CHILDREN, getDemoChild } from "../../constants/demoChildren";
+import { storyifyCachedImaginativeActivity } from "./storyifyCachedImaginativeActivity";
 
 function formatWhyFitChips(activity, moment) {
   const chips = [];
@@ -49,9 +50,12 @@ export function matchDemoActivities({
     ? explicitAge
     : resolveChildAge(child).ageYears;
   const currentMoment = demoMoment.moment;
+  const storyReadyPool = Array.isArray(pool)
+    ? pool.map(storyifyCachedImaginativeActivity)
+    : [];
 
   const ranked = scoreActivitiesForCurrentMoment({
-    activities: Array.isArray(pool) ? [...pool] : [],
+    activities: storyReadyPool,
     currentMoment,
     activityHistory: [],
     activitySessions: [],
