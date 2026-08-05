@@ -15,7 +15,6 @@ import {
 } from "../../utils/presetDemo";
 import {
   activityPassesInventorySoftCheck,
-  buildInventoryOnlyFeedback,
   buildStructuredPreferenceContext,
   logActivityScoreTable,
   normalizeActivitiesToInventory,
@@ -282,18 +281,9 @@ export function useActivityGeneration(deps = {}) {
           );
 
         if (allFailedInventoryCheck) {
-          const strongerFeedback = [
-            combinedFeedback,
-            buildInventoryOnlyFeedback(d.inventory),
-          ]
-            .filter(Boolean)
-            .join("\n\n");
-
-          generated = await requestActivities(strongerFeedback);
-          generatedActivities = generated?.activities || [];
-          normalized = normalizeActivitiesToInventory(
-            generatedActivities,
-            d.inventory
+          d.showStatus?.(
+            "Ideas ready — some may need supplies you don't have listed. Adjust supplies in Parent if needed.",
+            "info"
           );
         }
 
@@ -442,6 +432,9 @@ export function useActivityGeneration(deps = {}) {
       if (!d.entitlementHydrated && preferSimpleTemplates) {
         setIsLoading(true);
         d.showStatus?.("");
+        clearStickyQuestForNewBoard();
+        d.setActivities?.([]);
+        d.navigate?.("/quest");
 
         try {
           const templateActivities = buildSimpleActivitiesFromTemplates({
@@ -452,10 +445,8 @@ export function useActivityGeneration(deps = {}) {
           });
 
           if (templateActivities.length > 0) {
-            clearStickyQuestForNewBoard();
             await presentLocalBoard(d, templateActivities, "templates");
             d.showStatus?.("Quick ideas ready — no wait.", "success");
-            d.navigate?.("/quest");
             return;
           }
 
@@ -495,6 +486,8 @@ export function useActivityGeneration(deps = {}) {
         setIsLoading(true);
         d.showStatus?.("");
         clearStickyQuestForNewBoard();
+        d.setActivities?.([]);
+        d.navigate?.("/quest");
 
         try {
           if (preferSimpleTemplates || d.kidActivityStyle === "simple") {
@@ -509,7 +502,6 @@ export function useActivityGeneration(deps = {}) {
               if (templateActivities.length > 0) {
                 await presentLocalBoard(d, templateActivities, "templates");
                 d.showStatus?.("Quick ideas ready — no wait.", "success");
-                d.navigate?.("/quest");
                 return;
               }
             }
@@ -529,7 +521,6 @@ export function useActivityGeneration(deps = {}) {
                   "info"
                 );
                 d.setActivities?.([]);
-                d.navigate?.("/quest");
                 return;
               }
 
@@ -538,7 +529,6 @@ export function useActivityGeneration(deps = {}) {
                 "Sample presets — Plus personalizes to this moment.",
                 "success"
               );
-              d.navigate?.("/quest");
               return;
             }
 
@@ -558,7 +548,6 @@ export function useActivityGeneration(deps = {}) {
                 "info"
               );
               d.setActivities?.([]);
-              d.navigate?.("/quest");
               return;
             }
 
@@ -567,7 +556,6 @@ export function useActivityGeneration(deps = {}) {
               "Showing sample presets — Plus personalizes to this moment.",
               "success"
             );
-            d.navigate?.("/quest");
             return;
           }
 
@@ -596,7 +584,6 @@ export function useActivityGeneration(deps = {}) {
           if (slice.length === 0) {
             d.showStatus?.("No pretend samples available right now.", "info");
             d.setActivities?.([]);
-            d.navigate?.("/quest");
             return;
           }
 
@@ -605,7 +592,6 @@ export function useActivityGeneration(deps = {}) {
             "Showing sample presets — Plus personalizes to this moment. Unlock one pretend activity free when you start.",
             "success"
           );
-          d.navigate?.("/quest");
         } catch (error) {
           console.error("Demo preset generation failed:", error);
           d.showStatus?.(
@@ -615,7 +601,6 @@ export function useActivityGeneration(deps = {}) {
             "error"
           );
           d.setActivities?.([]);
-          d.navigate?.("/quest");
         } finally {
           setIsLoading(false);
           setLoadingIntent(null);
@@ -624,7 +609,12 @@ export function useActivityGeneration(deps = {}) {
         return;
       }
 
-      const generatedActivities = await handleGenerateActivities(
+      clearStickyQuestForNewBoard();
+      setIsLoading(true);
+      d.setActivities?.([]);
+      d.navigate?.("/quest");
+
+      await handleGenerateActivities(
         buildKidBoredFeedbackContext({
           kidActivityStyle: d.kidActivityStyle,
           kidEnergyLevel: d.kidEnergyLevel,
@@ -634,13 +624,6 @@ export function useActivityGeneration(deps = {}) {
           preferSimpleTemplates,
         }
       );
-
-      if (!generatedActivities?.length) {
-        d.navigate?.("/quest");
-        return;
-      }
-
-      d.navigate?.("/quest");
     },
     [handleGenerateActivities, presetRotationIndex]
   );

@@ -1,14 +1,14 @@
 // src/context/AppRoutes.jsx
 
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useCallback } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
-import ParentPage from "../pages/ParentPage";
-import KidPage from "../pages/KidPage";
-import QuestPage from "../pages/QuestPage";
 import ParentPinGate from "../components/ParentPinGate";
 import { defaultParentStatusPresets } from "../constants/presets";
 import { trackProductEvent } from "../utils/analytics";
 
+const ParentPage = lazy(() => import("../pages/ParentPage"));
+const KidPage = lazy(() => import("../pages/KidPage"));
+const QuestPage = lazy(() => import("../pages/QuestPage"));
 const SettingsPage = lazy(() => import("../pages/SettingsPage"));
 const MyActivitiesPage = lazy(() => import("../pages/MyActivitiesPage"));
 const InsightsPage = lazy(() => import("../pages/InsightsPage"));
@@ -70,6 +70,16 @@ export function AppRoutes({
   applyOnboardingDraft,
   handleStartActivityFromUi,
 }) {
+  const onGenerateKidActivities = useCallback(
+    async (options) => {
+      trackProductEvent(
+        options?.preferSimpleTemplates ? "quick_ideas" : "im_bored"
+      );
+      return handleGenerateKidActivities(options);
+    },
+    [handleGenerateKidActivities]
+  );
+
   return (
     <Routes>
       <Route
@@ -99,21 +109,23 @@ export function AppRoutes({
               onUnlock={() => setParentAreaUnlocked(true)}
             />
           ) : (
-            <ParentPage
-              defaultParentStatusPresets={defaultParentStatusPresets}
-              customParentPresets={customParentPresets}
-              getAvailabilityLabel={formatAvailabilityLabel}
-              applyMomentDraft={applyMomentDraft}
-              saveCustomParentPreset={saveCustomParentPreset}
-              updateCustomParentPreset={updateCustomParentPreset}
-              deleteCustomParentPreset={deleteCustomParentPreset}
-              activePresetKey={activePresetKey}
-              setActivePresetKey={setActivePresetKey}
-              firstRunHighlightCooking={firstRunCoach.highlightCooking}
-              onFirstRunMomentSet={firstRunCoach.markMomentSet}
-              onDismissFirstRun={firstRunCoach.dismiss}
-              lastSuccessfulMoment={lastSuccessfulMoment}
-            />
+            <Suspense fallback={<RouteFallback />}>
+              <ParentPage
+                defaultParentStatusPresets={defaultParentStatusPresets}
+                customParentPresets={customParentPresets}
+                getAvailabilityLabel={formatAvailabilityLabel}
+                applyMomentDraft={applyMomentDraft}
+                saveCustomParentPreset={saveCustomParentPreset}
+                updateCustomParentPreset={updateCustomParentPreset}
+                deleteCustomParentPreset={deleteCustomParentPreset}
+                activePresetKey={activePresetKey}
+                setActivePresetKey={setActivePresetKey}
+                firstRunHighlightCooking={firstRunCoach.highlightCooking}
+                onFirstRunMomentSet={firstRunCoach.markMomentSet}
+                onDismissFirstRun={firstRunCoach.dismiss}
+                lastSuccessfulMoment={lastSuccessfulMoment}
+              />
+            </Suspense>
           )
         }
       />
@@ -121,52 +133,56 @@ export function AppRoutes({
       <Route
         path="/kid"
         element={
-          <KidPage
-            currentMoment={currentMoment}
-            kidEnergyLevel={kidEnergyLevel}
-            setKidEnergyLevel={setKidEnergyLevel}
-            kidActivityStyle={kidActivityStyle}
-            setKidActivityStyle={setKidActivityStyle}
-            handleGenerateKidActivities={async (options) => {
-              trackProductEvent(
-                options?.preferSimpleTemplates ? "quick_ideas" : "im_bored"
-              );
-              return handleGenerateKidActivities(options);
-            }}
-            handleStartSomethingForMe={handleStartSomethingForMe}
-            isLoading={isLoading}
-            loadingIntent={loadingIntent}
-            activeChildProfile={activeChildProfile}
-            activityMode={activityMode}
-            childProfiles={childProfiles}
-            playingChildIds={playingChildIds}
-            togglePlayingChild={togglePlayingChild}
-            savedActivities={savedActivities}
-            activityHistory={activityHistory}
-            handleReplaySavedActivity={handleReplaySavedActivity}
-            isDemoMode={isDemoMode}
-            imBoredDisabled={imBoredDisabled}
-            onGetPlus={isDemoMode ? handleGetPlus : null}
-            checkoutBusy={checkoutBusy}
-            firstRunPulseImBored={firstRunCoach.pulseImBored}
-            onFirstRunGenerated={firstRunCoach.markGenerated}
-            playModeLine={
-              activityPreferences?.activityStylePreference ===
-              "mostly-imaginative"
-                ? "Preferring imaginative ideas from your family defaults."
-                : activityPreferences?.activityStylePreference ===
-                    "mostly-simple"
-                  ? "Preferring simple ideas from your family defaults."
-                  : ""
-            }
-            kidDeviceMode={kidDeviceMode}
-            gettingBetterCopy={gettingBetterCopy}
-            setupNudgeNeeded={setupNudgeNeeded}
-          />
+          <Suspense fallback={<RouteFallback />}>
+            <KidPage
+              currentMoment={currentMoment}
+              kidEnergyLevel={kidEnergyLevel}
+              setKidEnergyLevel={setKidEnergyLevel}
+              kidActivityStyle={kidActivityStyle}
+              setKidActivityStyle={setKidActivityStyle}
+              handleGenerateKidActivities={onGenerateKidActivities}
+              handleStartSomethingForMe={handleStartSomethingForMe}
+              isLoading={isLoading}
+              loadingIntent={loadingIntent}
+              activeChildProfile={activeChildProfile}
+              activityMode={activityMode}
+              childProfiles={childProfiles}
+              playingChildIds={playingChildIds}
+              togglePlayingChild={togglePlayingChild}
+              savedActivities={savedActivities}
+              activityHistory={activityHistory}
+              handleReplaySavedActivity={handleReplaySavedActivity}
+              isDemoMode={isDemoMode}
+              imBoredDisabled={imBoredDisabled}
+              onGetPlus={isDemoMode ? handleGetPlus : null}
+              checkoutBusy={checkoutBusy}
+              firstRunPulseImBored={firstRunCoach.pulseImBored}
+              onFirstRunGenerated={firstRunCoach.markGenerated}
+              playModeLine={
+                activityPreferences?.activityStylePreference ===
+                "mostly-imaginative"
+                  ? "Preferring imaginative ideas from your family defaults."
+                  : activityPreferences?.activityStylePreference ===
+                      "mostly-simple"
+                    ? "Preferring simple ideas from your family defaults."
+                    : ""
+              }
+              kidDeviceMode={kidDeviceMode}
+              gettingBetterCopy={gettingBetterCopy}
+              setupNudgeNeeded={setupNudgeNeeded}
+            />
+          </Suspense>
         }
       />
 
-      <Route path="/quest" element={<QuestPage />} />
+      <Route
+        path="/quest"
+        element={
+          <Suspense fallback={<RouteFallback />}>
+            <QuestPage />
+          </Suspense>
+        }
+      />
 
       <Route
         path="/my-activities"
@@ -220,4 +236,21 @@ export function AppRoutes({
       />
     </Routes>
   );
+}
+
+/** Prefetch route chunks on nav hover/focus so first visit feels instant. */
+export function prefetchAppRoute(path) {
+  if (path === "/parent") {
+    void import("../pages/ParentPage");
+  } else if (path === "/kid") {
+    void import("../pages/KidPage");
+  } else if (path === "/quest") {
+    void import("../pages/QuestPage");
+  } else if (path === "/settings") {
+    void import("../pages/SettingsPage");
+  } else if (path === "/my-activities") {
+    void import("../pages/MyActivitiesPage");
+  } else if (path === "/insights") {
+    void import("../pages/InsightsPage");
+  }
 }

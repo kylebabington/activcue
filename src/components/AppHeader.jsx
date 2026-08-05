@@ -1,7 +1,21 @@
 // src/components/AppHeader.jsx
 
 import { Link, NavLink } from "react-router-dom";
+import { prefetchAppRoute } from "../context/AppRoutes";
 import ThemeSwitcher from "./ThemeSwitcher";
+
+function PrefetchNavLink({ to, children, ...rest }) {
+  return (
+    <NavLink
+      to={to}
+      onMouseEnter={() => prefetchAppRoute(to)}
+      onFocus={() => prefetchAppRoute(to)}
+      {...rest}
+    >
+      {children}
+    </NavLink>
+  );
+}
 
 export default function AppHeader({
   kidDeviceMode,
@@ -30,7 +44,7 @@ export default function AppHeader({
       </div>
 
       <nav className="app-nav">
-        <NavLink
+        <PrefetchNavLink
           to="/parent"
           className={({ isActive }) => (isActive ? "active" : "")}
           title={parentAreasLocked ? "Parent area is locked" : undefined}
@@ -42,23 +56,23 @@ export default function AppHeader({
               ·
             </span>
           )}
-        </NavLink>
+        </PrefetchNavLink>
 
-        <NavLink
+        <PrefetchNavLink
           to="/kid"
           className={({ isActive }) => (isActive ? "active" : "")}
         >
           Kid
-        </NavLink>
+        </PrefetchNavLink>
 
-        <NavLink
+        <PrefetchNavLink
           to="/quest"
           className={({ isActive }) => (isActive ? "active" : "")}
         >
           Activity
-        </NavLink>
+        </PrefetchNavLink>
 
-        <NavLink
+        <PrefetchNavLink
           to="/my-activities"
           className={({ isActive }) =>
             isActive ? "active" : parentAreasLocked ? "nav-muted" : ""
@@ -74,9 +88,9 @@ export default function AppHeader({
               ·
             </span>
           )}
-        </NavLink>
+        </PrefetchNavLink>
 
-        <NavLink
+        <PrefetchNavLink
           to="/insights"
           className={({ isActive }) =>
             isActive ? "active" : parentAreasLocked ? "nav-muted" : ""
@@ -84,9 +98,9 @@ export default function AppHeader({
           title={parentAreasLocked ? "Insights are locked" : undefined}
         >
           Insights
-        </NavLink>
+        </PrefetchNavLink>
 
-        <NavLink
+        <PrefetchNavLink
           to="/settings"
           className={({ isActive }) =>
             isActive ? "active" : parentAreasLocked ? "nav-muted" : ""
@@ -94,7 +108,7 @@ export default function AppHeader({
           title={parentAreasLocked ? "Settings are locked" : undefined}
         >
           Settings
-        </NavLink>
+        </PrefetchNavLink>
       </nav>
 
       <div className="app-header-actions">
