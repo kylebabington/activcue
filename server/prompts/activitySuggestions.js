@@ -178,7 +178,8 @@ SAFETY RULES:
 - Respect adult help allowed.
 
 PERSONALIZATION RULES:
-- Use the family's inventory when possible.
+- STRICT inventory: every activity's "uses" array MUST only list items from the family's available toys/supplies (or common household basics like paper, pencil, cups, pillows if the inventory is empty). Do NOT invent specialty toys, craft kits, or tools that are not listed.
+- Prefer activities that prominently use at least one owned inventory item when inventory is non-empty.
 - If an active child profile is provided, personalize ideas to that child's interests, things they usually avoid, independence level, and helpful notes.
 - If activity mode is family, suggest activities that multiple children can do together.
 - In family mode, give each child a simple role in roles[] and add roleInstructions on steps when useful.
@@ -303,6 +304,7 @@ ${
     children
   )}
 - Available toys/supplies by category: ${formatInventoryForPrompt(inventory)}
+- Inventory constraint: uses[] may ONLY reference items from that list (or common household basics if the list is empty). Never invent supplies.
 - Output style requirement:
   - If activity style is simple, make every activity feel like a plain real-world kid activity.
   - If activity style is imaginative, write it in FamilyFlow's lively teacher voice for younger kids (story advances with clear action). For ages 13+, imaginative means creative thinking challenges — not pretend stories; mission is a short brief and roleGuide is a job/brief title. Include at least 5 starterIdeas and rich stepDetails with ifStuck on every step.

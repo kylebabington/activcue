@@ -3,7 +3,7 @@
 import ParentPinForm from "../../components/ParentPinForm";
 import { inventoryCategories } from "../../constants/presets";
 import { inventoryPresets } from "../../constants/inventoryPresets";
-import { formatFeedbackLabel, formatTimer } from "../../utils/activityFormatters";
+import { formatFeedbackLabel } from "../../utils/activityFormatters";
 
 export function buildFamilyContextValue(input) {
   return {
@@ -94,7 +94,6 @@ export function buildQuestContextValue(input) {
     handleCompletedQuestMoreLikeThis: input.handleCompletedQuestMoreLikeThis,
     handleCompletedQuestNeedAnotherIdea:
       input.handleCompletedQuestNeedAnotherIdea,
-    timerSecondsRemaining: input.timerSecondsRemaining,
     finishActiveActivity: input.finishActiveActivity,
     cancelActiveActivity: input.cancelActiveActivity,
     handleSessionOutcome: input.handleSessionOutcome,
@@ -115,7 +114,6 @@ export function buildQuestContextValue(input) {
     stepHint: input.stepHint,
     isHintLoading: input.isHintLoading,
     handleNeedStepHint: input.handleNeedStepHint,
-    formatTimer,
     activities: input.activities,
     scoredActivities: input.scoredActivities,
     activitySessions: input.activitySessions,

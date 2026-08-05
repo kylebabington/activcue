@@ -1,5 +1,6 @@
 // src/context/AppProviders.jsx
 
+import { useMemo } from "react";
 import { AppProvider } from "./AppContext";
 import {
   ActivityContext,
@@ -21,12 +22,20 @@ export function AppProviders({
   children,
 }) {
   const entitlementContextValue = billingContextValue;
-  const appContextValue = {
-    ...familyContextValue,
-    ...questContextValue,
-    ...billingContextValue,
-    ...activityContextValue,
-  };
+  const appContextValue = useMemo(
+    () => ({
+      ...familyContextValue,
+      ...questContextValue,
+      ...billingContextValue,
+      ...activityContextValue,
+    }),
+    [
+      familyContextValue,
+      questContextValue,
+      billingContextValue,
+      activityContextValue,
+    ]
+  );
 
   return (
     <AppProvider value={appContextValue}>
