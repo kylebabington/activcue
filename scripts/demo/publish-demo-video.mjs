@@ -5,6 +5,7 @@
  *   node scripts/demo/publish-demo-video.mjs
  */
 
+import crypto from "crypto";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -12,6 +13,10 @@ import { fileURLToPath } from "url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const outputDir = path.join(__dirname, "output");
 const publicDemos = path.resolve(__dirname, "../../public/demos");
+const cacheKeyFile = path.resolve(
+  __dirname,
+  "../../src/constants/demoVideo.js"
+);
 
 function findVideos(dir, acc = []) {
   if (!fs.existsSync(dir)) return acc;
@@ -42,6 +47,23 @@ fs.mkdirSync(publicDemos, { recursive: true });
 const dest = path.join(publicDemos, "familyflow-demo.webm");
 fs.copyFileSync(preferred, dest);
 console.log(`Published ${preferred} -> ${dest}`);
+
+const hash = crypto
+  .createHash("sha1")
+  .update(fs.readFileSync(dest))
+  .digest("hex")
+  .slice(0, 10);
+
+fs.writeFileSync(
+  cacheKeyFile,
+  `// Auto-updated by npm run demo:publish so landing video URLs bust caches.
+export const DEMO_VIDEO_CACHE_KEY = "${hash}";
+
+export const DEMO_VIDEO_SRC = \`/demos/familyflow-demo.webm?v=\${DEMO_VIDEO_CACHE_KEY}\`;
+export const DEMO_VIDEO_POSTER_SRC = \`/demos/familyflow-demo-poster.svg?v=\${DEMO_VIDEO_CACHE_KEY}\`;
+`
+);
+console.log(`Updated demo video cache key -> ${hash}`);
 
 const posterSrc = path.join(publicDemos, "familyflow-demo-poster.webp");
 if (!fs.existsSync(posterSrc)) {

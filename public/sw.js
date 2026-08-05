@@ -1,7 +1,7 @@
 /* FamilyFlow service worker — app shell + offline Activity V2 / Rescue / Plan B.
  * Never treat cached auth/subscription as server authorization.
  */
-const CACHE_NAME = "familyflow-shell-v4";
+const CACHE_NAME = "familyflow-shell-v5";
 const API_CACHE = "familyflow-api-v2";
 const APP_SHELL = [
   "/",
