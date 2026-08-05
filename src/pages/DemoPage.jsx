@@ -1,99 +1,232 @@
 // src/pages/DemoPage.jsx
 
-import { useEffect, useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+import ActivityResults from "../components/ActivityResults";
+import KidPage from "./KidPage";
+import MomentStatusBanner from "../components/MomentStatusBanner";
 import QuestContent from "../components/quest/QuestContent";
 import { getDefaultOpenSections } from "../components/quest/questSectionDefaults";
-import { DEMO_MOMENT_LIST, getDemoMoment } from "../constants/demoMoments";
-import { getDemoChild } from "../constants/demoChildren";
-import { matchDemoActivities, rotateDemoResults } from "../features/demo";
+import { DEMO_ACTIVITY_POOL } from "../constants/demoActivityPool";
+import { DEMO_CHILDREN } from "../constants/demoChildren";
+import { getDemoMoment } from "../constants/demoMoments";
+import { defaultParentStatusPresets } from "../constants/presets";
+import { matchDemoActivities } from "../features/demo";
+import { formatAvailabilityLabel } from "../utils/activityFormatters";
+import "../App.css";
 import "../styles/landing.css";
 import "../styles/demo.css";
 
+const DEMO_MOMENT_ID = "dinner";
+const DEMO_CHILD_ID = "maya";
+
+// The marketing demo is intentionally focused on FamilyFlow's core experience:
+// imaginative, contextual activities. Simple mode remains available in the product,
+// but it is not part of this walkthrough.
+const IMAGINATIVE_DEMO_POOL = DEMO_ACTIVITY_POOL.filter(
+  (activity) => activity.activityStyle === "imaginative"
+);
+
+const DEMO_CHILD_PROFILES = [DEMO_CHILDREN.maya, DEMO_CHILDREN.leo];
+
+function ParentDemoScreen({ onContinue }) {
+  return (
+    <section
+      className="page-layout page-layout--parent parent-preset-page demo-product-screen"
+      aria-label="Parent demo screen"
+    >
+      <section className="page-intro page-intro--minimal">
+        <p className="demo-screen-kicker">Parent</p>
+        <h1>Pick what’s happening</h1>
+        <p>Choose a moment so kids get activities that fit.</p>
+      </section>
+
+      <section className="panel parent-preset-panel">
+        <div className="preset-grid preset-grid--dense">
+          {defaultParentStatusPresets.map((preset) => {
+            const isCooking = preset.label === "Cooking";
+            return (
+              <button
+                key={preset.label}
+                type="button"
+                className={isCooking ? "preset-card active" : "preset-card"}
+                aria-pressed={isCooking}
+                tabIndex={isCooking ? 0 : -1}
+              >
+                <span>{preset.label}</span>
+                <small>
+                  {formatAvailabilityLabel(preset.availability)} ·{" "}
+                  {preset.timeNeededMinutes} min · {preset.space}
+                </small>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="demo-selected-moment" role="status">
+          <strong>Current moment: Cooking dinner</strong>
+          <span>20 min · Kitchen table · low mess · nearby supervision</span>
+        </div>
+
+        <button
+          type="button"
+          className="generate-button demo-next-screen"
+          onClick={onContinue}
+        >
+          Go to Kid
+        </button>
+      </section>
+    </section>
+  );
+}
+
+function ResultsDemoScreen({
+  matchResult,
+  onStartActivity,
+  activeChildProfile,
+}) {
+  const activities = matchResult.results.map((entry) => entry.activity);
+  const scoredActivities = matchResult.results.map((entry) => ({
+    activity: entry.activity,
+    score: entry.score,
+  }));
+
+  const noop = () => {};
+
+  return (
+    <section
+      className="page-layout page-layout--kid demo-product-screen"
+      aria-label="Activity suggestions demo screen"
+    >
+      <section className="page-intro page-intro--kid page-intro--minimal">
+        <p className="demo-screen-kicker">Activities</p>
+        <h1>What should happen next?</h1>
+      </section>
+
+      <div className="kid-center-column">
+        <MomentStatusBanner currentMoment={matchResult.moment} kidFacing />
+      </div>
+
+      <div className="activity-board-column">
+        <ActivityResults
+          activities={activities}
+          scoredActivities={scoredActivities}
+          isLoading={false}
+          currentMoment={matchResult.moment}
+          handleStartActivity={onStartActivity}
+          saveFavoriteActivity={noop}
+          handleTooMessy={noop}
+          handleTooHard={noop}
+          handleTooYoung={noop}
+          handleTooOld={noop}
+          handleTooEasy={noop}
+          handleNeedQuieter={noop}
+          handleMoreLikeThis={noop}
+          handleTryNextBest={null}
+          activitySessions={[]}
+          activeChildName={activeChildProfile.name}
+          activeChildId={activeChildProfile.id}
+          inventoryEmpty={false}
+        />
+      </div>
+    </section>
+  );
+}
+
+function FirstStepDemoScreen({ activity, currentMoment }) {
+  const openSections = getDefaultOpenSections({
+    mission: false,
+    role: false,
+    starters: false,
+    materials: false,
+    steps: true,
+    rescue: false,
+    finish: false,
+  });
+
+  return (
+    <section
+      className="page-layout page-layout--kid demo-product-screen"
+      aria-label="First activity step demo screen"
+    >
+      <section
+        className="panel active-activity-panel pretend-active-panel quest-v2-panel demo-first-step-panel"
+      >
+        <p className="demo-screen-kicker">Activity started</p>
+        <h1 className="simple-active-title">{activity.title}</h1>
+
+        <div className="demo-first-step-only">
+          <QuestContent
+            activity={activity}
+            mode="active"
+            currentMoment={currentMoment}
+            openSections={openSections}
+            completedStepIndexes={[]}
+            checkedStarterIndexes={[]}
+            focusStepIndex={0}
+            canUseAiHints={false}
+          />
+        </div>
+      </section>
+    </section>
+  );
+}
+
 /**
- * Public marketing /demo route — AI-free, no AuthProvider, no writes.
- * Stable target for Playwright marketing recordings.
+ * Public deterministic marketing walkthrough.
+ *
+ * It mirrors the real product journey without auth, Supabase writes, or OpenAI:
+ * Parent moment -> Kid choices -> three imaginative matches -> Details -> Step 1.
  */
 function DemoPage() {
-  const [searchParams] = useSearchParams();
-  const momentId = searchParams.get("moment") || "dinner";
-  const childId = searchParams.get("child") || "maya";
-  const activitySlug = searchParams.get("activity") || "";
+  const [stage, setStage] = useState("parent");
+  const [kidEnergyLevel, setKidEnergyLevel] = useState("neutral");
+  const [kidActivityStyle, setKidActivityStyle] = useState("imaginative");
+  const [playingChildIds, setPlayingChildIds] = useState([
+    DEMO_CHILDREN.maya.id,
+  ]);
+  const [selectedActivity, setSelectedActivity] = useState(null);
 
-  const baseMatch = useMemo(
-    () => matchDemoActivities({ momentId, childId, limit: 3 }),
-    [momentId, childId]
+  const demoMoment = getDemoMoment(DEMO_MOMENT_ID);
+  const activeChildProfile = DEMO_CHILDREN.maya;
+
+  const matchResult = useMemo(
+    () =>
+      matchDemoActivities({
+        momentId: DEMO_MOMENT_ID,
+        childId: DEMO_CHILD_ID,
+        pool: IMAGINATIVE_DEMO_POOL,
+        limit: 3,
+      }),
+    []
   );
 
-  const [matchResult, setMatchResult] = useState(baseMatch);
-
-  useEffect(() => {
-    setMatchResult(baseMatch);
-  }, [baseMatch]);
-
-  const deepLinkedActivity = useMemo(() => {
-    if (!activitySlug) return null;
-    return (
-      matchResult.rankedActivities.find(
-        (activity) => activity.slug === activitySlug
-      ) || null
-    );
-  }, [activitySlug, matchResult]);
-
-  const [activity, setActivity] = useState(deepLinkedActivity);
-  const [mode, setMode] = useState(
-    searchParams.get("start") === "1" ? "active" : "preview"
-  );
-  const [openSections, setOpenSections] = useState(() =>
-    getDefaultOpenSections({
-      rescue: searchParams.get("stuck") === "1",
-    })
-  );
-  const [checkedStarters, setCheckedStarters] = useState([]);
-  const [completedSteps, setCompletedSteps] = useState([]);
-
-  useEffect(() => {
-    setActivity(deepLinkedActivity);
-    if (!activitySlug) {
-      setMode("preview");
-      setOpenSections(getDefaultOpenSections());
-      setCheckedStarters([]);
-      setCompletedSteps([]);
-    }
-  }, [deepLinkedActivity, activitySlug, momentId, childId]);
-
-  useEffect(() => {
-    if (activitySlug && searchParams.get("start") === "1") {
-      setMode("active");
-    }
-    if (activitySlug && searchParams.get("stuck") === "1") {
-      setOpenSections((prev) => ({ ...prev, rescue: true, steps: true }));
-    }
-  }, [activitySlug, searchParams]);
-
-  const moment = getDemoMoment(momentId);
-  const child = getDemoChild(childId);
-
-  function handleTryAnother() {
-    const next = rotateDemoResults(matchResult, { childId, momentId });
-    setMatchResult(next);
-    setActivity(null);
-    setMode("preview");
-    setOpenSections(getDefaultOpenSections());
-    setCheckedStarters([]);
-    setCompletedSteps([]);
+  function togglePlayingChild(childId) {
+    setPlayingChildIds((current) => {
+      if (current.includes(childId)) {
+        // Keep at least one child selected so the demo always has a valid player.
+        return current.length === 1
+          ? current
+          : current.filter((id) => id !== childId);
+      }
+      return [...current, childId];
+    });
   }
 
-  function handleClose() {
-    setActivity(null);
-    setMode("preview");
-    setOpenSections(getDefaultOpenSections());
-    setCheckedStarters([]);
-    setCompletedSteps([]);
+  function showResults() {
+    // The movie is about the imaginative product experience, so force Pretend
+    // before moving to the three matched activities.
+    setKidActivityStyle("imaginative");
+    setStage("results");
+  }
+
+  function startActivity(activity) {
+    setSelectedActivity(activity);
+    setStage("activity");
   }
 
   return (
-    <div className="landing demo-page">
+    <div className="landing demo-page demo-product-walkthrough">
       <header className="landing-topbar">
         <div className="landing-topbar-inner">
           <Link className="landing-brand" to="/" aria-label="FamilyFlow home">
@@ -106,187 +239,65 @@ function DemoPage() {
             />
             <span className="landing-brand-name">FamilyFlow</span>
           </Link>
-          <div className="landing-topbar-actions">
-            <Link className="landing-topbar-link" to="/">
-              Back to landing
-            </Link>
-            <Link className="landing-topbar-cta" to="/onboarding">
-              Find something now
-            </Link>
-          </div>
+          <span className="demo-topbar-label">Product walkthrough</span>
         </div>
       </header>
 
-      <main className="demo-page-main">
-        <section className="demo-page-hero" aria-labelledby="demo-title">
-          <p className="landing-hero-brand">Interactive demo</p>
-          <h1 id="demo-title">Activities that fit the moment</h1>
-          <p className="demo-page-support">
-            {child.name} · age {child.ageYears}. Moment: {moment.label}. No account,
-            no AI calls — real Fit Score matching on curated presets.
-          </p>
-          <div className="demo-moment-links" aria-label="Demo moments">
-            {DEMO_MOMENT_LIST.slice(0, 6).map((item) => (
-              <Link
-                key={item.id}
-                className={
-                  item.id === momentId
-                    ? "moment-demo-chip is-selected"
-                    : "moment-demo-chip"
-                }
-                to={`/demo?moment=${item.id}&child=${childId}`}
-              >
-                {item.shortLabel}
-              </Link>
-            ))}
-          </div>
-          <div className="demo-moment-links" aria-label="Demo children">
-            {["maya", "jack", "leo"].map((id) => {
-              const profile = getDemoChild(id);
-              return (
-                <Link
-                  key={id}
-                  className={
-                    id === childId
-                      ? "moment-demo-chip is-selected"
-                      : "moment-demo-chip"
-                  }
-                  to={`/demo?moment=${momentId}&child=${id}`}
-                >
-                  {profile.name} · {profile.ageYears}
-                </Link>
-              );
-            })}
-          </div>
-        </section>
-
-        <section className="demo-page-results" aria-label="Matched activities">
-          <ul className="moment-demo-card-list">
-            {matchResult.results.map((entry) => (
-              <li key={entry.activity.slug || entry.activity.title}>
-                <button
-                  type="button"
-                  className="moment-demo-card"
-                  onClick={() => {
-                    setActivity(entry.activity);
-                    setMode("preview");
-                    setOpenSections(getDefaultOpenSections());
-                    setCheckedStarters([]);
-                    setCompletedSteps([]);
-                  }}
-                >
-                  <span className="moment-demo-card-fit">
-                    {entry.fitPercent}% fit
-                  </span>
-                  <h4>{entry.activity.title}</h4>
-                  <p>{entry.activity.summary}</p>
-                  <ul className="moment-demo-fit-chips">
-                    {entry.whyFitChips.map((chip) => (
-                      <li key={chip}>{chip}</li>
-                    ))}
-                  </ul>
-                </button>
-              </li>
-            ))}
-          </ul>
-
-          <div className="moment-demo-why">
-            <h4>Why these fit</h4>
-            <p>
-              Matched with FamilyFlow&apos;s real Fit Score — time, mess, noise,
-              supervision, and age — not a random list.
-            </p>
-            <button
-              type="button"
-              className="landing-btn landing-btn--ghost"
-              onClick={handleTryAnother}
-            >
-              Didn&apos;t land? Try another
-            </button>
-          </div>
-        </section>
-
-        {activity ? (
-          <section className="demo-page-quest" aria-label="Activity detail">
-            <div className="moment-demo-detail-toolbar">
-              <h2>{activity.title}</h2>
-              <div className="moment-demo-detail-actions">
-                {mode === "preview" ? (
-                  <button
-                    type="button"
-                    className="landing-btn landing-btn--primary"
-                    onClick={() => {
-                      setMode("active");
-                      setOpenSections(
-                        getDefaultOpenSections({
-                          starters: true,
-                          steps: true,
-                          rescue: false,
-                        })
-                      );
-                    }}
-                  >
-                    Start activity
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    className="landing-btn landing-btn--ghost"
-                    onClick={() =>
-                      setOpenSections((prev) => ({
-                        ...prev,
-                        rescue: true,
-                        steps: true,
-                      }))
-                    }
-                  >
-                    Stuck?
-                  </button>
-                )}
-                <button
-                  type="button"
-                  className="landing-btn landing-btn--ghost"
-                  onClick={handleClose}
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-            <QuestContent
-              activity={activity}
-              mode={mode}
-              currentMoment={matchResult.moment}
-              openSections={openSections}
-              onSectionOpenChange={(key, nextOpen) =>
-                setOpenSections((prev) => ({ ...prev, [key]: nextOpen }))
-              }
-              checkedStarterIndexes={checkedStarters}
-              completedStepIndexes={completedSteps}
-              onToggleStarter={(index) => {
-                setCheckedStarters((prev) =>
-                  prev.includes(index)
-                    ? prev.filter((item) => item !== index)
-                    : [...prev, index]
-                );
-              }}
-              onToggleStep={(index) => {
-                setCompletedSteps((prev) =>
-                  prev.includes(index)
-                    ? prev.filter((item) => item !== index)
-                    : [...prev, index]
-                );
-              }}
-              canUseAiHints={false}
-            />
-          </section>
+      <main className="demo-page-main demo-page-main--product">
+        {stage === "parent" ? (
+          <ParentDemoScreen onContinue={() => setStage("kid")} />
         ) : null}
 
-        <section className="demo-page-final-cta">
-          <h2>Here&apos;s something that works right now.</h2>
-          <Link className="landing-btn landing-btn--primary" to="/onboarding">
-            Find something now
-          </Link>
-        </section>
+        {stage === "kid" ? (
+          <div className="demo-product-screen" aria-label="Kid demo screen">
+            <p className="demo-screen-kicker demo-screen-kicker--outside">Kid</p>
+            <KidPage
+              currentMoment={demoMoment.moment}
+              kidEnergyLevel={kidEnergyLevel}
+              setKidEnergyLevel={setKidEnergyLevel}
+              kidActivityStyle={kidActivityStyle}
+              setKidActivityStyle={setKidActivityStyle}
+              handleGenerateKidActivities={showResults}
+              handleStartSomethingForMe={() => {
+                const firstActivity = matchResult.results[0]?.activity;
+                if (firstActivity) startActivity(firstActivity);
+              }}
+              isLoading={false}
+              loadingIntent=""
+              activeChildProfile={activeChildProfile}
+              activityMode="single-child"
+              childProfiles={DEMO_CHILD_PROFILES}
+              playingChildIds={playingChildIds}
+              togglePlayingChild={togglePlayingChild}
+              savedActivities={[]}
+              activityHistory={[]}
+              handleReplaySavedActivity={() => {}}
+              isDemoMode={false}
+              imBoredDisabled={false}
+              firstRunPulseImBored={false}
+              onFirstRunGenerated={() => {}}
+              playModeLine=""
+              kidDeviceMode={false}
+              gettingBetterCopy=""
+              setupNudgeNeeded={false}
+            />
+          </div>
+        ) : null}
+
+        {stage === "results" ? (
+          <ResultsDemoScreen
+            matchResult={matchResult}
+            onStartActivity={startActivity}
+            activeChildProfile={activeChildProfile}
+          />
+        ) : null}
+
+        {stage === "activity" && selectedActivity ? (
+          <FirstStepDemoScreen
+            activity={selectedActivity}
+            currentMoment={demoMoment.moment}
+          />
+        ) : null}
       </main>
     </div>
   );
