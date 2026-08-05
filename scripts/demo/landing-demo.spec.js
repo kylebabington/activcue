@@ -7,118 +7,74 @@ import { fileURLToPath } from "url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const publicDemos = path.resolve(__dirname, "../../public/demos");
 
-async function pause(page, ms = 1400) {
+async function pause(page, ms = 1600) {
   await page.waitForTimeout(ms);
 }
 
-test("record FamilyFlow landing demo", async ({ page }, testInfo) => {
+test("record FamilyFlow real product walkthrough", async ({ page }, testInfo) => {
   await page.goto("/demo");
 
+  // 1. Parent screen with a real moment visibly selected.
   await expect(
-    page.getByRole("heading", { name: /Activities that fit the moment/i })
+    page.getByRole("heading", { name: /Pick what’s happening/i })
   ).toBeVisible();
-  await pause(page, 1800);
-
-  // 1–2. Choose child, then moment (visual story even when defaults match)
-  await page
-    .locator('[aria-label="Demo children"]')
-    .getByRole("link", { name: /Maya/i })
-    .click();
-  await pause(page, 1800);
-
-  await page
-    .locator('[aria-label="Demo moments"]')
-    .getByRole("link", { name: /Making dinner/i })
-    .click();
-  await pause(page, 2200);
-
-  // 3. Three Fit Score matches
-  const cards = page.locator(".moment-demo-card");
-  await expect(cards).toHaveCount(3);
-  await expect(cards.first().locator(".moment-demo-card-fit")).toBeVisible();
-  await expect(cards.first().getByText(/% fit/)).toBeVisible();
+  const cookingMoment = page.getByRole("button", { name: /Cooking/i });
+  await expect(cookingMoment).toHaveClass(/active/);
+  await expect(page.getByText(/Current moment: Cooking dinner/i)).toBeVisible();
   await pause(page, 3200);
 
-  const firstTitle = (await cards.first().locator("h4").innerText()).trim();
+  await page.getByRole("button", { name: /Go to Kid/i }).click();
 
-  // 4–5. Open activity; show Overview / Your Role / Starter Ideas (incl. The world)
-  await cards.first().click();
-  await pause(page, 2000);
+  // 2. Kid screen: child selection, energy, and Pretend mode.
+  await expect(
+    page.getByRole("heading", { name: /What sounds good/i })
+  ).toBeVisible();
+  const maya = page.getByRole("button", { name: /^Maya$/i });
+  await expect(maya).toHaveClass(/active/);
 
-  const detail = page.getByLabel("Activity detail");
-  await detail.scrollIntoViewIfNeeded();
-  await expect(
-    detail.getByRole("heading", { name: firstTitle, exact: true })
-  ).toBeVisible();
-  await expect(detail.getByRole("heading", { name: /^Overview$/i })).toBeVisible();
-  await expect(detail.getByText(/^The world$/i)).toBeVisible();
-  await expect(detail.getByRole("heading", { name: /^Your Role$/i })).toBeVisible();
-  await expect(
-    detail.getByRole("heading", { name: /^Starter Ideas$/i })
-  ).toBeVisible();
+  const bouncy = page.getByRole("button", { name: /^Bouncy$/i });
+  await bouncy.click();
+  await expect(bouncy).toHaveClass(/active/);
+
+  const pretend = page.getByRole("button", { name: /Pretend/i });
+  await pretend.click();
+  await expect(pretend).toHaveClass(/active/);
   await pause(page, 3200);
 
-  // 6. Start activity
-  await page.getByRole("button", { name: /Start activity/i }).click();
-  await pause(page, 2400);
+  await page.getByRole("button", { name: /^I'm Bored$/i }).click();
 
-  // 7. Check one starter idea
-  const firstStarter = page.locator("button.quest-v2-starter-door").first();
-  await expect(firstStarter).toBeVisible();
-  await firstStarter.scrollIntoViewIfNeeded();
-  await firstStarter.click();
-  await expect(firstStarter).toHaveClass(/is-open/);
-  await pause(page, 2200);
+  // 3. Activity screen with exactly three imaginative suggestions.
+  await expect(
+    page.getByRole("heading", { name: /What should happen next/i })
+  ).toBeVisible();
+  const imaginativeCards = page.locator(".activity-card--imaginative");
+  await expect(imaginativeCards).toHaveCount(3);
+  await expect(page.locator(".activity-card--simple")).toHaveCount(0);
+  await pause(page, 3600);
 
-  // 8. Complete at least one step
-  const stepsHeading = detail.getByRole("heading", { name: /^Steps$/i });
-  await stepsHeading.scrollIntoViewIfNeeded();
-  const stepsDetails = detail.locator("#quest-section-steps");
-  if (!(await stepsDetails.evaluate((el) => el.open))) {
-    await stepsDetails.locator("summary").click();
-    await pause(page, 1000);
-  }
-  const doneToggle = detail.locator(".quest-step-complete-toggle").first();
-  await expect(doneToggle).toBeVisible();
-  await doneToggle.scrollIntoViewIfNeeded();
-  await doneToggle.click();
-  await pause(page, 2200);
+  // 4. Open the real full-page activity details UI.
+  const firstCard = imaginativeCards.first();
+  const firstTitle = (await firstCard.locator("h3").innerText()).trim();
+  await firstCard.getByRole("button", { name: /^Details$/i }).click();
 
-  // 9. Step-local I'm stuck help (no AI call). Show the cycle in the video.
-  const stuckButton = detail.getByRole("button", { name: /^I’m stuck$/i }).first();
-  await expect(stuckButton).toBeVisible();
-  await stuckButton.scrollIntoViewIfNeeded();
-  await stuckButton.click();
-  await expect(detail.locator(".quest-v2-if-stuck").first()).toBeVisible();
-  await expect(detail.locator(".quest-step-stuck-counter").first()).toContainText(
-    /Idea 1 of/i
-  );
-  await pause(page, 2400);
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toBeVisible();
+  await expect(
+    dialog.getByRole("heading", { name: firstTitle, exact: true })
+  ).toBeVisible();
+  await pause(page, 4200);
 
-  await stuckButton.click();
-  await pause(page, 2200);
-
-  // 10. Return to recommendations
-  await page.getByRole("button", { name: /^Close$/i }).click();
-  await pause(page, 2000);
-  await expect(cards).toHaveCount(3);
-
-  // 11. Plan B
-  await page.getByRole("button", { name: /Didn'?t land\? Try another/i }).click();
-  await pause(page, 2400);
-  const planBFirstTitle = (
-    await page.locator(".moment-demo-card").first().locator("h4").innerText()
-  ).trim();
-  expect(planBFirstTitle).not.toBe(firstTitle);
-  await pause(page, 2800);
-
-  // 12. End on Find something now
-  const cta = page
-    .locator(".demo-page-final-cta")
-    .getByRole("link", { name: /Find something now/i });
-  await cta.scrollIntoViewIfNeeded();
-  await expect(cta).toBeVisible();
-  await pause(page, 3000);
+  // 5. Start from Details and finish the movie on the first activity step.
+  await dialog.getByRole("button", { name: /Enter the story/i }).click();
+  await expect(
+    page.getByLabel("First activity step demo screen")
+  ).toBeVisible();
+  await expect(page.getByRole("heading", { name: /^Steps$/i })).toBeVisible();
+  await expect(page.locator("#quest-step-0")).toBeVisible();
+  await expect(page.locator("#quest-step-0")).toContainText(/Step 1/i);
+  await expect(page.locator("#quest-step-1")).toBeHidden();
+  await page.locator("#quest-step-0").scrollIntoViewIfNeeded();
+  await pause(page, 5200);
 
   testInfo.attachments.push({
     name: "demo-note",

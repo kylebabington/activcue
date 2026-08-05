@@ -67,11 +67,11 @@ function DemoVideoSection() {
   return (
     <section className="landing-section" aria-labelledby="video-title">
       <div className="landing-section-inner">
-        <h2 id="video-title">See how it works in the real app</h2>
+        <h2 id="video-title">See the FamilyFlow workflow</h2>
         <p className="landing-section-lead">
-          From a real moment like cooking dinner, pick your child, get matched
-          activities, Start, use Steps and Stuck? help — then try the next best
-          one if the first idea doesn&apos;t land.
+          A parent sets the moment. A kid chooses who&apos;s playing, energy, and
+          Pretend mode. FamilyFlow matches three activities, opens the full
+          activity details, and gets them into the first step.
         </p>
         <video
           className="landing-demo-video"
