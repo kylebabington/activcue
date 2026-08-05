@@ -34,9 +34,9 @@ if (videos.length === 0) {
   process.exit(1);
 }
 
-// Prefer the real-app recording when both exist.
+// Prefer the /demo product walkthrough when both recordings exist.
 const preferred =
-  videos.find((file) => /app-demo/i.test(file)) || videos[0];
+  videos.find((file) => /landing-demo/i.test(file)) || videos[0];
 
 fs.mkdirSync(publicDemos, { recursive: true });
 const dest = path.join(publicDemos, "familyflow-demo.webm");

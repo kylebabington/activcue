@@ -134,15 +134,17 @@ function ResultsDemoScreen({
 }
 
 function FirstStepDemoScreen({ activity, currentMoment }) {
-  const openSections = getDefaultOpenSections({
-    mission: false,
-    role: false,
-    starters: false,
-    materials: false,
-    steps: true,
-    rescue: false,
-    finish: false,
-  });
+  const [openSections, setOpenSections] = useState(() =>
+    getDefaultOpenSections({
+      mission: false,
+      role: false,
+      starters: false,
+      materials: false,
+      steps: true,
+      rescue: false,
+      finish: false,
+    })
+  );
 
   return (
     <section
@@ -161,6 +163,9 @@ function FirstStepDemoScreen({ activity, currentMoment }) {
             mode="active"
             currentMoment={currentMoment}
             openSections={openSections}
+            onSectionOpenChange={(key, nextOpen) =>
+              setOpenSections((current) => ({ ...current, [key]: nextOpen }))
+            }
             completedStepIndexes={[]}
             checkedStarterIndexes={[]}
             focusStepIndex={0}

@@ -103,6 +103,10 @@
  * entire activity. The activity object still contains every step and the
  * normal Steps summary still reports the real total.
  */
+.demo-first-step-only .quest-collapsible-section:not(#quest-section-steps) {
+  display: none;
+}
+
 .demo-first-step-only .quest-steps-list .quest-step-card:not(:first-child) {
   display: none;
 }

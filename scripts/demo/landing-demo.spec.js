@@ -69,8 +69,11 @@ test("record FamilyFlow real product walkthrough", async ({ page }, testInfo) =>
   await expect(
     page.getByLabel("First activity step demo screen")
   ).toBeVisible();
+  await expect(page.getByRole("heading", { name: /^Steps$/i })).toBeVisible();
   await expect(page.locator("#quest-step-0")).toBeVisible();
+  await expect(page.locator("#quest-step-0")).toContainText(/Step 1/i);
   await expect(page.locator("#quest-step-1")).toBeHidden();
+  await page.locator("#quest-step-0").scrollIntoViewIfNeeded();
   await pause(page, 5200);
 
   testInfo.attachments.push({
