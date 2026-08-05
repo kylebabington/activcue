@@ -1,4 +1,4 @@
-/* Public /demo page — reuses landing tokens */
+/* Public /demo page — reuses landing and app tokens */
 
 .demo-page-main {
   width: min(1100px, 100%);
@@ -6,6 +6,11 @@
   padding: 6rem 1.25rem 4rem;
   display: grid;
   gap: 2.5rem;
+}
+
+.demo-page-main--product {
+  width: min(1180px, 100%);
+  padding-top: 5.5rem;
 }
 
 .demo-page-hero h1 {
@@ -45,4 +50,75 @@
 
 .demo-page-embed-landing .moment-demo-cta-row {
   display: none;
+}
+
+.demo-product-walkthrough {
+  min-height: 100vh;
+}
+
+.demo-topbar-label {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.demo-product-screen {
+  width: 100%;
+}
+
+.demo-screen-kicker {
+  margin: 0 0 0.35rem;
+  color: var(--color-primary);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.demo-screen-kicker--outside {
+  width: min(760px, 100%);
+  margin: 0 auto -0.5rem;
+}
+
+.demo-selected-moment {
+  margin-top: 1.25rem;
+  padding: 1rem 1.1rem;
+  border-radius: 0.9rem;
+  background: color-mix(in srgb, var(--color-primary) 9%, var(--color-surface));
+  display: grid;
+  gap: 0.25rem;
+}
+
+.demo-selected-moment span {
+  color: var(--color-text-muted);
+  font-size: 0.92rem;
+}
+
+.demo-next-screen {
+  margin-top: 1.25rem;
+}
+
+/*
+ * The recorded final screen should land on Step 1, not visually dump the
+ * entire activity. The activity object still contains every step and the
+ * normal Steps summary still reports the real total.
+ */
+.demo-first-step-only .quest-steps-list .quest-step-card:not(:first-child) {
+  display: none;
+}
+
+.demo-first-step-panel {
+  width: min(820px, 100%);
+  margin: 0 auto;
+}
+
+@media (max-width: 700px) {
+  .demo-page-main,
+  .demo-page-main--product {
+    padding-inline: 0.85rem;
+  }
+
+  .demo-topbar-label {
+    display: none;
+  }
 }
