@@ -35,7 +35,7 @@ export function formatAdultHelpLabel(adultHelp) {
 
 export function formatActivityStyleLabel(activityStyle) {
   if (activityStyle === "simple") return "Simple";
-  if (activityStyle === "imaginative") return "Pretend";
+  if (activityStyle === "imaginative") return "Imaginative";
   return "Activity";
 }
 
