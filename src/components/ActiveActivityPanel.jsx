@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef } from "react";
 import QuestContent from "./quest/QuestContent";
 import { getDefaultOpenSections } from "./quest/questSectionDefaults";
+import { useActivityTimer } from "../features/quest/useActivityTimer";
+import { formatTimer } from "../utils/activityFormatters";
 import {
   getActivityRoleLabel,
   getStepDetails,
@@ -11,7 +13,6 @@ import { trackProductEvent } from "../utils/analytics";
 function ActiveActivityPanel({
   activeActivity,
   currentMoment,
-  timerSecondsRemaining,
   finishActiveActivity,
   cancelActiveActivity,
   handleTimerNotFinished,
@@ -25,9 +26,9 @@ function ActiveActivityPanel({
   assignRole,
   toggleBuiltInHelp,
   setOpenSection,
-  formatTimer,
   playingChildren = [],
 }) {
+  const timerSecondsRemaining = useActivityTimer(activeActivity);
   const theme = getVisualThemeMeta(activeActivity.visualTheme);
   const roleName = getActivityRoleLabel(activeActivity);
   const steps = getStepDetails(activeActivity);

@@ -4,7 +4,10 @@ import { Link } from "react-router-dom";
 import ActiveActivityPanel from "../components/ActiveActivityPanel";
 import ActivityResults from "../components/ActivityResults";
 import MomentStatusBanner from "../components/MomentStatusBanner";
-import { useAppContext } from "../context/AppContext";
+import {
+  useFamilyContext,
+  useQuestContext,
+} from "../context/domainContexts";
 import { useAuth } from "../hooks/useAuth";
 import { INDEPENDENCE_OUTCOMES } from "../features/quest";
 import { trackProductEvent } from "../utils/analytics";
@@ -173,7 +176,6 @@ function QuestPage() {
         clearLastCompletedQuest,
         handleCompletedQuestMoreLikeThis,
         handleCompletedQuestNeedAnotherIdea,
-        timerSecondsRemaining,
         finishActiveActivity,
         cancelActiveActivity,
         handleTimerNotFinished,
@@ -192,16 +194,13 @@ function QuestPage() {
         stepHint,
         isHintLoading,
         handleNeedStepHint,
-        formatTimer,
         activities,
         scoredActivities,
         isLoading,
         handleStartActivity,
         saveFavoriteActivity,
         entitlement,
-        reapplyLastSuccessfulMoment,
         activitySessions,
-        activeChildProfile,
         selectedChildProfiles,
         handleTooMessy,
         handleTooHard,
@@ -215,7 +214,11 @@ function QuestPage() {
         handleSessionOutcome,
         inventoryEmpty,
         gettingBetterCopy,
-    } = useAppContext();
+    } = useQuestContext();
+    const {
+        activeChildProfile,
+        reapplyLastSuccessfulMoment,
+    } = useFamilyContext();
     const { isAnonymous } = useAuth();
 
     const playingChildren =
@@ -243,7 +246,6 @@ function QuestPage() {
                 <ActiveActivityPanel
                     activeActivity={activeActivity}
                     currentMoment={currentMoment}
-                    timerSecondsRemaining={timerSecondsRemaining}
                     finishActiveActivity={finishActiveActivity}
                     cancelActiveActivity={cancelActiveActivity}
                     handleTimerNotFinished={handleTimerNotFinished}
@@ -263,7 +265,6 @@ function QuestPage() {
                     isHintLoading={isHintLoading}
                     handleNeedStepHint={handleNeedStepHint}
                     canUseAiHints={Boolean(entitlement?.canUseAiHints)}
-                    formatTimer={formatTimer}
                     playingChildren={playingChildren}
                 />
             ) : null}

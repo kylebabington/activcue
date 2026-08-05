@@ -24,11 +24,11 @@ import {
   buildCompletedQuestSummary,
   buildFinishedHistoryItem,
   resolveActivitySessionId,
-  useActivityTimer,
 } from "./useQuest";
 
 /*
- * Owns active quest state, timer, step navigation, hints, and session PATCH lifecycle.
+ * Owns active quest state, step navigation, hints, and session PATCH lifecycle.
+ * Countdown ticking lives in ActiveActivityPanel so App does not re-render at 1 Hz.
  */
 export function useQuestSession({
   userId,
@@ -65,8 +65,6 @@ export function useQuestSession({
 
   const [stepHint, setStepHint] = useState("");
   const [isHintLoading, setIsHintLoading] = useState(false);
-
-  const timerSecondsRemaining = useActivityTimer(activeActivity);
 
   function rememberSessionInList(session) {
     if (!session?.id) {
@@ -820,7 +818,6 @@ export function useQuestSession({
     clearLastCompletedQuest,
     stepHint,
     isHintLoading,
-    timerSecondsRemaining,
     handleStartActivity,
     finishActiveActivity,
     cancelActiveActivity,
