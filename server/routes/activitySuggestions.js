@@ -327,12 +327,6 @@ export default function createActivitySuggestionsRouter(client) {
           presentedAt,
         }));
 
-        const ingested = await ingestGeneratedActivities({
-          userId: req.auth.userId,
-          activities: activitiesWithMeta,
-          source: "ai",
-        });
-
         const requestMomentId =
           typeof req.body?.momentId === "string" && req.body.momentId.trim()
             ? req.body.momentId.trim()
@@ -340,36 +334,14 @@ export default function createActivitySuggestionsRouter(client) {
               ? req.body.moment_id.trim()
               : null;
 
-        let momentId = requestMomentId;
-        if (!momentId) {
-          const momentSnapshot = await createActivityMoment({
-            userId: req.auth.userId,
-            moment: safeCurrentMoment,
-            kidMood,
-            childIds: [
-              ...(activeChildProfile?.id ? [activeChildProfile.id] : []),
-              ...safeSelectedChildProfiles.map((c) => c?.id).filter(Boolean),
-            ],
-            rescueMode: false,
-          });
-          momentId = momentSnapshot?.id || null;
-        }
-
-        const batch = await createRecommendationBatch({
-          userId: req.auth.userId,
-          momentId,
-          source: "openai",
-          mode: "normal",
-          model: usageMeta.model || OPENAI_MODEL,
-          latencyMs: Date.now() - startedAt,
-          activities: ingested,
-          batchId: withIds.recommendationBatchId,
-        });
-
+        const recommendationBatchId = withIds.recommendationBatchId;
         const normalizedResponse = {
-          recommendationBatchId: batch.recommendationBatchId,
-          momentId,
-          activities: batch.activities,
+          recommendationBatchId,
+          momentId: requestMomentId,
+          activities: activitiesWithMeta.map((activity) => ({
+            ...activity,
+            momentId: requestMomentId,
+          })),
           ageFitRejectedCount: totalAgeFitRejected,
         };
 
@@ -378,19 +350,83 @@ export default function createActivitySuggestionsRouter(client) {
           console.log(JSON.stringify(normalizedResponse, null, 2));
         }
 
+        // Return activities immediately; persist library + telemetry in the background.
         res.json(normalizedResponse);
-        await recordAiUsageEvent({
-          userId: req.auth.userId,
-          operation: "activity-suggestions",
-          model: usageMeta.model,
-          inputTokens: usageMeta.inputTokens,
-          outputTokens: usageMeta.outputTokens,
-          totalTokens: usageMeta.totalTokens,
-          responseId: usageMeta.responseId,
-          recommendationBatchId: batch.recommendationBatchId,
-          latencyMs: Date.now() - startedAt,
-          success: true,
-        });
+
+        void (async () => {
+          try {
+            const ingested = await ingestGeneratedActivities({
+              userId: req.auth.userId,
+              activities: activitiesWithMeta,
+              source: "ai",
+            });
+
+            let momentId = requestMomentId;
+            if (!momentId) {
+              const momentSnapshot = await createActivityMoment({
+                userId: req.auth.userId,
+                moment: safeCurrentMoment,
+                kidMood,
+                childIds: [
+                  ...(activeChildProfile?.id ? [activeChildProfile.id] : []),
+                  ...safeSelectedChildProfiles.map((c) => c?.id).filter(Boolean),
+                ],
+                rescueMode: false,
+              });
+              momentId = momentSnapshot?.id || null;
+            }
+
+            const batch = await createRecommendationBatch({
+              userId: req.auth.userId,
+              momentId,
+              source: "openai",
+              mode: "normal",
+              model: usageMeta.model || OPENAI_MODEL,
+              latencyMs: Date.now() - startedAt,
+              activities: ingested,
+              batchId: recommendationBatchId,
+            });
+
+            await recordAiUsageEvent({
+              userId: req.auth.userId,
+              operation: "activity-suggestions",
+              model: usageMeta.model,
+              inputTokens: usageMeta.inputTokens,
+              outputTokens: usageMeta.outputTokens,
+              totalTokens: usageMeta.totalTokens,
+              responseId: usageMeta.responseId,
+              recommendationBatchId:
+                batch.recommendationBatchId || recommendationBatchId,
+              latencyMs: Date.now() - startedAt,
+              success: true,
+            });
+          } catch (telemetryError) {
+            console.warn(
+              "Post-response activity telemetry failed:",
+              telemetryError
+            );
+            try {
+              await recordAiUsageEvent({
+                userId: req.auth.userId,
+                operation: "activity-suggestions",
+                model: usageMeta.model,
+                inputTokens: usageMeta.inputTokens,
+                outputTokens: usageMeta.outputTokens,
+                totalTokens: usageMeta.totalTokens,
+                responseId: usageMeta.responseId,
+                recommendationBatchId,
+                latencyMs: Date.now() - startedAt,
+                success: true,
+                error: {
+                  message: "telemetry-deferred-failed",
+                  detail: String(telemetryError?.message || telemetryError),
+                },
+              });
+            } catch (usageError) {
+              console.warn("Could not record AI usage after telemetry failure:", usageError);
+            }
+          }
+        })();
       } catch (error) {
         console.error("AI suggestion error:", {
           status: error?.status,
