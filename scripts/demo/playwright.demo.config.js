@@ -8,12 +8,14 @@ const outputDir = path.join(__dirname, "output");
 
 /**
  * Dedicated Playwright config for marketing demo recording.
+ * Default: real-app walkthrough (app-demo.spec.js).
+ * Playground: pass landing-demo.spec.js explicitly (npm run demo:record:playground).
  * Do not overload the main e2e playwright.config.js.
  */
 export default defineConfig({
   testDir: __dirname,
-  testMatch: /landing-demo\.spec\.js$/,
-  timeout: 120_000,
+  testMatch: /(?:app-demo|landing-demo)\.spec\.js$/,
+  timeout: 180_000,
   outputDir,
   use: {
     baseURL: process.env.PLAYWRIGHT_BASE_URL || "http://localhost:5173",
@@ -27,9 +29,10 @@ export default defineConfig({
   webServer: process.env.PLAYWRIGHT_SKIP_WEBSERVER
     ? undefined
     : {
-        command: "npm run dev",
+        // Real-app recording needs API + Supabase anon auth (Vite alone is not enough).
+        command: "npm run start:all",
         url: "http://localhost:5173",
         reuseExistingServer: !process.env.CI,
-        timeout: 120_000,
+        timeout: 180_000,
       },
 });
