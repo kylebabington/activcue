@@ -26,6 +26,7 @@ function QuestStepCard({
   isCompact,
   isHighlighted,
   instruction,
+  isImaginative = false,
   onToggleStep,
   onImStuck,
 }) {
@@ -42,12 +43,16 @@ function QuestStepCard({
     onImStuck?.(index, nextIndex);
   }
 
+  const stepTitle = step?.title || `Step ${index + 1}`;
+  const stepPrefix = isImaginative ? `Scene ${index + 1}` : `Step ${index + 1}`;
+
   return (
     <article
       id={`quest-step-${index}`}
       className={
         [
           "quest-step-card",
+          isImaginative ? "quest-step-card--story" : "",
           isComplete ? "is-complete" : "",
           isCompact ? "is-compact" : "",
           isHighlighted ? "is-highlighted" : "",
@@ -58,7 +63,7 @@ function QuestStepCard({
     >
       <div className="quest-step-card-header">
         <h3>
-          Step {index + 1}: {step?.title || `Step ${index + 1}`}
+          {stepPrefix}: {stepTitle}
         </h3>
         {mode === "active" ? (
           <label className="quest-step-complete-toggle">
@@ -67,18 +72,20 @@ function QuestStepCard({
               checked={Boolean(isComplete)}
               onChange={() => onToggleStep?.(index)}
             />
-            Done
+            {isImaginative ? "Scene complete" : "Done"}
           </label>
         ) : null}
       </div>
 
       {!isCompact ? (
         <>
-          <p>{instruction || step?.instruction}</p>
+          <p className={isImaginative ? "quest-step-story-prompt" : undefined}>
+            {instruction || step?.instruction}
+          </p>
 
           {examples.length > 0 ? (
             <details className="quest-step-examples">
-              <summary>Examples</summary>
+              <summary>{isImaginative ? "Need a spark?" : "Examples"}</summary>
               <ul>
                 {examples.map((example) => (
                   <li key={example}>{example}</li>
@@ -88,7 +95,10 @@ function QuestStepCard({
           ) : null}
 
           {step?.doneWhen ? (
-            <p className="step-done-when">Done when: {step.doneWhen}</p>
+            <p className="step-done-when">
+              {isImaginative ? "This scene is complete when: " : "Done when: "}
+              {step.doneWhen}
+            </p>
           ) : null}
 
           {Array.isArray(step?.roleInstructions) &&
@@ -180,6 +190,7 @@ export default function QuestContent({
   if (!activity) return null;
 
   const isSimpleActivity = activity.activityStyle === "simple";
+  const isImaginativeActivity = !isSimpleActivity;
   const steps = getStepDetails(activity);
   const uses = Array.isArray(activity.uses) ? activity.uses : [];
   const roles = Array.isArray(activity.roles) ? activity.roles : [];
@@ -271,7 +282,7 @@ export default function QuestContent({
       <CollapsibleQuestSection
         {...sectionProps(
           "mission",
-          "Overview",
+          isImaginativeActivity ? "The Story" : "Overview",
           formatEstimatedMinutes(activity.estimatedMinutes) || undefined,
           true
         )}
@@ -280,7 +291,9 @@ export default function QuestContent({
           {formatEstimatedMinutes(activity.estimatedMinutes) ? (
             <span>{formatEstimatedMinutes(activity.estimatedMinutes)}</span>
           ) : null}
-          <span>{steps.length} steps</span>
+          <span>
+            {steps.length} {isImaginativeActivity ? "scenes" : "steps"}
+          </span>
           {formatActivityStyleLabel(activity.activityStyle) ? (
             <span>{formatActivityStyleLabel(activity.activityStyle)}</span>
           ) : null}
@@ -329,7 +342,8 @@ export default function QuestContent({
                 <p>{role.responsibility}</p>
                 {role.firstAction ? (
                   <p>
-                    <em>Start with:</em> {role.firstAction}
+                    <em>{isImaginativeActivity ? "First move:" : "Start with:"}</em>{" "}
+                    {role.firstAction}
                   </p>
                 ) : null}
               </li>
@@ -343,12 +357,15 @@ export default function QuestContent({
             {roleGuide?.description ? <p>{roleGuide.description}</p> : null}
             {roleGuide?.goal ? (
               <p>
-                <em>Your job:</em> {roleGuide.goal}
+                <em>{isImaginativeActivity ? "Your mission:" : "Your job:"}</em>{" "}
+                {roleGuide.goal}
               </p>
             ) : null}
             {roleGuide?.firstAction ? (
               <p>
-                <em>Start with:</em> {roleGuide.firstAction}</p>
+                <em>{isImaginativeActivity ? "First move:" : "Start with:"}</em>{" "}
+                {roleGuide.firstAction}
+              </p>
             ) : null}
           </>
         )}
@@ -389,7 +406,7 @@ export default function QuestContent({
         <CollapsibleQuestSection
           {...sectionProps(
             "starters",
-            "Starter Ideas",
+            isImaginativeActivity ? "Story Starters" : "Starter Ideas",
             `${starterIdeas.length} ideas`,
             true
           )}
@@ -441,7 +458,7 @@ export default function QuestContent({
       <CollapsibleQuestSection
         {...sectionProps(
           "materials",
-          "What You Need",
+          isImaginativeActivity ? "Props & Supplies" : "What You Need",
           uses.length > 0 ? `${uses.length} items` : "No special materials",
           false
         )}
@@ -458,7 +475,12 @@ export default function QuestContent({
       </CollapsibleQuestSection>
 
       <CollapsibleQuestSection
-        {...sectionProps("steps", "Steps", `${steps.length} steps`, true)}
+        {...sectionProps(
+          "steps",
+          isImaginativeActivity ? "Story Path" : "Steps",
+          `${steps.length} ${isImaginativeActivity ? "scenes" : "steps"}`,
+          true
+        )}
       >
         {steps.length === 0 ? (
           <p>No steps listed.</p>
@@ -489,6 +511,7 @@ export default function QuestContent({
                     selectedRoleName || roleName,
                     roleAssignments
                   )}
+                  isImaginative={isImaginativeActivity}
                   onToggleStep={onToggleStep}
                   onImStuck={onImStuck}
                 />
@@ -499,11 +522,16 @@ export default function QuestContent({
       </CollapsibleQuestSection>
 
       <CollapsibleQuestSection
-        {...sectionProps("finish", "Finish the Activity", undefined, false)}
+        {...sectionProps(
+          "finish",
+          isImaginativeActivity ? "The Big Finish" : "Finish the Activity",
+          undefined,
+          false
+        )}
       >
         {extensions.length > 0 ? (
           <>
-            <h3>Keep going</h3>
+            <h3>{isImaginativeActivity ? "Want one more twist?" : "Keep going"}</h3>
             <ul>
               {extensions.map((idea) => (
                 <li key={idea}>{idea}</li>
@@ -542,7 +570,7 @@ export default function QuestContent({
 
             <div className="quest-finish-actions">
               <button type="button" onClick={onFinish}>
-                Mark complete
+                {isImaginativeActivity ? "Finish the story" : "Mark complete"}
               </button>
               {timerDone ? (
                 <>
