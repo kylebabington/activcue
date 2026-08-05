@@ -27,7 +27,7 @@ npm run demo:record
 npm run demo:publish
 ```
 
-Commit `public/demos/familyflow-demo.webm` when you want the landing video section to appear.
+Commit `public/demos/familyflow-demo.webm` when you want the landing video section to appear. `demo:publish` also updates `src/constants/demoVideo.js` so the landing page URL cache-busts after each new recording.
 
 ## Notes
 

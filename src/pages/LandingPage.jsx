@@ -6,6 +6,10 @@ import { Link } from "react-router-dom";
 import { redirectToCheckout } from "../api/billingApi";
 import { ApiRequestError } from "../api/apiClient";
 import MomentDemo from "../components/landing/MomentDemo";
+import {
+  DEMO_VIDEO_POSTER_SRC,
+  DEMO_VIDEO_SRC,
+} from "../constants/demoVideo";
 import { matchDemoActivities } from "../features/demo";
 import { supabase } from "../lib/supabaseClient";
 import { trackProductEvent } from "../utils/analytics";
@@ -48,7 +52,7 @@ function DemoVideoSection() {
 
   useEffect(() => {
     let cancelled = false;
-    fetch("/demos/familyflow-demo.webm", { method: "HEAD" })
+    fetch(DEMO_VIDEO_SRC, { method: "HEAD" })
       .then((response) => {
         if (!cancelled) setHasVideo(response.ok);
       })
@@ -74,16 +78,17 @@ function DemoVideoSection() {
           activity details, and gets them into the first step.
         </p>
         <video
+          key={DEMO_VIDEO_SRC}
           className="landing-demo-video"
           controls
           muted
           playsInline
-          poster="/demos/familyflow-demo-poster.svg"
+          poster={DEMO_VIDEO_POSTER_SRC}
           onPlay={() =>
             trackProductEvent("landing_demo_video_played", { source: "landing" })
           }
         >
-          <source src="/demos/familyflow-demo.webm" type="video/webm" />
+          <source src={DEMO_VIDEO_SRC} type="video/webm" />
         </video>
       </div>
     </section>
