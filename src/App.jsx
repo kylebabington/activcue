@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import { useFirstRunCoach } from "./hooks/useFirstRunCoach";
 import { useKidDeviceMode } from "./hooks/useKidDeviceMode";
+import { useReadingMode } from "./hooks/useReadingMode";
 import { useAuth } from "./hooks/useAuth";
 import { useUiTheme } from "./hooks/useUiTheme";
 import { useEntitlement } from "./features/billing";
@@ -60,6 +61,11 @@ function App() {
     useUiTheme();
 
   const { kidDeviceMode, setKidDeviceMode } = useKidDeviceMode();
+  const {
+    readingModePreference,
+    setReadingModePreference,
+    updateReadingModeSettings,
+  } = useReadingMode();
   const firstRunCoach = useFirstRunCoach();
 
   const {
@@ -377,6 +383,8 @@ function App() {
     openRescueSection,
     markRescueModeUsed,
     handleNeedStepHint,
+    completeListeningIntro,
+    setActivityReadingModeEnabled,
   } = useQuestSession({
     userId: user?.id,
     currentMoment,
@@ -394,6 +402,7 @@ function App() {
     saveActivityFeedback: (...args) =>
       saveActivityFeedbackRef.current?.(...args),
     showStatus,
+    readingModePreference,
     onNeedAnotherIdea: (previousTitle) => {
       const intent = buildFeedbackIntent({
         feedbackIntent: "need-another-idea",
@@ -617,6 +626,9 @@ function App() {
         uiThemes,
         kidDeviceMode,
         setKidDeviceMode,
+        readingModePreference,
+        setReadingModePreference,
+        updateReadingModeSettings,
         reapplyLastSuccessfulMoment,
         setupNudgeNeeded,
         inventoryEmpty,
@@ -690,6 +702,9 @@ function App() {
       uiThemes,
       kidDeviceMode,
       setKidDeviceMode,
+      readingModePreference,
+      setReadingModePreference,
+      updateReadingModeSettings,
       reapplyLastSuccessfulMoment,
       setupNudgeNeeded,
       inventoryEmpty,
@@ -726,6 +741,8 @@ function App() {
         stepHint,
         isHintLoading,
         handleNeedStepHint,
+        completeListeningIntro,
+        setActivityReadingModeEnabled,
         activities,
         scoredActivities,
         activitySessions,
@@ -775,6 +792,8 @@ function App() {
       stepHint,
       isHintLoading,
       handleNeedStepHint,
+      completeListeningIntro,
+      setActivityReadingModeEnabled,
       activities,
       scoredActivities,
       activitySessions,

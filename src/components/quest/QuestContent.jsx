@@ -15,6 +15,8 @@ import {
   getStepStuckPrompts,
   getVisualThemeMeta,
 } from "../../utils/activityVisualTheme";
+import { buildNarrationText } from "../../utils/buildNarrationText";
+import SpeakButton from "../SpeakButton";
 import CollapsibleQuestSection from "./CollapsibleQuestSection";
 import { getDefaultOpenSections } from "./questSectionDefaults";
 
@@ -29,6 +31,8 @@ function QuestStepCard({
   isImaginative = false,
   onToggleStep,
   onImStuck,
+  speechRate = 0.9,
+  stepNarration = "",
 }) {
   const examples = Array.isArray(step?.examples) ? step.examples : [];
   const stuckPrompts = getStepStuckPrompts(step);
@@ -65,16 +69,27 @@ function QuestStepCard({
         <h3>
           {stepPrefix}: {stepTitle}
         </h3>
-        {mode === "active" ? (
-          <label className="quest-step-complete-toggle">
-            <input
-              type="checkbox"
-              checked={Boolean(isComplete)}
-              onChange={() => onToggleStep?.(index)}
+        <div className="quest-step-card-actions">
+          {!isCompact && stepNarration ? (
+            <SpeakButton
+              text={stepNarration}
+              label="Read this step"
+              speechKey={`quest-step-${index}`}
+              rate={speechRate}
+              section="step"
             />
-            {isImaginative ? "Scene complete" : "Done"}
-          </label>
-        ) : null}
+          ) : null}
+          {mode === "active" ? (
+            <label className="quest-step-complete-toggle">
+              <input
+                type="checkbox"
+                checked={Boolean(isComplete)}
+                onChange={() => onToggleStep?.(index)}
+              />
+              {isImaginative ? "Scene complete" : "Done"}
+            </label>
+          ) : null}
+        </div>
       </div>
 
       {!isCompact ? (
@@ -186,6 +201,7 @@ export default function QuestContent({
   onTimerNotFinished,
   onTimerNeedAnotherIdea,
   onTimerMoreLikeThis,
+  speechRate = 0.9,
 }) {
   if (!activity) return null;
 
@@ -213,6 +229,13 @@ export default function QuestContent({
   const mission = getActivityMissionText(activity);
   const sections = openSections || getDefaultOpenSections();
   const multiChild = playingChildren.length > 1 && roles.length > 1;
+  const missionNarration = buildNarrationText(activity, "mission", {
+    selectedRoleName: selectedRoleName || roleName,
+    roleAssignments,
+  });
+  const startersNarration = buildNarrationText(activity, "starters");
+  const resolvedSpeechRate =
+    Number(activity?.readingMode?.speechRate) || speechRate;
 
   function sectionProps(key, title, summary, defaultOpen) {
     const controlled = Boolean(onSectionOpenChange);
@@ -308,6 +331,18 @@ export default function QuestContent({
           ) : null}
         </div>
 
+        {missionNarration ? (
+          <div className="quest-section-speak-row">
+            <SpeakButton
+              text={missionNarration}
+              label="Read"
+              speechKey="quest-mission"
+              rate={resolvedSpeechRate}
+              section="mission"
+            />
+          </div>
+        ) : null}
+
         {!isSimpleActivity ? (
           <div
             className={`activity-details-world-band activity-card--theme-${theme.key}`}
@@ -331,6 +366,17 @@ export default function QuestContent({
       <CollapsibleQuestSection
         {...sectionProps("role", "Your Role", roleName || undefined, true)}
       >
+        {missionNarration ? (
+          <div className="quest-section-speak-row">
+            <SpeakButton
+              text={missionNarration}
+              label="Read"
+              speechKey="quest-role"
+              rate={resolvedSpeechRate}
+              section="mission"
+            />
+          </div>
+        ) : null}
         {childRoles.length > 0 ? (
           <ul className="quest-child-roles">
             {childRoles.map((role) => (
@@ -411,6 +457,17 @@ export default function QuestContent({
             true
           )}
         >
+          {startersNarration ? (
+            <div className="quest-section-speak-row">
+              <SpeakButton
+                text={startersNarration}
+                label="Read starters"
+                speechKey="quest-starters"
+                rate={resolvedSpeechRate}
+                section="starter"
+              />
+            </div>
+          ) : null}
           <div className="quest-v2-starter-doors">
             {starterIdeas.map((idea, index) => {
               const checked = checkedStarterIndexes.includes(index);
@@ -514,6 +571,12 @@ export default function QuestContent({
                   isImaginative={isImaginativeActivity}
                   onToggleStep={onToggleStep}
                   onImStuck={onImStuck}
+                  speechRate={resolvedSpeechRate}
+                  stepNarration={buildNarrationText(activity, "step", {
+                    stepIndex: index,
+                    selectedRoleName: selectedRoleName || roleName,
+                    roleAssignments,
+                  })}
                 />
               );
             })}

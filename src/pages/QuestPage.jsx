@@ -194,6 +194,8 @@ function QuestPage() {
         stepHint,
         isHintLoading,
         handleNeedStepHint,
+        completeListeningIntro,
+        setActivityReadingModeEnabled,
         activities,
         scoredActivities,
         isLoading,
@@ -266,6 +268,8 @@ function QuestPage() {
                     handleNeedStepHint={handleNeedStepHint}
                     canUseAiHints={Boolean(entitlement?.canUseAiHints)}
                     playingChildren={playingChildren}
+                    completeListeningIntro={completeListeningIntro}
+                    setActivityReadingModeEnabled={setActivityReadingModeEnabled}
                 />
             ) : null}
 

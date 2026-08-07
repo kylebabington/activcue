@@ -18,6 +18,10 @@ import {
 import { recordSharedActivityOutcome } from "../../api/sharedActivitiesApi";
 import { getDefaultOpenSections } from "../../components/quest/questSectionDefaults";
 import {
+  getYoungestPlayingAgeYears,
+  resolveReadingMode,
+} from "../../utils/readingMode";
+import {
   buildActivitySessionExitPatch,
   buildActivitySessionStartPayload,
   buildCanceledHistoryItem,
@@ -47,6 +51,7 @@ export function useQuestSession({
   saveActivityFeedback,
   showStatus,
   onNeedAnotherIdea,
+  readingModePreference = null,
 } = {}) {
   const [activeActivity, setActiveActivity] = useLocalStorage(
     "activeActivity",
@@ -166,6 +171,11 @@ export function useQuestSession({
           ? [activeChildProfile]
           : [];
 
+    const readingMode = resolveReadingMode({
+      preference: readingModePreference,
+      youngestAgeYears: getYoungestPlayingAgeYears(playingChildren),
+    });
+
     const activityToStart = {
       id: crypto.randomUUID(),
       title: activity.title,
@@ -251,7 +261,9 @@ export function useQuestSession({
       showAiHintPanel: false,
       currentStepIndex: 0,
       completedStepIndexes: [],
-      showAllSteps: true,
+      showAllSteps: !readingMode.enabled,
+      readingMode,
+      listeningIntroComplete: false,
       openSections: getDefaultOpenSections({
         mission: true,
         role: true,
@@ -625,6 +637,35 @@ export function useQuestSession({
     });
   }
 
+  function completeListeningIntro() {
+    if (!activeActivity) {
+      return;
+    }
+    setActiveActivity({
+      ...activeActivity,
+      listeningIntroComplete: true,
+      currentStepIndex: 0,
+    });
+  }
+
+  function setActivityReadingModeEnabled(enabled) {
+    if (!activeActivity) {
+      return;
+    }
+    const nextEnabled = Boolean(enabled);
+    setActiveActivity({
+      ...activeActivity,
+      readingMode: {
+        ...(activeActivity.readingMode || {}),
+        enabled: nextEnabled,
+      },
+      showAllSteps: !nextEnabled,
+      listeningIntroComplete: nextEnabled
+        ? Boolean(activeActivity.listeningIntroComplete)
+        : true,
+    });
+  }
+
   function setQuestPhase(questPhase) {
     if (!activeActivity) {
       return;
@@ -828,6 +869,8 @@ export function useQuestSession({
     goToPreviousQuestStep,
     toggleQuestStepComplete,
     toggleShowAllQuestSteps,
+    completeListeningIntro,
+    setActivityReadingModeEnabled,
     setQuestPhase,
     toggleStarterIdea,
     assignRole,

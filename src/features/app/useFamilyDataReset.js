@@ -27,6 +27,7 @@ const LOCAL_STORAGE_KEYS_TO_CLEAR = [
   "activitySessions",
   "uiTheme",
   "kidDeviceMode",
+  "readingMode",
 ];
 
 export function useFamilyDataReset({

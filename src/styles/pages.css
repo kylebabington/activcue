@@ -370,6 +370,37 @@
   font-size: var(--font-size-xs);
 }
 
+.settings-subsection {
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--color-border, rgba(0, 0, 0, 0.08));
+  display: grid;
+  gap: 0.35rem;
+}
+
+.settings-subsection h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.settings-subsection-lede {
+  margin: 0 0 0.5rem;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  line-height: 1.45;
+}
+
+.settings-field {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0.75rem 0;
+}
+
+.settings-field select {
+  max-width: 12rem;
+  min-height: 2.5rem;
+}
+
 .kid-secondary-actions {
   display: flex;
   flex-wrap: wrap;
@@ -905,6 +936,14 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
+}
+
+.quest-step-card-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .quest-step-card-header h3 {
@@ -2270,4 +2309,176 @@
   .child-profile-card {
     flex-direction: column;
   }
+}
+
+/* Speak / Listening Mode */
+.quest-section-speak-row {
+  display: flex;
+  justify-content: flex-start;
+  margin: 0 0 0.75rem;
+}
+
+.speak-button-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.speak-button {
+  min-height: 2.25rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--radius-medium);
+  border: 1px solid color-mix(in srgb, var(--activity-theme-accent, var(--color-primary)) 35%, var(--color-border, #ccc));
+  background: color-mix(in srgb, var(--activity-theme-accent, var(--color-primary)) 10%, white);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+
+.speak-button:hover {
+  background: color-mix(in srgb, var(--activity-theme-accent, var(--color-primary)) 18%, white);
+}
+
+.speak-button--large,
+.speak-button-group--large .speak-button {
+  min-height: 3rem;
+  padding: 0.65rem 1.1rem;
+  font-size: 1rem;
+}
+
+.speak-button--stop {
+  background: transparent;
+}
+
+.active-activity-toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+.active-activity-toolbar .simple-active-title {
+  margin: 0;
+  flex: 1 1 12rem;
+}
+
+.active-listening-toggle {
+  flex: 0 0 auto;
+}
+
+.listening-mode-panel {
+  display: grid;
+  gap: 1rem;
+}
+
+.listening-mode-eyebrow {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  letter-spacing: 0.02em;
+}
+
+.listening-mode-card {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1.25rem 1.1rem;
+  border-radius: var(--radius-medium);
+  background: color-mix(in srgb, var(--activity-theme-accent, var(--color-primary)) 12%, white);
+  border: 1px solid color-mix(in srgb, var(--activity-theme-accent, var(--color-primary)) 22%, transparent);
+}
+
+.listening-mode-kicker {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  font-weight: var(--font-weight-semibold);
+}
+
+.listening-mode-title {
+  margin: 0;
+  font-size: clamp(1.45rem, 4vw, 2rem);
+  line-height: 1.2;
+}
+
+.listening-mode-lede,
+.listening-mode-goal,
+.listening-mode-instruction,
+.listening-mode-done-when {
+  margin: 0;
+  line-height: 1.5;
+  font-size: 1.05rem;
+}
+
+.listening-mode-done-when {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.listening-mode-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 0.35rem;
+}
+
+.listening-mode-primary {
+  min-height: 3.25rem;
+  padding: 0.75rem 1.25rem;
+  border: 0;
+  border-radius: var(--radius-medium);
+  background: var(--activity-theme-accent, var(--color-primary));
+  color: white;
+  font-family: var(--font-body);
+  font-size: 1.05rem;
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+
+.listening-mode-primary:hover {
+  filter: brightness(0.96);
+}
+
+.listening-mode-roles {
+  margin-top: 0.25rem;
+}
+
+.what-next-bar {
+  position: sticky;
+  bottom: 0.75rem;
+  z-index: 2;
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+  padding: 0.35rem 0;
+}
+
+.what-next-button,
+.what-next-speak .speak-button {
+  min-height: 3.1rem;
+  padding: 0.7rem 1.25rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--activity-theme-accent, var(--color-primary)) 40%, #ccc);
+  background: white;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+
+.what-next-button:hover {
+  background: color-mix(in srgb, var(--activity-theme-accent, var(--color-primary)) 8%, white);
+}
+
+.page-layout--kid-device .speak-button,
+.page-layout--kid-device .listening-mode-primary,
+.page-layout--kid-device .what-next-button {
+  min-height: 3.4rem;
 }
