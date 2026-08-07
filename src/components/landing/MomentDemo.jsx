@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import QuestContent from "../quest/QuestContent";
+import { getDefaultOpenSections } from "../quest/questSectionDefaults";
 import { DEMO_MOMENT_LIST } from "../../constants/demoMoments";
 import {
   matchDemoActivities,
@@ -9,10 +11,6 @@ import {
   MIN_DEMO_AGE,
   MAX_DEMO_AGE,
 } from "../../features/demo";
-import {
-  getActivityMissionText,
-  getVisualThemeMeta,
-} from "../../utils/activityVisualTheme";
 import { trackProductEvent } from "../../utils/analytics";
 
 const PRIMARY_MOMENT_IDS = ["cooking", "cleaning", "workCall", "resting"];
@@ -31,7 +29,7 @@ const AGE_OPTIONS = Array.from(
 );
 
 /**
- * Interactive moment-matching demo for the landing page.
+ * Landing demo — one full activity aha (instructions included), not teaser cards.
  * Fully client-side — no AuthProvider, OpenAI, or writes.
  */
 export default function MomentDemo({
@@ -41,7 +39,21 @@ export default function MomentDemo({
   const [showMoreMoments, setShowMoreMoments] = useState(false);
   const [childAges, setChildAges] = useState([8]);
   const [matchResult, setMatchResult] = useState(null);
+  const [activity, setActivity] = useState(null);
   const [isMatching, setIsMatching] = useState(false);
+  const [openSections, setOpenSections] = useState(() =>
+    getDefaultOpenSections({
+      mission: true,
+      role: true,
+      starters: true,
+      materials: true,
+      steps: true,
+      rescue: true,
+      finish: true,
+    })
+  );
+  const [checkedStarters, setCheckedStarters] = useState([]);
+  const [completedSteps, setCompletedSteps] = useState([]);
 
   const visibleMoments = showMoreMoments
     ? [...PRIMARY_MOMENTS, ...MORE_MOMENTS]
@@ -74,15 +86,34 @@ export default function MomentDemo({
     setChildAges((prev) => prev.slice(0, 1));
   }
 
+  function openFromMatch(next) {
+    const top = next?.results?.[0]?.activity || null;
+    setMatchResult(next);
+    setActivity(top);
+    setCheckedStarters([]);
+    setCompletedSteps([]);
+    setOpenSections(
+      getDefaultOpenSections({
+        mission: true,
+        role: true,
+        starters: true,
+        materials: true,
+        steps: true,
+        rescue: true,
+        finish: true,
+      })
+    );
+  }
+
   function runMatch({ rotate = false } = {}) {
     if (!momentId && !rotate) return;
 
     setIsMatching(true);
     window.setTimeout(() => {
       const next = rotate
-        ? rotateDemoResults(matchResult, { childAges })
-        : matchDemoActivities({ momentId, childAges, limit: 3 });
-      setMatchResult(next);
+        ? rotateDemoResults(matchResult, { childAges, limit: 1 })
+        : matchDemoActivities({ momentId, childAges, limit: 1 });
+      openFromMatch(next);
       setIsMatching(false);
       if (rotate) {
         trackProductEvent(`${analyticsPrefix}_plan_b_clicked`, {
@@ -121,10 +152,10 @@ export default function MomentDemo({
   return (
     <div className="moment-demo">
       <div className="moment-demo-intro">
-        <h2 id="try-demo-title">See what FamilyFlow would pick</h2>
+        <h2 id="try-demo-title">See a full activity that fits</h2>
         <p className="moment-demo-lead">
-          Set the moment and who&apos;s playing — then find three activities that
-          fit right now.
+          Set the moment and who&apos;s playing — then open the real instructions,
+          not a teaser summary.
         </p>
       </div>
 
@@ -220,58 +251,64 @@ export default function MomentDemo({
             disabled={!momentId || isMatching}
             onClick={handleFind}
           >
-            {isMatching ? "Finding…" : "Find activities"}
+            {isMatching ? "Finding…" : "Find an activity"}
           </button>
         </div>
       </div>
 
       {!momentId ? (
         <p className="moment-demo-hint">
-          Pick a moment, then find matching activities.
+          Pick a moment, then see the full activity FamilyFlow would pick.
         </p>
       ) : null}
 
       {isMatching ? (
         <p className="moment-demo-status" role="status">
-          Finding activities that fit…
+          Finding an activity that fits…
         </p>
       ) : null}
 
-      {!isMatching && matchResult ? (
-        <div className="moment-demo-results">
+      {!isMatching && activity ? (
+        <div className="moment-demo-results moment-demo-results--full">
           <div className="moment-demo-results-header">
-            <h3>Three activities that fit</h3>
+            <h3>One activity that fits</h3>
             <p>
-              {agesLabel} · {matchResult.momentLabel}
+              {agesLabel}
+              {matchResult?.momentLabel ? ` · ${matchResult.momentLabel}` : ""}
+            </p>
+            <p className="moment-demo-aha-kicker" role="status">
+              Full steps below — no account required.
             </p>
           </div>
 
-          <ul className="moment-demo-card-list">
-            {matchResult.results.map((entry) => {
-              const activity = entry.activity;
-              const theme = getVisualThemeMeta(activity.visualTheme);
-              const mission = getActivityMissionText(activity);
-              const why =
-                entry.whyFitChips?.[0] ||
-                entry.whyItFits ||
-                mission ||
-                activity.summary;
-              return (
-                <li key={activity.slug || activity.title}>
-                  <div
-                    className={`moment-demo-card activity-card--theme-${theme.key}`}
-                    style={{ "--activity-theme-accent": theme.accent }}
-                  >
-                    <span className="moment-demo-card-fit">
-                      {entry.fitPercent}% fit
-                    </span>
-                    <h4>{activity.title}</h4>
-                    <p>{why}</p>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+          <div className="panel active-activity-panel pretend-active-panel quest-v2-panel moment-demo-activity">
+            <h4 className="simple-active-title">{activity.title}</h4>
+            <QuestContent
+              activity={activity}
+              mode="active"
+              currentMoment={matchResult?.moment || null}
+              openSections={openSections}
+              onSectionOpenChange={(key, nextOpen) =>
+                setOpenSections((current) => ({ ...current, [key]: nextOpen }))
+              }
+              checkedStarterIndexes={checkedStarters}
+              completedStepIndexes={completedSteps}
+              onToggleStarter={(index) => {
+                setCheckedStarters((prev) =>
+                  prev.includes(index)
+                    ? prev.filter((item) => item !== index)
+                    : [...prev, index]
+                );
+              }}
+              onToggleStep={(index) => {
+                setCompletedSteps((prev) =>
+                  prev.includes(index)
+                    ? prev.filter((item) => item !== index)
+                    : [...prev, index]
+                );
+              }}
+            />
+          </div>
 
           <div className="moment-demo-why">
             <button
@@ -295,7 +332,7 @@ export default function MomentDemo({
             })
           }
         >
-          Try the full demo
+          Personalize more on the demo
         </Link>
         <Link className="landing-btn landing-btn--ghost" to="/signup">
           Create free account

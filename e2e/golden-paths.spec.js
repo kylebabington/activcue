@@ -107,34 +107,36 @@ async function openQuickIdeasAndStart(page) {
 }
 
 test.describe("FamilyFlow golden paths", () => {
-  test("landing → find something now opens onboarding", async ({ page }) => {
+  test("landing → try FamilyFlow opens public demo", async ({ page }) => {
     await page.goto("/");
     await expect(
       page.getByRole("heading", {
         level: 1,
-        name: /Activities that fit the moment/i,
+        name: /Activities that fit your family right now/i,
       })
     ).toBeVisible();
 
-    const cta = page.getByRole("link", { name: /Find something now/i }).first();
+    const cta = page.getByRole("link", { name: /^Try FamilyFlow$/i }).first();
     await expect(cta).toBeVisible();
-    await cta.click();
+    // Hero primary is an in-page anchor; use a full-demo link.
+    const demoCta = page.getByRole("link", { name: /Try the demo|Find something to do/i }).first();
+    await expect(demoCta).toBeVisible();
+    await demoCta.click();
 
-    await expect(page).toHaveURL(/\/onboarding/, { timeout: 20000 });
-    await waitForAuthSession(page);
+    await expect(page).toHaveURL(/\/demo/, { timeout: 20000 });
     await expect(
-      page.getByRole("heading", { name: /Who’s playing|Who's playing/i })
-    ).toBeVisible({ timeout: 30000 });
+      page.getByRole("heading", { name: /What fits right now/i })
+    ).toBeVisible({ timeout: 15000 });
   });
 
   test("landing moment demo matches without auth", async ({ page }) => {
     await page.goto("/");
     await page.getByRole("button", { name: /^Cooking$/i }).click();
-    await page.getByRole("button", { name: /Find activities/i }).click();
+    await page.getByRole("button", { name: /Find an activity/i }).click();
     await expect(
-      page.getByRole("heading", { name: /three activities that fit/i })
+      page.getByRole("heading", { name: /One activity that fits/i })
     ).toBeVisible({ timeout: 10000 });
-    await expect(page.locator(".moment-demo-card").first()).toBeVisible();
+    await expect(page.locator(".moment-demo-activity").first()).toBeVisible();
   });
 
   test("multi-child family mode can toggle participants before quest", async ({
@@ -162,35 +164,25 @@ test.describe("FamilyFlow golden paths", () => {
     ).toBeVisible({ timeout: 15000 });
   });
 
-  test("landing → try free reaches parent moment", async ({ page }) => {
+  test("landing → try free reaches public demo", async ({ page }) => {
     await page.goto("/");
     await expect(
       page.getByRole("heading", {
         level: 1,
-        name: /Need 20 quiet minutes/i,
+        name: /Activities that fit your family right now/i,
       })
     ).toBeVisible();
 
     const tryFree = page
-      .getByRole("link", { name: /Open the app|Find something to do/i })
+      .getByRole("link", { name: /Try the demo|Find something to do/i })
       .first();
     await expect(tryFree).toBeVisible();
     await tryFree.click();
 
-    await expect(page).toHaveURL(/\/(app|parent|onboarding)/, { timeout: 20000 });
-    await waitForAuthSession(page);
-
-    if (/\/onboarding/.test(page.url())) {
-      await page.goto("/parent");
-    } else if (!/\/parent/.test(page.url())) {
-      await page.goto("/parent");
-    }
-
+    await expect(page).toHaveURL(/\/demo/, { timeout: 20000 });
     await expect(
-      page.getByRole("heading", {
-        name: /Pick what’s happening|Pick what's happening/i,
-      })
-    ).toBeVisible({ timeout: 30000 });
+      page.getByRole("heading", { name: /What fits right now/i })
+    ).toBeVisible({ timeout: 15000 });
   });
 
   test("free family flow: moment → kid → quick ideas → start → finish → independence", async ({

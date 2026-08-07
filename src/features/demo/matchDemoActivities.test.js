@@ -102,4 +102,25 @@ describe("matchDemoActivities", () => {
       true
     );
   });
+
+  it("applies momentOverrides for time, space, mess, and supervision", () => {
+    const result = matchDemoActivities({
+      momentId: "cooking",
+      childAges: [8],
+      limit: 1,
+      momentOverrides: {
+        timeNeededMinutes: 10,
+        space: "Backyard",
+        messLevel: "high",
+        supervisionLevel: "independent",
+      },
+    });
+
+    expect(result.moment.timeNeededMinutes).toBe(10);
+    expect(result.moment.space).toBe("Backyard");
+    expect(result.moment.messLevel).toBe("high");
+    expect(result.moment.supervisionLevel).toBe("independent");
+    expect(result.results).toHaveLength(1);
+    expect(result.momentOverrides.timeNeededMinutes).toBe(10);
+  });
 });

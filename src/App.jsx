@@ -540,6 +540,10 @@ function App() {
   const inventoryEmpty = effectiveInventory.length === 0;
   const childProfilesEmpty = childProfiles.length === 0;
   const setupNudgeNeeded = inventoryEmpty && childProfilesEmpty;
+  const needsOnboarding =
+    childProfilesEmpty &&
+    !onboardingCompletedAt &&
+    !onboardingSkippedAt;
 
   const resetLearnedRecommendations = useCallback(() => {
     const confirmed = window.confirm(
@@ -940,6 +944,7 @@ function App() {
           setupNudgeNeeded={setupNudgeNeeded}
           applyOnboardingDraft={applyOnboardingDraft}
           handleStartActivityFromUi={handleStartActivityFromUi}
+          needsOnboarding={needsOnboarding}
         />
       </AppProviders>
     </AppShell>

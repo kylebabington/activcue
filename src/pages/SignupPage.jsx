@@ -5,11 +5,44 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ApiRequestError } from "../api/apiClient";
 import { convertAnonymousAccount } from "../api/authApi";
 import { redirectToCheckout } from "../api/billingApi";
+import { claimDemoFreeUnlock } from "../api/demoApi";
 import { useAuth } from "../hooks/useAuth";
 import { supabase } from "../lib/supabaseClient";
-import { parseSignupCheckoutIntent } from "../utils/signupUrls";
+import {
+  clearDemoUnlockIntent,
+  parseSignupCheckoutIntent,
+  readDemoUnlockIntent,
+  writeDemoActivityHandoff,
+} from "../utils/signupUrls";
 import { captureAttribution, trackProductEvent } from "../utils/analytics";
 import "../styles/landing.css";
+
+async function preserveDemoActivityAfterSignup(searchParams) {
+  const intent = readDemoUnlockIntent();
+  const slug =
+    intent?.slug || searchParams.get("activity") || null;
+  const title = intent?.title || null;
+
+  if (!slug) {
+    clearDemoUnlockIntent();
+    return null;
+  }
+
+  try {
+    await claimDemoFreeUnlock(slug);
+    writeDemoActivityHandoff({ slug, title });
+    trackProductEvent("demo_page_unlock_claimed", {
+      slug,
+      source: "signup",
+    });
+  } catch {
+    // Non-blocking — signup still succeeds without the unlock claim.
+    writeDemoActivityHandoff({ slug, title });
+  }
+
+  clearDemoUnlockIntent();
+  return slug;
+}
 
 function SignupPage() {
   const navigate = useNavigate();
@@ -171,12 +204,20 @@ function SignupPage() {
       const expectedUserId =
         signInData.user?.id || convertedUserId;
 
+      await preserveDemoActivityAfterSignup(searchParams);
+
+      trackProductEvent("signup_completed", {
+        hasCheckoutIntent: checkoutIntent.shouldCheckout,
+        plan: checkoutIntent.plan || null,
+        fromDemo: searchParams.get("from") === "demo",
+      });
+
       if (checkoutIntent.shouldCheckout) {
         await startCheckout(expectedUserId);
         return;
       }
 
-      navigate("/app", { replace: true });
+      navigate("/onboarding", { replace: true });
     } catch (error) {
       if (error instanceof ApiRequestError) {
         if (error.code === "EMAIL_ALREADY_REGISTERED") {
@@ -254,7 +295,7 @@ function SignupPage() {
 
             <Link
               className="landing-btn landing-btn--primary"
-              to="/app"
+              to="/onboarding"
             >
               Continue to FamilyFlow
             </Link>

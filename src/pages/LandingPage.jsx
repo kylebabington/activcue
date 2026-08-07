@@ -7,6 +7,8 @@ import { getBillingPlans, redirectToCheckout } from "../api/billingApi";
 import { ApiRequestError } from "../api/apiClient";
 import Modal from "../components/Modal";
 import LandingPricingCompare from "../components/landing/LandingPricingCompare";
+import LandingProductShowcase from "../components/landing/LandingProductShowcase";
+import LandingSituations from "../components/landing/LandingSituations";
 import MomentDemo from "../components/landing/MomentDemo";
 import {
   DEMO_VIDEO_POSTER_SRC,
@@ -46,7 +48,7 @@ const WHY_ITEMS = [
 const HOW_STEPS = [
   {
     title: "Tell us the moment",
-    text: "Cooking, work call, cleaning, resting — the same parent moments you use in the app.",
+    text: "Time, mess, inside or outside, and how independent kids need to be.",
   },
   {
     title: "Tell us who's playing",
@@ -54,7 +56,7 @@ const HOW_STEPS = [
   },
   {
     title: "FamilyFlow finds the best fit",
-    text: "Activities ranked by fit for your situation — not random suggestions.",
+    text: "One strong activity for right now — with Plan B if you need it.",
   },
 ];
 
@@ -65,7 +67,6 @@ function LandingPage() {
   const [plansById, setPlansById] = useState({});
   const [plansLoading, setPlansLoading] = useState(true);
   const [plansError, setPlansError] = useState("");
-  const [billingInterval, setBillingInterval] = useState("monthly");
   const [navOpen, setNavOpen] = useState(false);
   const [hasVideo, setHasVideo] = useState(false);
   const [videoOpen, setVideoOpen] = useState(false);
@@ -271,16 +272,16 @@ function LandingPage() {
               <span />
               <span />
             </button>
-            <a
+            <Link
               className="landing-topbar-cta"
-              href="#try-demo"
+              to="/demo"
               onClick={() => {
                 setNavOpen(false);
                 trackTryFree("topbar");
               }}
             >
               Try free
-            </a>
+            </Link>
           </div>
         </div>
 
@@ -322,48 +323,22 @@ function LandingPage() {
           <div className="landing-hero-copy landing-hero-copy--centered">
             <p className="landing-hero-brand">FamilyFlow</p>
             <h1 id="landing-hero-title" className="landing-hero-title">
-              Finding an activity isn&apos;t the hard part.
-              <br />
-              Finding one that works right now is.
+              Activities that fit your family right now.
             </h1>
             <p className="landing-hero-support">
-              You&apos;re making dinner. One kid is restless. Another is tired.
-              You have 20 minutes, low patience, and whatever supplies are
-              already in the house. FamilyFlow matches activities to the moment
-              you&apos;re actually in.
+              Tell FamilyFlow how much time you have, your child&apos;s age,
+              what you have available, and how much chaos you&apos;re willing
+              to tolerate.
             </p>
 
-            <div className="landing-contrast" role="table" aria-label="Typical lists versus FamilyFlow">
-              <div className="landing-contrast-row landing-contrast-row--head" role="row">
-                <span role="columnheader">Typical activity lists</span>
-                <span role="columnheader">FamilyFlow</span>
-              </div>
-              <div className="landing-contrast-row" role="row">
-                <span role="cell">&ldquo;50 rainy-day activities&rdquo;</span>
-                <span role="cell">What works for your situation right now</span>
-              </div>
-              <div className="landing-contrast-row" role="row">
-                <span role="cell">Same ideas for every age</span>
-                <span role="cell">Adapts to the ages playing</span>
-              </div>
-              <div className="landing-contrast-row" role="row">
-                <span role="cell">Ignore parent availability</span>
-                <span role="cell">Accounts for time and supervision</span>
-              </div>
-              <div className="landing-contrast-row" role="row">
-                <span role="cell">Random suggestions</span>
-                <span role="cell">Ranks activities by fit</span>
-              </div>
-            </div>
-
             <div className="landing-hero-actions">
-              <a
+              <Link
                 className="landing-btn landing-btn--primary"
-                href="#try-demo"
+                to="/demo"
                 onClick={() => trackTryFree("hero")}
               >
-                Try FamilyFlow free
-              </a>
+                Try FamilyFlow
+              </Link>
               <Link
                 className="landing-btn landing-btn--ghost"
                 to="/signup"
@@ -373,12 +348,17 @@ function LandingPage() {
                   })
                 }
               >
-                Create account
+                Create your family
               </Link>
             </div>
+            <p className="landing-hero-note">
+              No account required for the demo.
+            </p>
           </div>
         </div>
       </section>
+
+      <LandingSituations />
 
       <section
         className="landing-section landing-section--demo"
@@ -387,34 +367,23 @@ function LandingPage() {
       >
         <div className="landing-section-inner landing-section-inner--wide">
           <MomentDemo />
-          {hasVideo ? (
-            <p className="landing-video-link-row">
-              <button
-                type="button"
-                className="landing-text-link"
-                onClick={() => {
-                  setVideoOpen(true);
-                  trackProductEvent("landing_demo_video_opened", {
-                    source: "landing",
-                  });
-                }}
-              >
-                Watch 45-second walkthrough
-              </button>
-            </p>
-          ) : null}
         </div>
       </section>
 
+      <LandingProductShowcase
+        hasVideo={hasVideo}
+        onOpenVideo={() => setVideoOpen(true)}
+      />
+
       <section
-        className="landing-section landing-section--tint"
+        className="landing-section"
         id="why"
         aria-labelledby="why-title"
       >
         <div className="landing-section-inner">
           <h2 id="why-title">Why FamilyFlow gets better results</h2>
           <p className="landing-section-lead">
-            Substance without another wall of marketing sections.
+            Built for the next twenty minutes — not another rainy-day list.
           </p>
           <div className="landing-why">
             {WHY_ITEMS.map((item) => (
@@ -424,19 +393,39 @@ function LandingPage() {
               </details>
             ))}
           </div>
+          <div className="landing-section-cta">
+            <Link
+              className="landing-btn landing-btn--primary"
+              to="/demo"
+              onClick={() => trackTryFree("why")}
+            >
+              Find something to do
+            </Link>
+            <Link
+              className="landing-btn landing-btn--ghost"
+              to="/signup"
+              onClick={() =>
+                trackProductEvent("landing_signup_cta_clicked", {
+                  source: "why",
+                })
+              }
+            >
+              Create your family
+            </Link>
+          </div>
         </div>
       </section>
 
       <section
-        className="landing-section"
+        className="landing-section landing-section--tint"
         id="plus"
         aria-labelledby="plus-title"
       >
         <div className="landing-section-inner">
-          <h2 id="plus-title">Demo vs Plus</h2>
+          <h2 id="plus-title">Simple pricing</h2>
           <p className="landing-section-lead">
-            Try free with sample matches. Upgrade when you want unlimited
-            activities personalized to your family.
+            Start free. Upgrade when you want unlimited activities personalized
+            to your family.
           </p>
           {checkoutError ? (
             <p className="landing-plus-note" role="alert">
@@ -448,8 +437,6 @@ function LandingPage() {
             annualPlan={plansById.annual || null}
             plansLoading={plansLoading}
             plansError={plansError}
-            interval={billingInterval}
-            onIntervalChange={setBillingInterval}
             mode={canSubscribe ? "checkout" : "signup"}
             checkoutBusyPlan={checkoutBusy}
             onCheckout={handleCheckout}
@@ -458,7 +445,7 @@ function LandingPage() {
       </section>
 
       <section
-        className="landing-section landing-section--tint"
+        className="landing-section"
         id="how-it-works"
         aria-labelledby="how-title"
       >
@@ -477,18 +464,27 @@ function LandingPage() {
               </li>
             ))}
           </ol>
+          <div className="landing-section-cta">
+            <Link
+              className="landing-btn landing-btn--primary"
+              to="/demo"
+              onClick={() => trackTryFree("how")}
+            >
+              Try the demo
+            </Link>
+          </div>
         </div>
       </section>
 
       <section
-        className="landing-section"
+        className="landing-section landing-section--tint"
         aria-labelledby="final-cta-title"
       >
         <div className="landing-section-inner landing-final-cta">
           <h2 id="final-cta-title">Stop searching. Find something that fits.</h2>
           <p>
-            Try FamilyFlow with your current situation and unlock one complete
-            activity free.
+            Try FamilyFlow with your current situation — no account required.
+            Create a free account when you want FamilyFlow to remember your kids.
           </p>
           <div className="landing-hero-actions">
             <Link
@@ -496,7 +492,18 @@ function LandingPage() {
               to="/demo"
               onClick={() => trackTryFree("final")}
             >
-              Try the demo
+              Try FamilyFlow
+            </Link>
+            <Link
+              className="landing-btn landing-btn--ghost"
+              to="/signup"
+              onClick={() =>
+                trackProductEvent("landing_signup_cta_clicked", {
+                  source: "final",
+                })
+              }
+            >
+              Create your family
             </Link>
           </div>
           <p className="landing-final-login">
