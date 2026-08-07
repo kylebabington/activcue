@@ -12,32 +12,41 @@ const PRODUCT_FRAMES = [
     id: "situation",
     title: "Select the moment",
     caption: "Time, mess, and how independent kids need to be.",
-  },
-  {
-    id: "match",
-    title: "Get a fitted activity",
-    caption: "Ranked for this age and this situation — not a random list.",
-  },
-  {
-    id: "instructions",
-    title: "Clear activity steps",
-    caption: "Mission, materials, and what to do next.",
-  },
-  {
-    id: "plan-b",
-    title: "Plan B ready",
-    caption: "Didn't land? Try the next already-matched option.",
+    src: "/marketing/select-moment.png",
+    alt: "Parent screen: pick what's happening, Cooking dinner selected",
   },
   {
     id: "personalize",
     title: "Child-specific fit",
     caption: "Ages and independence change what shows up.",
+    src: "/marketing/child-fit.png",
+    alt: "Kid screen: who's playing, energy, and Simple or Pretend",
+  },
+  {
+    id: "match",
+    title: "Get a fitted activity",
+    caption: "Ranked for this age and this situation — not a random list.",
+    src: "/marketing/fitted-activity.png",
+    alt: "Three ranked activity matches with Best fit highlighted",
+  },
+  {
+    id: "instructions",
+    title: "Clear activity steps",
+    caption: "Mission, materials, and what to do next.",
+    src: "/marketing/activity-details.png",
+    alt: "Activity details with overview, materials, and Enter the story",
+  },
+  {
+    id: "play",
+    title: "Start the activity",
+    caption: "Guided steps kids can follow without a long brief.",
+    src: "/marketing/activity-steps.png",
+    alt: "Activity started view showing Step 1 instructions",
   },
 ];
 
 /**
- * See FamilyFlow — demo video + captioned product frames.
- * Swap frame backgrounds for /public/marketing/* screenshots later.
+ * See FamilyFlow — demo video + captioned product screenshots.
  */
 export default function LandingProductShowcase({
   hasVideo = false,
@@ -74,7 +83,7 @@ export default function LandingProductShowcase({
               height="540"
             />
             <span className="landing-product-video-play">
-              Watch 45-second walkthrough
+              Watch 30-second walkthrough
             </span>
             <span className="visually-hidden">
               Open FamilyFlow demo video ({DEMO_VIDEO_SRC})
@@ -90,8 +99,16 @@ export default function LandingProductShowcase({
               role="listitem"
               data-frame={frame.id}
             >
-              <div className="landing-product-frame-visual" aria-hidden="true">
-                <span className="landing-product-frame-chrome" />
+              <div className="landing-product-frame-visual">
+                <img
+                  src={frame.src}
+                  alt={frame.alt}
+                  className="landing-product-frame-img"
+                  width="640"
+                  height="360"
+                  loading="lazy"
+                  decoding="async"
+                />
               </div>
               <h3>{frame.title}</h3>
               <p>{frame.caption}</p>

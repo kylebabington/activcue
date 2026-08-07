@@ -116,27 +116,26 @@ test.describe("FamilyFlow golden paths", () => {
       })
     ).toBeVisible();
 
-    const cta = page.getByRole("link", { name: /^Try FamilyFlow$/i }).first();
-    await expect(cta).toBeVisible();
-    // Hero primary is an in-page anchor; use a full-demo link.
-    const demoCta = page.getByRole("link", { name: /Try the demo|Find something to do/i }).first();
+    const demoCta = page.getByRole("link", { name: /^Try FamilyFlow$/i }).first();
     await expect(demoCta).toBeVisible();
     await demoCta.click();
 
     await expect(page).toHaveURL(/\/demo/, { timeout: 20000 });
     await expect(
-      page.getByRole("heading", { name: /What fits right now/i })
+      page.getByRole("heading", { name: /happening right now/i })
     ).toBeVisible({ timeout: 15000 });
   });
 
-  test("landing moment demo matches without auth", async ({ page }) => {
+  test("landing moment situations deep-link to demo", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("button", { name: /^Cooking$/i }).click();
-    await page.getByRole("button", { name: /Find an activity/i }).click();
     await expect(
-      page.getByRole("heading", { name: /One activity that fits/i })
-    ).toBeVisible({ timeout: 10000 });
-    await expect(page.locator(".moment-demo-activity").first()).toBeVisible();
+      page.getByRole("heading", { name: /What kind of moment are you in/i })
+    ).toBeVisible();
+    await page.getByRole("link", { name: /cook dinner/i }).first().click();
+    await expect(page).toHaveURL(/\/demo/, { timeout: 15000 });
+    await expect(
+      page.getByRole("heading", { name: /Ages only|What sounds good|happening right now/i })
+    ).toBeVisible({ timeout: 15000 });
   });
 
   test("multi-child family mode can toggle participants before quest", async ({
@@ -174,14 +173,14 @@ test.describe("FamilyFlow golden paths", () => {
     ).toBeVisible();
 
     const tryFree = page
-      .getByRole("link", { name: /Try the demo|Find something to do/i })
+      .getByRole("link", { name: /Try the demo|Find something to do|Try FamilyFlow/i })
       .first();
     await expect(tryFree).toBeVisible();
     await tryFree.click();
 
     await expect(page).toHaveURL(/\/demo/, { timeout: 20000 });
     await expect(
-      page.getByRole("heading", { name: /What fits right now/i })
+      page.getByRole("heading", { name: /happening right now/i })
     ).toBeVisible({ timeout: 15000 });
   });
 
