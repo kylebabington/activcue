@@ -6,6 +6,6 @@
     </linearGradient>
   </defs>
   <rect width="1280" height="720" fill="url(#g)"/>
-  <text x="640" y="340" text-anchor="middle" fill="#f4f1ea" font-family="Georgia, serif" font-size="56">FamilyFlow</text>
+  <text x="640" y="340" text-anchor="middle" fill="#f4f1ea" font-family="Georgia, serif" font-size="56">ActivCue</text>
   <text x="640" y="410" text-anchor="middle" fill="#d7e0d8" font-family="system-ui, sans-serif" font-size="28">See it in action</text>
 </svg>

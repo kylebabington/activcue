@@ -261,7 +261,7 @@ function SignupPage() {
             <Link
               className="landing-brand"
               to="/"
-              aria-label="FamilyFlow home"
+              aria-label="ActivCue home"
             >
               <img
                 className="landing-brand-mark"
@@ -271,7 +271,7 @@ function SignupPage() {
                 height="36"
               />
               <span className="landing-brand-name">
-                FamilyFlow
+                ActivCue
               </span>
             </Link>
 
@@ -297,7 +297,7 @@ function SignupPage() {
               className="landing-btn landing-btn--primary"
               to="/onboarding"
             >
-              Continue to FamilyFlow
+              Continue to ActivCue
             </Link>
           </div>
         </section>
@@ -313,7 +313,7 @@ function SignupPage() {
             <Link
               className="landing-brand"
               to="/"
-              aria-label="FamilyFlow home"
+              aria-label="ActivCue home"
             >
               <img
                 className="landing-brand-mark"
@@ -323,7 +323,7 @@ function SignupPage() {
                 height="36"
               />
               <span className="landing-brand-name">
-                FamilyFlow
+                ActivCue
               </span>
             </Link>
 
@@ -341,7 +341,7 @@ function SignupPage() {
             <h1 id="signup-title">Starting checkout</h1>
 
             <p className="landing-auth-lead">
-              Taking you to Stripe to finish FamilyFlow Plus.
+              Taking you to Stripe to finish ActivCue Plus.
             </p>
 
             {errorMessage ? (
@@ -371,7 +371,7 @@ function SignupPage() {
           <Link
             className="landing-brand"
             to="/"
-            aria-label="FamilyFlow home"
+            aria-label="ActivCue home"
           >
             <img
               className="landing-brand-mark"
@@ -381,7 +381,7 @@ function SignupPage() {
               height="36"
             />
             <span className="landing-brand-name">
-              FamilyFlow
+              ActivCue
             </span>
           </Link>
 
@@ -401,7 +401,7 @@ function SignupPage() {
               ? "Create your account to get Plus"
               : searchParams.get("from") === "demo"
                 ? "Create your free account"
-                : "Save your FamilyFlow account"}
+                : "Save your ActivCue account"}
           </h1>
 
           <p className="landing-auth-lead">

@@ -24,7 +24,7 @@ export async function requirePaidSubscription(req, res, next) {
         if (!entitlement.hasPlusAccess) {
             return res.status(402).json({
                 error:
-                    "FamilyFlow Plus access is required to generate personalized activities.",
+                    "ActivCue Plus access is required to generate personalized activities.",
                 code: "SUBSCRIPTION_REQUIRED",
                 entitlement,
             });

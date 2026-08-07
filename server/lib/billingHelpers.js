@@ -71,7 +71,7 @@ export function getCheckoutConflict({
   if (entitlement?.billingExempt) {
     return {
       status: 409,
-      error: "FamilyFlow Plus is included with this account.",
+      error: "ActivCue Plus is included with this account.",
       code: "BILLING_EXEMPT_ACCOUNT",
     };
   }
@@ -79,7 +79,7 @@ export function getCheckoutConflict({
   if (entitlement?.isPaid) {
     return {
       status: 409,
-      error: "This account already has FamilyFlow Plus.",
+      error: "This account already has ActivCue Plus.",
       code: "ALREADY_SUBSCRIBED",
     };
   }

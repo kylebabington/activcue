@@ -1,10 +1,10 @@
-# FamilyFlow
+# ActivCue
 
 A learning recommendation system for real family moments—not just “React + OpenAI kids activities.”
 
 **Current focus:** ship Activity V2 (structured independent play) through quest UX, landing, and onboarding before unrelated features.
 
-[Live Demo](https://familyflow.app) *(placeholder — set to your production URL when deployed)*
+[Live Demo](https://activcue.app) *(placeholder — set to your production URL when deployed)*
 
 **React · Express · Supabase · OpenAI · Stripe · Playwright**
 
@@ -13,7 +13,7 @@ constraints → structured activities → accept/reject → time-to-start →
 outcomes → similar-moment learning → better recommendations
 ```
 
-Parents name what they can handle *right now*. FamilyFlow generates structured **Activity V2** content (role, starter doors, step cards with built-in `ifStuck`), records which ideas are accepted or rejected, measures how quickly play begins, stores real session outcomes (including per-child participants), and improves the next recommendation with Fit Score 3.0 moment similarity—plus Plan B from a shared activity library so the common path does not need another OpenAI call.
+Parents name what they can handle *right now*. ActivCue generates structured **Activity V2** content (role, starter doors, step cards with built-in `ifStuck`), records which ideas are accepted or rejected, measures how quickly play begins, stores real session outcomes (including per-child participants), and improves the next recommendation with Fit Score 3.0 moment similarity—plus Plan B from a shared activity library so the common path does not need another OpenAI call.
 
 ## Screenshots
 

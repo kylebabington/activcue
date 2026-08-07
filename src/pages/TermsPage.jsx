@@ -8,7 +8,7 @@ function TermsPage() {
     <div className="landing landing--auth">
       <header className="landing-topbar">
         <div className="landing-topbar-inner">
-          <Link className="landing-brand" to="/" aria-label="FamilyFlow home">
+          <Link className="landing-brand" to="/" aria-label="ActivCue home">
             <img
               className="landing-brand-mark"
               src="/logo.svg"
@@ -16,7 +16,7 @@ function TermsPage() {
               width="36"
               height="36"
             />
-            <span className="landing-brand-name">FamilyFlow</span>
+            <span className="landing-brand-name">ActivCue</span>
           </Link>
           <Link className="landing-topbar-link" to="/">
             Home
@@ -28,14 +28,14 @@ function TermsPage() {
         <div className="landing-auth-panel legal-doc-panel">
           <h1 id="terms-title">Terms of Use</h1>
           <p className="landing-auth-lead">
-            Last updated: August 2, 2026. By using FamilyFlow you agree to these
+            Last updated: August 2, 2026. By using ActivCue you agree to these
             basic terms.
           </p>
 
           <div className="legal-doc-body">
             <h2>The service</h2>
             <p>
-              FamilyFlow provides activity ideas and guided play for families.
+              ActivCue provides activity ideas and guided play for families.
               Suggestions are helpers, not professional childcare, medical, or
               educational advice. A parent or caregiver remains responsible for
               safety and supervision.
@@ -45,14 +45,14 @@ function TermsPage() {
             <p>
               Keep your login credentials private. You may try features with a
               temporary session and upgrade to a permanent account. Paid
-              FamilyFlow Plus features are billed through Stripe under the plan
+              ActivCue Plus features are billed through Stripe under the plan
               you choose.
             </p>
 
             <h2>Acceptable use</h2>
             <p>
               Do not misuse the service, attempt to access other families&apos;
-              data, abuse AI endpoints, or use FamilyFlow for unlawful activity.
+              data, abuse AI endpoints, or use ActivCue for unlawful activity.
               We may suspend accounts that harm the service or other users.
             </p>
 
@@ -65,7 +65,7 @@ function TermsPage() {
             <h2>Contact</h2>
             <p>
               Support:{" "}
-              <a href="mailto:support@familyflow.app">support@familyflow.app</a>
+              <a href="mailto:support@activcue.app">support@activcue.app</a>
               .
             </p>
           </div>

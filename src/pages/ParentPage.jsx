@@ -159,7 +159,7 @@ function ParentPage({
         <div>
           <p className="rescue-mode-kicker">Rescue Mode</p>
           <p>
-            No questionnaire. Pick a time window and FamilyFlow starts a
+            No questionnaire. Pick a time window and ActivCue starts a
             low-setup activity with Plan B already loaded.
           </p>
 

@@ -77,7 +77,7 @@ export default function SettingsChildrenSection({
         <div>
           <h2>Your children</h2>
           <p>
-            Profiles help FamilyFlow suggest age-appropriate activities for each
+            Profiles help ActivCue suggest age-appropriate activities for each
             child.
           </p>
         </div>

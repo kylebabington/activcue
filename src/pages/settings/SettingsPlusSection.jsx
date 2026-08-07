@@ -92,7 +92,7 @@ export default function SettingsPlusSection({
     <section className="panel billing-panel">
       <div className="panel-header">
         <div>
-          <h2>FamilyFlow Plus</h2>
+          <h2>ActivCue Plus</h2>
           <p>
             Unlimited personalized activities, AI-generated ideas, and AI Rescue
             hints. Favorites and history stay free.
@@ -115,7 +115,7 @@ export default function SettingsPlusSection({
       ) : entitlement.billingExempt ? (
         <div className="billing-active-summary">
           <div className="billing-active-details">
-            <strong>FamilyFlow Plus is included</strong>
+            <strong>ActivCue Plus is included</strong>
             <p>
               {entitlement.isAdmin
                 ? "Administrator account"
@@ -178,7 +178,7 @@ export default function SettingsPlusSection({
               </button>
             ) : (
               <div className="billing-cancel-confirmation">
-                <strong>Cancel FamilyFlow Plus renewal?</strong>
+                <strong>Cancel ActivCue Plus renewal?</strong>
                 {entitlement.currentPeriodEnd ? (
                   <p>
                     You will keep Plus access through{" "}

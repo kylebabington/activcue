@@ -8,7 +8,7 @@ import {
 } from "../utils/permanentAccountAccess";
 
 /**
- * Blocks the real FamilyFlow app until the visitor has a permanent
+ * Blocks the real ActivCue app until the visitor has a permanent
  * (non-anonymous) Supabase account. Anonymous sessions and missing sessions
  * redirect to signup; login is linked from there.
  */

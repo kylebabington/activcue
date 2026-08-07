@@ -84,7 +84,7 @@ function SimpleActiveActivityPanel({
           title={
             canUseAiHints
               ? undefined
-              : "AI hints are included with FamilyFlow Plus"
+              : "AI hints are included with ActivCue Plus"
           }
         >
           {isHintLoading

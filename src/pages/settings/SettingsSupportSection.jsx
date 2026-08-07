@@ -3,7 +3,7 @@
 import { Link } from "react-router-dom";
 
 const SUPPORT_EMAIL =
-  import.meta.env.VITE_SUPPORT_EMAIL || "support@familyflow.app";
+  import.meta.env.VITE_SUPPORT_EMAIL || "support@activcue.app";
 
 export default function SettingsSupportSection({ isAdmin = false } = {}) {
   return (

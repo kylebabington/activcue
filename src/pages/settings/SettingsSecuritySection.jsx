@@ -92,7 +92,7 @@ export default function SettingsSecuritySection({ user, isAnonymous }) {
             <p>
               {isAnonymous
                 ? "This browser is using a temporary trial session."
-                : "Signed in with a permanent FamilyFlow account."}
+                : "Signed in with a permanent ActivCue account."}
             </p>
           </div>
         </div>
@@ -135,7 +135,7 @@ export default function SettingsSecuritySection({ user, isAnonymous }) {
           <div className="panel-header">
             <div>
               <h2>Password</h2>
-              <p>Update the password for your FamilyFlow account.</p>
+              <p>Update the password for your ActivCue account.</p>
             </div>
           </div>
 

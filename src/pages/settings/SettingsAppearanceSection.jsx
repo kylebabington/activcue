@@ -13,7 +13,7 @@ export default function SettingsAppearanceSection({
         <div>
           <h2>Appearance</h2>
           <p>
-            Choose how FamilyFlow looks. This changes colors and character —
+            Choose how ActivCue looks. This changes colors and character —
             not which activities get recommended.
           </p>
         </div>

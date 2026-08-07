@@ -77,7 +77,7 @@ function WelcomeStep({ onContinue }) {
   return (
     <section className="panel onboarding-step" aria-labelledby="welcome-title">
       <p className="quest-v2-kicker">Welcome</p>
-      <h1 id="welcome-title">Welcome to FamilyFlow</h1>
+      <h1 id="welcome-title">Welcome to ActivCue</h1>
       <p>
         Let&apos;s make activities actually fit your family — starting with
         who&apos;s playing.
@@ -368,7 +368,7 @@ function OnboardingPage({ applyOnboardingDraft, handleStartActivity }) {
   return (
     <section className="page-layout onboarding-page">
       <section className="page-intro">
-        <h1>FamilyFlow</h1>
+        <h1>ActivCue</h1>
         <p>A quick setup so the next activity actually fits.</p>
       </section>
 

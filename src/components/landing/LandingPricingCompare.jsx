@@ -103,18 +103,18 @@ export default function LandingPricingCompare({
             <span>forever</span>
           </p>
           <ul className="landing-pricing-perks">
-            <li>Try FamilyFlow</li>
+            <li>Try ActivCue</li>
             <li>Limited activities</li>
             <li>Create your family profile</li>
             <li>One full demo unlock</li>
           </ul>
           <Link className="landing-btn landing-btn--ghost" to="/demo">
-            Try FamilyFlow
+            Try ActivCue
           </Link>
         </div>
 
         <div className="landing-pricing-col landing-pricing-col--plus">
-          <h3>FamilyFlow Plus</h3>
+          <h3>ActivCue Plus</h3>
           <PriceAmount
             plan={monthlyPlan}
             loading={plansLoading}

@@ -547,7 +547,7 @@ function App() {
 
   const resetLearnedRecommendations = useCallback(() => {
     const confirmed = window.confirm(
-      "Reset what FamilyFlow has learned from activity history? Children, supplies, account, and subscription stay."
+      "Reset what ActivCue has learned from activity history? Children, supplies, account, and subscription stay."
     );
     if (!confirmed) {
       return;

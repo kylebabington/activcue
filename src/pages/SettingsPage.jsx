@@ -113,7 +113,7 @@ function SettingsPage() {
     <section className="page-layout page-layout--parent settings-page">
       <header className="settings-page-header">
         <h1>Settings</h1>
-        <p>Manage your family and how FamilyFlow works.</p>
+        <p>Manage your family and how ActivCue works.</p>
       </header>
 
       <div className="settings-layout">

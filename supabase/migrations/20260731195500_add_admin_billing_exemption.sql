@@ -2,11 +2,11 @@
  * Separate account permissions from Stripe billing.
  *
  * role:
- *   user  -> normal FamilyFlow account
+ *   user  -> normal ActivCue account
  *   admin -> may access future administrator-only routes
  *
  * billing_exempt:
- *   true  -> receives FamilyFlow Plus without a Stripe subscription
+ *   true  -> receives ActivCue Plus without a Stripe subscription
  *   false -> requires a valid Stripe subscription for Plus
  */
 

@@ -96,7 +96,7 @@ describe("getCheckoutConflict", () => {
     ).toMatchObject({
       status: 409,
       code: "BILLING_EXEMPT_ACCOUNT",
-      error: "FamilyFlow Plus is included with this account.",
+      error: "ActivCue Plus is included with this account.",
     });
   });
 

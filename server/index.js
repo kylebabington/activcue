@@ -69,7 +69,7 @@ const PORT = process.env.PORT || 3001;
 app.set("trust proxy", 1);
 
 /*
- * Add standard HTTP security headers, including a CSP tuned for FamilyFlow's
+ * Add standard HTTP security headers, including a CSP tuned for ActivCue's
  * Supabase auth, Stripe Checkout, Google Fonts, and same-origin assets.
  */
 app.use(
@@ -219,7 +219,7 @@ app.use("/api", healthRouter);
 app.use("/api", authRouter);
 
 /*
- * Stripe Checkout for FamilyFlow Plus.
+ * Stripe Checkout for ActivCue Plus.
  *
  * The webhook is mounted above (raw body). This router handles authenticated
  * create-checkout-session requests.

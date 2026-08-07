@@ -112,11 +112,11 @@ function KidPage({
                     onClick={onGetPlus}
                     disabled={checkoutBusy || isLoading}
                   >
-                    {checkoutBusy ? "Starting checkout…" : "FamilyFlow Plus"}
+                    {checkoutBusy ? "Starting checkout…" : "ActivCue Plus"}
                   </button>
                 ) : (
                   <Link to={buildSignupUrl({ next: "checkout", plan: "monthly" })}>
-                    FamilyFlow Plus
+                    ActivCue Plus
                   </Link>
                 )}
                 . Keep using Simple / Quick ideas anytime.
@@ -133,14 +133,14 @@ function KidPage({
                       onClick={onGetPlus}
                       disabled={checkoutBusy || isLoading}
                     >
-                      {checkoutBusy ? "Starting checkout…" : "FamilyFlow Plus"}
+                      {checkoutBusy ? "Starting checkout…" : "ActivCue Plus"}
                     </button>{" "}
                     will tailor activities to the current parent moment, kid
                     energy/style, and supplies.
                   </>
                 ) : (
                   <>
-                    <strong>FamilyFlow Plus</strong> will tailor activities to
+                    <strong>ActivCue Plus</strong> will tailor activities to
                     the current parent moment, kid energy/style, and supplies.{" "}
                     <Link to={buildSignupUrl({ next: "checkout", plan: "monthly" })}>
                       Sign up

@@ -5,7 +5,7 @@
 | `npm run demo:record` | Public `/demo` | Landing-page launch video |
 | `npm run demo:publish` | `public/demos/` | Copy the newest recording into the landing video path |
 
-`/demo` is a deterministic walkthrough of the real FamilyFlow product flow (no auth, no OpenAI). See `REAL_PRODUCT_DEMO_FLOW.md` for the exact movie sequence.
+`/demo` is a deterministic walkthrough of the real ActivCue product flow (no auth, no OpenAI). See `REAL_PRODUCT_DEMO_FLOW.md` for the exact movie sequence.
 
 ## Story (`demo:record`)
 
@@ -27,7 +27,7 @@ npm run demo:record
 npm run demo:publish
 ```
 
-Commit `public/demos/familyflow-demo.webm` when you want the landing video section to appear. `demo:publish` also updates `src/constants/demoVideo.js` so the landing page URL cache-busts after each new recording.
+Commit `public/demos/activcue-demo.webm` when you want the landing video section to appear. `demo:publish` also updates `src/constants/demoVideo.js` so the landing page URL cache-busts after each new recording.
 
 ## Notes
 

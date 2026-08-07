@@ -11,7 +11,7 @@ async function pause(page, ms = 1600) {
   await page.waitForTimeout(ms);
 }
 
-test("record FamilyFlow real product walkthrough", async ({ page }, testInfo) => {
+test("record ActivCue real product walkthrough", async ({ page }, testInfo) => {
   await page.goto("/demo");
 
   // 1. Parent screen with a real moment visibly selected.

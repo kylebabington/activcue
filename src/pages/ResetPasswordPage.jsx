@@ -90,7 +90,7 @@ function ResetPasswordPage() {
     <div className="landing landing--auth">
       <header className="landing-topbar">
         <div className="landing-topbar-inner">
-          <Link className="landing-brand" to="/" aria-label="FamilyFlow home">
+          <Link className="landing-brand" to="/" aria-label="ActivCue home">
             <img
               className="landing-brand-mark"
               src="/logo.svg"
@@ -98,7 +98,7 @@ function ResetPasswordPage() {
               width="36"
               height="36"
             />
-            <span className="landing-brand-name">FamilyFlow</span>
+            <span className="landing-brand-name">ActivCue</span>
           </Link>
           <Link className="landing-topbar-link" to="/login">
             Log in
@@ -111,7 +111,7 @@ function ResetPasswordPage() {
           <h1 id="reset-title">Choose a new password</h1>
           <p className="landing-auth-lead">
             {ready
-              ? "Enter a new password for your FamilyFlow account."
+              ? "Enter a new password for your ActivCue account."
               : "Open this page from the email reset link so we can verify your session."}
           </p>
 

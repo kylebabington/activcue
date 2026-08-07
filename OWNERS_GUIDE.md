@@ -1,6 +1,6 @@
-# FamilyFlow — Owner’s Guide
+# ActivCue — Owner’s Guide
 
-This is the long-form explanation of FamilyFlow: what it is, why it is built this way, how each part works, and how to use it day to day. Read it like someone asked you to walk through the whole product with a whiteboard—not like API reference docs.
+This is the long-form explanation of ActivCue: what it is, why it is built this way, how each part works, and how to use it day to day. Read it like someone asked you to walk through the whole product with a whiteboard—not like API reference docs.
 
 **Current focus:** Activity Content V2 → quest UX → landing/onboarding → measure. Unrelated feature work stays frozen until that loop is solid.
 
@@ -8,7 +8,7 @@ This is the long-form explanation of FamilyFlow: what it is, why it is built thi
 
 ## 1. What this app is (and what it refuses to be)
 
-**FamilyFlow** is a right-now activity helper for families. A parent names the moment they are in (“I’m cooking,” “I need quiet for twenty minutes”). A kid picks how they feel and whether they want simple play or pretend. The app returns activities that fit *this* room, *this* inventory, *this* supervision level—then guides the kid through starting and finishing.
+**ActivCue** is a right-now activity helper for families. A parent names the moment they are in (“I’m cooking,” “I need quiet for twenty minutes”). A kid picks how they feel and whether they want simple play or pretend. The app returns activities that fit *this* room, *this* inventory, *this* supervision level—then guides the kid through starting and finishing.
 
 It is deliberately **not**:
 
@@ -186,7 +186,7 @@ Tabbed, PIN-aware. Rough map:
 | **Inventory** | Check toys/supplies by category; add custom items | Soft inventory fit—prefer activities that use what you own |
 | **History** | Saved activities + activity history panels | Replay and learning signals |
 | **Account** | Child profiles (name, age range, interests, needs), session info, password | Multi-kid households and permanent accounts |
-| **FamilyFlow Plus** | Upgrade, cancel at period end, resume | Entitlement and Stripe customer portal-ish flows in-app |
+| **ActivCue Plus** | Upgrade, cancel at period end, resume | Entitlement and Stripe customer portal-ish flows in-app |
 | **Parent PIN** | Set/clear PIN | Soft lock for parent areas on shared devices |
 | **Danger zone** | Reset synced settings / local data | Escape hatch when state gets weird |
 
@@ -430,7 +430,7 @@ E2E repository secrets (Stripe test + OpenAI only — no second Supabase cloud p
 - `TEST_STRIPE_ANNUAL_PRICE_ID`
 - `TEST_OPENAI_API_KEY`
 
-Local Supabase URL/keys are generated on the runner and must be `127.0.0.1` / `localhost`. Optional repo variable `FAMILYFLOW_BLOCKED_SUPABASE_HOSTS`: production Supabase hostnames Playwright must refuse. Production Supabase secret names are not wired into the E2E job.
+Local Supabase URL/keys are generated on the runner and must be `127.0.0.1` / `localhost`. Optional repo variable `ACTIVCUE_BLOCKED_SUPABASE_HOSTS`: production Supabase hostnames Playwright must refuse. Production Supabase secret names are not wired into the E2E job.
 
 ---
 
@@ -551,4 +551,4 @@ Every folder in this repo either runs that loop, monetizes that loop, or keeps t
 
 ---
 
-*This guide reflects FamilyFlow as implemented in this repository. Short setup commands also live in `README.md`; when they disagree, trust the code and update both.*
+*This guide reflects ActivCue as implemented in this repository. Short setup commands also live in `README.md`; when they disagree, trust the code and update both.*

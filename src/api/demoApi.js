@@ -3,7 +3,7 @@
 import { authenticatedRequest } from "./apiClient";
 import { supabase } from "../lib/supabaseClient";
 
-const DEMO_UNLOCK_STORAGE_KEY = "familyflow.demo.fullUnlock";
+const DEMO_UNLOCK_STORAGE_KEY = "activcue.demo.fullUnlock";
 
 /**
  * Ensure a Supabase session exists for claiming the demo unlock.

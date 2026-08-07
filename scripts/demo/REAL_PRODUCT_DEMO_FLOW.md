@@ -1,6 +1,6 @@
-# FamilyFlow marketing movie sequence
+# ActivCue marketing movie sequence
 
-The landing-page movie should show the core imaginative FamilyFlow workflow only.
+The landing-page movie should show the core imaginative ActivCue workflow only.
 
 1. **Parent screen** — Cooking is visibly selected as the current moment.
 2. **Kid screen** — show who is playing, choose an energy level, and keep **Pretend** selected.
@@ -18,4 +18,4 @@ npm run demo:record
 npm run demo:publish
 ```
 
-Review `public/demos/familyflow-demo.webm` before committing it.
+Review `public/demos/activcue-demo.webm` before committing it.
