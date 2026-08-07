@@ -1,6 +1,12 @@
 // src/pages/settings/SettingsPlusSection.jsx
 
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import {
+  formatStripeAmount,
+  intervalLabelForPlan,
+} from "../../utils/money";
+import { getBillingPlans } from "../../api/billingApi";
 import { buildSignupUrl } from "../../utils/signupUrls";
 
 function formatSubscriptionStatus(status) {
@@ -17,6 +23,33 @@ function formatBillingDate(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
   return new Intl.DateTimeFormat(undefined, { dateStyle: "long" }).format(date);
+}
+
+function PlanPrice({ plan, loading }) {
+  if (loading) {
+    return (
+      <p className="billing-plan-price">
+        <strong>…</strong>
+        <span>loading</span>
+      </p>
+    );
+  }
+
+  if (!plan) {
+    return (
+      <p className="billing-plan-price">
+        <strong>—</strong>
+        <span>unavailable</span>
+      </p>
+    );
+  }
+
+  return (
+    <p className="billing-plan-price">
+      <strong>{formatStripeAmount(plan.unitAmount, plan.currency)}</strong>
+      <span>{intervalLabelForPlan(plan.interval)}</span>
+    </p>
+  );
 }
 
 export default function SettingsPlusSection({
@@ -38,6 +71,47 @@ export default function SettingsPlusSection({
     handleConfirmCancellation,
     handleResumeSubscription,
   } = billing;
+
+  const [plansById, setPlansById] = useState({});
+  const [plansLoading, setPlansLoading] = useState(true);
+  const [plansError, setPlansError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadPlans() {
+      setPlansLoading(true);
+      setPlansError("");
+      try {
+        const result = await getBillingPlans();
+        if (!cancelled) {
+          setPlansById(result.byPlan || {});
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setPlansById({});
+          setPlansError(
+            error?.message ||
+              "Could not load subscription prices. Try again shortly."
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setPlansLoading(false);
+        }
+      }
+    }
+
+    void loadPlans();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const monthlyPlan = plansById.monthly || null;
+  const annualPlan = plansById.annual || null;
+  const plansReady = !plansLoading && !plansError && monthlyPlan && annualPlan;
+  const checkoutDisabled = Boolean(billingPlanLoading) || !plansReady;
 
   return (
     <section className="panel billing-panel">
@@ -189,6 +263,12 @@ export default function SettingsPlusSection({
         </div>
       ) : (
         <>
+          {plansError ? (
+            <div className="billing-notice billing-notice--error" role="alert">
+              {plansError}
+            </div>
+          ) : null}
+
           <div className="billing-plan-grid">
             <article className="billing-plan-card">
               <p className="billing-plan-name">Free plan</p>
@@ -200,14 +280,11 @@ export default function SettingsPlusSection({
 
             <article className="billing-plan-card">
               <p className="billing-plan-name">Monthly</p>
-              <p className="billing-plan-price">
-                <strong>$4.99</strong>
-                <span>per month</span>
-              </p>
+              <PlanPrice plan={monthlyPlan} loading={plansLoading} />
               <button
                 type="button"
                 className="billing-plan-action"
-                disabled={Boolean(billingPlanLoading)}
+                disabled={checkoutDisabled}
                 onClick={() => handleStartCheckout("monthly")}
               >
                 {billingPlanLoading === "monthly"
@@ -219,14 +296,11 @@ export default function SettingsPlusSection({
             <article className="billing-plan-card billing-plan-card--featured">
               <p className="billing-plan-badge">Best value</p>
               <p className="billing-plan-name">Annual</p>
-              <p className="billing-plan-price">
-                <strong>$39.99</strong>
-                <span>per year</span>
-              </p>
+              <PlanPrice plan={annualPlan} loading={plansLoading} />
               <button
                 type="button"
                 className="billing-plan-action"
-                disabled={Boolean(billingPlanLoading)}
+                disabled={checkoutDisabled}
                 onClick={() => handleStartCheckout("annual")}
               >
                 {billingPlanLoading === "annual"

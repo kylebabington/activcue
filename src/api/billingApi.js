@@ -3,6 +3,7 @@
 import {
   ApiRequestError,
   authenticatedRequest,
+  publicRequest,
 } from "./apiClient";
 
 /*
@@ -16,6 +17,36 @@ const VALID_BILLING_PLANS = new Set([
   "monthly",
   "annual",
 ]);
+
+/*
+ * Load display amounts for monthly/annual from Stripe via the FamilyFlow API.
+ */
+export async function getBillingPlans() {
+  const response = await publicRequest("/api/billing/plans", {
+    method: "GET",
+  });
+  const payload = await response.json();
+  const plans = Array.isArray(payload?.plans) ? payload.plans : [];
+
+  if (plans.length === 0) {
+    throw new ApiRequestError(
+      "Subscription prices are unavailable right now.",
+      {
+        status: 502,
+        code: "PLANS_UNAVAILABLE",
+      }
+    );
+  }
+
+  return {
+    plans,
+    byPlan: Object.fromEntries(
+      plans
+        .filter((plan) => plan && typeof plan.plan === "string")
+        .map((plan) => [plan.plan, plan])
+    ),
+  };
+}
 
 /*
  * Ask the Express server to create a Stripe-hosted Checkout Session.
