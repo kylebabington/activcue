@@ -10,6 +10,7 @@ import {
 } from "react-router-dom";
 
 import App from "./App.jsx";
+import RequirePermanentAccount from "./components/RequirePermanentAccount.jsx";
 import { AuthProvider } from "./context/AuthProvider.jsx";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage.jsx";
 import LandingPage from "./pages/LandingPage.jsx";
@@ -130,13 +131,19 @@ ReactDOM.createRoot(
         />
 
         {/*
-         * All FamilyFlow application routes require a Supabase session.
+         * All FamilyFlow application routes require a permanent account.
+         * Anonymous sessions are not an entrance ticket to the real app.
          */}
         <Route
           path="*"
           element={
-            <AuthProvider>
-              <App />
+            <AuthProvider
+              createAnonymousIfMissing={false}
+              allowMissingSession
+            >
+              <RequirePermanentAccount>
+                <App />
+              </RequirePermanentAccount>
             </AuthProvider>
           }
         />

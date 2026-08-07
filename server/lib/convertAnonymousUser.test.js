@@ -145,4 +145,39 @@ describe("convertAnonymousUser", () => {
       },
     });
   });
+
+  it("preserves the same Auth user id so free unlock stays attached", async () => {
+    checkEmailAvailabilityForUserMock.mockResolvedValue({
+      available: true,
+      email: "parent@example.com",
+    });
+    updateUserByIdMock.mockResolvedValue({
+      data: {
+        user: {
+          id: "anon-unlock-1",
+          email: "parent@example.com",
+        },
+      },
+      error: null,
+    });
+
+    const result = await convertAnonymousUser({
+      userId: "anon-unlock-1",
+      email: "parent@example.com",
+      password: "long-enough",
+      confirmPassword: "long-enough",
+    });
+
+    // Conversion must not create a new Auth user — unlock is keyed by user_id.
+    expect(result.user.id).toBe("anon-unlock-1");
+    expect(updateUserByIdMock).toHaveBeenCalledWith(
+      "anon-unlock-1",
+      expect.any(Object)
+    );
+    // Profile update only flips anonymity; free_imaginative_activity_id is untouched.
+    expect(profilesUpdateEqMock).toHaveBeenCalledWith(
+      "user_id",
+      "anon-unlock-1"
+    );
+  });
 });

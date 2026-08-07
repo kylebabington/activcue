@@ -115,7 +115,8 @@ export default function MomentDemo({
         <h2 id="try-demo-title">Try FamilyFlow</h2>
         <p className="moment-demo-lead">
           Tell us what kind of chaos you&apos;re dealing with right now — then
-          see three activities that fit.
+          see three activities that fit. Unlock one complete activity free in
+          the full demo.
         </p>
       </div>
 
@@ -313,17 +314,17 @@ export default function MomentDemo({
       <div className="moment-demo-cta-row">
         <Link
           className="landing-btn landing-btn--primary"
-          to="/onboarding"
+          to="/demo"
           onClick={() =>
             trackProductEvent(`${analyticsPrefix}_cta_clicked`, {
               source: "moment_demo",
             })
           }
         >
-          Find something now
+          Try the full demo
         </Link>
-        <Link className="landing-btn landing-btn--ghost" to="/demo">
-          See full demo
+        <Link className="landing-btn landing-btn--ghost" to="/signup">
+          Create free account
         </Link>
       </div>
     </div>

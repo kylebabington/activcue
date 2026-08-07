@@ -17,15 +17,19 @@ const SESSION_ENDED_MESSAGE =
  * The promise is shared only while initialization is happening. It is cleared
  * after success or failure so future mounts re-read the current Supabase
  * session rather than reusing an old session object.
+ *
+ * Keys distinguish "create anon if missing" vs "restore only" so signup and
+ * the permanent-account app shell do not share incompatible init promises.
  */
-let authInitializationPromise = null;
+const authInitializationPromises = new Map();
 
 /*
  * Read the current browser session.
  *
- * When no session exists, create one anonymous authenticated user.
+ * When no session exists and createAnonymousIfMissing is true, create one
+ * anonymous authenticated user (signup conversion path).
  */
-async function restoreOrCreateSession() {
+async function restoreOrCreateSession(createAnonymousIfMissing) {
     const {
         data: sessionData,
         error: sessionError,
@@ -37,6 +41,10 @@ async function restoreOrCreateSession() {
 
     if (sessionData.session) {
         return sessionData.session;
+    }
+
+    if (!createAnonymousIfMissing) {
+        return null;
     }
 
     const {
@@ -58,36 +66,34 @@ async function restoreOrCreateSession() {
 }
 
 /*
- * Share one initialization request while it is in progress.
- *
- * Once it finishes, clear the shared reference. A later provider mount must
- * inspect Supabase again because the user may have:
- *
- * - converted from anonymous to permanent
- * - logged into another account
- * - refreshed their session
+ * Share one initialization request while it is in progress for a given mode.
  */
-async function getOrCreateSession() {
-    if (!authInitializationPromise) {
-        authInitializationPromise = restoreOrCreateSession();
+async function getOrCreateSession(createAnonymousIfMissing) {
+    const key = createAnonymousIfMissing ? "create" : "restore";
+
+    if (!authInitializationPromises.has(key)) {
+        authInitializationPromises.set(
+            key,
+            restoreOrCreateSession(createAnonymousIfMissing)
+        );
     }
 
-    const pendingInitialization = authInitializationPromise;
+    const pendingInitialization = authInitializationPromises.get(key);
 
     try {
         return await pendingInitialization;
     } finally {
-        /*
-         * Only clear the global reference if it still points at the promise this
-         * call used. This protects against accidentally clearing a newer request.
-         */
-        if (authInitializationPromise === pendingInitialization) {
-            authInitializationPromise = null;
+        if (authInitializationPromises.get(key) === pendingInitialization) {
+            authInitializationPromises.delete(key);
         }
     }
 }
 
-export function AuthProvider({ children }) {
+export function AuthProvider({
+    children,
+    createAnonymousIfMissing = true,
+    allowMissingSession = false,
+}) {
     const [session, setSession] = useState(null);
     const [user, setUser] = useState(null);
     const [isAuthReady, setIsAuthReady] = useState(false);
@@ -104,15 +110,6 @@ export function AuthProvider({ children }) {
     useEffect(() => {
         let isMounted = true;
 
-        /*
-         * Listen for all future Supabase Auth changes:
-         *
-         * - anonymous sign-in
-         * - permanent account conversion
-         * - token refresh
-         * - login
-         * - logout
-         */
         const {
             data: { subscription },
         } = supabase.auth.onAuthStateChange((_event, nextSession) => {
@@ -129,27 +126,31 @@ export function AuthProvider({ children }) {
                 return;
             }
 
-            /*
-             * A null session after a valid session existed means the session was
-             * cleared, expired beyond recovery, or explicitly signed out.
-             */
-            if (hasEstablishedSessionRef.current) {
+            if (hasEstablishedSessionRef.current && !allowMissingSession) {
                 setAuthError(SESSION_ENDED_MESSAGE);
             }
         });
 
         async function initializeAuthentication() {
             try {
-                const activeSession = await getOrCreateSession();
+                const activeSession = await getOrCreateSession(
+                    createAnonymousIfMissing
+                );
 
                 if (!isMounted) {
                     return;
                 }
 
-                hasEstablishedSessionRef.current = true;
-                setSession(activeSession);
-                setUser(activeSession.user);
-                setAuthError("");
+                if (activeSession) {
+                    hasEstablishedSessionRef.current = true;
+                    setSession(activeSession);
+                    setUser(activeSession.user);
+                    setAuthError("");
+                } else {
+                    setSession(null);
+                    setUser(null);
+                    setAuthError("");
+                }
             } catch (error) {
                 console.error(
                     "Supabase authentication initialization failed:",
@@ -178,12 +179,8 @@ export function AuthProvider({ children }) {
             isMounted = false;
             subscription.unsubscribe();
         };
-    }, []);
+    }, [createAnonymousIfMissing, allowMissingSession]);
 
-    /*
-     * Memoizing prevents every unrelated render from creating a new context
-     * object and rerendering all auth consumers.
-     */
     const contextValue = useMemo(
         () => ({
             session,
@@ -196,10 +193,6 @@ export function AuthProvider({ children }) {
         [session, user, isAuthReady, authError]
     );
 
-    /*
-     * Do not render protected account or app pages until a usable Supabase
-     * session has been restored or created.
-     */
     if (!isAuthReady) {
         return (
             <main
@@ -218,11 +211,11 @@ export function AuthProvider({ children }) {
     }
 
     /*
-     * Stop rendering protected content when authentication cannot be
-     * established. This is safer than letting later API calls fail without an
-     * access token.
+     * When allowMissingSession is true (permanent-account app shell), render
+     * children even without a session so RequirePermanentAccount can redirect.
+     * Signup still requires a session (anon or permanent).
      */
-    if (authError || !session) {
+    if (authError || (!session && !allowMissingSession)) {
         return (
             <main
                 role="alert"

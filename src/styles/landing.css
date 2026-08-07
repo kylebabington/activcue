@@ -908,3 +908,34 @@ button.landing-btn:disabled {
   background: #111;
   aspect-ratio: 16 / 9;
 }
+
+.landing-section-cta {
+  margin-top: 2rem;
+  display: grid;
+  gap: 0.75rem;
+  justify-items: start;
+  max-width: 36rem;
+}
+
+.landing-section-cta h3 {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: clamp(1.25rem, 2.5vw, 1.6rem);
+}
+
+.landing-section-cta p {
+  margin: 0;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+.landing-final-cta {
+  text-align: center;
+  display: grid;
+  gap: 1rem;
+  justify-items: center;
+}
+
+.landing-final-cta .landing-hero-actions {
+  justify-content: center;
+}

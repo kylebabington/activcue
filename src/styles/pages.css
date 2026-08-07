@@ -1797,11 +1797,26 @@
   color: var(--color-text-on-accent);
   font-weight: var(--font-weight-semibold);
   cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
 }
 
 .billing-plan-action:disabled {
   opacity: 0.6;
   cursor: wait;
+}
+
+.billing-plan-perks {
+  margin: 0;
+  padding-left: 1.1rem;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  line-height: 1.45;
+  display: grid;
+  gap: 0.35rem;
 }
 
 .billing-notice {
