@@ -7,7 +7,6 @@ import QuestContent from "../components/quest/QuestContent";
 import { getDefaultOpenSections } from "../components/quest/questSectionDefaults";
 import { DEMO_ACTIVITY_POOL } from "../constants/demoActivityPool";
 import {
-  DEFAULT_DEMO_MOMENT_ID,
   DEMO_MOMENT_LIST,
   getDemoMoment,
 } from "../constants/demoMoments";
