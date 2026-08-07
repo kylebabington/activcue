@@ -21,6 +21,7 @@ export default function AppHeader({
   kidDeviceMode,
   parentAreasLocked,
   isAnonymous,
+  isAdmin = false,
   headerLogoutBusy,
   headerLogoutError,
   uiTheme,
@@ -109,6 +110,15 @@ export default function AppHeader({
         >
           Settings
         </PrefetchNavLink>
+
+        {isAdmin ? (
+          <PrefetchNavLink
+            to="/admin/growth"
+            className={({ isActive }) => (isActive ? "active" : "")}
+          >
+            Growth
+          </PrefetchNavLink>
+        ) : null}
       </nav>
 
       <div className="app-header-actions">

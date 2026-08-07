@@ -22,7 +22,7 @@ export function usePlusCheckout({
 
     setCheckoutBusy(true);
     setStatusMessage?.("");
-    trackProductEvent("plus_checkout_started");
+    trackProductEvent("checkout_started", { source: "plus_cta" });
 
     try {
       await redirectToCheckout();

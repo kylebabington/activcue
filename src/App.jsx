@@ -879,6 +879,7 @@ function App() {
       kidDeviceMode={kidDeviceMode}
       parentAreasLocked={parentAreasLocked}
       isAnonymous={isAnonymous}
+      isAdmin={Boolean(entitlement?.isAdmin)}
       headerLogoutBusy={headerLogoutBusy}
       headerLogoutError={headerLogoutError}
       uiTheme={uiTheme}

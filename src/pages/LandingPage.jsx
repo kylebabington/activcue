@@ -13,7 +13,10 @@ import {
   DEMO_VIDEO_SRC,
 } from "../constants/demoVideo";
 import { supabase } from "../lib/supabaseClient";
-import { trackProductEvent } from "../utils/analytics";
+import {
+  captureAttribution,
+  trackProductEvent,
+} from "../utils/analytics";
 import { buildSignupUrl } from "../utils/signupUrls";
 import "../styles/landing.css";
 
@@ -66,6 +69,33 @@ function LandingPage() {
   const [navOpen, setNavOpen] = useState(false);
   const [hasVideo, setHasVideo] = useState(false);
   const [videoOpen, setVideoOpen] = useState(false);
+
+  useEffect(() => {
+    captureAttribution();
+    trackProductEvent("landing_page_viewed");
+  }, []);
+
+  useEffect(() => {
+    const pricingEl = document.getElementById("plus");
+    if (!pricingEl || typeof IntersectionObserver === "undefined") {
+      return undefined;
+    }
+
+    let fired = false;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (fired) return;
+        if (entries.some((entry) => entry.isIntersecting)) {
+          fired = true;
+          trackProductEvent("pricing_viewed", { source: "landing" });
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.35 }
+    );
+    observer.observe(pricingEl);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -155,6 +185,7 @@ function LandingPage() {
   async function handleCheckout(plan) {
     setCheckoutError("");
     setCheckoutBusy(plan);
+    trackProductEvent("checkout_started", { plan, source: "landing" });
 
     try {
       await redirectToCheckout({ plan });
@@ -178,7 +209,7 @@ function LandingPage() {
   }
 
   function trackTryFree(source) {
-    trackProductEvent("landing_demo_cta_clicked", { source });
+    trackProductEvent("demo_started", { source });
   }
 
   return (

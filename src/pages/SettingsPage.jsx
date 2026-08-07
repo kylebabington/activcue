@@ -268,7 +268,9 @@ function SettingsPage() {
           ) : null}
 
           {activeSection === "account-support" ? (
-            <SettingsSupportSection />
+            <SettingsSupportSection
+              isAdmin={Boolean(ctx.entitlement?.isAdmin)}
+            />
           ) : null}
 
           {activeSection === "account-danger" ? (

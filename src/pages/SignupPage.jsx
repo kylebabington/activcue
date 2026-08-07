@@ -8,6 +8,7 @@ import { redirectToCheckout } from "../api/billingApi";
 import { useAuth } from "../hooks/useAuth";
 import { supabase } from "../lib/supabaseClient";
 import { parseSignupCheckoutIntent } from "../utils/signupUrls";
+import { captureAttribution, trackProductEvent } from "../utils/analytics";
 import "../styles/landing.css";
 
 function SignupPage() {
@@ -25,9 +26,17 @@ function SignupPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [checkoutBusy, setCheckoutBusy] = useState(false);
 
+  useEffect(() => {
+    captureAttribution();
+  }, []);
+
   async function startCheckout(expectedUserId) {
     setCheckoutBusy(true);
     setErrorMessage("");
+    trackProductEvent("checkout_started", {
+      plan: checkoutIntent.plan,
+      source: "signup",
+    });
 
     try {
       await redirectToCheckout({
@@ -62,6 +71,10 @@ function SignupPage() {
       setCheckoutBusy(true);
 
       try {
+        trackProductEvent("checkout_started", {
+          plan: checkoutIntent.plan,
+          source: "signup_resume",
+        });
         await redirectToCheckout({
           plan: checkoutIntent.plan,
           expectedUserId: user.id,
@@ -120,6 +133,10 @@ function SignupPage() {
     }
 
     setIsSubmitting(true);
+    trackProductEvent("signup_started", {
+      hasCheckoutIntent: checkoutIntent.shouldCheckout,
+      plan: checkoutIntent.plan || null,
+    });
 
     try {
       /*

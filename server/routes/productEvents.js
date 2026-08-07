@@ -5,10 +5,14 @@ import { getSupabaseAdminClient } from "../lib/supabaseAdminClient.js";
 import {
   PRODUCT_EVENT_BLOCKED_PROPERTY_KEYS,
   PRODUCT_EVENT_NAME_SET,
+  PUBLIC_PRODUCT_EVENT_NAME_SET,
 } from "../lib/productEventNames.js";
 import { requireAuthenticatedUser } from "../middleware/requireAuthenticatedUser.js";
 import { ensureUserProfile } from "../middleware/ensureUserProfile.js";
-import { familyDataRateLimiter } from "../middleware/rateLimits.js";
+import {
+  familyDataRateLimiter,
+  publicProductEventsRateLimiter,
+} from "../middleware/rateLimits.js";
 
 const router = Router();
 
@@ -84,15 +88,39 @@ function sanitizeProperties(rawProperties, depth = 0) {
   return sanitized;
 }
 
-function parseEventRow(body, userId) {
-  const eventName =
-    typeof body?.eventName === "string"
-      ? body.eventName.trim()
-      : typeof body?.event === "string"
-        ? body.event.trim()
-        : "";
+function parseEventName(body) {
+  return typeof body?.eventName === "string"
+    ? body.eventName.trim()
+    : typeof body?.event === "string"
+      ? body.event.trim()
+      : "";
+}
 
-  if (!eventName || !PRODUCT_EVENT_NAME_SET.has(eventName)) {
+function parseSessionId(body) {
+  return typeof body?.sessionId === "string"
+    ? body.sessionId.trim().slice(0, 120)
+    : typeof body?.session_id === "string"
+      ? body.session_id.trim().slice(0, 120)
+      : null;
+}
+
+function parseAppVersion(body) {
+  return typeof body?.appVersion === "string"
+    ? body.appVersion.trim().slice(0, 40)
+    : typeof body?.app_version === "string"
+      ? body.app_version.trim().slice(0, 40)
+      : null;
+}
+
+function parseEventRow(body, userId, { requireSessionId = false, nameSet = PRODUCT_EVENT_NAME_SET } = {}) {
+  const eventName = parseEventName(body);
+
+  if (!eventName || !nameSet.has(eventName)) {
+    return null;
+  }
+
+  const sessionId = parseSessionId(body);
+  if (requireSessionId && !sessionId) {
     return null;
   }
 
@@ -100,20 +128,102 @@ function parseEventRow(body, userId) {
     user_id: userId,
     event_name: eventName,
     properties: sanitizeProperties(body?.properties),
-    session_id:
-      typeof body?.sessionId === "string"
-        ? body.sessionId.trim().slice(0, 120)
-        : typeof body?.session_id === "string"
-          ? body.session_id.trim().slice(0, 120)
-          : null,
-    app_version:
-      typeof body?.appVersion === "string"
-        ? body.appVersion.trim().slice(0, 40)
-        : typeof body?.app_version === "string"
-          ? body.app_version.trim().slice(0, 40)
-          : null,
+    session_id: sessionId,
+    app_version: parseAppVersion(body),
   };
 }
+
+async function insertRows(rows) {
+  const supabase = getSupabaseAdminClient();
+  const { error } = await supabase.from("product_events").insert(rows);
+  return error;
+}
+
+/*
+ * POST /api/product-events/public
+ * Unauthenticated ingest for Phase 1 landing/demo funnel events.
+ */
+router.post(
+  "/product-events/public",
+  publicProductEventsRateLimiter,
+  async (req, res) => {
+    try {
+      const row = parseEventRow(req.body, null, {
+        requireSessionId: true,
+        nameSet: PUBLIC_PRODUCT_EVENT_NAME_SET,
+      });
+      if (!row) {
+        return res.status(400).json({
+          error: "Unknown, disallowed, or missing session product event.",
+          code: "PRODUCT_EVENT_NOT_ALLOWED",
+        });
+      }
+
+      const error = await insertRows([row]);
+      if (error) {
+        console.error("Could not insert public product event:", error);
+        return res.status(500).json({
+          error: "Could not record product event.",
+          code: "PRODUCT_EVENT_INSERT_FAILED",
+        });
+      }
+
+      return res.status(202).json({ recorded: true });
+    } catch (error) {
+      console.error("Unexpected public product event failure:", error);
+      return res.status(500).json({
+        error: "Could not record product event.",
+        code: "PRODUCT_EVENT_FAILED",
+      });
+    }
+  }
+);
+
+/*
+ * POST /api/product-events/public/batch
+ */
+router.post(
+  "/product-events/public/batch",
+  publicProductEventsRateLimiter,
+  async (req, res) => {
+    try {
+      const events = Array.isArray(req.body?.events) ? req.body.events : [];
+      const rows = events
+        .slice(0, MAX_BATCH)
+        .map((event) =>
+          parseEventRow(event, null, {
+            requireSessionId: true,
+            nameSet: PUBLIC_PRODUCT_EVENT_NAME_SET,
+          })
+        )
+        .filter(Boolean);
+
+      if (rows.length === 0) {
+        return res.status(400).json({
+          error: "No valid public product events in batch.",
+          code: "PRODUCT_EVENT_BATCH_EMPTY",
+        });
+      }
+
+      const error = await insertRows(rows);
+      if (error) {
+        console.error("Could not insert public product event batch:", error);
+        return res.status(500).json({
+          error: "Could not record product events.",
+          code: "PRODUCT_EVENT_BATCH_FAILED",
+        });
+      }
+
+      return res.status(202).json({ recorded: rows.length });
+    } catch (error) {
+      console.error("Unexpected public product event batch failure:", error);
+      return res.status(500).json({
+        error: "Could not record product events.",
+        code: "PRODUCT_EVENT_BATCH_FAILED",
+      });
+    }
+  }
+);
 
 /*
  * POST /api/product-events
@@ -133,9 +243,7 @@ router.post(
         });
       }
 
-      const supabase = getSupabaseAdminClient();
-      const { error } = await supabase.from("product_events").insert(row);
-
+      const error = await insertRows([row]);
       if (error) {
         console.error("Could not insert product event:", error);
         return res.status(500).json({
@@ -178,9 +286,7 @@ router.post(
         });
       }
 
-      const supabase = getSupabaseAdminClient();
-      const { error } = await supabase.from("product_events").insert(rows);
-
+      const error = await insertRows(rows);
       if (error) {
         console.error("Could not insert product event batch:", error);
         return res.status(500).json({

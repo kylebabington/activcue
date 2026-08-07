@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import BillingPlanCards from "../../components/billing/BillingPlanCards";
 import { getBillingPlans } from "../../api/billingApi";
 import { buildSignupUrl } from "../../utils/signupUrls";
+import { trackProductEvent } from "../../utils/analytics";
 
 function formatSubscriptionStatus(status) {
   if (typeof status !== "string" || !status) {
@@ -45,6 +46,10 @@ export default function SettingsPlusSection({
   const [plansById, setPlansById] = useState({});
   const [plansLoading, setPlansLoading] = useState(true);
   const [plansError, setPlansError] = useState("");
+
+  useEffect(() => {
+    trackProductEvent("pricing_viewed", { source: "settings" });
+  }, []);
 
   useEffect(() => {
     let cancelled = false;

@@ -30,6 +30,7 @@ import {
   hasProcessedStripeEvent,
   recordProcessedStripeEvent,
 } from "../lib/stripeWebhookEvents.js";
+import { recordSubscriptionStartedOnce } from "../lib/recordProductEvent.js";
 
 const router = Router();
 
@@ -693,6 +694,21 @@ async function handleSubscriptionLifecycleEvent(
     await stripe.subscriptions.retrieve(subscriptionId);
 
   await upsertSubscriptionFromStripe(subscription);
+
+  const status =
+    typeof subscription?.status === "string" ? subscription.status : "";
+  if (status === "active" || status === "trialing") {
+    const userId =
+      subscription.metadata?.user_id ||
+      subscription.metadata?.supabase_user_id ||
+      null;
+    if (typeof userId === "string" && userId) {
+      await recordSubscriptionStartedOnce(userId, {
+        source: "subscription_lifecycle",
+        stripeStatus: status,
+      });
+    }
+  }
 }
 
 async function handleCheckoutSessionEvent(
@@ -759,6 +775,19 @@ async function handleCheckoutSessionEvent(
     customerId,
     subscription,
   });
+
+  const status =
+    typeof subscription?.status === "string" ? subscription.status : "";
+  if (status === "active" || status === "trialing") {
+    await recordSubscriptionStartedOnce(userId, {
+      source: "checkout_session",
+      stripeStatus: status,
+      plan:
+        typeof session.metadata?.plan === "string"
+          ? session.metadata.plan
+          : null,
+    });
+  }
 }
 
 export default router;
