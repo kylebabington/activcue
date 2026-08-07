@@ -44,6 +44,7 @@ function SimpleActivityCard({
   recommendationReasons,
   fitFacts,
   feedbackIsOpen,
+  hideFeedbackActions = false,
   onStart,
   onDetails,
   onToggleFeedback,
@@ -95,16 +96,28 @@ function SimpleActivityCard({
           <button type="button" className="text-action" onClick={onDetails}>
             Details
           </button>
-          <button type="button" className="text-action" onClick={onToggleFeedback}>
-            Not this
-          </button>
-          <button type="button" className="text-action" onClick={onMoreLikeThis}>
-            More like this
-          </button>
+          {!hideFeedbackActions ? (
+            <>
+              <button
+                type="button"
+                className="text-action"
+                onClick={onToggleFeedback}
+              >
+                Not this
+              </button>
+              <button
+                type="button"
+                className="text-action"
+                onClick={onMoreLikeThis}
+              >
+                More like this
+              </button>
+            </>
+          ) : null}
         </div>
       </div>
 
-      {feedbackIsOpen ? (
+      {!hideFeedbackActions && feedbackIsOpen ? (
         <div className="not-this-feedback">
           <h4>Why not this one?</h4>
           <div className="feedback-buttons compact-feedback-buttons">
@@ -138,6 +151,7 @@ function ImaginativeActivityCard({
   isBestFit,
   fitFacts,
   feedbackIsOpen,
+  hideFeedbackActions = false,
   onStart,
   onDetails,
   onToggleFeedback,
@@ -209,16 +223,28 @@ function ImaginativeActivityCard({
           <button type="button" className="text-action" onClick={onDetails}>
             Details
           </button>
-          <button type="button" className="text-action" onClick={onToggleFeedback}>
-            Not this
-          </button>
-          <button type="button" className="text-action" onClick={onMoreLikeThis}>
-            More like this
-          </button>
+          {!hideFeedbackActions ? (
+            <>
+              <button
+                type="button"
+                className="text-action"
+                onClick={onToggleFeedback}
+              >
+                Not this
+              </button>
+              <button
+                type="button"
+                className="text-action"
+                onClick={onMoreLikeThis}
+              >
+                More like this
+              </button>
+            </>
+          ) : null}
         </div>
       </div>
 
-      {feedbackIsOpen ? (
+      {!hideFeedbackActions && feedbackIsOpen ? (
         <div className="not-this-feedback">
           <h4>Why not this one?</h4>
           <div className="feedback-buttons compact-feedback-buttons">
@@ -266,6 +292,12 @@ function ActivityResults({
   activeChildName = "",
   activeChildId = "",
   inventoryEmpty = false,
+  hideFeedbackActions = false,
+  hideSaveFavorite = false,
+  detailsStartLabel = null,
+  detailsVariant = "full",
+  panelTitle = "Pick something to do",
+  panelNote = null,
 }) {
   const [detailsActivityTitle, setDetailsActivityTitle] = useState(null);
   const [feedbackActivityTitle, setFeedbackActivityTitle] = useState(null);
@@ -306,7 +338,8 @@ function ActivityResults({
       <section className="panel results-panel activity-board-panel">
         <div className="panel-header">
           <div>
-            <h2>Pick something to do</h2>
+            <h2>{panelTitle}</h2>
+            {panelNote ? <p className="settings-note">{panelNote}</p> : null}
             {inventoryEmpty ? (
               <p className="settings-note">
                 Mark a few supplies in Settings so &quot;why this fits&quot; can
@@ -348,6 +381,7 @@ function ActivityResults({
               recommendationReasons,
               fitFacts,
               feedbackIsOpen,
+              hideFeedbackActions,
               onStart: () => handleStartActivity(activity),
               onDetails: () => {
                 setDetailsActivityTitle(activity.title);
@@ -360,13 +394,13 @@ function ActivityResults({
                 setFeedbackActivityTitle((current) =>
                   current === activity.title ? null : activity.title
                 ),
-              onMoreLikeThis: () => handleMoreLikeThis(activity),
-              onTooMessy: () => handleTooMessy(activity),
-              onTooHard: () => handleTooHard(activity),
-              onTooEasy: () => handleTooEasy(activity),
-              onTooYoung: () => handleTooYoung(activity),
-              onTooOld: () => handleTooOld(activity),
-              onNeedQuieter: () => handleNeedQuieter(activity),
+              onMoreLikeThis: () => handleMoreLikeThis?.(activity),
+              onTooMessy: () => handleTooMessy?.(activity),
+              onTooHard: () => handleTooHard?.(activity),
+              onTooEasy: () => handleTooEasy?.(activity),
+              onTooYoung: () => handleTooYoung?.(activity),
+              onTooOld: () => handleTooOld?.(activity),
+              onNeedQuieter: () => handleNeedQuieter?.(activity),
             };
 
             return isSimpleActivity ? (
@@ -386,6 +420,18 @@ function ActivityResults({
         onClose={() => setDetailsActivityTitle(null)}
         handleStartActivity={handleStartActivity}
         saveFavoriteActivity={saveFavoriteActivity}
+        hideSaveFavorite={hideSaveFavorite}
+        variant={detailsVariant}
+        whyItFits={
+          detailsEntry?.whyItFits ||
+          detailsEntry?.activity?.whyItFits ||
+          null
+        }
+        startLabel={
+          typeof detailsStartLabel === "function"
+            ? detailsStartLabel(detailsEntry?.activity)
+            : detailsStartLabel
+        }
       />
     </>
   );

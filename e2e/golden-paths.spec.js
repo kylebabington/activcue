@@ -129,7 +129,8 @@ test.describe("FamilyFlow golden paths", () => {
 
   test("landing moment demo matches without auth", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("button", { name: /I'm making dinner/i }).click();
+    await page.getByRole("button", { name: /^Cooking$/i }).click();
+    await page.getByRole("button", { name: /Find activities/i }).click();
     await expect(
       page.getByRole("heading", { name: /three activities that fit/i })
     ).toBeVisible({ timeout: 10000 });

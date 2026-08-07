@@ -1,9 +1,9 @@
 // src/pages/DemoPage.jsx
 
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import { claimDemoFreeUnlock, readDemoUnlockCache } from "../api/demoApi";
-import { ApiRequestError } from "../api/apiClient";
+import { Link, useNavigate } from "react-router-dom";
+import { readDemoUnlockCache } from "../api/demoApi";
+import ActivityResults from "../components/ActivityResults";
 import QuestContent from "../components/quest/QuestContent";
 import { getDefaultOpenSections } from "../components/quest/questSectionDefaults";
 import { DEMO_ACTIVITY_POOL } from "../constants/demoActivityPool";
@@ -14,11 +14,10 @@ import {
   matchDemoActivities,
   rotateDemoResults,
 } from "../features/demo";
-import { buildSignupUrl } from "../utils/signupUrls";
 import {
-  getActivityMissionText,
-  getVisualThemeMeta,
-} from "../utils/activityVisualTheme";
+  buildDemoUnlockSignupUrl,
+  buildSignupUrl,
+} from "../utils/signupUrls";
 import { captureAttribution, trackProductEvent } from "../utils/analytics";
 import "../App.css";
 import "../styles/landing.css";
@@ -40,20 +39,17 @@ const STYLE_OPTIONS = [
   { id: "imaginative", label: "Pretend / imaginative" },
 ];
 
-function activityKey(activity) {
-  return activity?.slug || activity?.id || activity?.title || "activity";
-}
-
 function DemoBanner({ unlockUsed, onReset }) {
   return (
     <aside className="demo-sticky-banner" aria-label="Demo status">
       <div className="demo-sticky-banner-copy">
         <strong>You&apos;re trying FamilyFlow</strong>
         <p>
-          Demo activities come from a sample library.{" "}
+          Same activity cards as the app, with a preview of what fits — not the
+          full steps.{" "}
           {unlockUsed
-            ? "Free full-activity unlock used."
-            : "Free full-activity unlock: 1 remaining."}
+            ? "Create an account (or Plus) for more pretend activities."
+            : "Create a free account to unlock one pretend activity."}
         </p>
       </div>
       <div className="demo-sticky-banner-actions">
@@ -86,9 +82,9 @@ function MomentStep({ momentId, onSelect }) {
       <p className="demo-screen-kicker">Step 1</p>
       <h1 id="demo-moment-title">What&apos;s happening right now?</h1>
       <p className="demo-step-lead">
-        Pick a moment. Recommendations change with your constraints.
+        Pick a parent moment — the same presets you&apos;ll use in the app.
       </p>
-      <div className="demo-moment-grid" role="group" aria-label="Moments">
+      <div className="demo-moment-grid preset-grid preset-grid--dense" role="group" aria-label="Moments">
         {DEMO_MOMENT_LIST.map((moment) => {
           const selected = momentId === moment.id;
           return (
@@ -96,13 +92,15 @@ function MomentStep({ momentId, onSelect }) {
               key={moment.id}
               type="button"
               className={
-                selected ? "demo-moment-card is-selected" : "demo-moment-card"
+                selected
+                  ? "preset-card active demo-moment-card is-selected"
+                  : "preset-card demo-moment-card"
               }
               aria-pressed={selected}
               onClick={() => onSelect(moment.id)}
             >
               <strong>{moment.shortLabel || moment.label}</strong>
-              <span>{moment.description}</span>
+              <small>{moment.description}</small>
             </button>
           );
         })}
@@ -217,8 +215,8 @@ function KidStep({
       </div>
 
       <div className="demo-choice-block">
-        <p className="demo-choice-label">What sounds good?</p>
-        <div className="demo-chip-row" role="group" aria-label="Activity style">
+        <p className="demo-choice-label">Style</p>
+        <div className="demo-chip-row" role="group" aria-label="Style">
           {STYLE_OPTIONS.map((option) => (
             <button
               key={option.id}
@@ -261,106 +259,84 @@ function ResultsStep({
   matchResult,
   unlockUsed,
   unlockedSlug,
-  pendingUnlock,
-  unlockError,
-  isClaiming,
-  onRequestUnlock,
-  onConfirmUnlock,
-  onCancelUnlock,
+  onStartActivity,
   onPlanB,
-  onOpenUnlocked,
   onBack,
 }) {
+  const scoredActivities = useMemo(
+    () =>
+      (matchResult?.results || []).map((entry) => {
+        const activity = entry.activity;
+        const isUnlocked =
+          unlockUsed &&
+          Boolean(unlockedSlug) &&
+          activity?.slug === unlockedSlug;
+        const isLockedOut = unlockUsed && !isUnlocked;
+        return {
+          activity: {
+            ...activity,
+            isLocked: !isUnlocked,
+            demoLockedOut: isLockedOut,
+          },
+          score:
+            typeof entry.score === "number"
+              ? entry.score
+              : entry.fitPercent ?? null,
+          whyItFits: entry.whyItFits || activity?.whyItFits || null,
+        };
+      }),
+    [matchResult, unlockUsed, unlockedSlug]
+  );
+
+  const activities = scoredActivities.map((entry) => entry.activity);
+
+  function detailsStartLabel(activity) {
+    if (!activity) return "Unlock free";
+    if (!activity.isLocked) {
+      return activity.activityStyle === "imaginative"
+        ? "Enter the story"
+        : "Start this activity";
+    }
+    if (activity.demoLockedOut) {
+      return "Get Plus";
+    }
+    return "Create free account to unlock";
+  }
+
   return (
-    <section className="demo-step" aria-labelledby="demo-results-title">
+    <section className="demo-step demo-step--results" aria-labelledby="demo-results-title">
       <p className="demo-screen-kicker">Matches</p>
-      <h1 id="demo-results-title">Choose your free activity</h1>
+      <h1 id="demo-results-title">Pick something to do</h1>
       <p className="demo-step-lead">
-        We matched these from FamilyFlow&apos;s sample library based on the ages
-        and moment you selected. You can unlock the full details of{" "}
-        <strong>one</strong> activity for free. FamilyFlow Plus unlocks
-        unlimited full activities personalized to your family.
+        Open <strong>Details</strong> for a preview — what it is and why it
+        fits. Steps stay locked until you create a free account.
       </p>
 
       <p className="demo-unlock-status" role="status">
         {unlockUsed
-          ? "✓ Free activity unlocked"
-          : "1 free unlock available"}
+          ? "✓ Free unlock used — create an account (or Plus) for more"
+          : "Preview any activity · unlock full steps with a free account"}
       </p>
 
-      <ul className="demo-result-list">
-        {matchResult.results.map((entry) => {
-          const activity = entry.activity;
-          const key = activityKey(activity);
-          const theme = getVisualThemeMeta(activity.visualTheme);
-          const isUnlocked = unlockUsed && unlockedSlug === activity.slug;
-          const isLockedOut = unlockUsed && !isUnlocked;
-          const mission = getActivityMissionText(activity);
-
-          return (
-            <li key={key}>
-              <article
-                className={`demo-result-card activity-card--theme-${theme.key}`}
-                style={{ "--activity-theme-accent": theme.accent }}
-              >
-                <span className="demo-result-fit">{entry.fitPercent}% match</span>
-                <h2>{activity.title}</h2>
-                <p className="demo-result-summary">
-                  {activity.summary || mission}
-                </p>
-                <p className="demo-result-why">{entry.whyItFits}</p>
-                <ul className="demo-fit-chips">
-                  {entry.whyFitChips.map((chip) => (
-                    <li key={chip}>{chip}</li>
-                  ))}
-                </ul>
-                <p className="demo-result-style">
-                  {activity.activityStyle === "imaginative"
-                    ? "Imaginative"
-                    : "Simple"}
-                </p>
-
-                {isUnlocked ? (
-                  <button
-                    type="button"
-                    className="landing-btn landing-btn--primary"
-                    onClick={() => onOpenUnlocked(activity)}
-                  >
-                    Open full activity
-                  </button>
-                ) : isLockedOut ? (
-                  <div className="demo-result-locked">
-                    <p>Full details require FamilyFlow Plus</p>
-                    <Link
-                      className="landing-btn landing-btn--primary"
-                      to={PLUS_SIGNUP_URL}
-                    >
-                      Get Plus
-                    </Link>
-                  </div>
-                ) : (
-                  <div className="demo-result-actions">
-                    <button
-                      type="button"
-                      className="landing-btn landing-btn--primary"
-                      onClick={() => onRequestUnlock(activity)}
-                    >
-                      Unlock full activity
-                    </button>
-                    <span className="demo-result-hint">1 free unlock available</span>
-                  </div>
-                )}
-              </article>
-            </li>
-          );
-        })}
-      </ul>
+      <ActivityResults
+        activities={activities}
+        scoredActivities={scoredActivities}
+        isLoading={false}
+        currentMoment={matchResult?.moment || null}
+        handleStartActivity={onStartActivity}
+        hideFeedbackActions
+        hideSaveFavorite
+        detailsVariant="teaser"
+        detailsStartLabel={detailsStartLabel}
+        handleTryNextBest={onPlanB}
+        panelTitle="Pick something to do"
+        panelNote="Sample library matches for this moment and ages — Plus personalizes to your household."
+      />
 
       <div className="demo-plus-callout">
         <p>
-          FamilyFlow Plus goes further: it can create activities around your
-          actual kids, available supplies, family preferences, and exact
-          situation.
+          FamilyFlow Plus goes further: activities around your kids, supplies,
+          preferences, and exact situation.
         </p>
       </div>
 
@@ -380,46 +356,6 @@ function ResultsStep({
           Not feeling these? Try the next best matches
         </button>
       </div>
-
-      {pendingUnlock ? (
-        <div className="demo-unlock-modal" role="dialog" aria-modal="true">
-          <div className="demo-unlock-modal-panel">
-            <h2>Unlock this activity?</h2>
-            <p>
-              Your demo includes one full activity unlock. Once you unlock{" "}
-              <strong>{pendingUnlock.title}</strong>, the other recommendations
-              will remain previews.
-            </p>
-            <p>
-              Want unlimited full activities? FamilyFlow Plus creates and unlocks
-              activities matched to your exact family, supplies, and situation.
-            </p>
-            {unlockError ? (
-              <p className="demo-unlock-error" role="alert">
-                {unlockError}
-              </p>
-            ) : null}
-            <div className="demo-step-actions">
-              <button
-                type="button"
-                className="landing-btn landing-btn--ghost"
-                onClick={onCancelUnlock}
-                disabled={isClaiming}
-              >
-                Keep looking
-              </button>
-              <button
-                type="button"
-                className="landing-btn landing-btn--primary"
-                onClick={onConfirmUnlock}
-                disabled={isClaiming}
-              >
-                {isClaiming ? "Unlocking…" : "Unlock this activity"}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
     </section>
   );
 }
@@ -501,10 +437,8 @@ function ActivityStep({
         <div className="demo-complete-cta">
           <h2>That&apos;s the FamilyFlow idea</h2>
           <p>
-            The demo matched this activity from a sample library using the ages
-            and moment you selected. FamilyFlow Plus can create personalized
-            activities around your actual situation instead of being limited to
-            the demo library.
+            Create a free account to keep your unlock, or get Plus for unlimited
+            personalized activities.
           </p>
           <div className="demo-step-actions">
             <Link
@@ -518,7 +452,7 @@ function ActivityStep({
               className="landing-btn landing-btn--ghost"
               onClick={onBackToResults}
             >
-              Try another demo
+              Back to matches
             </button>
           </div>
         </div>
@@ -530,10 +464,11 @@ function ActivityStep({
 /**
  * Public interactive marketing demo.
  *
- * Moment → ages → kid choices → sample-library matches → one free full unlock
- * → complete Activity V2. No OpenAI. Auth only when claiming the unlock.
+ * Moment → ages → kid choices → app-style matches + full Details preview →
+ * create account to unlock one free pretend activity.
  */
 function DemoPage() {
+  const navigate = useNavigate();
   const [stage, setStage] = useState("moment");
   const [momentId, setMomentId] = useState(null);
   const [ages, setAges] = useState([8]);
@@ -543,9 +478,6 @@ function DemoPage() {
   const [unlockUsed, setUnlockUsed] = useState(false);
   const [unlockedSlug, setUnlockedSlug] = useState(null);
   const [unlockedActivity, setUnlockedActivity] = useState(null);
-  const [pendingUnlock, setPendingUnlock] = useState(null);
-  const [isClaiming, setIsClaiming] = useState(false);
-  const [unlockError, setUnlockError] = useState("");
   const [activityCompleted, setActivityCompleted] = useState(false);
 
   useEffect(() => {
@@ -571,8 +503,6 @@ function DemoPage() {
     setEnergy("neutral");
     setActivityStyle("imaginative");
     setMatchResult(null);
-    setPendingUnlock(null);
-    setUnlockError("");
     setUnlockedActivity(null);
     setActivityCompleted(false);
   }
@@ -637,40 +567,37 @@ function DemoPage() {
     });
   }
 
-  async function handleConfirmUnlock() {
-    if (!pendingUnlock) return;
-    setIsClaiming(true);
-    setUnlockError("");
+  function handleStartActivity(activity) {
+    const isUnlocked =
+      unlockUsed &&
+      unlockedSlug &&
+      activity?.slug === unlockedSlug;
 
-    try {
-      await claimDemoFreeUnlock(pendingUnlock.slug || pendingUnlock.title);
-      setUnlockUsed(true);
-      setUnlockedSlug(pendingUnlock.slug || null);
-      setUnlockedActivity(pendingUnlock);
-      setPendingUnlock(null);
+    if (isUnlocked) {
+      setUnlockedActivity(activity);
       setActivityCompleted(false);
       setStage("activity");
       trackProductEvent("demo_page_unlock_claimed", {
-        slug: pendingUnlock.slug || "",
-        style: pendingUnlock.activityStyle || "",
+        slug: activity?.slug || "",
+        style: activity?.activityStyle || "",
       });
-    } catch (error) {
-      const code = error instanceof ApiRequestError ? error.code : "";
-      if (code === "FREE_IMAGINATIVE_UNLOCK_USED") {
-        setUnlockUsed(true);
-        setUnlockError(
-          "You've already used your free full-activity unlock. Get Plus for unlimited full activities."
-        );
-      } else {
-        setUnlockError(
-          error instanceof Error
-            ? error.message
-            : "Could not unlock this activity. Try again."
-        );
-      }
-    } finally {
-      setIsClaiming(false);
+      return;
     }
+
+    if (unlockUsed || activity?.demoLockedOut) {
+      trackProductEvent("demo_page_plus_cta_clicked", {
+        slug: activity?.slug || "",
+        source: "unlock_cta",
+      });
+      navigate(PLUS_SIGNUP_URL);
+      return;
+    }
+
+    trackProductEvent("demo_page_signup_cta_clicked", {
+      slug: activity?.slug || "",
+      source: "unlock_free",
+    });
+    navigate(buildDemoUnlockSignupUrl(activity));
   }
 
   return (
@@ -737,24 +664,8 @@ function DemoPage() {
             matchResult={matchResult}
             unlockUsed={unlockUsed}
             unlockedSlug={unlockedSlug}
-            pendingUnlock={pendingUnlock}
-            unlockError={unlockError}
-            isClaiming={isClaiming}
-            onRequestUnlock={(activity) => {
-              setUnlockError("");
-              setPendingUnlock(activity);
-            }}
-            onConfirmUnlock={handleConfirmUnlock}
-            onCancelUnlock={() => {
-              setPendingUnlock(null);
-              setUnlockError("");
-            }}
+            onStartActivity={handleStartActivity}
             onPlanB={handlePlanB}
-            onOpenUnlocked={(activity) => {
-              setUnlockedActivity(activity);
-              setActivityCompleted(false);
-              setStage("activity");
-            }}
             onBack={() => setStage("kid")}
           />
         ) : null}

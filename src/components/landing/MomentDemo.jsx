@@ -15,7 +15,7 @@ import {
 } from "../../utils/activityVisualTheme";
 import { trackProductEvent } from "../../utils/analytics";
 
-const PRIMARY_MOMENT_IDS = ["dinner", "workCall", "burnEnergy", "bedtime"];
+const PRIMARY_MOMENT_IDS = ["cooking", "cleaning", "workCall", "resting"];
 
 const PRIMARY_MOMENTS = DEMO_MOMENT_LIST.filter((moment) =>
   PRIMARY_MOMENT_IDS.includes(moment.id)
