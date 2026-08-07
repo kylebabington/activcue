@@ -358,13 +358,17 @@ function SignupPage() {
           <h1 id="signup-title">
             {checkoutIntent.shouldCheckout
               ? "Create your account to get Plus"
-              : "Save your FamilyFlow account"}
+              : searchParams.get("from") === "demo"
+                ? "Create your free account"
+                : "Save your FamilyFlow account"}
           </h1>
 
           <p className="landing-auth-lead">
             {checkoutIntent.shouldCheckout
               ? "Add an email and password, then continue to secure checkout."
-              : "Add an email and password to keep your free unlock and protect future Plus access."}
+              : searchParams.get("from") === "demo"
+                ? "Create an account to unlock one free pretend activity — then keep using Simple ideas anytime."
+                : "Add an email and password to keep your free unlock and protect future Plus access."}
           </p>
 
           <form

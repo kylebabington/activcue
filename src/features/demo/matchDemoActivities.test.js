@@ -18,7 +18,7 @@ describe("buildDemoChildProfiles", () => {
 describe("matchDemoActivities", () => {
   it("returns three dinner matches for Maya without network", () => {
     const result = matchDemoActivities({
-      momentId: "dinner",
+      momentId: "cooking",
       childId: "maya",
     });
 
@@ -30,11 +30,11 @@ describe("matchDemoActivities", () => {
 
   it("changes suggestions when child age changes", () => {
     const forMaya = matchDemoActivities({
-      momentId: "dinner",
+      momentId: "cooking",
       childId: "maya",
     });
     const forJack = matchDemoActivities({
-      momentId: "dinner",
+      momentId: "cooking",
       childId: "jack",
     });
 
@@ -46,12 +46,12 @@ describe("matchDemoActivities", () => {
 
   it("accepts childAges for one or two kids", () => {
     const solo = matchDemoActivities({
-      momentId: "dinner",
+      momentId: "cooking",
       childAges: [8],
       limit: 3,
     });
     const duo = matchDemoActivities({
-      momentId: "dinner",
+      momentId: "cooking",
       childAges: [6, 12],
       limit: 3,
     });
@@ -64,7 +64,7 @@ describe("matchDemoActivities", () => {
 
   it("can include both simple and imaginative activities", () => {
     const result = matchDemoActivities({
-      momentId: "dinner",
+      momentId: "cooking",
       childAges: [8],
       limit: 6,
     });
@@ -76,7 +76,7 @@ describe("matchDemoActivities", () => {
 
   it("changes ranking when moment changes", () => {
     const dinner = matchDemoActivities({
-      momentId: "dinner",
+      momentId: "cooking",
       childAges: [8],
     });
     const workCall = matchDemoActivities({

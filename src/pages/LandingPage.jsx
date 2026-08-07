@@ -46,7 +46,7 @@ const WHY_ITEMS = [
 const HOW_STEPS = [
   {
     title: "Tell us the moment",
-    text: "Dinner, work call, burn energy, bedtime — whatever's happening now.",
+    text: "Cooking, work call, cleaning, resting — the same parent moments you use in the app.",
   },
   {
     title: "Tell us who's playing",

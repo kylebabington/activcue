@@ -292,6 +292,26 @@
   justify-self: start;
 }
 
+.demo-step--results {
+  width: min(1120px, 100%);
+}
+
+.demo-step--results .activity-board-panel {
+  margin: 0;
+}
+
+.demo-step--results .quest-choice-list--horizontal {
+  align-items: stretch;
+}
+
+.demo-moment-grid.preset-grid {
+  margin: 0;
+}
+
+.demo-moment-card.preset-card {
+  width: 100%;
+}
+
 .demo-unlock-status {
   margin: 0;
   font-weight: 700;
@@ -441,4 +461,23 @@
 
 .demo-page-main--product {
   padding-top: 1.5rem;
+}
+
+.activity-teaser-content {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.activity-teaser-lockout {
+  margin-top: 0.35rem;
+  padding: 0.95rem 1rem;
+  border-radius: 0.85rem;
+  background: color-mix(in srgb, var(--color-primary) 10%, var(--color-surface));
+  border: 1px solid color-mix(in srgb, var(--color-primary) 22%, transparent);
+}
+
+.activity-teaser-lockout p {
+  margin: 0;
+  line-height: 1.45;
+  color: var(--color-text-muted);
 }

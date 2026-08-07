@@ -3,7 +3,10 @@
 import { scoreActivitiesForCurrentMoment } from "../../utils/sessionFitScore";
 import { resolveChildAge } from "../../utils/childAge";
 import { DEMO_ACTIVITY_POOL } from "../../constants/demoActivityPool";
-import { getDemoMoment } from "../../constants/demoMoments";
+import {
+  DEFAULT_DEMO_MOMENT_ID,
+  getDemoMoment,
+} from "../../constants/demoMoments";
 import { DEMO_CHILDREN, getDemoChild } from "../../constants/demoChildren";
 import { storyifyCachedImaginativeActivity } from "./storyifyCachedImaginativeActivity";
 
@@ -83,7 +86,7 @@ function resolveDemoChildren({ childAges, childId }) {
  * that still uses named demo kids.
  */
 export function matchDemoActivities({
-  momentId = "dinner",
+  momentId = DEFAULT_DEMO_MOMENT_ID,
   childId = "maya",
   childAges = null,
   pool = DEMO_ACTIVITY_POOL,
@@ -162,7 +165,8 @@ export function matchDemoActivities({
 
 /** Swap to the next already-ranked candidates (Plan B). */
 export function rotateDemoResults(matchResult, overrides = {}) {
-  const momentId = overrides.momentId || matchResult?.momentId || "dinner";
+  const momentId =
+    overrides.momentId || matchResult?.momentId || DEFAULT_DEMO_MOMENT_ID;
   const batchSize = overrides.limit || 3;
   const nextOffset =
     (matchResult?.offset || 0) + (matchResult?.results?.length || batchSize);
