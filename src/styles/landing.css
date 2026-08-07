@@ -1229,7 +1229,7 @@ button.landing-btn:disabled {
 
 .landing-product-frames {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(12.5rem, 1fr));
   gap: 0.85rem;
 }
 
@@ -1253,34 +1253,20 @@ button.landing-btn:disabled {
 }
 
 .landing-product-frame-visual {
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 16 / 10;
   border-radius: var(--radius-small);
   border: 1px solid color-mix(in srgb, var(--color-text) 12%, transparent);
-  background:
-    linear-gradient(
-      145deg,
-      color-mix(in srgb, var(--color-background-accent) 70%, white),
-      color-mix(in srgb, var(--color-surface) 85%, white)
-    );
+  background: color-mix(in srgb, var(--color-background-accent) 35%, white);
   overflow: hidden;
   position: relative;
 }
 
-.landing-product-frame-chrome {
-  position: absolute;
-  inset: 18% 12% 18% 12%;
-  border-radius: 0.35rem;
-  border: 1px solid color-mix(in srgb, var(--color-text) 14%, transparent);
-  background: color-mix(in srgb, var(--color-surface) 88%, white);
-  box-shadow: 0 6px 16px rgba(26, 58, 74, 0.08);
-}
-
-.landing-product-frame[data-frame="match"] .landing-product-frame-chrome {
-  inset: 22% 10% 14% 10%;
-}
-
-.landing-product-frame[data-frame="instructions"] .landing-product-frame-chrome {
-  inset: 14% 14% 14% 14%;
+.landing-product-frame-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
 }
 
 .visually-hidden {
