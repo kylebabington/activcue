@@ -71,7 +71,7 @@ describe("requirePaidSubscription", () => {
     expect(res.statusCode).toBe(402);
     expect(res.body.code).toBe("SUBSCRIPTION_REQUIRED");
     expect(res.body.error).toBe(
-      "FamilyFlow Plus access is required to generate personalized activities."
+      "ActivCue Plus access is required to generate personalized activities."
     );
     expect(res.body.entitlement).toEqual(entitlement);
     expect(req.entitlement).toEqual(entitlement);

@@ -100,12 +100,12 @@ export default function BillingPlanCards({
             <li>Personalized family setup</li>
             <li>Child profiles</li>
             <li>Favorites and history</li>
-            <li>Core FamilyFlow experience</li>
+            <li>Core ActivCue experience</li>
             <li>Limited personalized activity generation</li>
           </ul>
         ) : (
           <p>
-            Try FamilyFlow and keep your family&apos;s settings. Upgrade for
+            Try ActivCue and keep your family&apos;s settings. Upgrade for
             AI-powered ideas anytime.
           </p>
         )}

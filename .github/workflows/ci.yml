@@ -165,7 +165,7 @@ jobs:
           STRIPE_MONTHLY_PRICE_ID: ${{ secrets.TEST_STRIPE_MONTHLY_PRICE_ID }}
           STRIPE_ANNUAL_PRICE_ID: ${{ secrets.TEST_STRIPE_ANNUAL_PRICE_ID }}
           # Optional: comma-separated production Supabase hostnames to refuse in CI.
-          FAMILYFLOW_BLOCKED_SUPABASE_HOSTS: ${{ vars.FAMILYFLOW_BLOCKED_SUPABASE_HOSTS }}
+          ACTIVCUE_BLOCKED_SUPABASE_HOSTS: ${{ vars.ACTIVCUE_BLOCKED_SUPABASE_HOSTS }}
 
       - name: Stop local Supabase
         if: always()

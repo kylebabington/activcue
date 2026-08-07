@@ -1,5 +1,5 @@
 // e2e/golden-paths.spec.js
-// Strict FamilyFlow golden paths — every core step must exist and produce an outcome.
+// Strict ActivCue golden paths — every core step must exist and produce an outcome.
 
 import { test, expect } from "@playwright/test";
 import {
@@ -106,8 +106,8 @@ async function openQuickIdeasAndStart(page) {
   return startFirstAvailableActivity(page);
 }
 
-test.describe("FamilyFlow golden paths", () => {
-  test("landing → try FamilyFlow opens public demo", async ({ page }) => {
+test.describe("ActivCue golden paths", () => {
+  test("landing → try ActivCue opens public demo", async ({ page }) => {
     await page.goto("/");
     await expect(
       page.getByRole("heading", {
@@ -116,7 +116,7 @@ test.describe("FamilyFlow golden paths", () => {
       })
     ).toBeVisible();
 
-    const demoCta = page.getByRole("link", { name: /^Try FamilyFlow$/i }).first();
+    const demoCta = page.getByRole("link", { name: /^Try ActivCue$/i }).first();
     await expect(demoCta).toBeVisible();
     await demoCta.click();
 
@@ -173,7 +173,7 @@ test.describe("FamilyFlow golden paths", () => {
     ).toBeVisible();
 
     const tryFree = page
-      .getByRole("link", { name: /Try the demo|Find something to do|Try FamilyFlow/i })
+      .getByRole("link", { name: /Try the demo|Find something to do|Try ActivCue/i })
       .first();
     await expect(tryFree).toBeVisible();
     await tryFree.click();
@@ -184,7 +184,7 @@ test.describe("FamilyFlow golden paths", () => {
     ).toBeVisible({ timeout: 15000 });
   });
 
-  test("free family flow: moment → kid → quick ideas → start → finish → independence", async ({
+  test("core free path: moment → kid → quick ideas → start → finish → independence", async ({
     page,
   }) => {
     await setCookingMoment(page);
@@ -275,7 +275,7 @@ test.describe("FamilyFlow golden paths", () => {
     await expect(lockedBored).toBeVisible({ timeout: 15000 });
 
     const plusRequirement = page.getByText(
-      /Plus|free pretend|unlock more pretend|FamilyFlow Plus/i
+      /Plus|free pretend|unlock more pretend|ActivCue Plus/i
     );
     await expect(plusRequirement.first()).toBeVisible({ timeout: 15000 });
   });

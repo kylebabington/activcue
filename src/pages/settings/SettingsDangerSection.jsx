@@ -52,7 +52,7 @@ export default function SettingsDangerSection({
         <div className="account-delete-block">
           <h3>Delete account</h3>
           <p>
-            Permanently delete your FamilyFlow account, synced family data, and
+            Permanently delete your ActivCue account, synced family data, and
             sign-in credentials. Cancel an active Stripe subscription separately
             if needed.
           </p>

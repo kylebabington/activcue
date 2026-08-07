@@ -64,10 +64,10 @@ function DemoBanner({ sawAha, onReset }) {
   return (
     <aside className="demo-sticky-banner" aria-label="Demo status">
       <div className="demo-sticky-banner-copy">
-        <strong>You&apos;re trying FamilyFlow</strong>
+        <strong>You&apos;re trying ActivCue</strong>
         <p>
           {sawAha
-            ? "Liked it? Create a free account so FamilyFlow can remember your kids and what works."
+            ? "Liked it? Create a free account so ActivCue can remember your kids and what works."
             : "Same flow as the app — parent moment, kid vibe, pick something. No account needed yet."}
         </p>
       </div>
@@ -101,7 +101,7 @@ function SoftGate({ activity, variant = "remember" }) {
   if (variant === "save") {
     return (
       <div className="demo-soft-gate" role="region" aria-label="Create account">
-        <h2>Save activities across FamilyFlow</h2>
+        <h2>Save activities across ActivCue</h2>
         <p>Create your free account to continue.</p>
         <div className="demo-step-actions">
           <button
@@ -689,7 +689,7 @@ function DemoPage() {
     <div className="landing demo-page demo-product-walkthrough">
       <header className="landing-topbar">
         <div className="landing-topbar-inner">
-          <Link className="landing-brand" to="/" aria-label="FamilyFlow home">
+          <Link className="landing-brand" to="/" aria-label="ActivCue home">
             <img
               className="landing-brand-mark"
               src="/logo.svg"
@@ -697,7 +697,7 @@ function DemoPage() {
               width="36"
               height="36"
             />
-            <span className="landing-brand-name">FamilyFlow</span>
+            <span className="landing-brand-name">ActivCue</span>
           </Link>
           <div className="demo-topbar-actions">
             <Link className="landing-topbar-link" to="/login">

@@ -134,7 +134,7 @@ const relativeMigrationPath = path
 const migrationContents = `-- ${relativeMigrationPath}
 
 /*
- * FAMILYFLOW PRESET ACTIVITY SEED
+ * ACTIVCUE PRESET ACTIVITY SEED
  * =================================
  *
  * This migration installs the application's canonical activity library:

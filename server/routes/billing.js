@@ -118,7 +118,7 @@ export async function updateSubscriptionRenewal({
     ) {
       return res.status(404).json({
         error:
-          "No FamilyFlow Plus subscription was found for this account.",
+          "No ActivCue Plus subscription was found for this account.",
         code:
           "SUBSCRIPTION_NOT_FOUND",
       });
@@ -176,7 +176,7 @@ export async function updateSubscriptionRenewal({
      * Defense in depth:
      *
      * Refuse to modify the Stripe subscription if its customer does not match
-     * the customer stored for this authenticated FamilyFlow user.
+     * the customer stored for this authenticated ActivCue user.
      */
     if (
       storedSubscription
@@ -244,8 +244,8 @@ export async function updateSubscriptionRenewal({
 
     return res.status(200).json({
       message: cancelAtPeriodEnd
-        ? "FamilyFlow Plus will remain active through the current billing period and will not renew."
-        : "Automatic renewal has been restored for FamilyFlow Plus.",
+        ? "ActivCue Plus will remain active through the current billing period and will not renew."
+        : "Automatic renewal has been restored for ActivCue Plus.",
       entitlement,
     });
   } catch (error) {
@@ -299,7 +299,7 @@ router.post(
     if (req.auth.isAnonymous) {
       return res.status(403).json({
         error:
-          "Create a free account before starting FamilyFlow Plus checkout.",
+          "Create a free account before starting ActivCue Plus checkout.",
         code: "ACCOUNT_REQUIRED",
       });
     }
@@ -361,7 +361,7 @@ router.post(
         null;
 
       /*
-       * First check FamilyFlow's existing server-trusted entitlement.
+       * First check ActivCue's existing server-trusted entitlement.
        */
       const entitlement =
         await getUserEntitlement(
@@ -435,7 +435,7 @@ router.post(
           user_id: userId,
           supabase_user_id:
             userId,
-          familyflow_plan: plan,
+          activcue_plan: plan,
         },
 
         /*
@@ -449,7 +449,7 @@ router.post(
             user_id: userId,
             supabase_user_id:
               userId,
-            familyflow_plan: plan,
+            activcue_plan: plan,
           },
         },
       };
@@ -509,7 +509,7 @@ router.post(
 /*
  * POST /api/billing/cancel-subscription
  *
- * Schedule the authenticated user's FamilyFlow Plus subscription to stop
+ * Schedule the authenticated user's ActivCue Plus subscription to stop
  * renewing after the current paid billing period.
  *
  * This does not remove paid access immediately.
@@ -731,7 +731,7 @@ async function handleCheckoutSessionEvent(
 
   if (!userId) {
     throw new Error(
-      `Checkout Session ${session.id} is missing its FamilyFlow user ID.`
+      `Checkout Session ${session.id} is missing its ActivCue user ID.`
     );
   }
 

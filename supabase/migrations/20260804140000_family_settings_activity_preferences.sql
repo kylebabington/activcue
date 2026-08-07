@@ -10,4 +10,4 @@ comment on column public.family_settings.activity_preferences is
   'Durable family defaults for mess, setup, independence, activity style, indoor/outdoor.';
 
 comment on column public.family_settings.assume_household_basics is
-  'When true, FamilyFlow treats common household basics as available even if not listed in inventory.';
+  'When true, ActivCue treats common household basics as available even if not listed in inventory.';

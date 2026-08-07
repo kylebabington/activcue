@@ -60,7 +60,7 @@ export function useCheckoutReturn({
 
     async function confirmSubscription() {
       onStatus?.(
-        "Payment completed. Confirming your FamilyFlow Plus access…",
+        "Payment completed. Confirming your ActivCue Plus access…",
         "info"
       );
 
@@ -74,7 +74,7 @@ export function useCheckoutReturn({
 
           if (nextEntitlement?.isPaid) {
             onStatus?.(
-              "FamilyFlow Plus is active. AI activities and hints are now unlocked.",
+              "ActivCue Plus is active. AI activities and hints are now unlocked.",
               "success"
             );
             setSearchParams({}, { replace: true });

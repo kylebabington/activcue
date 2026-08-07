@@ -42,7 +42,7 @@ export default function SettingsWhatWeHaveSection({
         <div>
           <h2>What we have</h2>
           <p>
-            FamilyFlow uses this to avoid suggesting things you do not have.
+            ActivCue uses this to avoid suggesting things you do not have.
           </p>
         </div>
       </div>

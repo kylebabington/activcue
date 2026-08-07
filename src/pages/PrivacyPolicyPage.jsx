@@ -8,7 +8,7 @@ function PrivacyPolicyPage() {
     <div className="landing landing--auth">
       <header className="landing-topbar">
         <div className="landing-topbar-inner">
-          <Link className="landing-brand" to="/" aria-label="FamilyFlow home">
+          <Link className="landing-brand" to="/" aria-label="ActivCue home">
             <img
               className="landing-brand-mark"
               src="/logo.svg"
@@ -16,7 +16,7 @@ function PrivacyPolicyPage() {
               width="36"
               height="36"
             />
-            <span className="landing-brand-name">FamilyFlow</span>
+            <span className="landing-brand-name">ActivCue</span>
           </Link>
           <Link className="landing-topbar-link" to="/">
             Home
@@ -28,7 +28,7 @@ function PrivacyPolicyPage() {
         <div className="landing-auth-panel legal-doc-panel">
           <h1 id="privacy-title">Privacy Policy</h1>
           <p className="landing-auth-lead">
-            Last updated: August 2, 2026. FamilyFlow helps parents find quick,
+            Last updated: August 2, 2026. ActivCue helps parents find quick,
             kid-friendly activities. This summary explains what we collect and
             why.
           </p>
@@ -47,7 +47,7 @@ function PrivacyPolicyPage() {
             <p>
               We do not sell personal data. Product analytics intentionally
               avoids storing free-text child notes or AI prompts. Do not put
-              sensitive medical or school records into FamilyFlow fields.
+              sensitive medical or school records into ActivCue fields.
             </p>
 
             <h2>How we use data</h2>
@@ -68,7 +68,7 @@ function PrivacyPolicyPage() {
             <h2>Contact</h2>
             <p>
               Questions about privacy:{" "}
-              <a href="mailto:support@familyflow.app">support@familyflow.app</a>
+              <a href="mailto:support@activcue.app">support@activcue.app</a>
               .
             </p>
           </div>

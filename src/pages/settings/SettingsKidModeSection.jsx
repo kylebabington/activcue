@@ -68,7 +68,7 @@ export default function SettingsKidModeSection({
       <div className="panel-header">
         <div>
           <h2>Kid Mode</h2>
-          <p>Give a child a simpler version of FamilyFlow on this device.</p>
+          <p>Give a child a simpler version of ActivCue on this device.</p>
         </div>
       </div>
 

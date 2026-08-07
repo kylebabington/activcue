@@ -131,7 +131,7 @@ ReactDOM.createRoot(
         />
 
         {/*
-         * All FamilyFlow application routes require a permanent account.
+         * All ActivCue application routes require a permanent account.
          * Anonymous sessions are not an entrance ticket to the real app.
          */}
         <Route

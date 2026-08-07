@@ -1,5 +1,5 @@
 // scripts/demo/app-demo.spec.js
-// Marketing recording of the REAL FamilyFlow app (anon auth + Quick ideas, no OpenAI).
+// Marketing recording of the REAL ActivCue app (anon auth + Quick ideas, no OpenAI).
 import { test, expect } from "@playwright/test";
 import fs from "fs";
 import path from "path";
@@ -72,7 +72,7 @@ async function openRichActivityDetails(page) {
   };
 }
 
-test("record FamilyFlow real-app demo", async ({ page }, testInfo) => {
+test("record ActivCue real-app demo", async ({ page }, testInfo) => {
   // 0. Landing → Find something now
   await page.goto("/");
   await expect(

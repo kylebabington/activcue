@@ -1,7 +1,7 @@
 // src/utils/permanentAccountAccess.js
 
 /**
- * Real FamilyFlow app routes require a permanent (non-anonymous) session.
+ * Real ActivCue app routes require a permanent (non-anonymous) session.
  * Public marketing routes (/ , /demo, auth, legal) do not use this gate.
  */
 export function canAccessPermanentApp({ user, isAnonymous } = {}) {

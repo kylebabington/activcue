@@ -9,7 +9,7 @@ export default function SettingsRulesSection({
       <div className="panel-header">
         <div>
           <h2>Activity rules</h2>
-          <p>Permanent filters for what FamilyFlow should never suggest.</p>
+          <p>Permanent filters for what ActivCue should never suggest.</p>
           <p className="settings-note">
             Time, quiet, and adult help stay on Current Moment — they change
             throughout the day.

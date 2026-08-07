@@ -32,7 +32,7 @@ export default function AppHeader({
   return (
     <header className={`app-header${kidDeviceMode ? " app-header--kid-device" : ""}`}>
       <div className="app-header-brand">
-        <Link to="/" className="app-header-brand-link" aria-label="FamilyFlow home">
+        <Link to="/" className="app-header-brand-link" aria-label="ActivCue home">
           <img
             className="app-brand-mark"
             src="/logo.svg"
@@ -40,7 +40,7 @@ export default function AppHeader({
             width="28"
             height="28"
           />
-          <p className="app-brand-name">FamilyFlow</p>
+          <p className="app-brand-name">ActivCue</p>
         </Link>
       </div>
 

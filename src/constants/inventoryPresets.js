@@ -202,7 +202,7 @@ const defaultInventoryNames = [
   "bubbles",
 ];
 
-/** Common household items FamilyFlow can assume when the flag is on. */
+/** Common household items ActivCue can assume when the flag is on. */
 export const HOUSEHOLD_BASICS = [
   { name: "paper", category: "Art supplies" },
   { name: "pencil", category: "Art supplies" },

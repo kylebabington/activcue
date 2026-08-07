@@ -74,11 +74,11 @@ export function useBillingActions({
       const nextEntitlement = await refreshEntitlement();
 
       if (nextEntitlement.isPaid) {
-        setBillingMessage("FamilyFlow Plus is active.");
+        setBillingMessage("ActivCue Plus is active.");
         setBillingMessageType("success");
       } else {
         setBillingMessage(
-          "FamilyFlow Plus is not active yet. Stripe may still be processing the subscription."
+          "ActivCue Plus is not active yet. Stripe may still be processing the subscription."
         );
         setBillingMessageType("info");
       }
@@ -123,7 +123,7 @@ export function useBillingActions({
       setShowCancelConfirmation(false);
       setBillingMessage(
         result.message ||
-          "FamilyFlow Plus will remain active through the current billing period and will not renew."
+          "ActivCue Plus will remain active through the current billing period and will not renew."
       );
       setBillingMessageType("success");
       trackProductEvent("subscription_cancelled");
@@ -170,7 +170,7 @@ export function useBillingActions({
       setShowCancelConfirmation(false);
       setBillingMessage(
         result.message ||
-          "Automatic renewal has been restored for FamilyFlow Plus."
+          "Automatic renewal has been restored for ActivCue Plus."
       );
       setBillingMessageType("success");
       trackProductEvent("subscription_resumed");

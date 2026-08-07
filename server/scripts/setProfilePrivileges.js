@@ -1,5 +1,5 @@
 /**
- * Grant FamilyFlow Plus (billing_exempt) and/or admin role via service role.
+ * Grant ActivCue Plus (billing_exempt) and/or admin role via service role.
  *
  * Usage:
  *   node server/scripts/setProfilePrivileges.js --user-id <uuid> --billing-exempt

@@ -46,7 +46,7 @@ const PRODUCT_FRAMES = [
 ];
 
 /**
- * See FamilyFlow — demo video + captioned product screenshots.
+ * See ActivCue — demo video + captioned product screenshots.
  */
 export default function LandingProductShowcase({
   hasVideo = false,
@@ -59,7 +59,7 @@ export default function LandingProductShowcase({
       aria-labelledby="product-title"
     >
       <div className="landing-section-inner landing-section-inner--wide">
-        <h2 id="product-title">See FamilyFlow</h2>
+        <h2 id="product-title">See ActivCue</h2>
         <p className="landing-section-lead">
           Watch the loop before you create an account.
         </p>
@@ -86,7 +86,7 @@ export default function LandingProductShowcase({
               Watch 30-second walkthrough
             </span>
             <span className="visually-hidden">
-              Open FamilyFlow demo video ({DEMO_VIDEO_SRC})
+              Open ActivCue demo video ({DEMO_VIDEO_SRC})
             </span>
           </button>
         ) : null}

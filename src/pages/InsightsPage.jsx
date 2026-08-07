@@ -63,7 +63,7 @@ function InsightsPage() {
 
       {!isPlus ? (
         <p className="insights-detail">
-          Full insights are a FamilyFlow Plus feature. Local summaries still
+          Full insights are a ActivCue Plus feature. Local summaries still
           appear below.
         </p>
       ) : null}

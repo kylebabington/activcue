@@ -67,7 +67,7 @@ export function getSubscriptionPeriodEnd(
 
   /*
    * Current Stripe API versions place the billing period on subscription
-   * items. FamilyFlow currently creates one item, but using the latest item
+   * items. ActivCue currently creates one item, but using the latest item
    * end also remains safe if another recurring item is introduced later.
    */
   const itemPeriodEnds = subscriptionItems
@@ -110,7 +110,7 @@ export function getSubscriptionPriceId(subscription) {
 }
 
 /*
- * Retrieve the billing record that belongs to one FamilyFlow user.
+ * Retrieve the billing record that belongs to one ActivCue user.
  *
  * Routes use this server-side lookup instead of accepting a Stripe
  * subscription ID from the browser.
@@ -154,7 +154,7 @@ export async function getSubscriptionRecordForUser(
 }
 
 /*
- * Persist Stripe customer + subscription identifiers for a FamilyFlow user.
+ * Persist Stripe customer + subscription identifiers for a ActivCue user.
  */
 export async function upsertSubscriptionFromCheckout({
   userId,
@@ -189,7 +189,7 @@ export async function upsertSubscriptionFromCheckout({
 /*
  * Sync subscription state from Stripe subscription.* webhook events.
  *
- * Resolves the FamilyFlow user via metadata, an existing subscriptions row,
+ * Resolves the ActivCue user via metadata, an existing subscriptions row,
  * or profiles.stripe_customer_id.
  */
 export async function upsertSubscriptionFromStripe(subscription) {
@@ -271,7 +271,7 @@ export async function upsertSubscriptionFromStripe(subscription) {
 
   if (!userId) {
     throw new Error(
-      `Could not resolve FamilyFlow user for Stripe subscription ${subscription.id}.`
+      `Could not resolve ActivCue user for Stripe subscription ${subscription.id}.`
     );
   }
 

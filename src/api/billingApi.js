@@ -7,7 +7,7 @@ import {
 } from "./apiClient";
 
 /*
- * These are the only plan names accepted by the FamilyFlow backend.
+ * These are the only plan names accepted by the ActivCue backend.
  *
  * The browser sends the plan name—not the actual Stripe Price ID.
  * The Express server safely maps the plan to the trusted Price ID stored
@@ -19,7 +19,7 @@ const VALID_BILLING_PLANS = new Set([
 ]);
 
 /*
- * Load display amounts for monthly/annual from Stripe via the FamilyFlow API.
+ * Load display amounts for monthly/annual from Stripe via the ActivCue API.
  */
 export async function getBillingPlans() {
   const response = await publicRequest("/api/billing/plans", {
@@ -74,7 +74,7 @@ export async function createCheckoutSession(
    */
   if (!VALID_BILLING_PLANS.has(plan)) {
     throw new ApiRequestError(
-      "Choose either the monthly or annual FamilyFlow Plus plan.",
+      "Choose either the monthly or annual ActivCue Plus plan.",
       {
         status: 400,
         code: "INVALID_BILLING_PLAN",
@@ -144,7 +144,7 @@ export async function redirectToCheckout({
 }
 
 /*
- * Call one of FamilyFlow's authenticated subscription-management endpoints.
+ * Call one of ActivCue's authenticated subscription-management endpoints.
  *
  * The browser never sends a Stripe customer ID or subscription ID.
  * The Express server finds the correct subscription using the authenticated
@@ -180,7 +180,7 @@ async function updateSubscriptionRenewal(
     "object"
   ) {
     throw new ApiRequestError(
-      "The subscription was updated, but FamilyFlow did not return its latest billing status.",
+      "The subscription was updated, but ActivCue did not return its latest billing status.",
       {
         status: 502,
         code:

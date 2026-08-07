@@ -44,7 +44,7 @@ const preferred =
   videos.find((file) => /landing-demo/i.test(file)) || videos[0];
 
 fs.mkdirSync(publicDemos, { recursive: true });
-const dest = path.join(publicDemos, "familyflow-demo.webm");
+const dest = path.join(publicDemos, "activcue-demo.webm");
 fs.copyFileSync(preferred, dest);
 console.log(`Published ${preferred} -> ${dest}`);
 
@@ -59,15 +59,15 @@ fs.writeFileSync(
   `// Auto-updated by npm run demo:publish so landing video URLs bust caches.
 export const DEMO_VIDEO_CACHE_KEY = "${hash}";
 
-export const DEMO_VIDEO_SRC = \`/demos/familyflow-demo.webm?v=\${DEMO_VIDEO_CACHE_KEY}\`;
-export const DEMO_VIDEO_POSTER_SRC = \`/demos/familyflow-demo-poster.svg?v=\${DEMO_VIDEO_CACHE_KEY}\`;
+export const DEMO_VIDEO_SRC = \`/demos/activcue-demo.webm?v=\${DEMO_VIDEO_CACHE_KEY}\`;
+export const DEMO_VIDEO_POSTER_SRC = \`/demos/activcue-demo-poster.svg?v=\${DEMO_VIDEO_CACHE_KEY}\`;
 `
 );
 console.log(`Updated demo video cache key -> ${hash}`);
 
-const posterSrc = path.join(publicDemos, "familyflow-demo-poster.webp");
+const posterSrc = path.join(publicDemos, "activcue-demo-poster.webp");
 if (!fs.existsSync(posterSrc)) {
   console.log(
-    "Optional: add `public/demos/familyflow-demo-poster.svg` (or `.webp`) as a 1280×720 poster frame."
+    "Optional: add `public/demos/activcue-demo-poster.svg` (or `.webp`) as a 1280×720 poster frame."
   );
 }

@@ -1,8 +1,8 @@
 // src/utils/signupUrls.js
 
 const VALID_CHECKOUT_PLANS = new Set(["monthly", "annual"]);
-export const DEMO_UNLOCK_INTENT_KEY = "familyflow.demo.unlockIntent";
-export const DEMO_ACTIVITY_HANDOFF_KEY = "familyflow.demo.activityHandoff";
+export const DEMO_UNLOCK_INTENT_KEY = "activcue.demo.unlockIntent";
+export const DEMO_ACTIVITY_HANDOFF_KEY = "activcue.demo.activityHandoff";
 
 /*
  * Build the /signup URL, optionally carrying Plus checkout intent through

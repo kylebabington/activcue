@@ -38,7 +38,7 @@ function assertE2eUsesLocalSupabaseAndTestStripe() {
   }
 
   const blockedHosts = String(
-    process.env.FAMILYFLOW_BLOCKED_SUPABASE_HOSTS || ""
+    process.env.ACTIVCUE_BLOCKED_SUPABASE_HOSTS || ""
   )
     .split(",")
     .map((value) => value.trim().toLowerCase())
@@ -50,9 +50,9 @@ function assertE2eUsesLocalSupabaseAndTestStripe() {
     );
   }
 
-  if (process.env.FAMILYFLOW_ALLOW_PROD_E2E === "1") {
+  if (process.env.ACTIVCUE_ALLOW_PROD_E2E === "1") {
     throw new Error(
-      "FAMILYFLOW_ALLOW_PROD_E2E is not supported. Use local Supabase (`supabase start`) only."
+      "ACTIVCUE_ALLOW_PROD_E2E is not supported. Use local Supabase (`supabase start`) only."
     );
   }
 }
