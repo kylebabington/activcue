@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
-import { redirectToCheckout } from "../api/billingApi";
+import { getBillingPlans, redirectToCheckout } from "../api/billingApi";
 import { ApiRequestError } from "../api/apiClient";
+import BillingPlanCards from "../components/billing/BillingPlanCards";
 import MomentDemo from "../components/landing/MomentDemo";
 import {
   DEMO_VIDEO_POSTER_SRC,
@@ -15,16 +16,17 @@ import { supabase } from "../lib/supabaseClient";
 import { trackProductEvent } from "../utils/analytics";
 import { buildSignupUrl } from "../utils/signupUrls";
 import "../styles/landing.css";
+import "../styles/pages.css";
 
 function AgeAdaptationPreview() {
   const young = matchDemoActivities({
     momentId: "dinner",
-    childId: "leo",
+    childAges: [6],
     limit: 1,
   });
   const teen = matchDemoActivities({
     momentId: "dinner",
-    childId: "jack",
+    childAges: [13],
     limit: 1,
   });
   const youngTitle = young.results[0]?.activity?.title || "Secret Animal Rescue";
@@ -74,8 +76,8 @@ function DemoVideoSection() {
         <h2 id="video-title">See the FamilyFlow workflow</h2>
         <p className="landing-section-lead">
           A parent sets the moment. A kid chooses who&apos;s playing, energy, and
-          Pretend mode. FamilyFlow matches three activities, opens the full
-          activity details, and gets them into the first step.
+          style. FamilyFlow matches activities from the demo library, and you can
+          unlock one complete activity free.
         </p>
         <video
           key={DEMO_VIDEO_SRC}
@@ -97,8 +99,11 @@ function DemoVideoSection() {
 
 function LandingPage() {
   const [canSubscribe, setCanSubscribe] = useState(false);
-  const [checkoutBusy, setCheckoutBusy] = useState(false);
+  const [checkoutBusy, setCheckoutBusy] = useState(null);
   const [checkoutError, setCheckoutError] = useState("");
+  const [plansById, setPlansById] = useState({});
+  const [plansLoading, setPlansLoading] = useState(true);
+  const [plansError, setPlansError] = useState("");
 
   useEffect(() => {
     let isMounted = true;
@@ -139,18 +144,52 @@ function LandingPage() {
     };
   }, []);
 
-  async function handleGetPlus() {
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadPlans() {
+      setPlansLoading(true);
+      setPlansError("");
+      try {
+        const result = await getBillingPlans();
+        if (!cancelled) {
+          setPlansById(result.byPlan || {});
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setPlansById({});
+          setPlansError(
+            error?.message ||
+              "Could not load subscription prices. Try again shortly."
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setPlansLoading(false);
+        }
+      }
+    }
+
+    void loadPlans();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function handleCheckout(plan) {
     setCheckoutError("");
-    setCheckoutBusy(true);
+    setCheckoutBusy(plan);
 
     try {
-      await redirectToCheckout();
+      await redirectToCheckout({ plan });
     } catch (error) {
       if (
         error instanceof ApiRequestError &&
         error.code === "ACCOUNT_REQUIRED"
       ) {
-        window.location.assign("/signup");
+        window.location.assign(
+          buildSignupUrl({ next: "checkout", plan })
+        );
         return;
       }
 
@@ -158,7 +197,7 @@ function LandingPage() {
         error?.message ||
           "Could not start checkout. Try again in a moment."
       );
-      setCheckoutBusy(false);
+      setCheckoutBusy(null);
     }
   }
 
@@ -183,14 +222,14 @@ function LandingPage() {
             </Link>
             <Link
               className="landing-topbar-cta"
-              to="/onboarding"
+              to="/signup"
               onClick={() =>
-                trackProductEvent("landing_demo_cta_clicked", {
+                trackProductEvent("landing_signup_cta_clicked", {
                   source: "topbar",
                 })
               }
             >
-              Find something now
+              Create free account
             </Link>
           </div>
         </div>
@@ -205,25 +244,35 @@ function LandingPage() {
               Activities that fit the moment you&apos;re actually in.
             </h1>
             <p className="landing-hero-support">
-              Tell FamilyFlow what the house can handle right now — time,
-              energy, mess, supervision, age, and supplies — and get activities
-              your kids can actually start.
+              Try FamilyFlow free. Tell us what&apos;s happening and the ages of
+              up to two kids. We&apos;ll match activities from our demo library,
+              and you can unlock the full details of one activity free. No
+              account required. FamilyFlow Plus unlocks unlimited personalized
+              activities.
             </p>
             <div className="landing-hero-actions">
               <Link
                 className="landing-btn landing-btn--primary"
-                to="/onboarding"
+                to="/signup"
+                onClick={() =>
+                  trackProductEvent("landing_signup_cta_clicked", {
+                    source: "hero",
+                  })
+                }
+              >
+                Create free account
+              </Link>
+              <Link
+                className="landing-btn landing-btn--ghost"
+                to="/demo"
                 onClick={() =>
                   trackProductEvent("landing_demo_cta_clicked", {
                     source: "hero",
                   })
                 }
               >
-                Find something now
-              </Link>
-              <a className="landing-btn landing-btn--ghost" href="#try-demo">
                 Try the demo
-              </a>
+              </Link>
             </div>
           </div>
         </div>
@@ -236,6 +285,16 @@ function LandingPage() {
       >
         <div className="landing-section-inner landing-section-inner--wide">
           <MomentDemo />
+          <div className="landing-section-cta">
+            <h3>Like what you see?</h3>
+            <p>
+              Create your free FamilyFlow account and start building activities
+              around your actual kids, supplies, schedule, and home.
+            </p>
+            <Link className="landing-btn landing-btn--primary" to="/signup">
+              Create free account
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -260,6 +319,11 @@ function LandingPage() {
             challenge change with the kid in front of you.
           </p>
           <AgeAdaptationPreview />
+          <div className="landing-section-cta">
+            <Link className="landing-btn landing-btn--primary" to="/signup">
+              Set up your family
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -277,8 +341,8 @@ function LandingPage() {
             <li>Rescue Mode — calm fallback when the house needs a reset</li>
             <li>Offline shell — keep running a started Activity V2 without Wi‑Fi</li>
           </ul>
-          <Link className="landing-btn landing-btn--primary" to="/onboarding">
-            Get your first activity
+          <Link className="landing-btn landing-btn--primary" to="/demo">
+            Start free
           </Link>
         </div>
       </section>
@@ -291,46 +355,44 @@ function LandingPage() {
         <div className="landing-section-inner">
           <h2 id="plus-title">Free to try. Plus when you want more.</h2>
           <p className="landing-section-lead">
-            Start without an account. Create a free account when you want to
-            remember what worked. Plus unlocks unlimited personalized ideas.
-          </p>
-          <ul className="landing-perk-list landing-perk-list--plus">
-            <li>Unlimited personalized ideas for your supplies and moment</li>
-            <li>Unlimited imaginative pretend activities</li>
-            <li>Emergency AI hints only after built-in help</li>
-            <li>Favorites and history sync when signed in</li>
-          </ul>
-          <p className="landing-plus-note">
-            {canSubscribe
-              ? "Subscribe to Plus when you are ready for unlimited personalized ideas."
-              : "Create a free account after your first win, then upgrade when it helps."}
+            Try the demo without an account. Create a free account to
+            personalize FamilyFlow for your family. Plus unlocks unlimited
+            personalized ideas when you want more.
           </p>
           {checkoutError ? (
             <p className="landing-plus-note" role="alert">
               {checkoutError}
             </p>
           ) : null}
+          <BillingPlanCards
+            monthlyPlan={plansById.monthly || null}
+            annualPlan={plansById.annual || null}
+            plansLoading={plansLoading}
+            plansError={plansError}
+            mode={canSubscribe ? "checkout" : "signup"}
+            checkoutBusyPlan={checkoutBusy}
+            onCheckout={handleCheckout}
+            showFreePerks
+            freeCtaTo="/signup"
+            freeCtaLabel="Create free account"
+          />
+        </div>
+      </section>
+
+      <section className="landing-section landing-section--tint" aria-labelledby="final-cta-title">
+        <div className="landing-section-inner landing-final-cta">
+          <h2 id="final-cta-title">Create your FamilyFlow</h2>
+          <p>
+            See several matches. Unlock one complete activity free. Then make it
+            yours with a free account — or go further with Plus.
+          </p>
           <div className="landing-hero-actions">
-            {canSubscribe ? (
-              <button
-                type="button"
-                className="landing-btn landing-btn--primary"
-                onClick={handleGetPlus}
-                disabled={checkoutBusy}
-              >
-                {checkoutBusy ? "Starting checkout…" : "Get FamilyFlow Plus"}
-              </button>
-            ) : (
-              <Link
-                className="landing-btn landing-btn--primary"
-                to={buildSignupUrl({ next: "checkout", plan: "monthly" })}
-              >
-                Sign up for Plus
-              </Link>
-            )}
-            <a className="landing-btn landing-btn--ghost" href="#top">
-              Back to top
-            </a>
+            <Link className="landing-btn landing-btn--primary" to="/signup">
+              Create your FamilyFlow
+            </Link>
+            <Link className="landing-btn landing-btn--ghost" to="/demo">
+              Try the demo
+            </Link>
           </div>
         </div>
       </section>

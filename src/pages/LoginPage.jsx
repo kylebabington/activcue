@@ -112,7 +112,7 @@ function LoginPage() {
             {" · "}
             <Link to="/forgot-password">Forgot password</Link>
             {" · "}
-            <Link to="/app">Try sample activities</Link>
+            <Link to="/demo">Try the demo</Link>
           </p>
         </div>
       </section>

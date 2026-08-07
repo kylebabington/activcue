@@ -2,10 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import {
-  formatStripeAmount,
-  intervalLabelForPlan,
-} from "../../utils/money";
+import BillingPlanCards from "../../components/billing/BillingPlanCards";
 import { getBillingPlans } from "../../api/billingApi";
 import { buildSignupUrl } from "../../utils/signupUrls";
 
@@ -23,33 +20,6 @@ function formatBillingDate(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
   return new Intl.DateTimeFormat(undefined, { dateStyle: "long" }).format(date);
-}
-
-function PlanPrice({ plan, loading }) {
-  if (loading) {
-    return (
-      <p className="billing-plan-price">
-        <strong>…</strong>
-        <span>loading</span>
-      </p>
-    );
-  }
-
-  if (!plan) {
-    return (
-      <p className="billing-plan-price">
-        <strong>—</strong>
-        <span>unavailable</span>
-      </p>
-    );
-  }
-
-  return (
-    <p className="billing-plan-price">
-      <strong>{formatStripeAmount(plan.unitAmount, plan.currency)}</strong>
-      <span>{intervalLabelForPlan(plan.interval)}</span>
-    </p>
-  );
 }
 
 export default function SettingsPlusSection({
@@ -269,46 +239,17 @@ export default function SettingsPlusSection({
             </div>
           ) : null}
 
-          <div className="billing-plan-grid">
-            <article className="billing-plan-card">
-              <p className="billing-plan-name">Free plan</p>
-              <p>
-                Try FamilyFlow and keep your family&apos;s settings. Upgrade for
-                AI-powered ideas anytime.
-              </p>
-            </article>
-
-            <article className="billing-plan-card">
-              <p className="billing-plan-name">Monthly</p>
-              <PlanPrice plan={monthlyPlan} loading={plansLoading} />
-              <button
-                type="button"
-                className="billing-plan-action"
-                disabled={checkoutDisabled}
-                onClick={() => handleStartCheckout("monthly")}
-              >
-                {billingPlanLoading === "monthly"
-                  ? "Opening Checkout…"
-                  : "Upgrade"}
-              </button>
-            </article>
-
-            <article className="billing-plan-card billing-plan-card--featured">
-              <p className="billing-plan-badge">Best value</p>
-              <p className="billing-plan-name">Annual</p>
-              <PlanPrice plan={annualPlan} loading={plansLoading} />
-              <button
-                type="button"
-                className="billing-plan-action"
-                disabled={checkoutDisabled}
-                onClick={() => handleStartCheckout("annual")}
-              >
-                {billingPlanLoading === "annual"
-                  ? "Opening Checkout…"
-                  : "Upgrade"}
-              </button>
-            </article>
-          </div>
+          <BillingPlanCards
+            monthlyPlan={monthlyPlan}
+            annualPlan={annualPlan}
+            plansLoading={plansLoading}
+            mode="checkout"
+            checkoutBusyPlan={billingPlanLoading}
+            checkoutDisabled={checkoutDisabled}
+            onCheckout={handleStartCheckout}
+            freeCtaTo="/app"
+            freeCtaLabel="Continue with Free"
+          />
 
           <button
             type="button"

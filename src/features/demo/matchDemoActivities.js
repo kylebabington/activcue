@@ -7,6 +7,9 @@ import { getDemoMoment } from "../../constants/demoMoments";
 import { DEMO_CHILDREN, getDemoChild } from "../../constants/demoChildren";
 import { storyifyCachedImaginativeActivity } from "./storyifyCachedImaginativeActivity";
 
+const MIN_DEMO_AGE = 3;
+const MAX_DEMO_AGE = 17;
+
 function formatWhyFitChips(activity, moment) {
   const chips = [];
   const minutes =
@@ -18,6 +21,7 @@ function formatWhyFitChips(activity, moment) {
   if (activity?.energy) chips.push(String(activity.energy));
   if (activity?.adultHelp === "none") chips.push("independent");
   else if (activity?.adultHelp) chips.push(`${activity.adultHelp} help`);
+  if (activity?.activityStyle) chips.push(String(activity.activityStyle));
   if (moment?.space) chips.push(String(moment.space).toLowerCase());
   if (activity?.ageFit?.minAge != null && activity?.ageFit?.maxAge != null) {
     chips.push(`ages ${activity.ageFit.minAge}–${activity.ageFit.maxAge}`);
@@ -29,39 +33,92 @@ function childIdFromProfile(child) {
   if (!child?.id) return "maya";
   if (child.id.includes("jack")) return "jack";
   if (child.id.includes("leo")) return "leo";
+  if (child.id.startsWith("demo-child-")) return child.id;
   return "maya";
+}
+
+function clampDemoAge(age) {
+  const n = Math.round(Number(age));
+  if (!Number.isFinite(n)) return 8;
+  return Math.min(MAX_DEMO_AGE, Math.max(MIN_DEMO_AGE, n));
+}
+
+/**
+ * Build lightweight temporary demo profiles from ages (no names required).
+ */
+export function buildDemoChildProfiles(childAges = [8]) {
+  const ages = (Array.isArray(childAges) ? childAges : [childAges])
+    .slice(0, 2)
+    .map(clampDemoAge);
+
+  if (ages.length === 0) {
+    ages.push(8);
+  }
+
+  return ages.map((ageYears, index) => ({
+    id: `demo-child-${index + 1}`,
+    name: ages.length === 1 ? "Child" : `Child ${index + 1}`,
+    ageYears,
+    ageRange: null,
+    birthDate: null,
+    interests: "",
+    needs: "",
+  }));
+}
+
+function resolveDemoChildren({ childAges, childId }) {
+  if (Array.isArray(childAges) && childAges.length > 0) {
+    return buildDemoChildProfiles(childAges);
+  }
+
+  const child = getDemoChild(childId || "maya");
+  return [child];
 }
 
 /**
  * Deterministic Fit Score matching for landing /demo.
  * Never calls OpenAI or network APIs.
+ *
+ * Prefer `childAges` (1–2 ages). `childId` remains for the landing teaser
+ * that still uses named demo kids.
  */
 export function matchDemoActivities({
   momentId = "dinner",
   childId = "maya",
+  childAges = null,
   pool = DEMO_ACTIVITY_POOL,
   limit = 3,
   offset = 0,
+  activityStyle = null,
 } = {}) {
   const demoMoment = getDemoMoment(momentId);
-  const child = getDemoChild(childId);
-  const explicitAge = Number(child.ageYears);
-  const ageYears = Number.isFinite(explicitAge)
-    ? explicitAge
-    : resolveChildAge(child).ageYears;
+  const children = resolveDemoChildren({ childAges, childId });
+  const ages = children.map((child) => {
+    const explicitAge = Number(child.ageYears);
+    return Number.isFinite(explicitAge)
+      ? explicitAge
+      : resolveChildAge(child).ageYears;
+  });
+  const primaryChild = children[0];
   const currentMoment = demoMoment.moment;
-  const storyReadyPool = Array.isArray(pool)
-    ? pool.map(storyifyCachedImaginativeActivity)
-    : [];
+
+  let workingPool = Array.isArray(pool) ? pool : [];
+  if (activityStyle === "simple" || activityStyle === "imaginative") {
+    workingPool = workingPool.filter(
+      (activity) => activity?.activityStyle === activityStyle
+    );
+  }
+
+  const storyReadyPool = workingPool.map(storyifyCachedImaginativeActivity);
 
   const ranked = scoreActivitiesForCurrentMoment({
     activities: storyReadyPool,
     currentMoment,
     activityHistory: [],
     activitySessions: [],
-    childAges: [ageYears],
-    selectedChildProfiles: [child],
-    scoringOptions: { activeChildId: child.id },
+    childAges: ages,
+    selectedChildProfiles: children,
+    scoringOptions: { activeChildId: primaryChild.id },
   });
 
   const start = Math.max(0, Number(offset) || 0);
@@ -72,9 +129,12 @@ export function matchDemoActivities({
     momentId: demoMoment.id,
     moment: currentMoment,
     momentLabel: demoMoment.label,
-    child,
-    childId: childIdFromProfile(child),
-    childAgeYears: ageYears,
+    child: primaryChild,
+    children,
+    childId: childAges ? primaryChild.id : childIdFromProfile(primaryChild),
+    childAges: ages,
+    childAgeYears: ages[0],
+    activityStyle: activityStyle || null,
     totalMatches: ranked.length,
     offset: start,
     hasMore: start + size < ranked.length,
@@ -100,9 +160,8 @@ export function matchDemoActivities({
   };
 }
 
-/** Swap to the next three already-ranked candidates (Plan B). */
+/** Swap to the next already-ranked candidates (Plan B). */
 export function rotateDemoResults(matchResult, overrides = {}) {
-  const childId = overrides.childId || matchResult?.childId || "maya";
   const momentId = overrides.momentId || matchResult?.momentId || "dinner";
   const batchSize = overrides.limit || 3;
   const nextOffset =
@@ -110,12 +169,24 @@ export function rotateDemoResults(matchResult, overrides = {}) {
   const total = matchResult?.totalMatches || 0;
   const wrapped = total > 0 && nextOffset >= total ? 0 : nextOffset;
 
+  const childAges =
+    overrides.childAges ||
+    matchResult?.childAges ||
+    null;
+  const childId = overrides.childId || matchResult?.childId || "maya";
+  const activityStyle =
+    overrides.activityStyle ?? matchResult?.activityStyle ?? null;
+  const pool = overrides.pool;
+
   return matchDemoActivities({
     momentId,
     childId,
+    childAges,
+    activityStyle,
+    pool,
     limit: batchSize,
     offset: wrapped,
   });
 }
 
-export { DEMO_CHILDREN };
+export { DEMO_CHILDREN, MIN_DEMO_AGE, MAX_DEMO_AGE };

@@ -14,6 +14,7 @@ import billingRouter, {
   handleStripeWebhook,
 } from "./routes/billing.js";
 import presetActivitiesRouter from "./routes/presetActivities.js";
+import demoRouter from "./routes/demo.js";
 import familySettingsRouter from "./routes/familySettings.js";
 import familyMemoryRouter from "./routes/familyMemory.js";
 import familyInsightsRouter from "./routes/familyInsights.js";
@@ -230,6 +231,12 @@ app.use("/api", billingRouter);
  * These require a valid Supabase user but do not call OpenAI.
  */
 app.use("/api", presetActivitiesRouter);
+
+/*
+ * Public /demo free-unlock claim (anonymous session OK).
+ * Consumes free_imaginative_activity_id so conversion preserves it.
+ */
+app.use("/api", demoRouter);
 
 /*
  * Durable family settings (children, inventory, safety, moment, presets).
