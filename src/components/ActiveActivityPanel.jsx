@@ -1,14 +1,19 @@
 import { useEffect, useMemo, useRef } from "react";
 import QuestContent from "./quest/QuestContent";
+import ListeningModePanel from "./quest/ListeningModePanel";
+import SpeakButton from "./SpeakButton";
 import { getDefaultOpenSections } from "./quest/questSectionDefaults";
 import { useActivityTimer } from "../features/quest/useActivityTimer";
+import { useSpeechSynthesis } from "../hooks/useSpeechSynthesis";
 import { formatTimer } from "../utils/activityFormatters";
+import { buildNarrationText } from "../utils/buildNarrationText";
 import {
   getActivityRoleLabel,
   getStepDetails,
   getVisualThemeMeta,
 } from "../utils/activityVisualTheme";
 import { trackProductEvent } from "../utils/analytics";
+import { isSpeechSynthesisSupported } from "../utils/speechSynthesis";
 
 function ActiveActivityPanel({
   activeActivity,
@@ -26,9 +31,12 @@ function ActiveActivityPanel({
   assignRole,
   toggleBuiltInHelp,
   setOpenSection,
+  completeListeningIntro,
+  setActivityReadingModeEnabled,
   playingChildren = [],
 }) {
   const timerSecondsRemaining = useActivityTimer(activeActivity);
+  const { speak, supported: speechSupported } = useSpeechSynthesis();
   const theme = getVisualThemeMeta(activeActivity.visualTheme);
   const roleName = getActivityRoleLabel(activeActivity);
   const steps = getStepDetails(activeActivity);
@@ -49,20 +57,23 @@ function ActiveActivityPanel({
   const focusStepIndex =
     firstIncompleteIndex >= 0 ? firstIncompleteIndex : steps.length - 1;
   const didScrollOnMount = useRef(false);
+  const readingMode = activeActivity.readingMode || {};
+  const listeningEnabled = Boolean(readingMode.enabled);
+  const showNextPrompt =
+    isSpeechSynthesisSupported() &&
+    (listeningEnabled || readingMode.showNextPrompt !== false);
+  const speechRate = Number(readingMode.speechRate) || 0.9;
 
-  // Keep unused phased helpers referenced so callers stay stable during migration.
-  void goToNextQuestStep;
-  void goToPreviousQuestStep;
   void setQuestPhase;
   void toggleBuiltInHelp;
 
   useEffect(() => {
-    if (didScrollOnMount.current) return;
+    if (listeningEnabled || didScrollOnMount.current) return;
     didScrollOnMount.current = true;
     if (focusStepIndex < 0) return;
     const node = document.getElementById(`quest-step-${focusStepIndex}`);
     node?.scrollIntoView?.({ behavior: "smooth", block: "nearest" });
-  }, [focusStepIndex]);
+  }, [focusStepIndex, listeningEnabled]);
 
   useEffect(() => {
     if (!timerDone) return;
@@ -78,6 +89,15 @@ function ActiveActivityPanel({
     [activeActivity.extensionIdeas]
   );
 
+  const nextStepNarration = useMemo(
+    () =>
+      buildNarrationText(activeActivity, "next", {
+        selectedRoleName: activeActivity.selectedRoleName || roleName,
+        roleAssignments: activeActivity.roleAssignments,
+      }),
+    [activeActivity, roleName]
+  );
+
   function handleImStuck(stepIndex, promptIndex) {
     trackProductEvent("built_in_help_opened", {
       title: activeActivity.title,
@@ -89,40 +109,117 @@ function ActiveActivityPanel({
     });
   }
 
+  function handleWhatDoIDoNext() {
+    if (!nextStepNarration) return;
+    trackProductEvent("speech_read_requested", { section: "next" });
+    if (speechSupported) {
+      speak(nextStepNarration, {
+        rate: speechRate,
+        key: "what-do-i-do-next",
+      });
+    }
+  }
+
+  function handleToggleListeningMode() {
+    const nextEnabled = !listeningEnabled;
+    trackProductEvent("listening_mode_toggled", {
+      enabled: nextEnabled,
+      title: activeActivity.title,
+    });
+    setActivityReadingModeEnabled?.(nextEnabled);
+  }
+
   return (
     <section
       id="active-activity-panel"
       className="panel active-activity-panel pretend-active-panel quest-v2-panel"
       style={{ "--activity-theme-accent": theme.accent }}
     >
-      <h1 className="simple-active-title">{activeActivity.title}</h1>
+      <div className="active-activity-toolbar">
+        <h1 className="simple-active-title">{activeActivity.title}</h1>
+        {isSpeechSynthesisSupported() ? (
+          <button
+            type="button"
+            className="secondary-action active-listening-toggle"
+            onClick={handleToggleListeningMode}
+            aria-pressed={listeningEnabled}
+          >
+            {listeningEnabled ? "Show all steps" : "Listening mode"}
+          </button>
+        ) : null}
+      </div>
 
-      <QuestContent
-        activity={activeActivity}
-        mode="active"
-        currentMoment={currentMoment}
-        openSections={openSections}
-        onSectionOpenChange={(key, nextOpen) => setOpenSection?.(key, nextOpen)}
-        completedStepIndexes={completedStepIndexes}
-        checkedStarterIndexes={checkedStarterIndexes}
-        onToggleStep={toggleQuestStepComplete}
-        onToggleStarter={toggleStarterIdea}
-        onImStuck={handleImStuck}
-        focusStepIndex={focusStepIndex}
-        playingChildren={playingChildren}
-        roleAssignments={activeActivity.roleAssignments}
-        onAssignRole={assignRole}
-        selectedRoleName={activeActivity.selectedRoleName || roleName}
-        extensionIdeas={extensionIdeas}
-        onFinish={finishActiveActivity}
-        timerSecondsRemaining={timerSecondsRemaining}
-        formatTimer={formatTimer}
-        timerDone={timerDone}
-        onTimerFinished={finishActiveActivity}
-        onTimerNotFinished={handleTimerNotFinished}
-        onTimerNeedAnotherIdea={handleTimerNeedAnotherIdea}
-        onTimerMoreLikeThis={handleTimerMoreLikeThis}
-      />
+      {listeningEnabled ? (
+        <ListeningModePanel
+          activity={activeActivity}
+          playingChildren={playingChildren}
+          roleAssignments={activeActivity.roleAssignments}
+          onAssignRole={assignRole}
+          onCompleteIntro={completeListeningIntro}
+          goToNextQuestStep={goToNextQuestStep}
+          goToPreviousQuestStep={goToPreviousQuestStep}
+          onFinish={finishActiveActivity}
+          timerSecondsRemaining={timerSecondsRemaining}
+          timerDone={timerDone}
+          onTimerFinished={finishActiveActivity}
+          onTimerNotFinished={handleTimerNotFinished}
+          onTimerNeedAnotherIdea={handleTimerNeedAnotherIdea}
+          onTimerMoreLikeThis={handleTimerMoreLikeThis}
+          onImStuck={handleImStuck}
+        />
+      ) : (
+        <QuestContent
+          activity={activeActivity}
+          mode="active"
+          currentMoment={currentMoment}
+          openSections={openSections}
+          onSectionOpenChange={(key, nextOpen) => setOpenSection?.(key, nextOpen)}
+          completedStepIndexes={completedStepIndexes}
+          checkedStarterIndexes={checkedStarterIndexes}
+          onToggleStep={toggleQuestStepComplete}
+          onToggleStarter={toggleStarterIdea}
+          onImStuck={handleImStuck}
+          focusStepIndex={focusStepIndex}
+          playingChildren={playingChildren}
+          roleAssignments={activeActivity.roleAssignments}
+          onAssignRole={assignRole}
+          selectedRoleName={activeActivity.selectedRoleName || roleName}
+          extensionIdeas={extensionIdeas}
+          onFinish={finishActiveActivity}
+          timerSecondsRemaining={timerSecondsRemaining}
+          formatTimer={formatTimer}
+          timerDone={timerDone}
+          onTimerFinished={finishActiveActivity}
+          onTimerNotFinished={handleTimerNotFinished}
+          onTimerNeedAnotherIdea={handleTimerNeedAnotherIdea}
+          onTimerMoreLikeThis={handleTimerMoreLikeThis}
+          speechRate={speechRate}
+        />
+      )}
+
+      {showNextPrompt && nextStepNarration ? (
+        <div className="what-next-bar">
+          {listeningEnabled ? (
+            <button
+              type="button"
+              className="what-next-button"
+              onClick={handleWhatDoIDoNext}
+            >
+              What do I do next?
+            </button>
+          ) : (
+            <SpeakButton
+              text={nextStepNarration}
+              label="What do I do next?"
+              speechKey="what-do-i-do-next"
+              rate={speechRate}
+              section="next"
+              size="large"
+              className="what-next-speak"
+            />
+          )}
+        </div>
+      ) : null}
 
       <div className="simple-active-actions quest-v2-global-actions">
         <button type="button" className="ghost-button" onClick={cancelActiveActivity}>

@@ -228,6 +228,9 @@ function SettingsPage() {
             <SettingsKidModeSection
               kidDeviceMode={ctx.kidDeviceMode}
               setKidDeviceMode={ctx.setKidDeviceMode}
+              readingModePreference={ctx.readingModePreference}
+              setReadingModePreference={ctx.setReadingModePreference}
+              updateReadingModeSettings={ctx.updateReadingModeSettings}
             />
           ) : null}
 
