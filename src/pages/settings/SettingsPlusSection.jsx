@@ -4,9 +4,9 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   formatStripeAmount,
-  getBillingPlans,
   intervalLabelForPlan,
-} from "../../api/billingApi";
+} from "../../utils/money";
+import { getBillingPlans } from "../../api/billingApi";
 import { buildSignupUrl } from "../../utils/signupUrls";
 
 function formatSubscriptionStatus(status) {

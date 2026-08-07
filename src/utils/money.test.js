@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   formatStripeAmount,
   intervalLabelForPlan,
-} from "./billingApi.js";
+} from "./money.js";
 
 describe("formatStripeAmount", () => {
   it("formats Stripe unit amounts as currency", () => {
