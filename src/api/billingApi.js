@@ -3,6 +3,7 @@
 import {
   ApiRequestError,
   authenticatedRequest,
+  publicRequest,
 } from "./apiClient";
 
 /*
@@ -16,6 +17,73 @@ const VALID_BILLING_PLANS = new Set([
   "monthly",
   "annual",
 ]);
+
+/*
+ * Format a Stripe unit_amount (smallest currency unit) for display.
+ */
+export function formatStripeAmount(unitAmount, currency = "usd") {
+  const amount = Number(unitAmount);
+  if (!Number.isFinite(amount)) {
+    return "";
+  }
+
+  const normalizedCurrency =
+    typeof currency === "string" && currency.trim()
+      ? currency.trim().toLowerCase()
+      : "usd";
+
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency: normalizedCurrency,
+    }).format(amount / 100);
+  } catch {
+    return `$${(amount / 100).toFixed(2)}`;
+  }
+}
+
+export function intervalLabelForPlan(interval) {
+  if (interval === "year") {
+    return "per year";
+  }
+  if (interval === "month") {
+    return "per month";
+  }
+  if (typeof interval === "string" && interval.trim()) {
+    return `per ${interval.trim()}`;
+  }
+  return "";
+}
+
+/*
+ * Load display amounts for monthly/annual from Stripe via the FamilyFlow API.
+ */
+export async function getBillingPlans() {
+  const response = await publicRequest("/api/billing/plans", {
+    method: "GET",
+  });
+  const payload = await response.json();
+  const plans = Array.isArray(payload?.plans) ? payload.plans : [];
+
+  if (plans.length === 0) {
+    throw new ApiRequestError(
+      "Subscription prices are unavailable right now.",
+      {
+        status: 502,
+        code: "PLANS_UNAVAILABLE",
+      }
+    );
+  }
+
+  return {
+    plans,
+    byPlan: Object.fromEntries(
+      plans
+        .filter((plan) => plan && typeof plan.plan === "string")
+        .map((plan) => [plan.plan, plan])
+    ),
+  };
+}
 
 /*
  * Ask the Express server to create a Stripe-hosted Checkout Session.

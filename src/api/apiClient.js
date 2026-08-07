@@ -190,3 +190,34 @@ export async function authenticatedRequest(
 
     return response;
 }
+
+/*
+ * Unauthenticated API request (public endpoints such as billing plans).
+ */
+export async function publicRequest(path, options = {}) {
+  const headers = new Headers(options.headers || {});
+
+  if (options.body && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    ...options,
+    headers,
+  });
+
+  if (!response.ok) {
+    const errorBody = await readErrorBody(response);
+    throw new ApiRequestError(
+      errorBody.message ||
+        `The request failed with status ${response.status}.`,
+      {
+        status: response.status,
+        code: errorBody.code || "API_REQUEST_FAILED",
+        details: errorBody.details,
+      }
+    );
+  }
+
+  return response;
+}

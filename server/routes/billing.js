@@ -22,6 +22,7 @@ import {
   getPriceIdForPlan,
   isValidBillingPlan,
 } from "../lib/billingHelpers.js";
+import { getBillingPlans } from "../lib/billingPlans.js";
 import { requireAuthenticatedUser } from "../middleware/requireAuthenticatedUser.js";
 import { ensureUserProfile } from "../middleware/ensureUserProfile.js";
 import { billingRateLimiter } from "../middleware/rateLimits.js";
@@ -39,6 +40,33 @@ function billingNotConfiguredResponse(res) {
     code: "STRIPE_NOT_CONFIGURED",
   });
 }
+
+/*
+ * GET /api/billing/plans
+ *
+ * Public display amounts for monthly/annual Plus, loaded from Stripe Price
+ * objects pointed at by STRIPE_MONTHLY_PRICE_ID / STRIPE_ANNUAL_PRICE_ID.
+ */
+router.get("/billing/plans", billingRateLimiter, async (_req, res) => {
+  if (!process.env.STRIPE_SECRET_KEY) {
+    return billingNotConfiguredResponse(res);
+  }
+
+  try {
+    const plans = await getBillingPlans();
+    return res.json({ plans });
+  } catch (error) {
+    if (error?.code === "STRIPE_NOT_CONFIGURED") {
+      return billingNotConfiguredResponse(res);
+    }
+
+    console.error("Could not load billing plans from Stripe:", error);
+    return res.status(502).json({
+      error: "Could not load subscription prices right now. Try again shortly.",
+      code: "PLANS_UNAVAILABLE",
+    });
+  }
+});
 
 /*
  * Update whether the authenticated user's subscription will renew.
