@@ -939,6 +939,23 @@ button.landing-btn:disabled {
   color: var(--color-kid);
 }
 
+.landing-pricing-error {
+  display: grid;
+  gap: 0.75rem;
+  justify-items: start;
+  margin: 0 0 1rem;
+  padding: 0.9rem 1rem;
+  border-radius: var(--radius-small);
+  border: 1px solid color-mix(in srgb, #b45309 35%, transparent);
+  background: color-mix(in srgb, #f59e0b 12%, var(--color-surface));
+  color: var(--color-text);
+}
+
+.landing-pricing-error p {
+  margin: 0;
+  line-height: 1.45;
+}
+
 .landing-pricing-compare {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

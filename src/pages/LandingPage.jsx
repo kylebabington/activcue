@@ -9,7 +9,6 @@ import Modal from "../components/Modal";
 import LandingPricingCompare from "../components/landing/LandingPricingCompare";
 import LandingProductShowcase from "../components/landing/LandingProductShowcase";
 import LandingSituations from "../components/landing/LandingSituations";
-import MomentDemo from "../components/landing/MomentDemo";
 import {
   DEMO_VIDEO_POSTER_SRC,
   DEMO_VIDEO_SRC,
@@ -67,6 +66,7 @@ function LandingPage() {
   const [plansById, setPlansById] = useState({});
   const [plansLoading, setPlansLoading] = useState(true);
   const [plansError, setPlansError] = useState("");
+  const [plansReloadKey, setPlansReloadKey] = useState(0);
   const [navOpen, setNavOpen] = useState(false);
   const [hasVideo, setHasVideo] = useState(false);
   const [videoOpen, setVideoOpen] = useState(false);
@@ -167,7 +167,7 @@ function LandingPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [plansReloadKey]);
 
   useEffect(() => {
     let cancelled = false;
@@ -360,16 +360,6 @@ function LandingPage() {
 
       <LandingSituations />
 
-      <section
-        className="landing-section landing-section--demo"
-        id="try-demo"
-        aria-labelledby="try-demo-title"
-      >
-        <div className="landing-section-inner landing-section-inner--wide">
-          <MomentDemo />
-        </div>
-      </section>
-
       <LandingProductShowcase
         hasVideo={hasVideo}
         onOpenVideo={() => setVideoOpen(true)}
@@ -440,6 +430,7 @@ function LandingPage() {
             mode={canSubscribe ? "checkout" : "signup"}
             checkoutBusyPlan={checkoutBusy}
             onCheckout={handleCheckout}
+            onRetryPlans={() => setPlansReloadKey((key) => key + 1)}
           />
         </div>
       </section>

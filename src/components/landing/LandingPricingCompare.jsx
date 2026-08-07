@@ -1,7 +1,10 @@
 // src/components/landing/LandingPricingCompare.jsx
 
 import { Link } from "react-router-dom";
-import { formatStripeAmount } from "../../utils/money";
+import {
+  formatStripeAmount,
+  intervalLabelForPlan,
+} from "../../utils/money";
 import { buildSignupUrl } from "../../utils/signupUrls";
 
 function annualSavingsPercent(monthlyPlan, annualPlan) {
@@ -15,16 +18,33 @@ function annualSavingsPercent(monthlyPlan, annualPlan) {
   return Math.round(((yearlyAtMonthly - annual) / yearlyAtMonthly) * 100);
 }
 
-function priceLabel(plan, loading, error) {
-  if (loading) return { amount: "…", interval: "loading" };
-  if (plan) {
-    return {
-      amount: formatStripeAmount(plan.unitAmount, plan.currency),
-      interval: plan.interval === "year" ? "per year" : "per month",
-    };
+function PriceAmount({ plan, loading, error }) {
+  if (loading) {
+    return (
+      <p className="landing-pricing-amount">
+        <strong>…</strong>
+        <span>loading</span>
+      </p>
+    );
   }
-  if (error) return { amount: "—", interval: "unavailable" };
-  return { amount: "—", interval: "" };
+
+  if (plan && Number.isFinite(Number(plan.unitAmount))) {
+    return (
+      <p className="landing-pricing-amount">
+        <strong>
+          {formatStripeAmount(plan.unitAmount, plan.currency)}
+        </strong>
+        <span>{intervalLabelForPlan(plan.interval)}</span>
+      </p>
+    );
+  }
+
+  return (
+    <p className="landing-pricing-amount">
+      <strong>—</strong>
+      <span>{error ? "unavailable" : ""}</span>
+    </p>
+  );
 }
 
 /**
@@ -39,12 +59,11 @@ export default function LandingPricingCompare({
   mode = "signup",
   checkoutBusyPlan = null,
   onCheckout,
+  onRetryPlans,
 }) {
   const savePercent = annualSavingsPercent(monthlyPlan, annualPlan);
   const plansReady =
     !plansLoading && !plansError && monthlyPlan && annualPlan;
-  const monthlyLabel = priceLabel(monthlyPlan, plansLoading, plansError);
-  const annualLabel = priceLabel(annualPlan, plansLoading, plansError);
 
   function handlePlusClick(plan) {
     if (mode === "checkout") {
@@ -59,9 +78,21 @@ export default function LandingPricingCompare({
   return (
     <div className="landing-pricing">
       {plansError ? (
-        <p className="landing-plus-note" role="alert">
-          {plansError}
-        </p>
+        <div className="landing-pricing-error" role="alert">
+          <p>
+            {plansError}{" "}
+            Prices load from Stripe when the API is running.
+          </p>
+          {typeof onRetryPlans === "function" ? (
+            <button
+              type="button"
+              className="landing-btn landing-btn--ghost"
+              onClick={onRetryPlans}
+            >
+              Retry loading prices
+            </button>
+          ) : null}
+        </div>
       ) : null}
 
       <div className="landing-pricing-compare landing-pricing-compare--three">
@@ -69,6 +100,7 @@ export default function LandingPricingCompare({
           <h3>Free</h3>
           <p className="landing-pricing-amount">
             <strong>$0</strong>
+            <span>forever</span>
           </p>
           <ul className="landing-pricing-perks">
             <li>Try FamilyFlow</li>
@@ -83,12 +115,11 @@ export default function LandingPricingCompare({
 
         <div className="landing-pricing-col landing-pricing-col--plus">
           <h3>FamilyFlow Plus</h3>
-          <p className="landing-pricing-amount">
-            <strong>{monthlyLabel.amount}</strong>
-            {monthlyLabel.interval ? (
-              <span>{monthlyLabel.interval}</span>
-            ) : null}
-          </p>
+          <PriceAmount
+            plan={monthlyPlan}
+            loading={plansLoading}
+            error={plansError}
+          />
           <ul className="landing-pricing-perks">
             <li>Unlimited personalized activities</li>
             <li>Plan B and Rescue Mode</li>
@@ -118,12 +149,11 @@ export default function LandingPricingCompare({
 
         <div className="landing-pricing-col landing-pricing-col--plus">
           <h3>Plus annual</h3>
-          <p className="landing-pricing-amount">
-            <strong>{annualLabel.amount}</strong>
-            {annualLabel.interval ? (
-              <span>{annualLabel.interval}</span>
-            ) : null}
-          </p>
+          <PriceAmount
+            plan={annualPlan}
+            loading={plansLoading}
+            error={plansError}
+          />
           {savePercent != null ? (
             <p className="landing-pricing-save-line">Save {savePercent}%</p>
           ) : null}
