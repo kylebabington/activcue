@@ -70,6 +70,7 @@ export function AppRoutes({
   setupNudgeNeeded,
   applyOnboardingDraft,
   handleStartActivityFromUi,
+  needsOnboarding = false,
 }) {
   const onGenerateKidActivities = useCallback(
     async (options) => {
@@ -80,6 +81,33 @@ export function AppRoutes({
     },
     [handleGenerateKidActivities]
   );
+
+  if (needsOnboarding) {
+    return (
+      <Routes>
+        <Route
+          path="/onboarding"
+          element={
+            <Suspense fallback={<RouteFallback />}>
+              <OnboardingPage
+                applyOnboardingDraft={applyOnboardingDraft}
+                handleStartActivity={handleStartActivityFromUi}
+              />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/quest"
+          element={
+            <Suspense fallback={<RouteFallback />}>
+              <QuestPage />
+            </Suspense>
+          }
+        />
+        <Route path="*" element={<Navigate to="/onboarding" replace />} />
+      </Routes>
+    );
+  }
 
   return (
     <Routes>

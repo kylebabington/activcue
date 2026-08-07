@@ -441,6 +441,34 @@
   background: color-mix(in srgb, var(--color-primary) 8%, var(--color-surface));
 }
 
+.demo-soft-gate {
+  margin-top: 1.5rem;
+  display: grid;
+  gap: 0.75rem;
+  padding: 1.35rem;
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--color-kid) 10%, var(--color-surface));
+  border: 1px solid color-mix(in srgb, var(--color-kid) 28%, transparent);
+}
+
+.demo-soft-gate h2 {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+}
+
+.demo-soft-gate p {
+  margin: 0;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.demo-aha-kicker {
+  margin: 0 0 0.85rem;
+  color: var(--color-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
 .demo-complete-cta h2 {
   margin: 0;
   font-family: var(--font-heading);

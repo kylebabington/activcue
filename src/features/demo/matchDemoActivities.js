@@ -85,6 +85,10 @@ function resolveDemoChildren({ childAges, childId }) {
  * Prefer `childAges` (1–2 ages). `childId` remains for the landing teaser
  * that still uses named demo kids.
  */
+/**
+ * @param {object} [momentOverrides] Partial moment snapshot (time, space,
+ *   messLevel, supervisionLevel, etc.) merged onto the selected demo moment.
+ */
 export function matchDemoActivities({
   momentId = DEFAULT_DEMO_MOMENT_ID,
   childId = "maya",
@@ -93,6 +97,7 @@ export function matchDemoActivities({
   limit = 3,
   offset = 0,
   activityStyle = null,
+  momentOverrides = null,
 } = {}) {
   const demoMoment = getDemoMoment(momentId);
   const children = resolveDemoChildren({ childAges, childId });
@@ -103,7 +108,12 @@ export function matchDemoActivities({
       : resolveChildAge(child).ageYears;
   });
   const primaryChild = children[0];
-  const currentMoment = demoMoment.moment;
+  const currentMoment = {
+    ...demoMoment.moment,
+    ...(momentOverrides && typeof momentOverrides === "object"
+      ? momentOverrides
+      : {}),
+  };
 
   let workingPool = Array.isArray(pool) ? pool : [];
   if (activityStyle === "simple" || activityStyle === "imaginative") {
@@ -138,6 +148,10 @@ export function matchDemoActivities({
     childAges: ages,
     childAgeYears: ages[0],
     activityStyle: activityStyle || null,
+    momentOverrides:
+      momentOverrides && typeof momentOverrides === "object"
+        ? momentOverrides
+        : null,
     totalMatches: ranked.length,
     offset: start,
     hasMore: start + size < ranked.length,
@@ -181,6 +195,8 @@ export function rotateDemoResults(matchResult, overrides = {}) {
   const activityStyle =
     overrides.activityStyle ?? matchResult?.activityStyle ?? null;
   const pool = overrides.pool;
+  const momentOverrides =
+    overrides.momentOverrides ?? matchResult?.momentOverrides ?? null;
 
   return matchDemoActivities({
     momentId,
@@ -190,6 +206,7 @@ export function rotateDemoResults(matchResult, overrides = {}) {
     pool,
     limit: batchSize,
     offset: wrapped,
+    momentOverrides,
   });
 }
 

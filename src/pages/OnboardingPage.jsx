@@ -1,48 +1,38 @@
+// src/pages/OnboardingPage.jsx
+
 import { useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { LANDING_ACTIVITY_PREVIEW } from "../constants/landingActivityPreview";
-import { defaultParentStatusPresets } from "../constants/presets";
-import { inventoryPresets } from "../constants/inventoryPresets";
-import { trackProductEvent } from "../utils/analytics";
+import { useNavigate } from "react-router-dom";
+import { DEMO_ACTIVITY_POOL } from "../constants/demoActivityPool";
 import {
-  getActivityMissionText,
-  getActivityRoleLabel,
-  getVisualThemeMeta,
-} from "../utils/activityVisualTheme";
+  CHILD_INDEPENDENCE_LEVELS,
+  normalizeChildIndependenceLevel,
+} from "../constants/activityPreferences";
+import { matchDemoActivities } from "../features/demo";
+import { storyifyCachedImaginativeActivity } from "../features/demo/storyifyCachedImaginativeActivity";
+import { trackProductEvent } from "../utils/analytics";
 import {
   ageYearsToAgeRange,
   birthDateFromAgeYears,
   calculateAge,
 } from "../utils/childAge";
+import {
+  clearDemoActivityHandoff,
+  readDemoActivityHandoff,
+} from "../utils/signupUrls";
 
 const AGE_RANGES = ["3-5", "6-9", "10-12", "13+"];
-const SUPPLY_CHIPS = [
-  "LEGO",
-  "Duplo",
-  "wooden blocks",
-  "crayons",
-  "markers",
-  "paper",
-  "Play-Doh",
-  "stuffed animals",
-  "cars/trucks",
-  "dolls",
-  "board games",
-  "books",
-  "cardboard boxes",
-  "pillows",
-  "blankets",
-  "flashlights",
-];
-
 const ONBOARDING_STORAGE_KEY = "ff_onboarding_draft_v1";
+
+const INDEPENDENCE_OPTIONS = [
+  { id: "needs-help", label: "Needs help getting started" },
+  { id: "usually-independent", label: "Usually starts independently" },
+  { id: "very-independent", label: "Very independent" },
+];
 
 function readDraft() {
   try {
     const raw = window.localStorage.getItem(ONBOARDING_STORAGE_KEY);
-    if (!raw) {
-      return null;
-    }
+    if (!raw) return null;
     return JSON.parse(raw);
   } catch {
     return null;
@@ -57,12 +47,59 @@ function writeDraft(draft) {
   }
 }
 
-function ChildStep({ childrenDraft, setChildrenDraft, onNext, onSkip }) {
+function findPoolActivityBySlug(slug) {
+  if (!slug) return null;
+  const found = DEMO_ACTIVITY_POOL.find(
+    (activity) => activity?.slug === slug
+  );
+  return found ? storyifyCachedImaginativeActivity(found) : null;
+}
+
+function pickFirstActivityForChild(child) {
+  const age =
+    child?.birthDate != null
+      ? calculateAge(child.birthDate)
+      : Number(child?.ageYears);
+  const ages = [
+    Number.isFinite(age) && age >= 0 ? Math.round(age) : 8,
+  ];
+
+  const match = matchDemoActivities({
+    momentId: "cooking",
+    childAges: ages,
+    pool: DEMO_ACTIVITY_POOL,
+    limit: 1,
+  });
+  return match?.results?.[0]?.activity || DEMO_ACTIVITY_POOL[0] || null;
+}
+
+function WelcomeStep({ onContinue }) {
+  return (
+    <section className="panel onboarding-step" aria-labelledby="welcome-title">
+      <p className="quest-v2-kicker">Welcome</p>
+      <h1 id="welcome-title">Welcome to FamilyFlow</h1>
+      <p>
+        Let&apos;s make activities actually fit your family — starting with
+        who&apos;s playing.
+      </p>
+      <div className="onboarding-actions">
+        <button type="button" onClick={onContinue}>
+          Add first child
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function ChildStep({ childrenDraft, setChildrenDraft, onFinish, onSkip }) {
   const [name, setName] = useState("");
   const [ageRange, setAgeRange] = useState("6-9");
   const [birthDate, setBirthDate] = useState("");
   const [ageYears, setAgeYears] = useState("");
   const [interests, setInterests] = useState("");
+  const [independenceLevel, setIndependenceLevel] = useState(
+    "usually-independent"
+  );
 
   const previewAge = (() => {
     if (birthDate) {
@@ -81,17 +118,20 @@ function ChildStep({ childrenDraft, setChildrenDraft, onNext, onSkip }) {
 
     let resolvedBirthDate = birthDate || null;
     let resolvedAgeRange = ageRange;
+    let resolvedAgeYears = null;
 
     if (birthDate) {
       const age = calculateAge(birthDate);
       if (Number.isFinite(age)) {
         resolvedAgeRange = ageYearsToAgeRange(age);
+        resolvedAgeYears = age;
       }
     } else if (ageYears !== "") {
       const age = Math.floor(Number(ageYears));
       if (Number.isFinite(age) && age >= 0 && age <= 25) {
         resolvedBirthDate = birthDateFromAgeYears(age);
         resolvedAgeRange = ageYearsToAgeRange(age);
+        resolvedAgeYears = age;
       }
     }
 
@@ -102,8 +142,10 @@ function ChildStep({ childrenDraft, setChildrenDraft, onNext, onSkip }) {
         name: cleaned,
         ageRange: resolvedAgeRange,
         birthDate: resolvedBirthDate,
+        ageYears: resolvedAgeYears,
         interests: interests.trim(),
         needs: "",
+        independenceLevel: normalizeChildIndependenceLevel(independenceLevel),
         createdAt: new Date().toISOString(),
       },
     ]);
@@ -111,13 +153,14 @@ function ChildStep({ childrenDraft, setChildrenDraft, onNext, onSkip }) {
     setBirthDate("");
     setAgeYears("");
     setInterests("");
+    setIndependenceLevel("usually-independent");
   }
 
   return (
     <section className="panel onboarding-step">
       <p className="quest-v2-kicker">Step 1</p>
-      <h1>Who’s playing?</h1>
-      <p>Add at least one kid. You can add another after the first.</p>
+      <h1>Who&apos;s playing?</h1>
+      <p>Add at least one kid. Age, interests, and independence shape the match.</p>
 
       <div className="onboarding-form-grid">
         <label>
@@ -188,6 +231,21 @@ function ChildStep({ childrenDraft, setChildrenDraft, onNext, onSkip }) {
             placeholder="space, animals, building"
           />
         </label>
+        <label>
+          Independent play
+          <select
+            value={independenceLevel}
+            onChange={(event) => setIndependenceLevel(event.target.value)}
+          >
+            {INDEPENDENCE_OPTIONS.filter((option) =>
+              CHILD_INDEPENDENCE_LEVELS.includes(option.id)
+            ).map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
 
       <div className="onboarding-actions">
@@ -205,6 +263,13 @@ function ChildStep({ childrenDraft, setChildrenDraft, onNext, onSkip }) {
                 ? `age ${calculateAge(child.birthDate)}`
                 : child.ageRange}
               {child.interests ? ` · ${child.interests}` : ""}
+              {child.independenceLevel
+                ? ` · ${
+                    INDEPENDENCE_OPTIONS.find(
+                      (option) => option.id === child.independenceLevel
+                    )?.label || child.independenceLevel
+                  }`
+                : ""}
             </li>
           ))}
         </ul>
@@ -213,10 +278,10 @@ function ChildStep({ childrenDraft, setChildrenDraft, onNext, onSkip }) {
       <div className="onboarding-actions">
         <button
           type="button"
-          onClick={onNext}
+          onClick={onFinish}
           disabled={childrenDraft.length === 0}
         >
-          Next: supplies
+          Find something to do
         </button>
         <button type="button" className="ghost-button" onClick={onSkip}>
           Skip for now
@@ -226,206 +291,11 @@ function ChildStep({ childrenDraft, setChildrenDraft, onNext, onSkip }) {
   );
 }
 
-function SuppliesStep({ selectedSupplies, setSelectedSupplies, onNext, onBack, onSkip }) {
-  function toggleSupply(name) {
-    setSelectedSupplies((current) =>
-      current.includes(name)
-        ? current.filter((item) => item !== name)
-        : [...current, name]
-    );
-  }
-
-  return (
-    <section className="panel onboarding-step">
-      <p className="quest-v2-kicker">Step 2</p>
-      <h1>What do you already have?</h1>
-      <p>Tap the supplies nearby. This makes “why this fits” honest.</p>
-      <div className="onboarding-supply-chips">
-        {SUPPLY_CHIPS.map((name) => (
-          <button
-            key={name}
-            type="button"
-            className={
-              selectedSupplies.includes(name)
-                ? "onboarding-chip is-selected"
-                : "onboarding-chip"
-            }
-            onClick={() => toggleSupply(name)}
-          >
-            {name}
-          </button>
-        ))}
-      </div>
-      <div className="onboarding-actions">
-        <button type="button" className="secondary-action" onClick={onBack}>
-          Back
-        </button>
-        <button type="button" onClick={onNext}>
-          Next: need right now
-        </button>
-        <button type="button" className="ghost-button" onClick={onSkip}>
-          Skip
-        </button>
-      </div>
-    </section>
-  );
-}
-
-function MomentStep({ momentDraft, setMomentDraft, onNext, onBack, onSkip }) {
-  return (
-    <section className="panel onboarding-step">
-      <p className="quest-v2-kicker">Step 3</p>
-      <h1>Need right now?</h1>
-      <p>Pick the parent moment. We’ll match time, mess, and noise.</p>
-      <div className="onboarding-supply-chips">
-        {defaultParentStatusPresets.slice(0, 6).map((preset) => (
-          <button
-            key={preset.label}
-            type="button"
-            className={
-              momentDraft.parentActivity === preset.activity
-                ? "onboarding-chip is-selected"
-                : "onboarding-chip"
-            }
-            onClick={() =>
-              setMomentDraft({
-                parentActivity: preset.activity,
-                availability: preset.availability,
-                timeNeededMinutes: preset.timeNeededMinutes,
-                space: preset.space,
-                messLevel: preset.messLevel,
-                noiseLevel: preset.noiseLevel,
-                supervisionLevel: preset.supervisionLevel,
-              })
-            }
-          >
-            {preset.label}
-          </button>
-        ))}
-      </div>
-      <div className="onboarding-form-grid">
-        <label>
-          Minutes
-          <select
-            value={momentDraft.timeNeededMinutes}
-            onChange={(event) =>
-              setMomentDraft((current) => ({
-                ...current,
-                timeNeededMinutes: Number(event.target.value),
-              }))
-            }
-          >
-            {[10, 15, 20, 30, 45].map((minutes) => (
-              <option key={minutes} value={minutes}>
-                {minutes}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Mess
-          <select
-            value={momentDraft.messLevel}
-            onChange={(event) =>
-              setMomentDraft((current) => ({
-                ...current,
-                messLevel: event.target.value,
-              }))
-            }
-          >
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-          </select>
-        </label>
-        <label>
-          Noise
-          <select
-            value={momentDraft.noiseLevel}
-            onChange={(event) =>
-              setMomentDraft((current) => ({
-                ...current,
-                noiseLevel: event.target.value,
-              }))
-            }
-          >
-            <option value="quiet">Quiet</option>
-            <option value="normal">Normal</option>
-            <option value="loud">Loud OK</option>
-          </select>
-        </label>
-      </div>
-      <div className="onboarding-actions">
-        <button type="button" className="secondary-action" onClick={onBack}>
-          Back
-        </button>
-        <button type="button" onClick={onNext}>
-          See first activity
-        </button>
-        <button type="button" className="ghost-button" onClick={onSkip}>
-          Skip
-        </button>
-      </div>
-    </section>
-  );
-}
-
-function FirstActivityStep({ onStart, onBack }) {
-  const activity = LANDING_ACTIVITY_PREVIEW;
-  const theme = getVisualThemeMeta(activity.visualTheme);
-  const role = getActivityRoleLabel(activity);
-  const mission = getActivityMissionText(activity);
-
-  return (
-    <section className="panel onboarding-step">
-      <p className="quest-v2-kicker">Your first activity</p>
-      <h1>{activity.title}</h1>
-      <div
-        className={`onboarding-activity-preview activity-card--theme-${theme.key}`}
-        style={{ "--activity-theme-accent": theme.accent }}
-      >
-        <p className="quest-v2-kicker">
-          {theme.icon} {theme.label}
-        </p>
-        <p>{mission}</p>
-        <p>
-          <strong>You are {role}</strong>
-        </p>
-      </div>
-      <div className="onboarding-actions">
-        <button type="button" className="secondary-action" onClick={onBack}>
-          Back
-        </button>
-        <button type="button" onClick={onStart}>
-          Enter the story
-        </button>
-        <Link className="ghost-button" to="/quest">
-          Browse more later
-        </Link>
-      </div>
-    </section>
-  );
-}
-
 function OnboardingPage({ applyOnboardingDraft, handleStartActivity }) {
   const navigate = useNavigate();
   const saved = useMemo(() => readDraft(), []);
-  const [step, setStep] = useState(saved?.step || "children");
+  const [step, setStep] = useState(saved?.step || "welcome");
   const [childrenDraft, setChildrenDraft] = useState(saved?.children || []);
-  const [selectedSupplies, setSelectedSupplies] = useState(
-    saved?.supplies || []
-  );
-  const [momentDraft, setMomentDraft] = useState(
-    saved?.moment || {
-      parentActivity: "On a work call",
-      availability: "do-not-interrupt",
-      timeNeededMinutes: 20,
-      space: "Living room",
-      messLevel: "low",
-      noiseLevel: "quiet",
-      supervisionLevel: "independent",
-    }
-  );
 
   function persist(next) {
     writeDraft(next);
@@ -435,40 +305,13 @@ function OnboardingPage({ applyOnboardingDraft, handleStartActivity }) {
     const draft = {
       step: nextStep,
       children: childrenDraft,
-      supplies: selectedSupplies,
-      moment: momentDraft,
     };
     persist(draft);
     setStep(nextStep);
     trackProductEvent("onboarding_step_completed", { step: nextStep });
   }
 
-  function buildInventory() {
-    const presetByName = new Map(
-      inventoryPresets.map((item) => [item.name.toLowerCase(), item])
-    );
-    return selectedSupplies.map((name) => {
-      const preset = presetByName.get(name.toLowerCase());
-      return {
-        id: crypto.randomUUID(),
-        name,
-        category: preset?.category || "Other",
-      };
-    });
-  }
-
-  function finish(skipped = false) {
-    const inventory = buildInventory();
-    applyOnboardingDraft?.({
-      children: childrenDraft,
-      inventory,
-      moment: momentDraft,
-      skipped,
-    });
-    trackProductEvent(skipped ? "onboarding_skipped" : "onboarding_completed", {
-      childCount: childrenDraft.length,
-      supplyCount: selectedSupplies.length,
-    });
+  function clearLocalDraft() {
     try {
       window.localStorage.removeItem(ONBOARDING_STORAGE_KEY);
     } catch {
@@ -476,54 +319,68 @@ function OnboardingPage({ applyOnboardingDraft, handleStartActivity }) {
     }
   }
 
+  function resolveActivityToStart(children) {
+    const handoff = readDemoActivityHandoff();
+    if (handoff?.slug) {
+      const preserved = findPoolActivityBySlug(handoff.slug);
+      clearDemoActivityHandoff();
+      if (preserved) return preserved;
+    }
+    return pickFirstActivityForChild(children[0]);
+  }
+
+  function finish(skipped = false) {
+    applyOnboardingDraft?.({
+      children: childrenDraft,
+      inventory: [],
+      moment: null,
+      skipped,
+    });
+    trackProductEvent(skipped ? "onboarding_skipped" : "onboarding_completed", {
+      childCount: childrenDraft.length,
+      supplyCount: 0,
+    });
+    clearLocalDraft();
+  }
+
   function handleSkip() {
     finish(true);
+    clearDemoActivityHandoff();
     navigate("/app");
   }
 
-  function handleStart() {
+  function handleFinish() {
+    if (childrenDraft.length === 0) return;
     finish(false);
-    handleStartActivity?.(LANDING_ACTIVITY_PREVIEW);
-    navigate("/quest");
+    const activity = resolveActivityToStart(childrenDraft);
+    if (activity && typeof handleStartActivity === "function") {
+      handleStartActivity(activity);
+      trackProductEvent("activity_started", {
+        source: "onboarding",
+        slug: activity.slug || "",
+      });
+      navigate("/quest");
+      return;
+    }
+    navigate("/app");
   }
 
   return (
     <section className="page-layout onboarding-page">
       <section className="page-intro">
-        <h1>FamilyFlow setup</h1>
-        <p>Reward is a real first activity—not a “setup complete” screen.</p>
+        <h1>FamilyFlow</h1>
+        <p>A quick setup so the next activity actually fits.</p>
       </section>
 
+      {step === "welcome" ? (
+        <WelcomeStep onContinue={() => go("children")} />
+      ) : null}
       {step === "children" ? (
         <ChildStep
           childrenDraft={childrenDraft}
           setChildrenDraft={setChildrenDraft}
-          onNext={() => go("supplies")}
+          onFinish={handleFinish}
           onSkip={handleSkip}
-        />
-      ) : null}
-      {step === "supplies" ? (
-        <SuppliesStep
-          selectedSupplies={selectedSupplies}
-          setSelectedSupplies={setSelectedSupplies}
-          onNext={() => go("moment")}
-          onBack={() => go("children")}
-          onSkip={handleSkip}
-        />
-      ) : null}
-      {step === "moment" ? (
-        <MomentStep
-          momentDraft={momentDraft}
-          setMomentDraft={setMomentDraft}
-          onNext={() => go("activity")}
-          onBack={() => go("supplies")}
-          onSkip={handleSkip}
-        />
-      ) : null}
-      {step === "activity" ? (
-        <FirstActivityStep
-          onStart={handleStart}
-          onBack={() => go("moment")}
         />
       ) : null}
     </section>

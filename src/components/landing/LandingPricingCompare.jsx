@@ -15,140 +15,141 @@ function annualSavingsPercent(monthlyPlan, annualPlan) {
   return Math.round(((yearlyAtMonthly - annual) / yearlyAtMonthly) * 100);
 }
 
+function priceLabel(plan, loading, error) {
+  if (loading) return { amount: "…", interval: "loading" };
+  if (plan) {
+    return {
+      amount: formatStripeAmount(plan.unitAmount, plan.currency),
+      interval: plan.interval === "year" ? "per year" : "per month",
+    };
+  }
+  if (error) return { amount: "—", interval: "unavailable" };
+  return { amount: "—", interval: "" };
+}
+
 /**
- * Compact Demo vs Plus comparison for the landing page.
+ * Free / Plus monthly / Plus annual for the landing page.
+ * Paid amounts always come from Stripe via getBillingPlans — never hardcoded.
  */
 export default function LandingPricingCompare({
   monthlyPlan,
   annualPlan,
   plansLoading = false,
   plansError = "",
-  interval = "monthly",
-  onIntervalChange,
   mode = "signup",
   checkoutBusyPlan = null,
   onCheckout,
 }) {
-  const selectedPlan = interval === "annual" ? annualPlan : monthlyPlan;
   const savePercent = annualSavingsPercent(monthlyPlan, annualPlan);
   const plansReady =
     !plansLoading && !plansError && monthlyPlan && annualPlan;
+  const monthlyLabel = priceLabel(monthlyPlan, plansLoading, plansError);
+  const annualLabel = priceLabel(annualPlan, plansLoading, plansError);
 
-  let plusPriceLabel = "—";
-  let plusIntervalLabel = "";
-  if (plansLoading) {
-    plusPriceLabel = "…";
-    plusIntervalLabel = "loading";
-  } else if (selectedPlan) {
-    plusPriceLabel = formatStripeAmount(
-      selectedPlan.unitAmount,
-      selectedPlan.currency
-    );
-    plusIntervalLabel =
-      interval === "annual" ? "per year" : "per month";
-  } else if (plansError) {
-    plusPriceLabel = "—";
-    plusIntervalLabel = "unavailable";
-  }
-
-  function handlePlusClick() {
+  function handlePlusClick(plan) {
     if (mode === "checkout") {
-      onCheckout?.(interval);
+      onCheckout?.(plan);
       return;
     }
     window.location.assign(
-      buildSignupUrl({ next: "checkout", plan: interval })
+      buildSignupUrl({ next: "checkout", plan })
     );
   }
 
   return (
     <div className="landing-pricing">
-      <div
-        className="landing-pricing-toggle"
-        role="group"
-        aria-label="Billing interval"
-      >
-        <button
-          type="button"
-          className={
-            interval === "monthly"
-              ? "landing-pricing-toggle-btn is-selected"
-              : "landing-pricing-toggle-btn"
-          }
-          aria-pressed={interval === "monthly"}
-          onClick={() => onIntervalChange?.("monthly")}
-        >
-          Monthly
-        </button>
-        <button
-          type="button"
-          className={
-            interval === "annual"
-              ? "landing-pricing-toggle-btn is-selected"
-              : "landing-pricing-toggle-btn"
-          }
-          aria-pressed={interval === "annual"}
-          onClick={() => onIntervalChange?.("annual")}
-        >
-          Annual
-          {savePercent != null ? (
-            <span className="landing-pricing-save">Save {savePercent}%</span>
-          ) : null}
-        </button>
-      </div>
-
       {plansError ? (
         <p className="landing-plus-note" role="alert">
           {plansError}
         </p>
       ) : null}
 
-      <div className="landing-pricing-compare">
+      <div className="landing-pricing-compare landing-pricing-compare--three">
         <div className="landing-pricing-col">
-          <h3>Demo</h3>
+          <h3>Free</h3>
           <p className="landing-pricing-amount">
             <strong>$0</strong>
           </p>
           <ul className="landing-pricing-perks">
-            <li>No account required</li>
-            <li>Match sample activities</li>
-            <li>Preview several matches</li>
-            <li>Unlock 1 full activity</li>
+            <li>Try FamilyFlow</li>
+            <li>Limited activities</li>
+            <li>Create your family profile</li>
+            <li>One full demo unlock</li>
           </ul>
           <Link className="landing-btn landing-btn--ghost" to="/demo">
-            Try the demo
+            Try FamilyFlow
           </Link>
         </div>
 
         <div className="landing-pricing-col landing-pricing-col--plus">
-          <h3>Plus</h3>
+          <h3>FamilyFlow Plus</h3>
           <p className="landing-pricing-amount">
-            <strong>{plusPriceLabel}</strong>
-            {plusIntervalLabel ? <span>{plusIntervalLabel}</span> : null}
+            <strong>{monthlyLabel.amount}</strong>
+            {monthlyLabel.interval ? (
+              <span>{monthlyLabel.interval}</span>
+            ) : null}
           </p>
           <ul className="landing-pricing-perks">
-            <li>Personalized to your family</li>
-            <li>Unlimited full activities</li>
-            <li>Exact situation + supplies</li>
-            <li>Unlimited full details</li>
+            <li>Unlimited personalized activities</li>
+            <li>Plan B and Rescue Mode</li>
+            <li>AI step hints when stuck</li>
+            <li>Saved history that learns what works</li>
           </ul>
           {mode === "signup" ? (
             <Link
               className="landing-btn landing-btn--primary"
-              to={buildSignupUrl({ next: "checkout", plan: interval })}
+              to={buildSignupUrl({ next: "checkout", plan: "monthly" })}
             >
-              Get FamilyFlow Plus
+              Get Plus monthly
             </Link>
           ) : (
             <button
               type="button"
               className="landing-btn landing-btn--primary"
               disabled={!plansReady || Boolean(checkoutBusyPlan)}
-              onClick={handlePlusClick}
+              onClick={() => handlePlusClick("monthly")}
             >
-              {checkoutBusyPlan === interval
+              {checkoutBusyPlan === "monthly"
                 ? "Opening Checkout…"
-                : "Get FamilyFlow Plus"}
+                : "Get Plus monthly"}
+            </button>
+          )}
+        </div>
+
+        <div className="landing-pricing-col landing-pricing-col--plus">
+          <h3>Plus annual</h3>
+          <p className="landing-pricing-amount">
+            <strong>{annualLabel.amount}</strong>
+            {annualLabel.interval ? (
+              <span>{annualLabel.interval}</span>
+            ) : null}
+          </p>
+          {savePercent != null ? (
+            <p className="landing-pricing-save-line">Save {savePercent}%</p>
+          ) : null}
+          <ul className="landing-pricing-perks">
+            <li>Everything in Plus</li>
+            <li>Lower effective monthly price</li>
+            <li>Unlimited personalized generation</li>
+            <li>Best value for regular use</li>
+          </ul>
+          {mode === "signup" ? (
+            <Link
+              className="landing-btn landing-btn--primary"
+              to={buildSignupUrl({ next: "checkout", plan: "annual" })}
+            >
+              Get Plus annual
+            </Link>
+          ) : (
+            <button
+              type="button"
+              className="landing-btn landing-btn--primary"
+              disabled={!plansReady || Boolean(checkoutBusyPlan)}
+              onClick={() => handlePlusClick("annual")}
+            >
+              {checkoutBusyPlan === "annual"
+                ? "Opening Checkout…"
+                : "Get Plus annual"}
             </button>
           )}
         </div>
