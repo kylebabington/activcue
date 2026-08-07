@@ -275,7 +275,8 @@ family-activity-helper/
 | `routes/presetActivities.js` | List presets + free imaginative unlock |
 | `routes/familySettings.js` | GET/PUT durable family document |
 | `routes/familyMemory.js` | Saved activities, events, sessions |
-| `routes/productEvents.js` | Allowlisted product analytics |
+| `routes/productEvents.js` | Allowlisted product analytics (auth + public landing ingest) |
+| `routes/adminGrowth.js` | Admin growth funnel aggregates |
 | `routes/account.js` | Permanent account deletion |
 | `routes/activitySuggestions.js` | Paid AI generation |
 | `routes/questStepHint.js` | Paid AI hints |
@@ -482,7 +483,11 @@ Marketing demo recording (real-app launch video): `npm run demo:record` then `np
 
 ### Observability crumbs
 
-- `src/utils/analytics.js` — product events (localStorage cache + authenticated `POST /api/product-events`)
+- `src/utils/analytics.js` — product events (localStorage cache + batched POST). Authenticated users hit `POST /api/product-events`; landing/demo visitors hit `POST /api/product-events/public` (session_id required, allowlisted funnel names only).
+- **Phase 1 growth funnel** (canonical names): `landing_page_viewed` → `demo_started` → `demo_activity_generated` → `signup_started` → `signup_completed` → `activity_generated` → `pricing_viewed` → `checkout_started` → `subscription_started`. Keep client/server allowlists in sync (`src/utils/analytics.js` + `server/lib/productEventNames.js`).
+- **UTM attribution** — Share links like `/?utm_source=tiktok&utm_campaign=bored-kids-video`. Params are captured into `sessionStorage` (`ff_attribution`) on landing/demo/signup and attached to event `properties`.
+- **Growth dashboard** — Admins (`profiles.role = admin`) open `/admin/growth` or `GET /api/admin/growth?range=7d`. Shows visitors, demo starts, accounts, returning users, checkout, paid, conversion ratios, and UTM breakdown. Grant admin with `node server/scripts/setProfilePrivileges.js --user-id <uuid> --role admin`.
+- `signup_completed` is written server-side on convert-anonymous; `subscription_started` is written once from Stripe webhook handlers.
 - `ai_usage_events` — server-side AI call logging with tokens, estimated cost, latency, and failure type
 - Consumer basics — `/forgot-password`, `/reset-password`, `/privacy`, `/terms`; Settings support mailto + delete account
 - PWA — `public/manifest.webmanifest` + minimal `public/sw.js` app-shell cache

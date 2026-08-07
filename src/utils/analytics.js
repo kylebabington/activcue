@@ -1,6 +1,6 @@
 // src/utils/analytics.js
 
-import { authenticatedRequest } from "../api/apiClient";
+import { authenticatedRequest, publicRequest } from "../api/apiClient";
 import { supabase } from "../lib/supabaseClient";
 import {
   clearOfflineQueue,
@@ -10,11 +10,22 @@ import {
 
 /**
  * Lightweight product analytics — console in development, localStorage cache,
- * batched POST to /api/product-events when authenticated.
+ * batched POST to /api/product-events (authenticated) or /api/product-events/public
+ * (anonymous landing/demo funnel).
  *
  * Keep names in sync with server/lib/productEventNames.js
  */
 export const PRODUCT_EVENT_NAMES = Object.freeze([
+  // Phase 1 growth funnel
+  "landing_page_viewed",
+  "demo_started",
+  "demo_activity_generated",
+  "signup_started",
+  "signup_completed",
+  "pricing_viewed",
+  "checkout_started",
+  "subscription_started",
+  // Existing product events
   "account_created",
   "activity_generated",
   "quick_activity_generated",
@@ -22,7 +33,6 @@ export const PRODUCT_EVENT_NAMES = Object.freeze([
   "activity_finished",
   "activity_abandoned",
   "activity_successful",
-  "subscription_started",
   "subscription_cancelled",
   "subscription_resumed",
   "AI_error",
@@ -50,7 +60,6 @@ export const PRODUCT_EVENT_NAMES = Object.freeze([
   "rescue_started",
   "rescue_successful",
   "rescue_plan_b_used",
-  "checkout_started",
   "onboarding_step_completed",
   "onboarding_completed",
   "onboarding_skipped",
@@ -64,10 +73,12 @@ export const PRODUCT_EVENT_NAMES = Object.freeze([
   "listening_mode_toggled",
   "listening_step_completed",
   "activation_signup_prompted",
+  "landing_signup_cta_clicked",
   "landing_demo_moment_selected",
   "landing_demo_results_viewed",
   "landing_demo_activity_opened",
   "landing_demo_video_played",
+  "landing_demo_video_opened",
   "landing_demo_cta_clicked",
   "landing_demo_age_toggled",
   "landing_demo_plan_b_clicked",
@@ -77,11 +88,51 @@ export const PRODUCT_EVENT_NAMES = Object.freeze([
   "demo_page_cta_clicked",
   "demo_page_age_toggled",
   "demo_page_plan_b_clicked",
+  "demo_page_unlock_claimed",
+  "demo_page_activity_finished",
+]);
+
+/** Events that may be sent without auth (must match server PUBLIC_PRODUCT_EVENT_NAMES). */
+export const PUBLIC_PRODUCT_EVENT_NAMES = Object.freeze([
+  "landing_page_viewed",
+  "demo_started",
+  "demo_activity_generated",
+  "signup_started",
+  "pricing_viewed",
+  "checkout_started",
+  "landing_demo_moment_selected",
+  "landing_demo_results_viewed",
+  "landing_demo_activity_opened",
+  "landing_demo_video_played",
+  "landing_demo_video_opened",
+  "landing_demo_cta_clicked",
+  "landing_demo_age_toggled",
+  "landing_demo_plan_b_clicked",
+  "landing_signup_cta_clicked",
+  "demo_page_moment_selected",
+  "demo_page_results_viewed",
+  "demo_page_activity_opened",
+  "demo_page_cta_clicked",
+  "demo_page_age_toggled",
+  "demo_page_plan_b_clicked",
+  "demo_page_unlock_claimed",
+  "demo_page_activity_finished",
 ]);
 
 const PRODUCT_EVENTS = new Set(PRODUCT_EVENT_NAMES);
+const PUBLIC_PRODUCT_EVENTS = new Set(PUBLIC_PRODUCT_EVENT_NAMES);
 const SESSION_KEY = "ff_analytics_session";
+const ATTRIBUTION_KEY = "ff_attribution";
 const APP_VERSION = import.meta.env.VITE_APP_VERSION || "dev";
+
+const UTM_KEYS = [
+  "utm_source",
+  "utm_medium",
+  "utm_campaign",
+  "utm_content",
+  "utm_term",
+  "ref",
+];
 
 const BLOCKED_PROPERTY_KEYS = new Set([
   "note",
@@ -118,7 +169,7 @@ function sanitizeClientProperties(payload) {
       typeof value === "boolean" ||
       value == null
     ) {
-      next[key] = value;
+      next[key] = typeof value === "string" ? value.trim().slice(0, 120) : value;
     }
   }
   return next;
@@ -137,6 +188,51 @@ export function getAnalyticsSessionId() {
   }
 }
 
+/**
+ * Capture UTM / ref params from the current URL into sessionStorage.
+ * First-touch within the tab session wins (does not overwrite existing keys).
+ */
+export function captureAttribution(search = typeof window !== "undefined" ? window.location.search : "") {
+  try {
+    const params = new URLSearchParams(search);
+    const existing = getAttribution();
+    const next = { ...existing };
+    let changed = false;
+
+    for (const key of UTM_KEYS) {
+      const value = params.get(key);
+      if (value && !next[key]) {
+        next[key] = value.trim().slice(0, 120);
+        changed = true;
+      }
+    }
+
+    if (changed) {
+      window.sessionStorage.setItem(ATTRIBUTION_KEY, JSON.stringify(next));
+    }
+
+    return next;
+  } catch {
+    return {};
+  }
+}
+
+export function getAttribution() {
+  try {
+    const raw = window.sessionStorage.getItem(ATTRIBUTION_KEY);
+    if (!raw) {
+      return {};
+    }
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return {};
+    }
+    return sanitizeClientProperties(parsed);
+  } catch {
+    return {};
+  }
+}
+
 function cacheLocally(entry) {
   try {
     const key = "ff_product_events";
@@ -146,6 +242,41 @@ function cacheLocally(entry) {
   } catch {
     // Analytics must never break the app.
   }
+}
+
+function splitByAuthRequirement(events) {
+  const publicEvents = [];
+  const authEvents = [];
+  for (const event of events) {
+    if (PUBLIC_PRODUCT_EVENTS.has(event.eventName)) {
+      publicEvents.push(event);
+    } else {
+      authEvents.push(event);
+    }
+  }
+  return { publicEvents, authEvents };
+}
+
+async function postPublicBatch(events) {
+  if (!events.length) {
+    return;
+  }
+
+  await publicRequest("/api/product-events/public/batch", {
+    method: "POST",
+    body: JSON.stringify({ events }),
+  });
+}
+
+async function postAuthenticatedBatch(events) {
+  if (!events.length) {
+    return;
+  }
+
+  await authenticatedRequest("/api/product-events/batch", {
+    method: "POST",
+    body: JSON.stringify({ events }),
+  });
 }
 
 async function postBatch(events) {
@@ -158,31 +289,32 @@ async function postBatch(events) {
     return;
   }
 
+  const { publicEvents, authEvents } = splitByAuthRequirement(events);
+
   try {
     const {
       data: sessionData,
     } = await supabase.auth.getSession();
     const session = sessionData?.session;
-    if (!session?.access_token) {
+    const hasAuth = Boolean(session?.access_token);
+
+    if (hasAuth) {
+      // Authenticated path can accept all allowlisted events with user_id.
+      await postAuthenticatedBatch(events);
       return;
     }
 
-    await authenticatedRequest("/api/product-events/batch", {
-      method: "POST",
-      body: JSON.stringify({ events }),
-    });
-  } catch {
-    // Fall back to single-event posts.
-    for (const event of events) {
-      try {
-        await authenticatedRequest("/api/product-events", {
-          method: "POST",
-          body: JSON.stringify(event),
-        });
-      } catch {
-        enqueueOfflineEvent(event);
-      }
+    // Anonymous: only public-safe events reach the server.
+    if (publicEvents.length) {
+      await postPublicBatch(publicEvents);
     }
+
+    // Non-public events without a session stay queued for later auth flush.
+    for (const event of authEvents) {
+      enqueueOfflineEvent(event);
+    }
+  } catch {
+    events.forEach((event) => enqueueOfflineEvent(event));
   }
 }
 
@@ -241,7 +373,10 @@ export function trackProductEvent(eventName, payload = {}) {
 
   ensureAnalyticsListeners();
 
-  const properties = sanitizeClientProperties(payload);
+  const properties = sanitizeClientProperties({
+    ...getAttribution(),
+    ...payload,
+  });
   const event = {
     eventName,
     properties,

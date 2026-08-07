@@ -47,7 +47,7 @@ export function useBillingActions({
     setBillingPlanLoading(plan);
     setBillingMessage("");
     setBillingMessageType("info");
-    trackProductEvent("plus_checkout_started", { plan });
+    trackProductEvent("checkout_started", { plan, source: "settings" });
 
     try {
       const checkout = await createCheckoutSession(plan, {

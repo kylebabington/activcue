@@ -84,17 +84,22 @@ export default function MomentDemo({
         : matchDemoActivities({ momentId, childAges, limit: 3 });
       setMatchResult(next);
       setIsMatching(false);
-      trackProductEvent(
-        rotate
-          ? `${analyticsPrefix}_plan_b_clicked`
-          : `${analyticsPrefix}_results_viewed`,
-        {
+      if (rotate) {
+        trackProductEvent(`${analyticsPrefix}_plan_b_clicked`, {
           momentId: next.momentId,
           childAges: next.childAges,
           count: next.results.length,
           offset: next.offset,
-        }
-      );
+        });
+      } else {
+        trackProductEvent("demo_activity_generated", {
+          momentId: next.momentId,
+          childAges: next.childAges,
+          count: next.results.length,
+          offset: next.offset,
+          source: analyticsPrefix,
+        });
+      }
     }, 450);
   }
 

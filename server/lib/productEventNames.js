@@ -1,6 +1,16 @@
 // Keep in sync with PRODUCT_EVENT_NAMES in src/utils/analytics.js
 
 export const PRODUCT_EVENT_NAMES = Object.freeze([
+  // Phase 1 growth funnel
+  "landing_page_viewed",
+  "demo_started",
+  "demo_activity_generated",
+  "signup_started",
+  "signup_completed",
+  "pricing_viewed",
+  "checkout_started",
+  "subscription_started",
+  // Existing product events
   "account_created",
   "activity_generated",
   "quick_activity_generated",
@@ -8,7 +18,6 @@ export const PRODUCT_EVENT_NAMES = Object.freeze([
   "activity_finished",
   "activity_abandoned",
   "activity_successful",
-  "subscription_started",
   "subscription_cancelled",
   "subscription_resumed",
   "AI_error",
@@ -36,7 +45,6 @@ export const PRODUCT_EVENT_NAMES = Object.freeze([
   "rescue_started",
   "rescue_successful",
   "rescue_plan_b_used",
-  "checkout_started",
   "onboarding_step_completed",
   "onboarding_completed",
   "onboarding_skipped",
@@ -50,10 +58,12 @@ export const PRODUCT_EVENT_NAMES = Object.freeze([
   "listening_mode_toggled",
   "listening_step_completed",
   "activation_signup_prompted",
+  "landing_signup_cta_clicked",
   "landing_demo_moment_selected",
   "landing_demo_results_viewed",
   "landing_demo_activity_opened",
   "landing_demo_video_played",
+  "landing_demo_video_opened",
   "landing_demo_cta_clicked",
   "landing_demo_age_toggled",
   "landing_demo_plan_b_clicked",
@@ -63,9 +73,43 @@ export const PRODUCT_EVENT_NAMES = Object.freeze([
   "demo_page_cta_clicked",
   "demo_page_age_toggled",
   "demo_page_plan_b_clicked",
+  "demo_page_unlock_claimed",
+  "demo_page_activity_finished",
 ]);
 
 export const PRODUCT_EVENT_NAME_SET = new Set(PRODUCT_EVENT_NAMES);
+
+/**
+ * Events allowed on the unauthenticated public ingest endpoint.
+ * Require session_id; user_id is always null.
+ */
+export const PUBLIC_PRODUCT_EVENT_NAMES = Object.freeze([
+  "landing_page_viewed",
+  "demo_started",
+  "demo_activity_generated",
+  "signup_started",
+  "pricing_viewed",
+  "checkout_started",
+  "landing_demo_moment_selected",
+  "landing_demo_results_viewed",
+  "landing_demo_activity_opened",
+  "landing_demo_video_played",
+  "landing_demo_video_opened",
+  "landing_demo_cta_clicked",
+  "landing_demo_age_toggled",
+  "landing_demo_plan_b_clicked",
+  "landing_signup_cta_clicked",
+  "demo_page_moment_selected",
+  "demo_page_results_viewed",
+  "demo_page_activity_opened",
+  "demo_page_cta_clicked",
+  "demo_page_age_toggled",
+  "demo_page_plan_b_clicked",
+  "demo_page_unlock_claimed",
+  "demo_page_activity_finished",
+]);
+
+export const PUBLIC_PRODUCT_EVENT_NAME_SET = new Set(PUBLIC_PRODUCT_EVENT_NAMES);
 
 /** Properties that must never be persisted server-side. */
 export const PRODUCT_EVENT_BLOCKED_PROPERTY_KEYS = new Set([

@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 const SUPPORT_EMAIL =
   import.meta.env.VITE_SUPPORT_EMAIL || "support@familyflow.app";
 
-export default function SettingsSupportSection() {
+export default function SettingsSupportSection({ isAdmin = false } = {}) {
   return (
     <section className="panel">
       <div className="panel-header">
@@ -20,6 +20,11 @@ export default function SettingsSupportSection() {
       <p>
         <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>
       </p>
+      {isAdmin ? (
+        <p>
+          <Link to="/admin/growth">Growth funnel dashboard</Link>
+        </p>
+      ) : null}
       <p className="account-legal-links">
         <Link to="/privacy">Privacy Policy</Link>
         {" · "}

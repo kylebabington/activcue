@@ -19,7 +19,7 @@ import {
   getActivityMissionText,
   getVisualThemeMeta,
 } from "../utils/activityVisualTheme";
-import { trackProductEvent } from "../utils/analytics";
+import { captureAttribution, trackProductEvent } from "../utils/analytics";
 import "../App.css";
 import "../styles/landing.css";
 import "../styles/demo.css";
@@ -549,6 +549,7 @@ function DemoPage() {
   const [activityCompleted, setActivityCompleted] = useState(false);
 
   useEffect(() => {
+    captureAttribution();
     const cache = readDemoUnlockCache();
     if (cache?.used) {
       setUnlockUsed(true);
@@ -578,7 +579,7 @@ function DemoPage() {
 
   function handleSelectMoment(id) {
     setMomentId(id);
-    trackProductEvent("demo_moment_selected", { momentId: id });
+    trackProductEvent("demo_page_moment_selected", { momentId: id });
     setStage("ages");
   }
 
@@ -607,12 +608,13 @@ function DemoPage() {
     }
 
     setMatchResult(base);
-    trackProductEvent("demo_results_viewed", {
+    trackProductEvent("demo_activity_generated", {
       momentId,
       ages,
       style: activityStyle,
       energy,
       count: base.results.length,
+      source: "demo_page",
     });
   }
 
@@ -629,7 +631,7 @@ function DemoPage() {
       pool: DEMO_ACTIVITY_POOL,
     });
     setMatchResult(next);
-    trackProductEvent("demo_plan_b_clicked", {
+    trackProductEvent("demo_page_plan_b_clicked", {
       momentId: next.momentId,
       offset: next.offset,
     });
@@ -648,7 +650,7 @@ function DemoPage() {
       setPendingUnlock(null);
       setActivityCompleted(false);
       setStage("activity");
-      trackProductEvent("demo_unlock_claimed", {
+      trackProductEvent("demo_page_unlock_claimed", {
         slug: pendingUnlock.slug || "",
         style: pendingUnlock.activityStyle || "",
       });
@@ -766,7 +768,7 @@ function DemoPage() {
             completed={activityCompleted}
             onFinished={() => {
               setActivityCompleted(true);
-              trackProductEvent("demo_activity_finished", {
+              trackProductEvent("demo_page_activity_finished", {
                 slug: unlockedActivity.slug || "",
               });
             }}

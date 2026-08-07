@@ -3,6 +3,7 @@
 import { Router } from "express";
 import { checkEmailAvailabilityForUser } from "../lib/authEmailAvailability.js";
 import { convertAnonymousUser } from "../lib/convertAnonymousUser.js";
+import { recordProductEvent } from "../lib/recordProductEvent.js";
 import { getUserEntitlement } from "../lib/entitlements.js";
 import { requireAuthenticatedUser } from "../middleware/requireAuthenticatedUser.js";
 import { ensureUserProfile } from "../middleware/ensureUserProfile.js";
@@ -190,6 +191,27 @@ router.post(
           code: result.code,
         });
       }
+
+      const analyticsSessionId =
+        typeof req.body?.analyticsSessionId === "string"
+          ? req.body.analyticsSessionId.trim().slice(0, 120)
+          : null;
+      const attribution =
+        req.body?.attribution &&
+        typeof req.body.attribution === "object" &&
+        !Array.isArray(req.body.attribution)
+          ? req.body.attribution
+          : {};
+
+      await recordProductEvent({
+        userId: req.auth.userId,
+        eventName: "signup_completed",
+        sessionId: analyticsSessionId,
+        properties: {
+          ...attribution,
+          source: "convert_anonymous",
+        },
+      });
 
       return res.json({
         converted: true,

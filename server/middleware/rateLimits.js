@@ -9,6 +9,10 @@ export const AI_HINTS_RATE_LIMIT = { windowMs: 60 * 60 * 1000, max: 50 };
 export const BILLING_RATE_LIMIT = { windowMs: 15 * 60 * 1000, max: 30 };
 export const FAMILY_DATA_RATE_LIMIT = { windowMs: 15 * 60 * 1000, max: 120 };
 export const PARENT_PIN_RATE_LIMIT = { windowMs: 15 * 60 * 1000, max: 20 };
+export const PUBLIC_PRODUCT_EVENTS_RATE_LIMIT = {
+  windowMs: 15 * 60 * 1000,
+  max: 60,
+};
 
 export const authRateLimiter = rateLimit({
   ...AUTH_RATE_LIMIT,
@@ -92,6 +96,16 @@ export const parentPinRateLimiter = rateLimit({
   keyGenerator: userOrIpKey,
   message: {
     error: "Too many PIN attempts. Try again in a few minutes.",
+    code: "RATE_LIMITED",
+  },
+});
+
+export const publicProductEventsRateLimiter = rateLimit({
+  ...PUBLIC_PRODUCT_EVENTS_RATE_LIMIT,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: "Too many analytics requests. Try again in a few minutes.",
     code: "RATE_LIMITED",
   },
 });

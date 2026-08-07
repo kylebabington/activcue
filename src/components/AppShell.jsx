@@ -45,6 +45,7 @@ export function AppShell({
   kidDeviceMode,
   parentAreasLocked,
   isAnonymous,
+  isAdmin = false,
   headerLogoutBusy,
   headerLogoutError,
   uiTheme,
@@ -63,6 +64,7 @@ export function AppShell({
         kidDeviceMode={kidDeviceMode}
         parentAreasLocked={parentAreasLocked}
         isAnonymous={isAnonymous}
+        isAdmin={isAdmin}
         headerLogoutBusy={headerLogoutBusy}
         headerLogoutError={headerLogoutError}
         uiTheme={uiTheme}

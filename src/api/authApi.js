@@ -5,6 +5,10 @@ import {
   authenticatedRequest,
 } from "./apiClient";
 import { supabase } from "../lib/supabaseClient";
+import {
+  getAnalyticsSessionId,
+  getAttribution,
+} from "../utils/analytics";
 
 export async function getCurrentAuthenticatedUser() {
   const response = await authenticatedRequest("/api/auth/me", {
@@ -61,6 +65,8 @@ export async function convertAnonymousAccount({
         email,
         password,
         confirmPassword,
+        analyticsSessionId: getAnalyticsSessionId(),
+        attribution: getAttribution(),
       }),
     }
   );
