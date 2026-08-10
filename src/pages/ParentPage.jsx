@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { BRAND } from "../config/brand.js";
 import CreateMomentModal from "../components/CreateMomentModal";
 import ReviewMomentModal from "../components/ReviewMomentModal";
 import { fetchRescueActivities } from "../api/sharedActivitiesApi";
@@ -159,7 +160,7 @@ function ParentPage({
         <div>
           <p className="rescue-mode-kicker">Rescue Mode</p>
           <p>
-            No questionnaire. Pick a time window and ActivCue starts a
+            No questionnaire. Pick a time window and {BRAND.name} starts a
             low-setup activity with Plan B already loaded.
           </p>
 

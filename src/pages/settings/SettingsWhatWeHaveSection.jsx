@@ -1,6 +1,7 @@
 // src/pages/settings/SettingsWhatWeHaveSection.jsx
 
 import { useState } from "react";
+import { BRAND } from "../../config/brand.js";
 
 export default function SettingsWhatWeHaveSection({
   inventoryCategories,
@@ -42,7 +43,7 @@ export default function SettingsWhatWeHaveSection({
         <div>
           <h2>What we have</h2>
           <p>
-            ActivCue uses this to avoid suggesting things you do not have.
+            {BRAND.name} uses this to avoid suggesting things you do not have.
           </p>
         </div>
       </div>

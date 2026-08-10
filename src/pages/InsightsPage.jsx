@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { BRAND } from "../config/brand.js";
 import { fetchFamilyInsights } from "../api/familyInsightsApi";
 import { useAppContext } from "../context/AppContext";
 import { useEntitlementContext } from "../context/domainContexts";
@@ -63,7 +64,7 @@ function InsightsPage() {
 
       {!isPlus ? (
         <p className="insights-detail">
-          Full insights are a ActivCue Plus feature. Local summaries still
+          Full insights are a {BRAND.plusName} feature. Local summaries still
           appear below.
         </p>
       ) : null}

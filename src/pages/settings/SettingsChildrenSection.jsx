@@ -1,5 +1,6 @@
 // src/pages/settings/SettingsChildrenSection.jsx
 
+import { BRAND } from "../../config/brand.js";
 import { calculateAge, resolveChildAge } from "../../utils/childAge";
 
 function interestChips(interests) {
@@ -77,7 +78,7 @@ export default function SettingsChildrenSection({
         <div>
           <h2>Your children</h2>
           <p>
-            Profiles help ActivCue suggest age-appropriate activities for each
+            Profiles help {BRAND.name} suggest age-appropriate activities for each
             child.
           </p>
         </div>

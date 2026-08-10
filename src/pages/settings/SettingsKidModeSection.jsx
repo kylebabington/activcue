@@ -1,5 +1,6 @@
 // src/pages/settings/SettingsKidModeSection.jsx
 
+import { BRAND } from "../../config/brand.js";
 import { SPEECH_RATE_SLOW } from "../../utils/readingMode";
 
 export default function SettingsKidModeSection({
@@ -68,7 +69,7 @@ export default function SettingsKidModeSection({
       <div className="panel-header">
         <div>
           <h2>Kid Mode</h2>
-          <p>Give a child a simpler version of ActivCue on this device.</p>
+          <p>Give a child a simpler version of {BRAND.name} on this device.</p>
         </div>
       </div>
 

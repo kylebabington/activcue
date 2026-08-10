@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
+import { BRAND } from "../../config/brand.js";
 
 const MAX_ATTEMPTS = 8;
 const RETRY_MS = 750;
@@ -60,7 +61,7 @@ export function useCheckoutReturn({
 
     async function confirmSubscription() {
       onStatus?.(
-        "Payment completed. Confirming your ActivCue Plus access…",
+        `Payment completed. Confirming your ${BRAND.plusName} access…`,
         "info"
       );
 
@@ -74,7 +75,7 @@ export function useCheckoutReturn({
 
           if (nextEntitlement?.isPaid) {
             onStatus?.(
-              "ActivCue Plus is active. AI activities and hints are now unlocked.",
+              `${BRAND.plusName} is active. AI activities and hints are now unlocked.`,
               "success"
             );
             setSearchParams({}, { replace: true });

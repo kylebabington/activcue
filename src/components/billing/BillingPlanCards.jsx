@@ -1,6 +1,7 @@
 // src/components/billing/BillingPlanCards.jsx
 
 import { Link } from "react-router-dom";
+import { BRAND } from "../../config/brand.js";
 import {
   formatStripeAmount,
   intervalLabelForPlan,
@@ -100,12 +101,12 @@ export default function BillingPlanCards({
             <li>Personalized family setup</li>
             <li>Child profiles</li>
             <li>Favorites and history</li>
-            <li>Core ActivCue experience</li>
+            <li>Core {BRAND.name} experience</li>
             <li>Limited personalized activity generation</li>
           </ul>
         ) : (
           <p>
-            Try ActivCue and keep your family&apos;s settings. Upgrade for
+            Try {BRAND.name} and keep your family&apos;s settings. Upgrade for
             AI-powered ideas anytime.
           </p>
         )}

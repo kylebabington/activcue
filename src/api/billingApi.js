@@ -5,6 +5,7 @@ import {
   authenticatedRequest,
   publicRequest,
 } from "./apiClient";
+import { BRAND } from "../config/brand.js";
 
 /*
  * These are the only plan names accepted by the ActivCue backend.
@@ -74,7 +75,7 @@ export async function createCheckoutSession(
    */
   if (!VALID_BILLING_PLANS.has(plan)) {
     throw new ApiRequestError(
-      "Choose either the monthly or annual ActivCue Plus plan.",
+      `Choose either the monthly or annual ${BRAND.plusName} plan.`,
       {
         status: 400,
         code: "INVALID_BILLING_PLAN",
@@ -180,7 +181,7 @@ async function updateSubscriptionRenewal(
     "object"
   ) {
     throw new ApiRequestError(
-      "The subscription was updated, but ActivCue did not return its latest billing status.",
+      `The subscription was updated, but ${BRAND.name} did not return its latest billing status.`,
       {
         status: 502,
         code:

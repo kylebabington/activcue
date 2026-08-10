@@ -1,6 +1,7 @@
 // src/components/AppHeader.jsx
 
 import { Link, NavLink } from "react-router-dom";
+import { BRAND } from "../config/brand.js";
 import { prefetchAppRoute } from "../context/AppRoutes";
 import ThemeSwitcher from "./ThemeSwitcher";
 
@@ -32,7 +33,7 @@ export default function AppHeader({
   return (
     <header className={`app-header${kidDeviceMode ? " app-header--kid-device" : ""}`}>
       <div className="app-header-brand">
-        <Link to="/" className="app-header-brand-link" aria-label="ActivCue home">
+        <Link to="/" className="app-header-brand-link" aria-label={`${BRAND.name} home`}>
           <img
             className="app-brand-mark"
             src="/logo.svg"
@@ -40,7 +41,7 @@ export default function AppHeader({
             width="28"
             height="28"
           />
-          <p className="app-brand-name">ActivCue</p>
+          <p className="app-brand-name">{BRAND.name}</p>
         </Link>
       </div>
 

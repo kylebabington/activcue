@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { BRAND } from "../config/brand.js";
 import { supabase } from "../lib/supabaseClient";
 import "../styles/landing.css";
 
@@ -43,7 +44,7 @@ function LoginPage() {
     <div className="landing landing--auth">
       <header className="landing-topbar">
         <div className="landing-topbar-inner">
-          <Link className="landing-brand" to="/" aria-label="ActivCue home">
+          <Link className="landing-brand" to="/" aria-label={`${BRAND.name} home`}>
             <img
               className="landing-brand-mark"
               src="/logo.svg"
@@ -51,7 +52,7 @@ function LoginPage() {
               width="36"
               height="36"
             />
-            <span className="landing-brand-name">ActivCue</span>
+            <span className="landing-brand-name">{BRAND.name}</span>
           </Link>
           <Link className="landing-topbar-link" to="/signup">
             Sign up

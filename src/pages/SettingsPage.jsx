@@ -1,6 +1,7 @@
 // src/pages/SettingsPage.jsx
 
 import { useCallback } from "react";
+import { BRAND } from "../config/brand.js";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { useAppContext } from "../context/AppContext";
 import { useAuth } from "../hooks/useAuth";
@@ -113,7 +114,7 @@ function SettingsPage() {
     <section className="page-layout page-layout--parent settings-page">
       <header className="settings-page-header">
         <h1>Settings</h1>
-        <p>Manage your family and how ActivCue works.</p>
+        <p>Manage your family and how {BRAND.name} works.</p>
       </header>
 
       <div className="settings-layout">

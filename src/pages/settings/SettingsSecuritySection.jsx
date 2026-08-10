@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { changePassword, signOutCurrentUser } from "../../api/authApi";
 import { ApiRequestError } from "../../api/apiClient";
+import { BRAND } from "../../config/brand.js";
 
 export default function SettingsSecuritySection({ user, isAnonymous }) {
   const [logoutBusy, setLogoutBusy] = useState(false);
@@ -92,7 +93,7 @@ export default function SettingsSecuritySection({ user, isAnonymous }) {
             <p>
               {isAnonymous
                 ? "This browser is using a temporary trial session."
-                : "Signed in with a permanent ActivCue account."}
+                : `Signed in with a permanent ${BRAND.name} account.`}
             </p>
           </div>
         </div>
@@ -135,7 +136,7 @@ export default function SettingsSecuritySection({ user, isAnonymous }) {
           <div className="panel-header">
             <div>
               <h2>Password</h2>
-              <p>Update the password for your ActivCue account.</p>
+              <p>Update the password for your {BRAND.name} account.</p>
             </div>
           </div>
 

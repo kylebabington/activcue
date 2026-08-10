@@ -2,6 +2,7 @@
 
 import { useNavigate } from "react-router-dom";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { BRAND } from "./config/brand.js";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import { useFirstRunCoach } from "./hooks/useFirstRunCoach";
 import { useKidDeviceMode } from "./hooks/useKidDeviceMode";
@@ -547,7 +548,7 @@ function App() {
 
   const resetLearnedRecommendations = useCallback(() => {
     const confirmed = window.confirm(
-      "Reset what ActivCue has learned from activity history? Children, supplies, account, and subscription stay."
+      `Reset what ${BRAND.name} has learned from activity history? Children, supplies, account, and subscription stay.`
     );
     if (!confirmed) {
       return;
