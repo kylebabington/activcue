@@ -6,6 +6,7 @@ import {
   createCheckoutSession,
   resumeSubscription,
 } from "../../api/billingApi";
+import { BRAND } from "../../config/brand.js";
 import { useCheckoutReturn } from "../billing/useCheckoutReturn";
 import { trackProductEvent } from "../../utils/analytics";
 
@@ -74,11 +75,11 @@ export function useBillingActions({
       const nextEntitlement = await refreshEntitlement();
 
       if (nextEntitlement.isPaid) {
-        setBillingMessage("ActivCue Plus is active.");
+        setBillingMessage(`${BRAND.plusName} is active.`);
         setBillingMessageType("success");
       } else {
         setBillingMessage(
-          "ActivCue Plus is not active yet. Stripe may still be processing the subscription."
+          `${BRAND.plusName} is not active yet. Stripe may still be processing the subscription.`
         );
         setBillingMessageType("info");
       }
@@ -123,7 +124,7 @@ export function useBillingActions({
       setShowCancelConfirmation(false);
       setBillingMessage(
         result.message ||
-          "ActivCue Plus will remain active through the current billing period and will not renew."
+          `${BRAND.plusName} will remain active through the current billing period and will not renew.`
       );
       setBillingMessageType("success");
       trackProductEvent("subscription_cancelled");
@@ -170,7 +171,7 @@ export function useBillingActions({
       setShowCancelConfirmation(false);
       setBillingMessage(
         result.message ||
-          "Automatic renewal has been restored for ActivCue Plus."
+          `Automatic renewal has been restored for ${BRAND.plusName}.`
       );
       setBillingMessageType("success");
       trackProductEvent("subscription_resumed");

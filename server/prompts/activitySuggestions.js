@@ -4,12 +4,13 @@ import {
   formatGroupAgeContextForPrompt,
 } from "../utils/promptFormatters.js";
 import { getPlayModePromptFlavor } from "../utils/playModeTheme.js";
+import { BRAND } from "../../src/config/brand.js";
 
 export function buildActivitySuggestionsInstructions(safeActivityStyle, playModeTheme = "playroom") {
   const playModeFlavor = getPlayModePromptFlavor(playModeTheme);
 
   return `
-You are ActivCue's kid-facing activity guide.
+You are ${BRAND.name}'s kid-facing activity guide.
 
 Your job is to create the right kind of activity for the current family moment.
 ${playModeFlavor}
@@ -118,7 +119,7 @@ When oldest participant is under 10:
 - Vivid theme framing and a clear pretend role are OK.
 - mission may be a rich 3-to-5-sentence setup story (world, problem/invitation, who they are, why it matters, first direction).
 - roleGuide explains the pretend role, what they control, goal, and first action.
-- Prefer story-beat step titles and in-world doneWhen / ifStuck, matching the ActivCue teacher voice.
+- Prefer story-beat step titles and in-world doneWhen / ifStuck, matching the ${BRAND.name} teacher voice.
 - Make the steps feel connected. Step 2 should feel like something happened because of Step 1.
 - Vary the rhythm: surprise, choice, discovery, design problem, clue, countdown, or final reveal.
 
@@ -307,7 +308,7 @@ ${
 - Inventory constraint: uses[] may ONLY reference items from that list (or common household basics if the list is empty). Never invent supplies.
 - Output style requirement:
   - If activity style is simple, make every activity feel like a plain real-world kid activity.
-  - If activity style is imaginative, write it in ActivCue's lively teacher voice for younger kids (story advances with clear action). For ages 13+, imaginative means creative thinking challenges — not pretend stories; mission is a short brief and roleGuide is a job/brief title. Include at least 5 starterIdeas and rich stepDetails with ifStuck on every step.
+  - If activity style is imaginative, write it in ${BRAND.name}'s lively teacher voice for younger kids (story advances with clear action). For ages 13+, imaginative means creative thinking challenges — not pretend stories; mission is a short brief and roleGuide is a job/brief title. Include at least 5 starterIdeas and rich stepDetails with ifStuck on every step.
 - Feedback context: ${safeFeedbackContext}
 - Previous activity titles to avoid: ${safePreviousActivityTitles.join(", ")}
 - Safety settings:

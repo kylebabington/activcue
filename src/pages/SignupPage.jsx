@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { BRAND } from "../config/brand.js";
 import { ApiRequestError } from "../api/apiClient";
 import { convertAnonymousAccount } from "../api/authApi";
 import { redirectToCheckout } from "../api/billingApi";
@@ -261,7 +262,7 @@ function SignupPage() {
             <Link
               className="landing-brand"
               to="/"
-              aria-label="ActivCue home"
+              aria-label={`${BRAND.name} home`}
             >
               <img
                 className="landing-brand-mark"
@@ -271,7 +272,7 @@ function SignupPage() {
                 height="36"
               />
               <span className="landing-brand-name">
-                ActivCue
+                {BRAND.name}
               </span>
             </Link>
 
@@ -297,7 +298,7 @@ function SignupPage() {
               className="landing-btn landing-btn--primary"
               to="/onboarding"
             >
-              Continue to ActivCue
+              Continue to {BRAND.name}
             </Link>
           </div>
         </section>
@@ -313,7 +314,7 @@ function SignupPage() {
             <Link
               className="landing-brand"
               to="/"
-              aria-label="ActivCue home"
+              aria-label={`${BRAND.name} home`}
             >
               <img
                 className="landing-brand-mark"
@@ -323,7 +324,7 @@ function SignupPage() {
                 height="36"
               />
               <span className="landing-brand-name">
-                ActivCue
+                {BRAND.name}
               </span>
             </Link>
 
@@ -341,7 +342,7 @@ function SignupPage() {
             <h1 id="signup-title">Starting checkout</h1>
 
             <p className="landing-auth-lead">
-              Taking you to Stripe to finish ActivCue Plus.
+              Taking you to Stripe to finish {BRAND.plusName}.
             </p>
 
             {errorMessage ? (
@@ -371,7 +372,7 @@ function SignupPage() {
           <Link
             className="landing-brand"
             to="/"
-            aria-label="ActivCue home"
+            aria-label={`${BRAND.name} home`}
           >
             <img
               className="landing-brand-mark"
@@ -381,7 +382,7 @@ function SignupPage() {
               height="36"
             />
             <span className="landing-brand-name">
-              ActivCue
+              {BRAND.name}
             </span>
           </Link>
 
@@ -401,7 +402,7 @@ function SignupPage() {
               ? "Create your account to get Plus"
               : searchParams.get("from") === "demo"
                 ? "Create your free account"
-                : "Save your ActivCue account"}
+                : `Save your ${BRAND.name} account`}
           </h1>
 
           <p className="landing-auth-lead">

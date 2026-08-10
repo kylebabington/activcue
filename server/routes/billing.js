@@ -2,6 +2,7 @@
 
 import { Router } from "express";
 
+import { BRAND } from "../../src/config/brand.js";
 import {
   getStripeClient,
   managedPaymentsRequestOptions,
@@ -118,7 +119,7 @@ export async function updateSubscriptionRenewal({
     ) {
       return res.status(404).json({
         error:
-          "No ActivCue Plus subscription was found for this account.",
+          `No ${BRAND.plusName} subscription was found for this account.`,
         code:
           "SUBSCRIPTION_NOT_FOUND",
       });
@@ -244,8 +245,8 @@ export async function updateSubscriptionRenewal({
 
     return res.status(200).json({
       message: cancelAtPeriodEnd
-        ? "ActivCue Plus will remain active through the current billing period and will not renew."
-        : "Automatic renewal has been restored for ActivCue Plus.",
+        ? `${BRAND.plusName} will remain active through the current billing period and will not renew.`
+        : `Automatic renewal has been restored for ${BRAND.plusName}.`,
       entitlement,
     });
   } catch (error) {
@@ -299,7 +300,7 @@ router.post(
     if (req.auth.isAnonymous) {
       return res.status(403).json({
         error:
-          "Create a free account before starting ActivCue Plus checkout.",
+          `Create a free account before starting ${BRAND.plusName} checkout.`,
         code: "ACCOUNT_REQUIRED",
       });
     }

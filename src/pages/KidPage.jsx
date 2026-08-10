@@ -1,6 +1,7 @@
 // src/pages/KidPage.jsx
 
 import { Link } from "react-router-dom";
+import { BRAND } from "../config/brand.js";
 import { formatKidMomentMessage } from "../utils/activityFormatters";
 import { getRecentPlayAgainActivities } from "../utils/playAgainActivities";
 import { buildSignupUrl } from "../utils/signupUrls";
@@ -112,11 +113,11 @@ function KidPage({
                     onClick={onGetPlus}
                     disabled={checkoutBusy || isLoading}
                   >
-                    {checkoutBusy ? "Starting checkout…" : "ActivCue Plus"}
+                    {checkoutBusy ? "Starting checkout…" : BRAND.plusName}
                   </button>
                 ) : (
                   <Link to={buildSignupUrl({ next: "checkout", plan: "monthly" })}>
-                    ActivCue Plus
+                    {BRAND.plusName}
                   </Link>
                 )}
                 . Keep using Simple / Quick ideas anytime.
@@ -133,14 +134,14 @@ function KidPage({
                       onClick={onGetPlus}
                       disabled={checkoutBusy || isLoading}
                     >
-                      {checkoutBusy ? "Starting checkout…" : "ActivCue Plus"}
+                      {checkoutBusy ? "Starting checkout…" : BRAND.plusName}
                     </button>{" "}
                     will tailor activities to the current parent moment, kid
                     energy/style, and supplies.
                   </>
                 ) : (
                   <>
-                    <strong>ActivCue Plus</strong> will tailor activities to
+                    <strong>{BRAND.plusName}</strong> will tailor activities to
                     the current parent moment, kid energy/style, and supplies.{" "}
                     <Link to={buildSignupUrl({ next: "checkout", plan: "monthly" })}>
                       Sign up

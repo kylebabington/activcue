@@ -1,5 +1,7 @@
 // src/pages/settings/SettingsRulesSection.jsx
 
+import { BRAND } from "../../config/brand.js";
+
 export default function SettingsRulesSection({
   safetySettings,
   toggleSafetySetting,
@@ -9,7 +11,7 @@ export default function SettingsRulesSection({
       <div className="panel-header">
         <div>
           <h2>Activity rules</h2>
-          <p>Permanent filters for what ActivCue should never suggest.</p>
+          <p>Permanent filters for what {BRAND.name} should never suggest.</p>
           <p className="settings-note">
             Time, quiet, and adult help stay on Current Moment — they change
             throughout the day.

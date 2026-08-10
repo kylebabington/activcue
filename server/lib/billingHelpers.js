@@ -1,5 +1,7 @@
 // server/lib/billingHelpers.js
 
+import { BRAND } from "../../src/config/brand.js";
+
 /*
  * The browser sends only "monthly" or "annual".
  *
@@ -71,7 +73,7 @@ export function getCheckoutConflict({
   if (entitlement?.billingExempt) {
     return {
       status: 409,
-      error: "ActivCue Plus is included with this account.",
+      error: `${BRAND.plusName} is included with this account.`,
       code: "BILLING_EXEMPT_ACCOUNT",
     };
   }
@@ -79,7 +81,7 @@ export function getCheckoutConflict({
   if (entitlement?.isPaid) {
     return {
       status: 409,
-      error: "This account already has ActivCue Plus.",
+      error: `This account already has ${BRAND.plusName}.`,
       code: "ALREADY_SUBSCRIBED",
     };
   }

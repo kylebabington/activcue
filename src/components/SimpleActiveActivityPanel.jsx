@@ -1,5 +1,6 @@
 // src/components/SimpleActiveActivityPanel.jsx
 
+import { BRAND } from "../config/brand.js";
 import { getVerifiedFitFacts, buildWhyThisFits } from "../utils/inventoryFit";
 
 function SimpleActiveActivityPanel({
@@ -84,7 +85,7 @@ function SimpleActiveActivityPanel({
           title={
             canUseAiHints
               ? undefined
-              : "AI hints are included with ActivCue Plus"
+              : `AI hints are included with ${BRAND.plusName}`
           }
         >
           {isHintLoading

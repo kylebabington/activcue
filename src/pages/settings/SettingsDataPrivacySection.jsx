@@ -1,5 +1,7 @@
 // src/pages/settings/SettingsDataPrivacySection.jsx
 
+import { BRAND } from "../../config/brand.js";
+
 export default function SettingsDataPrivacySection({
   clearActivityHistory,
   resetLearnedRecommendations,
@@ -10,7 +12,7 @@ export default function SettingsDataPrivacySection({
       <div className="panel-header">
         <div>
           <h2>Data &amp; privacy</h2>
-          <p>Clear history or reset what ActivCue has learned — without deleting children or supplies.</p>
+          <p>Clear history or reset what {BRAND.name} has learned — without deleting children or supplies.</p>
         </div>
       </div>
 
@@ -37,7 +39,7 @@ export default function SettingsDataPrivacySection({
 
         <div className="settings-data-action">
           <div>
-            <strong>Reset what ActivCue has learned</strong>
+            <strong>Reset what {BRAND.name} has learned</strong>
             <p>
               Clears recommendation history patterns and personalization
               signals. Children, supplies, account, and subscription stay.

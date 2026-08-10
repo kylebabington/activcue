@@ -1,9 +1,10 @@
 // src/pages/settings/SettingsSupportSection.jsx
 
 import { Link } from "react-router-dom";
+import { BRAND } from "../../config/brand.js";
 
 const SUPPORT_EMAIL =
-  import.meta.env.VITE_SUPPORT_EMAIL || "support@activcue.app";
+  import.meta.env.VITE_SUPPORT_EMAIL || BRAND.supportEmail;
 
 export default function SettingsSupportSection({ isAdmin = false } = {}) {
   return (

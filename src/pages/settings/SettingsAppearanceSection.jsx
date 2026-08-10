@@ -1,6 +1,7 @@
 // src/pages/settings/SettingsAppearanceSection.jsx
 
 import ThemeSwitcher from "../../components/ThemeSwitcher";
+import { BRAND } from "../../config/brand.js";
 
 export default function SettingsAppearanceSection({
   uiTheme,
@@ -13,7 +14,7 @@ export default function SettingsAppearanceSection({
         <div>
           <h2>Appearance</h2>
           <p>
-            Choose how ActivCue looks. This changes colors and character —
+            Choose how {BRAND.name} looks. This changes colors and character —
             not which activities get recommended.
           </p>
         </div>

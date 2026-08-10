@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { BRAND } from "../config/brand.js";
 import ActivityResults from "../components/ActivityResults";
 import QuestContent from "../components/quest/QuestContent";
 import { getDefaultOpenSections } from "../components/quest/questSectionDefaults";
@@ -64,10 +65,10 @@ function DemoBanner({ sawAha, onReset }) {
   return (
     <aside className="demo-sticky-banner" aria-label="Demo status">
       <div className="demo-sticky-banner-copy">
-        <strong>You&apos;re trying ActivCue</strong>
+        <strong>You&apos;re trying {BRAND.name}</strong>
         <p>
           {sawAha
-            ? "Liked it? Create a free account so ActivCue can remember your kids and what works."
+            ? `Liked it? Create a free account so ${BRAND.name} can remember your kids and what works.`
             : "Same flow as the app — parent moment, kid vibe, pick something. No account needed yet."}
         </p>
       </div>
@@ -101,7 +102,7 @@ function SoftGate({ activity, variant = "remember" }) {
   if (variant === "save") {
     return (
       <div className="demo-soft-gate" role="region" aria-label="Create account">
-        <h2>Save activities across ActivCue</h2>
+        <h2>Save activities across {BRAND.name}</h2>
         <p>Create your free account to continue.</p>
         <div className="demo-step-actions">
           <button
@@ -689,7 +690,7 @@ function DemoPage() {
     <div className="landing demo-page demo-product-walkthrough">
       <header className="landing-topbar">
         <div className="landing-topbar-inner">
-          <Link className="landing-brand" to="/" aria-label="ActivCue home">
+          <Link className="landing-brand" to="/" aria-label={`${BRAND.name} home`}>
             <img
               className="landing-brand-mark"
               src="/logo.svg"
@@ -697,7 +698,7 @@ function DemoPage() {
               width="36"
               height="36"
             />
-            <span className="landing-brand-name">ActivCue</span>
+            <span className="landing-brand-name">{BRAND.name}</span>
           </Link>
           <div className="demo-topbar-actions">
             <Link className="landing-topbar-link" to="/login">
