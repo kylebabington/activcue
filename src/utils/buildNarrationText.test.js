@@ -24,7 +24,7 @@ describe("buildNarrationText", () => {
     });
     expect(text).toContain("Build your station");
     expect(text).toContain("Make a communications desk");
-    expect(text).toContain("You're done when");
+    expect(text).toContain("Ready for the next part when");
   });
 
   it("builds next step from completed indexes", () => {

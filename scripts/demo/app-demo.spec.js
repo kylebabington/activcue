@@ -240,9 +240,9 @@ test("record ActivCue real-app demo", async ({ page }, testInfo) => {
   }
   await pause(page, 3000);
 
-  // 6. Enter the story / Start this activity
+  // 6. Start the story / Start this activity
   await detailsDialog
-    .getByRole("button", { name: /Enter the story|Start this activity/i })
+    .getByRole("button", { name: /Start the story|Enter the story|Start this activity/i })
     .click();
   await expect(page.locator("#active-activity-panel")).toBeVisible({
     timeout: 20000,

@@ -205,12 +205,13 @@ export default function createActivitySuggestionsRouter(client) {
               .filter(Boolean)
               .slice(0, 5);
             const retrySteer = [
-              "AGE RETRY: The previous activity batch was rejected for age fit.",
+              "AGE RETRY: The previous activity batch was rejected for age fit or voice quality.",
               "Suggest mature alternatives for ages 12+.",
               "Avoid blanket forts, cozy forts, blanket/pillow caves, dens, hideouts, stuffed-animal play, magical castles, and other young-child framing.",
               "For imaginative style: do NOT invent pretend story worlds or fantasy roleplay. Use creative thinking challenges — design briefs, strategy, invention, puzzles, skill challenges.",
               "Prefer autonomy, strategy, design, building, cooking, photography, music, outdoor exploration, or skill challenges.",
-              "mission should be a short challenge brief; roleGuide should be a job/brief title (Designer, Strategist, Inventor), not a make-believe character.",
+              "mission should be a short challenge brief; roleGuide.name must be activity-specific (e.g. Room Redesign Lead), never a generic one-word role like Designer, Strategist, Inventor, Explorer, or Player.",
+              "Write like a warm teacher: invitation → action → response. doneWhen must be a natural transition cue, never phrases like \"something in the story has changed\" or \"the objective is complete.\"",
               rejectionTitles.length > 0
                 ? `Rejected titles to avoid repeating: ${rejectionTitles
                     .map((title) => `"${title}"`)

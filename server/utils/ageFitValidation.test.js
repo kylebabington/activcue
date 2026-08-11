@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   evaluateActivityAgeQuality,
   filterActivitiesByAgeFit,
+  validateActivityVoiceQuality,
   validateAgeContentFit,
   validateMixedAgeRoles,
 } from "./ageFitValidation.js";
@@ -224,5 +225,73 @@ describe("ageFitValidation", () => {
 
     expect(rejectedCount).toBe(2);
     expect(activities.map((item) => item.title)).toEqual(["Good"]);
+  });
+
+  it("rejects robotic worksheet phrases in kid-facing copy", () => {
+    const result = validateActivityVoiceQuality({
+      activityStyle: "imaginative",
+      title: "Signal Hunt",
+      mission: "Your task is to find the shells.",
+      roleGuide: { name: "Sea Signal Finder" },
+      stepDetails: [
+        {
+          title: "Find a clue",
+          instruction: "Look around.",
+          doneWhen: "Something in the story has changed because of what you did.",
+          ifStuck: "Pick any object.",
+        },
+      ],
+    });
+    expect(result.ok).toBe(false);
+    expect(result.reasons).toContain("robotic-phrase");
+  });
+
+  it("rejects generic one-word imaginative roles", () => {
+    const result = validateActivityVoiceQuality({
+      activityStyle: "imaginative",
+      title: "Ocean Mission",
+      roleGuide: { name: "Explorer" },
+      kidRole: "Explorer",
+    });
+    expect(result.ok).toBe(false);
+    expect(result.reasons).toContain("generic-role");
+  });
+
+  it("allows specific multi-word roles and empty roles", () => {
+    expect(
+      validateActivityVoiceQuality({
+        activityStyle: "imaginative",
+        title: "Ocean Mission",
+        roleGuide: { name: "Sea Signal Finder" },
+        kidRole: "Sea Signal Finder",
+        stepDetails: [
+          {
+            title: "Find the first signal",
+            instruction: "Pick a corner for Station One.",
+            doneWhen: "Your first station has a marker.",
+            ifStuck: "Can't decide? Use the nearest chair.",
+          },
+        ],
+      }).ok
+    ).toBe(true);
+
+    expect(
+      validateActivityVoiceQuality({
+        activityStyle: "imaginative",
+        title: "Draw freely",
+        roleGuide: { name: "" },
+        kidRole: "",
+      }).ok
+    ).toBe(true);
+  });
+
+  it("does not flag generic roles on simple activities", () => {
+    const result = validateActivityVoiceQuality({
+      activityStyle: "simple",
+      title: "Draw a picture",
+      roleGuide: { name: "Artist" },
+      kidRole: "Artist",
+    });
+    expect(result.ok).toBe(true);
   });
 });

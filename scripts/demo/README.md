@@ -12,8 +12,8 @@
 1. Parent screen — **Cooking** is selected as the current moment
 2. Kid screen — Maya, energy (**Bouncy**), **Pretend**
 3. Exactly three imaginative activity recommendations
-4. Full-page activity Details
-5. **Enter the story** → end on Step 1
+4. **Start the story** from the card
+5. End on Step / Scene 1 of the playbook
 
 Do not include Simple mode, Plan B, Rescue, completion, or extra help in this movie.
 

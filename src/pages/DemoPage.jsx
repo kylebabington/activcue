@@ -406,6 +406,7 @@ function ResultsStep({
         currentMoment={matchResult?.moment || null}
         handleStartActivity={onStartActivity}
         hideFeedbackActions
+        hideDetails
         hideSaveFavorite
         handleTryNextBest={onPlanB}
         panelTitle="Pick something to do"

@@ -70,7 +70,9 @@ async function startFirstAvailableActivity(page) {
 
   const unlockFree = page.getByRole("button", { name: /^Unlock free$/i });
   const startCard = page.getByRole("button", { name: /^Start$/i });
-  const enterStory = page.getByRole("button", { name: /Enter the story/i });
+  const enterStory = page.getByRole("button", {
+    name: /Start the story|Enter the story/i,
+  });
   const startThis = page.getByRole("button", { name: /Start this activity/i });
   const startControl = unlockFree.or(startCard).or(enterStory).or(startThis);
   await expect(startControl.first()).toBeVisible({ timeout: 30000 });

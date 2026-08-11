@@ -111,7 +111,9 @@ function QuestStepCard({
 
           {step?.doneWhen ? (
             <p className="step-done-when">
-              {isImaginative ? "This scene is complete when: " : "Done when: "}
+              {isImaginative
+                ? "Ready for the next part when: "
+                : "Done when: "}
               {step.doneWhen}
             </p>
           ) : null}
@@ -397,9 +399,11 @@ export default function QuestContent({
           </ul>
         ) : (
           <>
-            <p>
-              <strong>{roleName}</strong>
-            </p>
+            {roleName ? (
+              <p>
+                <strong>{roleName}</strong>
+              </p>
+            ) : null}
             {roleGuide?.description ? <p>{roleGuide.description}</p> : null}
             {roleGuide?.goal ? (
               <p>

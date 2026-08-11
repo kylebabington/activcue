@@ -303,15 +303,15 @@ export function storyifyCachedImaginativeActivity(activity) {
   const stepDetails = sourceSteps.map((step, index) => {
     const action = step?.instruction || step?.title || "Choose one small move that pushes the story forward.";
     const doneWhen = step?.doneWhen
-      ? `${olderVoice ? "Move on when" : "You’ll know this scene is ready to move on when"} ${String(step.doneWhen).replace(/^./, (letter) => letter.toLowerCase())}`
+      ? String(step.doneWhen).trim()
       : olderVoice
-        ? "Move on when you have changed something in the story and know your next move."
-        : "This scene is ready when something in the story has changed because of what you did.";
+        ? "You've made one clear move and know what comes next."
+        : "You've left a clear marker and you're ready to keep going.";
     const ifStuck = step?.ifStuck
-      ? `${olderVoice ? "Quick reset" : "Tiny nudge from your story coach"}: ${step.ifStuck}`
+      ? `${olderVoice ? "Quick reset" : "Can't decide"}: ${step.ifStuck}`
       : olderVoice
         ? "Quick reset: choose the easiest version of this move and start there."
-        : "Tiny nudge: pick the easiest little version of this move. Once you start, the story can catch up with you.";
+        : "Can't decide? Pick the easiest little version of this move and start there.";
 
     return {
       ...step,

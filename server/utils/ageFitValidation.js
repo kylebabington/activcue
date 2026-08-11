@@ -50,6 +50,46 @@ const TEEN_PRETEND_STORY_PATTERNS = [
 const AGE_APPROPRIATE_FORT_EXCEPTION =
   /\b(movie\s+lounge|media\s+nook|design\s+(a\s+)?(lounge|studio|space)|interior\s+design|cozy\s+screening)\b/i;
 
+/** Kid-facing phrases that sound like worksheet / schema language. */
+const ROBOTIC_VOICE_PATTERNS = [
+  /\bthe\s+objective\b/i,
+  /\bcomplete\s+the\s+following\b/i,
+  /\bperform\s+the\s+task\b/i,
+  /\bthis\s+scene\s+is\s+ready\s+when\b/i,
+  /\bsomething\s+in\s+the\s+story\s+has\s+changed\b/i,
+  /\byour\s+task\s+is\s+to\b/i,
+  /\bthe\s+activity\s+is\s+complete\s+when\b/i,
+  /\bthis\s+scene\s+is\s+complete\s+when\b/i,
+  /\bwhen\s+the\s+objective\s+is\s+complete\b/i,
+  /\baffected\s+the\s+scene\b/i,
+  /\bwhen\s+you\s+have\s+affected\b/i,
+];
+
+/** Exact one-word imaginative roles that are too generic. */
+const GENERIC_IMAGINATIVE_ROLES = new Set([
+  "explorer",
+  "player",
+  "helper",
+  "creator",
+  "designer",
+  "inventor",
+  "strategist",
+  "maker",
+  "director",
+  "adventurer",
+  "artist",
+  "builder",
+  "reader",
+  "detective",
+]);
+
+function isGenericRoleTitle(value) {
+  const trimmed = String(value || "").trim();
+  if (!trimmed) return false;
+  if (/\s/.test(trimmed)) return false;
+  return GENERIC_IMAGINATIVE_ROLES.has(trimmed.toLowerCase());
+}
+
 function collectActivityText(activity) {
   const parts = [
     activity?.title,
@@ -203,6 +243,40 @@ export function validateMixedAgeRoles(activity, childrenContext = []) {
 }
 
 /**
+ * Reject robotic / worksheet kid-facing language and generic one-word imaginative roles.
+ * @returns {{ ok: boolean, reasons: string[] }}
+ */
+export function validateActivityVoiceQuality(activity) {
+  const reasons = [];
+  const text = collectActivityText(activity);
+
+  for (const pattern of ROBOTIC_VOICE_PATTERNS) {
+    if (pattern.test(text)) {
+      reasons.push("robotic-phrase");
+      break;
+    }
+  }
+
+  const isImaginative = activity?.activityStyle === "imaginative";
+  if (isImaginative) {
+    const roleCandidates = [
+      activity?.roleGuide?.name,
+      activity?.kidRole,
+      ...(Array.isArray(activity?.roleGuide?.childRoles)
+        ? activity.roleGuide.childRoles.map((role) => role?.roleTitle)
+        : []),
+      ...(Array.isArray(activity?.roles) ? activity.roles : []),
+    ];
+
+    if (roleCandidates.some((role) => isGenericRoleTitle(role))) {
+      reasons.push("generic-role");
+    }
+  }
+
+  return { ok: reasons.length === 0, reasons };
+}
+
+/**
  * Full post-generation age validation for one activity.
  */
 export function evaluateActivityAgeQuality(activity, childrenContext = []) {
@@ -212,16 +286,19 @@ export function evaluateActivityAgeQuality(activity, childrenContext = []) {
   const ageFitOk = validateAgeFit(activity, ages);
   const mixed = validateMixedAgeRoles(activity, childrenContext);
   const content = validateAgeContentFit(activity, childrenContext);
+  const voice = validateActivityVoiceQuality(activity);
 
   return {
-    ok: ageFitOk && mixed.ok && content.ok,
+    ok: ageFitOk && mixed.ok && content.ok && voice.ok,
     ageFitOk,
     mixedAgeOk: mixed.ok,
     contentOk: content.ok,
+    voiceOk: voice.ok,
     reasons: [
       ...(ageFitOk ? [] : ["age-fit-range"]),
       ...mixed.reasons,
       ...content.reasons,
+      ...voice.reasons,
     ],
   };
 }
