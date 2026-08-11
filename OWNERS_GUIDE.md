@@ -383,6 +383,10 @@ For Playwright / local E2E, prefer **local Supabase** (`npx supabase start`) and
   (`STRIPE_WEBHOOK_SECRET` is required to boot—even locally—so billing webhooks cannot silently fail)
   Local E2E must use Stripe **test-mode** keys (`sk_test_…`).
 
+**Server** (optional)
+
+- `UPCITEMDB_USER_KEY` — paid UPCitemdb key for inventory barcode lookup. Without it, the free trial endpoint is used (limited). See `server/.env.example`.
+
 Apply migrations to your hosted production project with `supabase db push`. Local `supabase start` applies the same migrations automatically.
 
 One-time Stripe catalog helper (if prices are not created yet):
