@@ -28,6 +28,7 @@ function ActiveActivityPanel({
   toggleQuestStepComplete,
   setQuestPhase,
   toggleStarterIdea,
+  selectStepStarter,
   assignRole,
   toggleBuiltInHelp,
   setOpenSection,
@@ -48,6 +49,11 @@ function ActiveActivityPanel({
   )
     ? activeActivity.checkedStarterIndexes
     : [];
+  const selectedStepStarterByIndex =
+    activeActivity.selectedStepStarterByIndex &&
+    typeof activeActivity.selectedStepStarterByIndex === "object"
+      ? activeActivity.selectedStepStarterByIndex
+      : {};
   const openSections =
     activeActivity.openSections || getDefaultOpenSections({ finish: false });
   const timerDone = timerSecondsRemaining <= 0;
@@ -90,12 +96,18 @@ function ActiveActivityPanel({
   );
 
   const nextStepNarration = useMemo(
-    () =>
-      buildNarrationText(activeActivity, "next", {
+    () => {
+      const selected =
+        selectedStepStarterByIndex?.[String(focusStepIndex)] ??
+        selectedStepStarterByIndex?.[focusStepIndex] ??
+        null;
+      return buildNarrationText(activeActivity, "next", {
         selectedRoleName: activeActivity.selectedRoleName || roleName,
         roleAssignments: activeActivity.roleAssignments,
-      }),
-    [activeActivity, roleName]
+        selectedStarterIndex: selected,
+      });
+    },
+    [activeActivity, focusStepIndex, roleName, selectedStepStarterByIndex]
   );
 
   function handleImStuck(stepIndex, promptIndex) {
@@ -176,8 +188,10 @@ function ActiveActivityPanel({
           onSectionOpenChange={(key, nextOpen) => setOpenSection?.(key, nextOpen)}
           completedStepIndexes={completedStepIndexes}
           checkedStarterIndexes={checkedStarterIndexes}
+          selectedStepStarterByIndex={selectedStepStarterByIndex}
           onToggleStep={toggleQuestStepComplete}
           onToggleStarter={toggleStarterIdea}
+          onSelectStepStarter={selectStepStarter}
           onImStuck={handleImStuck}
           focusStepIndex={focusStepIndex}
           playingChildren={playingChildren}

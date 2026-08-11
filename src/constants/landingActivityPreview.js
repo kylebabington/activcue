@@ -46,6 +46,23 @@ export const LANDING_ACTIVITY_PREVIEW = {
     {
       title: "Open the moon fridge",
       instruction: "Find three quiet ingredients from around you.",
+      starterIdeas: [
+        {
+          title: "Grab a cup",
+          example: "A cup becomes moon milk.",
+          kind: "choice",
+        },
+        {
+          title: "Fold a napkin",
+          example: "A napkin becomes soft moon bread.",
+          kind: "building",
+        },
+        {
+          title: "Invite a helper",
+          example: "A stuffed helper becomes sous-chef.",
+          kind: "imagination",
+        },
+      ],
       examples: ["A cup", "A napkin", "A stuffed helper"],
       doneWhen: "You lined up three ingredients.",
       ifStuck: "Pick any three soft things and pretend they are moon food.",

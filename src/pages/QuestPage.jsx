@@ -186,6 +186,7 @@ function QuestPage() {
         toggleQuestStepComplete,
         setQuestPhase,
         toggleStarterIdea,
+        selectStepStarter,
         assignRole,
         toggleBuiltInHelp,
         setOpenSection,
@@ -258,6 +259,7 @@ function QuestPage() {
                     toggleQuestStepComplete={toggleQuestStepComplete}
                     setQuestPhase={setQuestPhase}
                     toggleStarterIdea={toggleStarterIdea}
+                    selectStepStarter={selectStepStarter}
                     assignRole={assignRole}
                     toggleBuiltInHelp={toggleBuiltInHelp}
                     setOpenSection={setOpenSection}

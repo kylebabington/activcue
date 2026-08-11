@@ -24,12 +24,14 @@ describe("buildNarrationText", () => {
     expect(text).toContain("Robot trouble");
   });
 
-  it("builds a single step script with doneWhen", () => {
+  it("builds a single step script with doneWhen and starter ideas", () => {
     const text = buildNarrationText(completeActivityV2Fixture, "step", {
       stepIndex: 0,
     });
     expect(text).toContain("Build your station");
     expect(text).toContain("Make a communications desk");
+    expect(text).toContain("You could try");
+    expect(text).toContain("Stack a radio");
     expect(text).toContain("Ready for the next part when");
   });
 

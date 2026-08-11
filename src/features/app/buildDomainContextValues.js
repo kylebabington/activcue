@@ -109,6 +109,7 @@ export function buildQuestContextValue(input) {
     toggleShowAllQuestSteps: input.toggleShowAllQuestSteps,
     setQuestPhase: input.setQuestPhase,
     toggleStarterIdea: input.toggleStarterIdea,
+    selectStepStarter: input.selectStepStarter,
     assignRole: input.assignRole,
     toggleBuiltInHelp: input.toggleBuiltInHelp,
     setOpenSection: input.setOpenSection,

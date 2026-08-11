@@ -5,6 +5,7 @@ import {
   getActivityRoleLabel,
   getStarterIdeas,
   getStepDetails,
+  getStepStarterIdeas,
   getStepStuckPrompts,
 } from "./activityVisualTheme";
 
@@ -140,6 +141,26 @@ export function buildNarrationText(activity, section, options = {}) {
       step.title ? `${step.title}` : `Step ${stepIndex + 1}`,
       instruction,
     ];
+
+    const stepStarters = getStepStarterIdeas(step);
+    if (stepStarters.length > 0) {
+      const selectedIndex = Number(options.selectedStarterIndex);
+      const ordered = [...stepStarters];
+      if (
+        Number.isFinite(selectedIndex) &&
+        selectedIndex >= 0 &&
+        selectedIndex < ordered.length
+      ) {
+        const [selected] = ordered.splice(selectedIndex, 1);
+        ordered.unshift(selected);
+      }
+      const starterLines = ordered.map((idea) => {
+        const title = idea?.title || "Try this";
+        const example = idea?.example ? `: ${idea.example}` : "";
+        return `${title}${example}`;
+      });
+      parts.push(`You could try: ${starterLines.join(". ")}`);
+    }
 
     if (options.includeDoneWhen !== false && step.doneWhen) {
       const isImaginative = activity?.activityStyle === "imaginative";

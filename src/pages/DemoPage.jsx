@@ -453,6 +453,9 @@ function ActivityStep({
     })
   );
   const [checkedStarters, setCheckedStarters] = useState([]);
+  const [selectedStepStarterByIndex, setSelectedStepStarterByIndex] = useState(
+    {}
+  );
   const [completedSteps, setCompletedSteps] = useState([]);
 
   return (
@@ -487,6 +490,7 @@ function ActivityStep({
             setOpenSections((current) => ({ ...current, [key]: nextOpen }))
           }
           checkedStarterIndexes={checkedStarters}
+          selectedStepStarterByIndex={selectedStepStarterByIndex}
           completedStepIndexes={completedSteps}
           onToggleStarter={(index) => {
             setCheckedStarters((prev) =>
@@ -494,6 +498,18 @@ function ActivityStep({
                 ? prev.filter((item) => item !== index)
                 : [...prev, index]
             );
+          }}
+          onSelectStepStarter={(stepIndex, starterIndex) => {
+            setSelectedStepStarterByIndex((prev) => {
+              const next = { ...prev };
+              const key = String(stepIndex);
+              if (next[key] === starterIndex) {
+                delete next[key];
+              } else {
+                next[key] = starterIndex;
+              }
+              return next;
+            });
           }}
           onToggleStep={(index) => {
             setCompletedSteps((prev) =>

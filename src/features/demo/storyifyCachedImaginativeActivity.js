@@ -234,11 +234,75 @@ function legacyStepDetails(activity) {
   return safeArray(activity?.steps).map((instruction) => ({
     title: "",
     instruction,
+    starterIdeas: [],
     examples: [],
     doneWhen: "",
     ifStuck: "",
     roleInstructions: [],
   }));
+}
+
+function synthesizeStepStarters(step, olderVoice) {
+  const existing = safeArray(step?.starterIdeas)
+    .filter((idea) => idea && (idea.title || idea.example))
+    .map((idea) => ({
+      title: idea.title || idea.example,
+      example: idea.example || idea.title,
+      kind: normalizeKind(idea.kind),
+    }));
+  if (existing.length >= 2) return existing.slice(0, 3);
+
+  const fromExamples = safeArray(step?.examples)
+    .filter(Boolean)
+    .slice(0, 3)
+    .map((example) => ({
+      title: String(example).length > 48 ? `${String(example).slice(0, 45)}…` : String(example),
+      example: String(example),
+      kind: "imagination",
+    }));
+
+  const fillers = olderVoice
+    ? [
+        {
+          title: "Try the easy version",
+          example: "Do the simplest version of this move first.",
+          kind: "choice",
+        },
+        {
+          title: "Add one constraint",
+          example: "Give yourself one rule that makes it more interesting.",
+          kind: "imagination",
+        },
+        {
+          title: "Sketch it first",
+          example: "Draw a tiny plan before you commit.",
+          kind: "drawing",
+        },
+      ]
+    : [
+        {
+          title: "Use something nearby",
+          example: "Turn the closest object into part of the scene.",
+          kind: "choice",
+        },
+        {
+          title: "Make something weird",
+          example: "Add one silly detail nobody expects.",
+          kind: "imagination",
+        },
+        {
+          title: "Draw a clue",
+          example: "Make a quick symbol on scrap paper.",
+          kind: "drawing",
+        },
+      ];
+
+  const combined = [...existing, ...fromExamples];
+  for (const filler of fillers) {
+    if (combined.length >= 3) break;
+    combined.push(filler);
+  }
+  return combined.slice(0, 3);
 }
 
 function buildStarterIdeas(activity, stepDetails, olderVoice) {
@@ -317,6 +381,7 @@ export function storyifyCachedImaginativeActivity(activity) {
       ...step,
       title: sceneTitle(theme, index),
       instruction: `${sceneIntro(theme, index, olderVoice)} ${action}`,
+      starterIdeas: synthesizeStepStarters(step, olderVoice),
       examples: safeArray(step?.examples),
       doneWhen,
       ifStuck,
