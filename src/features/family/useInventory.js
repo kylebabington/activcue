@@ -18,6 +18,9 @@ export function normalizeInventoryItems(items) {
       id: item.id || crypto.randomUUID(),
       name: item.name || "Unnamed item",
       category: item.category || "Other",
+      ...(typeof item.barcode === "string" && item.barcode
+        ? { barcode: item.barcode }
+        : {}),
     };
   });
 }
@@ -58,6 +61,55 @@ export function useInventory({ showStatus } = {}) {
     setNewInventoryItem("");
     setNewInventoryCategory("Building toys");
     showStatus?.("");
+  }
+
+  /**
+   * Add an inventory item from barcode scan confirm.
+   * @returns {boolean} true when the item was added
+   */
+  function addInventoryItemFromScan({ name, category, barcode } = {}) {
+    const cleanedName = typeof name === "string" ? name.trim() : "";
+    const cleanedBarcode =
+      typeof barcode === "string" ? barcode.trim() : "";
+
+    if (cleanedName === "") {
+      showStatus?.("Enter a name before adding this item.", "error");
+      return false;
+    }
+
+    if (cleanedBarcode) {
+      const barcodeExists = normalizedInventory.some(
+        (item) => item.barcode === cleanedBarcode
+      );
+
+      if (barcodeExists) {
+        showStatus?.(
+          "That barcode is already in your inventory.",
+          "error"
+        );
+        return false;
+      }
+    }
+
+    const nameExists = normalizedInventory.some(
+      (item) => item.name.toLowerCase() === cleanedName.toLowerCase()
+    );
+
+    if (nameExists) {
+      showStatus?.("That item is already in your inventory.", "error");
+      return false;
+    }
+
+    const itemToAdd = {
+      id: crypto.randomUUID(),
+      name: cleanedName,
+      category: category || "Other",
+      ...(cleanedBarcode ? { barcode: cleanedBarcode } : {}),
+    };
+
+    setInventory([...normalizedInventory, itemToAdd]);
+    showStatus?.(`Added ${cleanedName}.`);
+    return true;
   }
 
   function removeInventoryItem(itemIdToRemove) {
@@ -106,6 +158,7 @@ export function useInventory({ showStatus } = {}) {
     normalizedInventory,
     customInventoryItems,
     addInventoryItem,
+    addInventoryItemFromScan,
     removeInventoryItem,
     isInventoryItemSelected,
     toggleInventoryPreset,
