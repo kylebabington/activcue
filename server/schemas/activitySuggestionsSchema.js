@@ -123,11 +123,6 @@ const stepDetailSchema = {
       type: "array",
       items: starterIdeaSchema,
     },
-    /** Legacy field — prefer starterIdeas for new activities. */
-    examples: {
-      type: "array",
-      items: { type: "string" },
-    },
     doneWhen: { type: "string" },
     ifStuck: { type: "string" },
     roleInstructions: {
