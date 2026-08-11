@@ -52,7 +52,13 @@ export function buildNarrationText(activity, section, options = {}) {
   const selectedRoleName = options.selectedRoleName || roleName;
   const roleAssignments = options.roleAssignments || {};
 
-  if (section === "mission" || section === "role") {
+  if (section === "mission") {
+    return joinSentences([
+      mission || activity?.summary || activity?.theme || "",
+    ]);
+  }
+
+  if (section === "role") {
     const childRoles = Array.isArray(roleGuide?.childRoles)
       ? roleGuide.childRoles
       : [];
@@ -66,8 +72,6 @@ export function buildNarrationText(activity, section, options = {}) {
     }
     if (roleGuide?.goal) {
       roleParts.push(roleGuide.goal);
-    } else if (mission) {
-      roleParts.push(mission);
     }
     if (roleGuide?.firstAction) {
       roleParts.push(`Start by: ${roleGuide.firstAction}`);

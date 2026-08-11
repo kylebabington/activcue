@@ -74,7 +74,7 @@ export default function ListeningModePanel({
   const multiChild = playingChildren.length > 1 && roles.length > 1;
 
   const missionNarration = activity
-    ? buildNarrationText(activity, "mission", {
+    ? buildNarrationText(activity, "role", {
         selectedRoleName,
         roleAssignments,
       })
