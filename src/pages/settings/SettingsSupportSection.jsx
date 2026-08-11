@@ -21,10 +21,19 @@ export default function SettingsSupportSection({ isAdmin = false } = {}) {
       <p>
         <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>
       </p>
+      <p>
+        Use the Feedback button in the header for product ideas and bugs —
+        that stays separate from support email.
+      </p>
       {isAdmin ? (
-        <p>
-          <Link to="/admin/growth">Growth funnel dashboard</Link>
-        </p>
+        <>
+          <p>
+            <Link to="/admin/growth">Growth funnel dashboard</Link>
+          </p>
+          <p>
+            <Link to="/admin/feedback">User feedback</Link>
+          </p>
+        </>
       ) : null}
       <p className="account-legal-links">
         <Link to="/privacy">Privacy Policy</Link>

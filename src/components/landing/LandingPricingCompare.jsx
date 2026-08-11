@@ -1,6 +1,7 @@
 // src/components/landing/LandingPricingCompare.jsx
 
 import { Link } from "react-router-dom";
+import { BRAND } from "../../config/brand.js";
 import {
   formatStripeAmount,
   intervalLabelForPlan,
@@ -103,18 +104,18 @@ export default function LandingPricingCompare({
             <span>forever</span>
           </p>
           <ul className="landing-pricing-perks">
-            <li>Try ActivCue</li>
+            <li>Try {BRAND.name}</li>
             <li>Limited activities</li>
             <li>Create your family profile</li>
             <li>One full demo unlock</li>
           </ul>
           <Link className="landing-btn landing-btn--ghost" to="/demo">
-            Try ActivCue
+            Try {BRAND.name}
           </Link>
         </div>
 
         <div className="landing-pricing-col landing-pricing-col--plus">
-          <h3>ActivCue Plus</h3>
+          <h3>{BRAND.plusName}</h3>
           <PriceAmount
             plan={monthlyPlan}
             loading={plansLoading}

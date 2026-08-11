@@ -1,6 +1,7 @@
 // src/pages/PrivacyPolicyPage.jsx
 
 import { Link } from "react-router-dom";
+import { BRAND } from "../config/brand";
 import "../styles/landing.css";
 
 function PrivacyPolicyPage() {
@@ -8,7 +9,7 @@ function PrivacyPolicyPage() {
     <div className="landing landing--auth">
       <header className="landing-topbar">
         <div className="landing-topbar-inner">
-          <Link className="landing-brand" to="/" aria-label="ActivCue home">
+          <Link className="landing-brand" to="/" aria-label={`${BRAND.name} home`}>
             <img
               className="landing-brand-mark"
               src="/logo.svg"
@@ -16,7 +17,7 @@ function PrivacyPolicyPage() {
               width="36"
               height="36"
             />
-            <span className="landing-brand-name">ActivCue</span>
+            <span className="landing-brand-name">{BRAND.name}</span>
           </Link>
           <Link className="landing-topbar-link" to="/">
             Home
@@ -28,7 +29,7 @@ function PrivacyPolicyPage() {
         <div className="landing-auth-panel legal-doc-panel">
           <h1 id="privacy-title">Privacy Policy</h1>
           <p className="landing-auth-lead">
-            Last updated: August 2, 2026. ActivCue helps parents find quick,
+            Last updated: August 2, 2026. {BRAND.name} helps parents find quick,
             kid-friendly activities. This summary explains what we collect and
             why.
           </p>
@@ -47,7 +48,7 @@ function PrivacyPolicyPage() {
             <p>
               We do not sell personal data. Product analytics intentionally
               avoids storing free-text child notes or AI prompts. Do not put
-              sensitive medical or school records into ActivCue fields.
+              sensitive medical or school records into {BRAND.name} fields.
             </p>
 
             <h2>How we use data</h2>
@@ -68,7 +69,7 @@ function PrivacyPolicyPage() {
             <h2>Contact</h2>
             <p>
               Questions about privacy:{" "}
-              <a href="mailto:support@activcue.app">support@activcue.app</a>
+              <a href={`mailto:${BRAND.supportEmail}`}>{BRAND.supportEmail}</a>
               .
             </p>
           </div>

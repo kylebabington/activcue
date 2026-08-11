@@ -1,6 +1,7 @@
 // src/pages/TermsPage.jsx
 
 import { Link } from "react-router-dom";
+import { BRAND } from "../config/brand";
 import "../styles/landing.css";
 
 function TermsPage() {
@@ -8,7 +9,7 @@ function TermsPage() {
     <div className="landing landing--auth">
       <header className="landing-topbar">
         <div className="landing-topbar-inner">
-          <Link className="landing-brand" to="/" aria-label="ActivCue home">
+          <Link className="landing-brand" to="/" aria-label={`${BRAND.name} home`}>
             <img
               className="landing-brand-mark"
               src="/logo.svg"
@@ -16,7 +17,7 @@ function TermsPage() {
               width="36"
               height="36"
             />
-            <span className="landing-brand-name">ActivCue</span>
+            <span className="landing-brand-name">{BRAND.name}</span>
           </Link>
           <Link className="landing-topbar-link" to="/">
             Home
@@ -28,14 +29,14 @@ function TermsPage() {
         <div className="landing-auth-panel legal-doc-panel">
           <h1 id="terms-title">Terms of Use</h1>
           <p className="landing-auth-lead">
-            Last updated: August 2, 2026. By using ActivCue you agree to these
+            Last updated: August 2, 2026. By using {BRAND.name} you agree to these
             basic terms.
           </p>
 
           <div className="legal-doc-body">
             <h2>The service</h2>
             <p>
-              ActivCue provides activity ideas and guided play for families.
+              {BRAND.name} provides activity ideas and guided play for families.
               Suggestions are helpers, not professional childcare, medical, or
               educational advice. A parent or caregiver remains responsible for
               safety and supervision.
@@ -44,15 +45,15 @@ function TermsPage() {
             <h2>Accounts</h2>
             <p>
               Keep your login credentials private. You may try features with a
-              temporary session and upgrade to a permanent account. Paid
-              ActivCue Plus features are billed through Stripe under the plan
+              temporary session and upgrade to a permanent account. Paid{" "}
+              {BRAND.plusName} features are billed through Stripe under the plan
               you choose.
             </p>
 
             <h2>Acceptable use</h2>
             <p>
               Do not misuse the service, attempt to access other families&apos;
-              data, abuse AI endpoints, or use ActivCue for unlawful activity.
+              data, abuse AI endpoints, or use {BRAND.name} for unlawful activity.
               We may suspend accounts that harm the service or other users.
             </p>
 
@@ -65,7 +66,7 @@ function TermsPage() {
             <h2>Contact</h2>
             <p>
               Support:{" "}
-              <a href="mailto:support@activcue.app">support@activcue.app</a>
+              <a href={`mailto:${BRAND.supportEmail}`}>{BRAND.supportEmail}</a>
               .
             </p>
           </div>

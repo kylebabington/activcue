@@ -1,6 +1,8 @@
 // src/components/AppShell.jsx
 
+import { useState } from "react";
 import AppHeader from "./AppHeader";
+import FeedbackModal from "./FeedbackModal";
 
 export function AppShellLoading() {
   return (
@@ -58,6 +60,8 @@ export function AppShell({
   statusType,
   children,
 }) {
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+
   return (
     <main className={`app-shell${kidDeviceMode ? " app-shell--kid-device" : ""}`}>
       <AppHeader
@@ -71,6 +75,7 @@ export function AppShell({
         setUiTheme={setUiTheme}
         uiThemes={uiThemes}
         onLogout={onLogout}
+        onOpenFeedback={() => setFeedbackOpen(true)}
       />
 
       {familySettingsSaveStatus === "error" ? (
@@ -99,6 +104,13 @@ export function AppShell({
       ) : null}
 
       {children}
+
+      {!isAnonymous && !kidDeviceMode ? (
+        <FeedbackModal
+          isOpen={feedbackOpen}
+          onClose={() => setFeedbackOpen(false)}
+        />
+      ) : null}
     </main>
   );
 }

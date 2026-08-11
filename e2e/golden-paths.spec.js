@@ -112,8 +112,11 @@ test.describe("ActivCue golden paths", () => {
     await expect(
       page.getByRole("heading", {
         level: 1,
-        name: /Activities that fit your family right now/i,
+        name: /The right activity for right now/i,
       })
+    ).toBeVisible();
+    await expect(
+      page.getByText(/Activities that fit your family right now/i)
     ).toBeVisible();
 
     const demoCta = page.getByRole("link", { name: /^Try ActivCue$/i }).first();
@@ -168,7 +171,7 @@ test.describe("ActivCue golden paths", () => {
     await expect(
       page.getByRole("heading", {
         level: 1,
-        name: /Activities that fit your family right now/i,
+        name: /The right activity for right now/i,
       })
     ).toBeVisible();
 

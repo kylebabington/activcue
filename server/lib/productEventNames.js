@@ -77,6 +77,7 @@ export const PRODUCT_EVENT_NAMES = Object.freeze([
   "demo_page_signup_cta_clicked",
   "demo_page_plus_cta_clicked",
   "demo_page_activity_finished",
+  "feedback_submitted",
 ]);
 
 export const PRODUCT_EVENT_NAME_SET = new Set(PRODUCT_EVENT_NAMES);
