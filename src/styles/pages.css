@@ -2559,3 +2559,110 @@
   padding-left: 1.1rem;
   color: var(--color-text-muted, #5a5a5a);
 }
+
+/* Admin feedback + in-app feedback modal */
+.admin-feedback-page {
+  max-width: 52rem;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 3rem;
+}
+
+.admin-feedback-page .page-header {
+  margin-bottom: 1.25rem;
+}
+
+.admin-feedback-page .page-header h1 {
+  margin: 0.25rem 0;
+  font-family: var(--font-display, var(--font-body));
+  font-size: clamp(1.6rem, 3vw, 2rem);
+}
+
+.admin-feedback-page .lede {
+  margin: 0;
+  max-width: 36rem;
+  color: var(--color-text-muted, #5a5a5a);
+}
+
+.admin-feedback-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.admin-feedback-toolbar label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.admin-feedback-toolbar select {
+  min-height: 2.5rem;
+  padding: 0.35rem 0.75rem;
+}
+
+.admin-feedback-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.admin-feedback-card-header {
+  margin-bottom: 0.5rem;
+}
+
+.admin-feedback-card-header p {
+  margin: 0;
+}
+
+.admin-feedback-meta {
+  margin-top: 0.25rem !important;
+  font-size: 0.9rem;
+  color: var(--color-text-muted, #5a5a5a);
+}
+
+.admin-feedback-message {
+  margin: 0 0 0.85rem;
+  white-space: pre-wrap;
+}
+
+.admin-feedback-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.admin-feedback-status select {
+  min-height: 2.5rem;
+  padding: 0.35rem 0.75rem;
+}
+
+.feedback-modal-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.feedback-field {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.feedback-field select,
+.feedback-field textarea {
+  width: 100%;
+}
+
+.feedback-modal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.feedback-modal-success {
+  display: grid;
+  gap: 1rem;
+  justify-items: start;
+}

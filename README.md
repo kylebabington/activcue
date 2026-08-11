@@ -4,7 +4,7 @@ A learning recommendation system for real family moments—not just “React + O
 
 **Current focus:** ship Activity V2 (structured independent play) through quest UX, landing, and onboarding before unrelated features.
 
-[Live Demo](https://activcue.app) *(placeholder — set to your production URL when deployed)*
+[Live Demo](https://activcue.fun)
 
 **React · Express · Supabase · OpenAI · Stripe · Playwright**
 

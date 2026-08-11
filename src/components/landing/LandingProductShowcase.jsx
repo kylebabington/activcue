@@ -1,6 +1,7 @@
 // src/components/landing/LandingProductShowcase.jsx
 
 import { Link } from "react-router-dom";
+import { BRAND } from "../../config/brand.js";
 import {
   DEMO_VIDEO_POSTER_SRC,
   DEMO_VIDEO_SRC,
@@ -46,7 +47,7 @@ const PRODUCT_FRAMES = [
 ];
 
 /**
- * See ActivCue — demo video + captioned product screenshots.
+ * See product — demo video + captioned screenshots.
  */
 export default function LandingProductShowcase({
   hasVideo = false,
@@ -59,7 +60,7 @@ export default function LandingProductShowcase({
       aria-labelledby="product-title"
     >
       <div className="landing-section-inner landing-section-inner--wide">
-        <h2 id="product-title">See ActivCue</h2>
+        <h2 id="product-title">See {BRAND.name}</h2>
         <p className="landing-section-lead">
           Watch the loop before you create an account.
         </p>
@@ -86,7 +87,7 @@ export default function LandingProductShowcase({
               Watch 30-second walkthrough
             </span>
             <span className="visually-hidden">
-              Open ActivCue demo video ({DEMO_VIDEO_SRC})
+              Open {BRAND.name} demo video ({DEMO_VIDEO_SRC})
             </span>
           </button>
         ) : null}

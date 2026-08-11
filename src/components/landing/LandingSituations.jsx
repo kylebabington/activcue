@@ -1,6 +1,7 @@
 // src/components/landing/LandingSituations.jsx
 
 import { Link } from "react-router-dom";
+import { BRAND } from "../../config/brand.js";
 import {
   LANDING_SITUATIONS,
   buildDemoUrl,
@@ -20,7 +21,7 @@ export default function LandingSituations() {
       <div className="landing-section-inner landing-section-inner--wide">
         <h2 id="moments-title">What kind of moment are you in?</h2>
         <p className="landing-section-lead">
-          Pick a real situation — ActivCue will match something that fits.
+          Pick a real situation — {BRAND.name} will match something that fits.
         </p>
         <div className="landing-situations-grid" role="list">
           {LANDING_SITUATIONS.map((situation) => (
@@ -52,7 +53,7 @@ export default function LandingSituations() {
               trackProductEvent("demo_started", { source: "moments" })
             }
           >
-            Try ActivCue
+            Try {BRAND.name}
           </Link>
         </div>
       </div>

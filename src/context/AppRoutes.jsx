@@ -14,6 +14,7 @@ const MyActivitiesPage = lazy(() => import("../pages/MyActivitiesPage"));
 const InsightsPage = lazy(() => import("../pages/InsightsPage"));
 const OnboardingPage = lazy(() => import("../pages/OnboardingPage"));
 const AdminGrowthPage = lazy(() => import("../pages/AdminGrowthPage"));
+const AdminFeedbackPage = lazy(() => import("../pages/AdminFeedbackPage"));
 
 function RouteFallback() {
   return (
@@ -272,6 +273,15 @@ export function AppRoutes({
           </Suspense>
         }
       />
+
+      <Route
+        path="/admin/feedback"
+        element={
+          <Suspense fallback={<RouteFallback />}>
+            <AdminFeedbackPage />
+          </Suspense>
+        }
+      />
     </Routes>
   );
 }
@@ -292,5 +302,7 @@ export function prefetchAppRoute(path) {
     void import("../pages/InsightsPage");
   } else if (path === "/admin/growth") {
     void import("../pages/AdminGrowthPage");
+  } else if (path === "/admin/feedback") {
+    void import("../pages/AdminFeedbackPage");
   }
 }

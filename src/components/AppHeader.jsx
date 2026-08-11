@@ -29,6 +29,7 @@ export default function AppHeader({
   setUiTheme,
   uiThemes,
   onLogout,
+  onOpenFeedback,
 }) {
   return (
     <header className={`app-header${kidDeviceMode ? " app-header--kid-device" : ""}`}>
@@ -113,12 +114,20 @@ export default function AppHeader({
         </PrefetchNavLink>
 
         {isAdmin ? (
-          <PrefetchNavLink
-            to="/admin/growth"
-            className={({ isActive }) => (isActive ? "active" : "")}
-          >
-            Growth
-          </PrefetchNavLink>
+          <>
+            <PrefetchNavLink
+              to="/admin/growth"
+              className={({ isActive }) => (isActive ? "active" : "")}
+            >
+              Growth
+            </PrefetchNavLink>
+            <PrefetchNavLink
+              to="/admin/feedback"
+              className={({ isActive }) => (isActive ? "active" : "")}
+            >
+              Feedback
+            </PrefetchNavLink>
+          </>
         ) : null}
       </nav>
 
@@ -138,14 +147,25 @@ export default function AppHeader({
                 </Link>
               </>
             ) : (
-              <button
-                type="button"
-                className="app-header-auth-button"
-                disabled={headerLogoutBusy}
-                onClick={onLogout}
-              >
-                {headerLogoutBusy ? "Logging out…" : "Log out"}
-              </button>
+              <>
+                {typeof onOpenFeedback === "function" ? (
+                  <button
+                    type="button"
+                    className="app-header-auth-button"
+                    onClick={onOpenFeedback}
+                  >
+                    Feedback
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  className="app-header-auth-button"
+                  disabled={headerLogoutBusy}
+                  onClick={onLogout}
+                >
+                  {headerLogoutBusy ? "Logging out…" : "Log out"}
+                </button>
+              </>
             )}
           </div>
         ) : null}

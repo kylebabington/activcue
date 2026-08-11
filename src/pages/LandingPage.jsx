@@ -9,6 +9,7 @@ import Modal from "../components/Modal";
 import LandingPricingCompare from "../components/landing/LandingPricingCompare";
 import LandingProductShowcase from "../components/landing/LandingProductShowcase";
 import LandingSituations from "../components/landing/LandingSituations";
+import { BRAND } from "../config/brand.js";
 import {
   DEMO_VIDEO_POSTER_SRC,
   DEMO_VIDEO_SRC,
@@ -25,12 +26,12 @@ const WHY_ITEMS = [
   {
     id: "moment",
     title: "Fits the moment",
-    body: "You're making dinner. One kid is restless. Another is tired. You have 20 minutes, low patience, and whatever supplies are already in the house. ActivCue matches activities to time, supervision, mess, energy, and the situation you're actually in — not a generic rainy-day list.",
+    body: `You're making dinner. One kid is restless. Another is tired. You have 20 minutes, low patience, and whatever supplies are already in the house. ${BRAND.name} matches activities to time, supervision, mess, energy, and the situation you're actually in — not a generic rainy-day list.`,
   },
   {
     id: "adapts",
     title: "Adapts to each child",
-    body: "An activity that works for a 6-year-old shouldn't just get handed to a 13-year-old with different wording. ActivCue considers age, independence, complexity, and who is playing.",
+    body: `An activity that works for a 6-year-old shouldn't just get handed to a 13-year-old with different wording. ${BRAND.name} considers age, independence, complexity, and who is playing.`,
   },
   {
     id: "plan-b",
@@ -40,7 +41,7 @@ const WHY_ITEMS = [
   {
     id: "learns",
     title: "Learns what works",
-    body: "Finished activities feed What Works for Us — so over time ActivCue leans toward the kinds of play that actually succeed for your family, not just what looks good on a list.",
+    body: `Finished activities feed What Works for Us — so over time ${BRAND.name} leans toward the kinds of play that actually succeed for your family, not just what looks good on a list.`,
   },
 ];
 
@@ -51,10 +52,10 @@ const HOW_STEPS = [
   },
   {
     title: "Tell us who's playing",
-    text: "Ages of the kids in the mix. ActivCue adapts roles and challenge.",
+    text: `Ages of the kids in the mix. ${BRAND.name} adapts roles and challenge.`,
   },
   {
-    title: "ActivCue finds the best fit",
+    title: `${BRAND.name} finds the best fit`,
     text: "One strong activity for right now — with Plan B if you need it.",
   },
 ];
@@ -217,7 +218,7 @@ function LandingPage() {
     <div className="landing">
       <header className="landing-topbar">
         <div className="landing-topbar-inner">
-          <a className="landing-brand" href="#top" aria-label="ActivCue home">
+          <a className="landing-brand" href="#top" aria-label={`${BRAND.name} home`}>
             <img
               className="landing-brand-mark"
               src="/logo.svg"
@@ -225,7 +226,7 @@ function LandingPage() {
               width="36"
               height="36"
             />
-            <span className="landing-brand-name">ActivCue</span>
+            <span className="landing-brand-name">{BRAND.name}</span>
           </a>
 
           <nav
@@ -321,12 +322,13 @@ function LandingPage() {
         <div className="landing-hero-wash" aria-hidden="true" />
         <div className="landing-hero-inner">
           <div className="landing-hero-copy landing-hero-copy--centered">
-            <p className="landing-hero-brand">ActivCue</p>
+            <p className="landing-hero-brand">{BRAND.name}</p>
             <h1 id="landing-hero-title" className="landing-hero-title">
-              Activities that fit your family right now.
+              {BRAND.tagline}
             </h1>
+            <p className="landing-hero-secondary">{BRAND.secondaryHeadline}</p>
             <p className="landing-hero-support">
-              Tell ActivCue how much time you have, your child&apos;s age,
+              Tell {BRAND.name} how much time you have, who&apos;s playing,
               what you have available, and how much chaos you&apos;re willing
               to tolerate.
             </p>
@@ -337,7 +339,7 @@ function LandingPage() {
                 to="/demo"
                 onClick={() => trackTryFree("hero")}
               >
-                Try ActivCue
+                Try {BRAND.name}
               </Link>
               <Link
                 className="landing-btn landing-btn--ghost"
@@ -371,7 +373,7 @@ function LandingPage() {
         aria-labelledby="why-title"
       >
         <div className="landing-section-inner">
-          <h2 id="why-title">Why ActivCue gets better results</h2>
+          <h2 id="why-title">Why {BRAND.name} gets better results</h2>
           <p className="landing-section-lead">
             Built for the next twenty minutes — not another rainy-day list.
           </p>
@@ -474,8 +476,8 @@ function LandingPage() {
         <div className="landing-section-inner landing-final-cta">
           <h2 id="final-cta-title">Stop searching. Find something that fits.</h2>
           <p>
-            Try ActivCue with your current situation — no account required.
-            Create a free account when you want ActivCue to remember your kids.
+            Try {BRAND.name} with your current situation — no account required.
+            Create a free account when you want {BRAND.name} to remember your kids.
           </p>
           <div className="landing-hero-actions">
             <Link
@@ -483,7 +485,7 @@ function LandingPage() {
               to="/demo"
               onClick={() => trackTryFree("final")}
             >
-              Try ActivCue
+              Try {BRAND.name}
             </Link>
             <Link
               className="landing-btn landing-btn--ghost"
@@ -507,18 +509,18 @@ function LandingPage() {
       <footer className="landing-footer">
         <div className="landing-footer-inner">
           <img src="/logo.svg" alt="" width="24" height="24" />
-          <span>ActivCue</span>
+          <span>{BRAND.name}</span>
           <span className="landing-footer-sep" aria-hidden="true">
             ·
           </span>
           <Link to="/privacy">Privacy</Link>
           <Link to="/terms">Terms</Link>
-          <a href="mailto:support@activcue.app">Support</a>
+          <a href={`mailto:${BRAND.supportEmail}`}>Support</a>
         </div>
       </footer>
 
       <Modal
-        title="ActivCue walkthrough"
+        title={`${BRAND.name} walkthrough`}
         isOpen={videoOpen}
         onClose={() => setVideoOpen(false)}
       >
