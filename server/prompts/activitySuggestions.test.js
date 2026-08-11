@@ -2,18 +2,20 @@ import { describe, expect, it } from "vitest";
 import { buildActivitySuggestionsInstructions } from "./activitySuggestions.js";
 
 describe("buildActivitySuggestionsInstructions", () => {
-  it("gives imaginative activities a lively story-first voice for younger kids", () => {
+  it("gives imaginative activities a warm teacher voice for younger kids", () => {
     const instructions = buildActivitySuggestionsInstructions(
       "imaginative",
       "playroom"
     );
 
     expect(instructions).toContain(
-      "Sound like a bubbly, creative teacher who has a gift for making ordinary things feel exciting."
+      "Write like a warm teacher sitting beside the child and getting them started."
     );
-    expect(instructions).toContain("Every step should advance the story");
     expect(instructions).toContain(
-      "instruction = lively setup + clear action"
+      "Every scene should feel like invitation → action → response"
+    );
+    expect(instructions).toContain(
+      "doneWhen = a natural transition cue"
     );
     expect(instructions).toContain(
       "The child should feel spoken to, not instructed at."
@@ -31,7 +33,10 @@ describe("buildActivitySuggestionsInstructions", () => {
       "do not invent an imaginary story world unless the child's listed interests explicitly ask for roleplay/fiction"
     );
     expect(instructions).toContain(
-      "roleGuide is a job/brief title (Designer, Strategist, Inventor, Director)"
+      'roleGuide is a specific activity title (e.g. "Room Redesign Lead")'
+    );
+    expect(instructions).toContain(
+      "NEVER use a generic one-word role such as Explorer"
     );
   });
 
