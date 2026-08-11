@@ -9,11 +9,12 @@
 
 ## Story (`demo:record`)
 
-1. Parent screen — **Cooking** is selected as the current moment
-2. Kid screen — Maya, energy (**Bouncy**), **Pretend**
-3. Exactly three imaginative activity recommendations
-4. **Start the story** from the card
-5. End on Step / Scene 1 of the playbook
+1. Parent screen — select **Cooking**
+2. Ages screen — continue with default age
+3. Kid screen — energy (**Bouncy**), **Imaginative**
+4. Exactly three imaginative activity recommendations
+5. **Start the story** from the card
+6. End on Story Path / Scene 1 of the playbook
 
 Do not include Simple mode, Plan B, Rescue, completion, or extra help in this movie.
 

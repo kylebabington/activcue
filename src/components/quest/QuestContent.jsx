@@ -231,7 +231,8 @@ export default function QuestContent({
   const mission = getActivityMissionText(activity);
   const sections = openSections || getDefaultOpenSections();
   const multiChild = playingChildren.length > 1 && roles.length > 1;
-  const missionNarration = buildNarrationText(activity, "mission", {
+  const missionNarration = buildNarrationText(activity, "mission");
+  const roleNarration = buildNarrationText(activity, "role", {
     selectedRoleName: selectedRoleName || roleName,
     roleAssignments,
   });
@@ -368,14 +369,14 @@ export default function QuestContent({
       <CollapsibleQuestSection
         {...sectionProps("role", "Your Role", roleName || undefined, true)}
       >
-        {missionNarration ? (
+        {roleNarration ? (
           <div className="quest-section-speak-row">
             <SpeakButton
-              text={missionNarration}
+              text={roleNarration}
               label="Read"
               speechKey="quest-role"
               rate={resolvedSpeechRate}
-              section="mission"
+              section="role"
             />
           </div>
         ) : null}

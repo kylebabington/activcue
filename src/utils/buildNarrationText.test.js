@@ -3,8 +3,14 @@ import { completeActivityV2Fixture } from "../fixtures/completeActivityV2Fixture
 import { buildNarrationText } from "./buildNarrationText";
 
 describe("buildNarrationText", () => {
-  it("builds a mission script from roleGuide fields", () => {
+  it("builds an overview script from the mission/story text", () => {
     const text = buildNarrationText(completeActivityV2Fixture, "mission");
+    expect(text).toContain("moon base radios have gone almost silent");
+    expect(text).not.toContain("Choose a desk spot");
+  });
+
+  it("builds a role script from roleGuide fields", () => {
+    const text = buildNarrationText(completeActivityV2Fixture, "role");
     expect(text).toContain("Communications Officer");
     expect(text).toContain("Send three messages");
     expect(text).toContain("Choose a desk spot");

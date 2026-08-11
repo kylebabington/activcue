@@ -14,54 +14,63 @@ async function pause(page, ms = 1600) {
 test("record ActivCue real product walkthrough", async ({ page }, testInfo) => {
   await page.goto("/demo");
 
-  // 1. Parent screen with a real moment visibly selected.
+  // 1. Parent screen — select Cooking as the current moment.
   await expect(
-    page.getByRole("heading", { name: /Pick what’s happening/i })
+    page.getByRole("heading", {
+      name: /What.?s happening right now/i,
+    })
   ).toBeVisible();
+  await expect(page.getByText(/You.?re trying ActivCue/i)).toBeVisible();
   const cookingMoment = page.getByRole("button", { name: /Cooking/i });
-  await expect(cookingMoment).toHaveClass(/active/);
-  await expect(page.getByText(/Current moment: Cooking dinner/i)).toBeVisible();
-  await pause(page, 3200);
+  await cookingMoment.click();
+  await pause(page, 2800);
 
-  await page.getByRole("button", { name: /Go to Kid/i }).click();
+  // 2. Ages step (demo collects ages only).
+  await expect(
+    page.getByRole("heading", { name: /Ages only/i })
+  ).toBeVisible();
+  await pause(page, 2000);
+  await page.getByRole("button", { name: /^Continue$/i }).click();
 
-  // 2. Kid screen: child selection, energy, and Pretend mode.
+  // 3. Kid screen: energy + Imaginative style, then I'm Bored.
   await expect(
     page.getByRole("heading", { name: /What sounds good/i })
   ).toBeVisible();
-  const maya = page.getByRole("button", { name: /^Maya$/i });
-  await expect(maya).toHaveClass(/active/);
 
-  const bouncy = page.getByRole("button", { name: /^Bouncy$/i });
+  const bouncy = page.getByRole("button", { name: /^Bouncy/i });
   await bouncy.click();
-  await expect(bouncy).toHaveClass(/active/);
+  await expect(bouncy).toHaveClass(/is-selected/);
 
-  const pretend = page.getByRole("button", { name: /Pretend/i });
-  await pretend.click();
-  await expect(pretend).toHaveClass(/active/);
+  const imaginative = page.getByRole("button", { name: /^Imaginative/i });
+  await imaginative.click();
+  await expect(imaginative).toHaveClass(/is-selected/);
   await pause(page, 3200);
 
   await page.getByRole("button", { name: /^I'm Bored$/i }).click();
 
-  // 3. Activity screen with exactly three imaginative suggestions.
-  await expect(
-    page.getByRole("heading", { name: /Pick something to do/i })
-  ).toBeVisible();
+  // 4. Activity screen with exactly three imaginative suggestions.
+  await expect(page.locator("#demo-results-title")).toBeVisible({
+    timeout: 15000,
+  });
+  await expect(page.locator("#demo-results-title")).toHaveText(
+    /Pick something to do/i
+  );
   const imaginativeCards = page.locator(".activity-card--imaginative");
   await expect(imaginativeCards).toHaveCount(3);
   await expect(page.locator(".activity-card--simple")).toHaveCount(0);
   await pause(page, 3600);
 
-  // 4. Start the story from the card (playbook opens after choose).
+  // 5. Start the story from the card (playbook opens after choose).
   const firstCard = imaginativeCards.first();
   await firstCard.getByRole("button", { name: /Start the story/i }).click();
   await expect(
-    page.getByLabel("First activity step demo screen")
+    page.getByLabel("Active activity")
+  ).toBeVisible({ timeout: 15000 });
+  await expect(
+    page.getByRole("heading", { name: /^Story Path$/i })
   ).toBeVisible();
-  await expect(page.getByRole("heading", { name: /^Steps$/i })).toBeVisible();
   await expect(page.locator("#quest-step-0")).toBeVisible();
-  await expect(page.locator("#quest-step-0")).toContainText(/Step 1|Scene 1/i);
-  await expect(page.locator("#quest-step-1")).toBeHidden();
+  await expect(page.locator("#quest-step-0")).toContainText(/Scene 1/i);
   await page.locator("#quest-step-0").scrollIntoViewIfNeeded();
   await pause(page, 5200);
 
