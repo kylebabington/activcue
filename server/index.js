@@ -27,6 +27,7 @@ import householdsRouter from "./routes/households.js";
 import accountRouter from "./routes/account.js";
 import createActivitySuggestionsRouter from "./routes/activitySuggestions.js";
 import createQuestStepHintRouter from "./routes/questStepHint.js";
+import barcodeLookupRouter from "./routes/barcodeLookup.js";
 import { requestContextMiddleware } from "./middleware/requestContext.js";
 
 /*
@@ -89,6 +90,7 @@ app.use(
         ],
         "font-src": ["'self'", "https://fonts.gstatic.com", "data:"],
         "img-src": ["'self'", "data:", "blob:", "https://*.stripe.com"],
+        "media-src": ["'self'", "blob:"],
         "connect-src": [
           "'self'",
           "https://*.supabase.co",
@@ -245,6 +247,11 @@ app.use("/api", demoRouter);
  * Synced for anonymous and permanent users. Does not call OpenAI.
  */
 app.use("/api", familySettingsRouter);
+
+/*
+ * Barcode / UPC product lookup for inventory autofill.
+ */
+app.use("/api", barcodeLookupRouter);
 
 /*
  * First-class family memory: saved activities, events, and sessions.

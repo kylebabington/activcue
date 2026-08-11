@@ -196,10 +196,12 @@ function SettingsPage() {
               newInventoryCategory={ctx.newInventoryCategory}
               setNewInventoryCategory={ctx.setNewInventoryCategory}
               addInventoryItem={ctx.addInventoryItem}
+              addInventoryItemFromScan={ctx.addInventoryItemFromScan}
               removeInventoryItem={ctx.removeInventoryItem}
               assumeHouseholdBasics={ctx.assumeHouseholdBasics}
               setAssumeHouseholdBasics={ctx.setAssumeHouseholdBasics}
               selectedCount={selectedCount}
+              showStatus={ctx.showStatus}
             />
           ) : null}
 
