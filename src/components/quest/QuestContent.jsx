@@ -10,8 +10,12 @@ import { getVerifiedFitFacts, buildWhyThisFits } from "../../utils/inventoryFit"
 import {
   getActivityMissionText,
   getActivityRoleLabel,
+  getActivityStarterSectionLabel,
   getStarterIdeas,
+  getStarterKindIcon,
   getStepDetails,
+  getStepStarterIdeas,
+  getStepStarterSectionLabel,
   getStepStuckPrompts,
   getVisualThemeMeta,
 } from "../../utils/activityVisualTheme";
@@ -29,12 +33,17 @@ function QuestStepCard({
   isHighlighted,
   instruction,
   isImaginative = false,
+  themeKey = "fantasy",
+  themeAccent,
+  starterSectionLabel = "Need an idea? Try one of these",
+  selectedStarterIndex = null,
+  onSelectStepStarter,
   onToggleStep,
   onImStuck,
   speechRate = 0.9,
   stepNarration = "",
 }) {
-  const examples = Array.isArray(step?.examples) ? step.examples : [];
+  const starterIdeas = getStepStarterIdeas(step);
   const stuckPrompts = getStepStuckPrompts(step);
   const [stuckPromptIndex, setStuckPromptIndex] = useState(-1);
   const visibleStuckPrompt =
@@ -48,7 +57,9 @@ function QuestStepCard({
   }
 
   const stepTitle = step?.title || `Step ${index + 1}`;
-  const stepPrefix = isImaginative ? `Scene ${index + 1}` : `Step ${index + 1}`;
+  const sceneLabel = isImaginative ? "SCENE" : "STEP";
+  const canSelectStarters =
+    mode === "active" && typeof onSelectStepStarter === "function";
 
   return (
     <article
@@ -57,6 +68,7 @@ function QuestStepCard({
         [
           "quest-step-card",
           isImaginative ? "quest-step-card--story" : "",
+          `activity-card--theme-${themeKey}`,
           isComplete ? "is-complete" : "",
           isCompact ? "is-compact" : "",
           isHighlighted ? "is-highlighted" : "",
@@ -64,11 +76,20 @@ function QuestStepCard({
           .filter(Boolean)
           .join(" ")
       }
+      style={
+        themeAccent
+          ? { "--activity-theme-accent": themeAccent }
+          : undefined
+      }
     >
       <div className="quest-step-card-header">
-        <h3>
-          {stepPrefix}: {stepTitle}
-        </h3>
+        <div className="quest-step-scene-heading">
+          <span className="quest-step-scene-badge" aria-hidden="true">
+            <span className="quest-step-scene-badge-label">{sceneLabel}</span>
+            <span className="quest-step-scene-badge-number">{index + 1}</span>
+          </span>
+          <h3>{stepTitle}</h3>
+        </div>
         <div className="quest-step-card-actions">
           {!isCompact && stepNarration ? (
             <SpeakButton
@@ -98,15 +119,67 @@ function QuestStepCard({
             {instruction || step?.instruction}
           </p>
 
-          {examples.length > 0 ? (
-            <details className="quest-step-examples">
-              <summary>{isImaginative ? "Need a spark?" : "Examples"}</summary>
-              <ul>
-                {examples.map((example) => (
-                  <li key={example}>{example}</li>
-                ))}
-              </ul>
-            </details>
+          {starterIdeas.length > 0 ? (
+            <div className="quest-step-starters">
+              <p className="quest-step-starters-label">{starterSectionLabel}</p>
+              <div
+                className="quest-step-starter-grid"
+                data-count={Math.min(starterIdeas.length, 3)}
+              >
+                {starterIdeas.map((idea, starterIndex) => {
+                  const selected = selectedStarterIndex === starterIndex;
+                  const className = [
+                    "quest-step-starter-card",
+                    selected ? "is-selected" : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ");
+                  const content = (
+                    <>
+                      <span className="quest-step-starter-card-title">
+                        <span
+                          className="quest-step-starter-card-icon"
+                          aria-hidden="true"
+                        >
+                          {selected ? "✓" : getStarterKindIcon(idea.kind)}
+                        </span>
+                        {idea.title}
+                      </span>
+                      {idea.example ? (
+                        <span className="quest-step-starter-card-example">
+                          {idea.example}
+                        </span>
+                      ) : null}
+                    </>
+                  );
+
+                  if (canSelectStarters) {
+                    return (
+                      <button
+                        key={`${idea.title}-${starterIndex}`}
+                        type="button"
+                        className={className}
+                        aria-pressed={selected}
+                        onClick={() =>
+                          onSelectStepStarter?.(index, starterIndex)
+                        }
+                      >
+                        {content}
+                      </button>
+                    );
+                  }
+
+                  return (
+                    <div
+                      key={`${idea.title}-${starterIndex}`}
+                      className={className}
+                    >
+                      {content}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           ) : null}
 
           {step?.doneWhen ? (
@@ -185,8 +258,10 @@ export default function QuestContent({
   onSectionOpenChange,
   completedStepIndexes = [],
   checkedStarterIndexes = [],
+  selectedStepStarterByIndex = {},
   onToggleStep,
   onToggleStarter,
+  onSelectStepStarter,
   onImStuck,
   highlightedStuckStepIndex = null,
   focusStepIndex = null,
@@ -213,6 +288,8 @@ export default function QuestContent({
   const uses = Array.isArray(activity.uses) ? activity.uses : [];
   const roles = Array.isArray(activity.roles) ? activity.roles : [];
   const starterIdeas = getStarterIdeas(activity);
+  const activityStarterLabel = getActivityStarterSectionLabel(activity);
+  const stepStarterLabel = getStepStarterSectionLabel(activity);
   const extensions = Array.isArray(extensionIdeas)
     ? extensionIdeas
     : Array.isArray(activity.extensionIdeas)
@@ -457,7 +534,7 @@ export default function QuestContent({
         <CollapsibleQuestSection
           {...sectionProps(
             "starters",
-            isImaginativeActivity ? "Story Starters" : "Starter Ideas",
+            activityStarterLabel,
             `${starterIdeas.length} ideas`,
             true
           )}
@@ -574,6 +651,15 @@ export default function QuestContent({
                     roleAssignments
                   )}
                   isImaginative={isImaginativeActivity}
+                  themeKey={theme.key}
+                  themeAccent={theme.accent}
+                  starterSectionLabel={stepStarterLabel}
+                  selectedStarterIndex={
+                    selectedStepStarterByIndex?.[String(index)] ??
+                    selectedStepStarterByIndex?.[index] ??
+                    null
+                  }
+                  onSelectStepStarter={onSelectStepStarter}
                   onToggleStep={onToggleStep}
                   onImStuck={onImStuck}
                   speechRate={resolvedSpeechRate}
@@ -581,6 +667,10 @@ export default function QuestContent({
                     stepIndex: index,
                     selectedRoleName: selectedRoleName || roleName,
                     roleAssignments,
+                    selectedStarterIndex:
+                      selectedStepStarterByIndex?.[String(index)] ??
+                      selectedStepStarterByIndex?.[index] ??
+                      null,
                   })}
                 />
               );

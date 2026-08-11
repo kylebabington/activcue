@@ -72,6 +72,28 @@ describe("Activity Content V2 normalization", () => {
     expect(details).toHaveLength(2);
     expect(details[0].instruction).toBe("Draw a comic panel.");
     expect(details[0].ifStuck).toBeTruthy();
+    expect(details[0].starterIdeas).toEqual([]);
+  });
+
+  it("synthesizes step starterIdeas from legacy examples", () => {
+    const details = normalizeStepDetails(
+      [
+        {
+          title: "Build station",
+          instruction: "Set up a desk.",
+          examples: ["Use books as radio.", "Claim the nearest chair."],
+          doneWhen: "Desk is ready.",
+          ifStuck: "Use a chair.",
+          roleInstructions: [],
+        },
+      ],
+      []
+    );
+    expect(details[0].starterIdeas).toHaveLength(2);
+    expect(details[0].starterIdeas[0]).toMatchObject({
+      example: "Use books as radio.",
+      kind: "imagination",
+    });
   });
 
   it("upgrades legacy starterPrompts into starterIdeas", () => {

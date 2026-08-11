@@ -56,6 +56,23 @@ export const completeActivityV2Fixture = {
     {
       title: "Build your station",
       instruction: "Make a communications desk.",
+      starterIdeas: [
+        {
+          title: "Stack a radio",
+          example: "Stack books as a radio.",
+          kind: "building",
+        },
+        {
+          title: "Claim a chair",
+          example: "Turn the nearest chair into Station One.",
+          kind: "choice",
+        },
+        {
+          title: "Draw a station sign",
+          example: "Sketch a quick symbol that means “messages live here.”",
+          kind: "drawing",
+        },
+      ],
       examples: ["Stack books as a radio."],
       doneWhen: "You have a writing spot and a radio stand-in.",
       ifStuck: "Use a chair as the station.",
@@ -69,6 +86,23 @@ export const completeActivityV2Fixture = {
     {
       title: "Write Earth's message",
       instruction: "Write or draw one message to Earth.",
+      starterIdeas: [
+        {
+          title: "Late rocket",
+          example: "A rocket is late.",
+          kind: "imagination",
+        },
+        {
+          title: "Picture code",
+          example: "Draw three dots and a crooked arrow.",
+          kind: "drawing",
+        },
+        {
+          title: "Whisper line",
+          example: "Write one short line like “need more socks.”",
+          kind: "dialogue",
+        },
+      ],
       examples: ["A rocket is late."],
       doneWhen: "One message is ready.",
       ifStuck: "Draw a simple picture message.",

@@ -256,6 +256,14 @@ export function normalizeStarterIdeas(starterIdeas, starterPrompts = []) {
   return ideas;
 }
 
+function synthesizeStarterIdeasFromExamples(examples) {
+  return examples.slice(0, 3).map((example) => ({
+    title: example.length > 48 ? `${example.slice(0, 45)}…` : example,
+    example,
+    kind: "imagination",
+  }));
+}
+
 export function normalizeStepDetails(stepDetails, steps = []) {
   const details = [];
 
@@ -276,10 +284,17 @@ export function normalizeStepDetails(stepDetails, steps = []) {
             .filter((item) => item.instruction)
         : [];
 
+      const examples = asStringArray(raw.examples);
+      let starterIdeas = normalizeStarterIdeas(raw.starterIdeas);
+      if (starterIdeas.length === 0 && examples.length > 0) {
+        starterIdeas = synthesizeStarterIdeasFromExamples(examples);
+      }
+
       details.push({
         title: title || `Step ${details.length + 1}`,
         instruction: instruction || title,
-        examples: asStringArray(raw.examples),
+        starterIdeas,
+        examples,
         doneWhen: asString(
           raw.doneWhen,
           "You finished this part of the activity."
@@ -300,6 +315,7 @@ export function normalizeStepDetails(stepDetails, steps = []) {
       details.push({
         title: text.length > 56 ? `${text.slice(0, 53)}…` : text,
         instruction: text,
+        starterIdeas: [],
         examples: [],
         doneWhen: "You finished this step.",
         ifStuck: "Do a simpler version of this step and move on.",

@@ -60,7 +60,9 @@ ACTIVITY FORMAT V2 (required for every activity):
   maturityLevel is one of young-child | child | tween | teen | mixed-age.
   independenceLevel is one of adult-led | some-help | mostly-independent | independent.
 - Fill starterIdeas: array of { title, example, kind } where kind is one of imagination | choice | dialogue | drawing | building.
-- Fill stepDetails: array of { title, instruction, examples[], doneWhen, ifStuck, roleInstructions[] }.
+  Activity-level starterIdeas answer “What kind of version of this activity sounds fun?” — entry directions the child can pick to begin (e.g. something has gone missing, a mysterious message arrives, you have to build something). They are NOT per-step action tips.
+- Fill stepDetails: array of { title, instruction, starterIdeas[], doneWhen, ifStuck, roleInstructions[] }.
+  Each step’s starterIdeas (2–3 for imaginative, 1–3 for simple) answer “What could I actually do right now?” — concrete possibilities the child can borrow, change, combine, or ignore.
 - roleInstructions may be [] for solo play. For family mode, add per-role instructions when useful.
 - Also fill legacy mirrors (kidRole, mission, starterPrompts, firstMoves, steps, roles) so older clients work. Prefer mirroring V2 content into those fields.
 - Set visualTheme to one of: space, jungle, detective, animals, fantasy, building, science, art, expedition, neighborhood, rescue, mystery.
@@ -99,14 +101,14 @@ If safeActivityStyle is "simple":
 - Set activityStyle to "simple".
 - Give plain, real-life activities.
 - Use 2 to 4 stepDetails with short practical titles and instructions.
-- examples can be empty or very short practical tips.
-- ifStuck should offer a simpler practical fallback.
+- Each step should include 1 to 3 practical starterIdeas (concrete tips the child can try now).
+- ifStuck should offer a simpler practical fallback that is NOT the same as a starter idea.
 - Do NOT create an elaborate pretend story.
 - Do NOT invent a fantasy mission.
 - Do NOT use words like quest, mission, adventure, challenge, hero, explorer, kingdom, secret, agent, wizard, or rescue.
 - theme should be plain. kidRole / roleGuide.name may be empty unless family mode needs real jobs.
 - mission / roleGuide.goal should be a plain real-world goal.
-- starterIdeas may be 0 to 3 practical starters; kind can be drawing or building when relevant.
+- Activity-level starterIdeas may be 0 to 3 practical “how to begin” directions; kind can be drawing or building when relevant.
 - roles and roleInstructions should usually be empty unless this is a family activity.
 - visualTheme: prefer art, building, science, neighborhood, or animals as fits.
 
@@ -118,8 +120,8 @@ Good simple examples:
 
 If safeActivityStyle is "imaginative":
 - Set activityStyle to "imaginative".
-- Include at least 5 starterIdeas with mixed kinds. Do not make them all vague questions.
-- Include 4 to 6 stepDetails. Each needs: clear title, what to do, 2+ examples, doneWhen, and ifStuck that works offline with no adult.
+- Include at least 5 activity-level starterIdeas with mixed kinds. These are “how your story/challenge begins” directions — not scene action tips. Do not make them all vague questions.
+- Include 4 to 6 stepDetails. Each needs: clear title, what to do, 2–3 step-specific starterIdeas, doneWhen, and ifStuck that works offline with no adult.
 - Keep physical setup easy with household items. Do not require parent setup.
 
 When oldest participant is under 10:
@@ -141,17 +143,25 @@ When oldest participant is 13+:
 - mission: a crisp real creative brief (goal + constraints + what "done" looks like). Max ~3 sentences. No "Once upon a time" / fantasy world-building.
 - roleGuide: specific creative job for this brief (e.g. "Room Redesign Lead"), not a make-believe character and not a generic one-word title.
 - Prefer categories: puzzle, creative, science, building, music, reading, nature, social-game. Avoid "pretend" as a category unless interests demand it.
-- starterIdeas should be thinking prompts: alternate approaches, constraints to try, critique angles, variations — not "pretend you are…" prompts.
+- starterIdeas (activity-level) should be thinking prompts: alternate approaches, constraints to try, critique angles, variations — not "pretend you are…" prompts.
 - visualTheme: prefer building, science, art, detective, mystery, expedition, neighborhood — avoid fantasy unless interests demand it.
 - Language should sound like a cool challenge for a teen, never like preschool play.
 - Step titles can be challenge beats (Audit, Prototype, Stress-test) rather than story scenes.
 - ifStuck should be a simpler strategy or constraint — not "pretend your pencil is a magic wand."
 
-IMAGINATIVE STARTER IDEA RULES:
+IMAGINATIVE ACTIVITY-LEVEL STARTER RULES (entry directions):
+- Answer “What kind of version of this activity sounds fun?” — e.g. something has gone missing, a mysterious message arrives, someone needs help, you discover something strange, you have to build something.
 - Under 10: mix imagination prompts, choose-a-problem lists, dialogue openers, draw this, build this. Phrase them like doors into the story, not homework.
 - Ages 10+: mix choice, drawing, building, and problem variants; use imagination kind sparingly and never as "pretend you are a baby animal / fairy / teddy."
 - Each starterIdea needs a short title and a concrete example the child can copy or twist.
 - Avoid thin prompts without an example.
+
+IMAGINATIVE STEP STARTER RULES (in-scene prompts):
+- Every step MUST include 2–3 starterIdeas specific to that step.
+- A starter idea is NOT another instruction. It is a concrete possibility the child can borrow, change, combine, or ignore.
+- Starter ideas should reduce blank-page paralysis. They should answer “What could I make/say/choose/do right now?”
+- Do NOT repeat the same starter idea across scenes. Progress the prompts by scene role (e.g. Scene 1 helps choose a location; Scene 2 invents clues; Scene 3 interprets; Scene 4 shapes an ending).
+- Each step starter needs a short title, a concrete example, and a kind.
 
 IMAGINATIVE STEP DETAIL RULES (invitation → action → response):
 - Under 10: title = invitation beat; instruction = lively setup + clear do-this action; doneWhen = a natural transition cue (what they can notice when they're ready to move on), NOT a completion criterion or abstract story-change; ifStuck = one decisive teacher nudge.
@@ -159,7 +169,7 @@ IMAGINATIVE STEP DETAIL RULES (invitation → action → response):
 - Ages 13+: instruction = clear creative action with stakes/constraints; doneWhen = tangible ready-to-continue cue; ifStuck = simpler strategy.
 - doneWhen field name stays doneWhen, but write it as a kid-natural transition: e.g. "You've picked three clues you think matter." Never write "Something in the story has changed because of what you did."
 - Prefer doneWhen text that can follow the UI label "Ready for the next part when:" without sounding robotic.
-- examples = need-an-idea options the child can borrow or twist.
+- ifStuck = lowest-friction rescue only (“Can't decide? Grab the closest chair. That's Station One.”). Do NOT reuse starter ideas as ifStuck, and do not treat starters and stuck help interchangeably.
 - Do not dump all step instructions into mission.
 - Avoid worksheet / robot language such as "complete the following," "write three items," "perform task," "the objective," "record your answer," "this scene is complete when," "the activity is complete when," or repetitive bare commands.
 
@@ -227,7 +237,11 @@ roleGuide.name: "Sea Signal Finder"
 roleGuide.goal: "Find the clues the ocean left behind and figure out what the shells are trying to say."
 stepDetails[0].title: "Find the first signal"
 stepDetails[0].instruction: "Something's coming through—but it's faint. Pick a corner of the room for your first signal station and leave something there so you'll remember where it is. A pillow, a piece of paper, or even a book works."
-stepDetails[0].examples: ["Use the nearest chair as Station One.", "Put a sock on the floor as your marker."]
+stepDetails[0].starterIdeas: [
+  { title: "Claim a chair", example: "Use the nearest chair as Station One.", kind: "choice" },
+  { title: "Mark the floor", example: "Put a sock on the floor as your marker.", kind: "building" },
+  { title: "Draw a station sign", example: "Sketch a quick symbol that means “signal lives here.”", kind: "drawing" }
+]
 stepDetails[0].doneWhen: "Your first station has a marker."
 stepDetails[0].ifStuck: "Can't decide? Use the nearest chair. That's Station One."
 
@@ -319,7 +333,7 @@ ${
 - Inventory constraint: uses[] may ONLY reference items from that list (or common household basics if the list is empty). Never invent supplies.
 - Output style requirement:
   - If activity style is simple, make every activity feel like a plain real-world kid activity.
-  - If activity style is imaginative, write like a warm teacher sitting beside the child: invitation → action → response, contractions, ordinary words. For ages 13+, imaginative means creative thinking challenges — not pretend stories; mission is a short brief and roleGuide is a specific activity title (never a generic one-word role). Include at least 5 starterIdeas and rich stepDetails with transition-style doneWhen and ifStuck on every step.
+  - If activity style is imaginative, write like a warm teacher sitting beside the child: invitation → action → response, contractions, ordinary words. For ages 13+, imaginative means creative thinking challenges — not pretend stories; mission is a short brief and roleGuide is a specific activity title (never a generic one-word role). Include at least 5 activity-level starterIdeas (how the story/challenge begins) and rich stepDetails with 2–3 step-specific starterIdeas, transition-style doneWhen, and ifStuck rescue on every step.
 - Feedback context: ${safeFeedbackContext}
 - Previous activity titles to avoid: ${safePreviousActivityTitles.join(", ")}
 - Safety settings:
@@ -372,9 +386,22 @@ Return JSON in exactly this shape:
         {
           "title": "Mission Control Wakes Up",
           "instruction": "A crackle bursts through the silent moon base—Mission Control needs a station before the next message arrives. Claim a nearby spot and turn it into your command desk.",
-          "examples": [
-            "Stack two books into a radio tower.",
-            "Draw a ridiculous emergency button that absolutely should not be pressed."
+          "starterIdeas": [
+            {
+              "title": "Stack a radio tower",
+              "example": "Stack two books into a radio tower.",
+              "kind": "building"
+            },
+            {
+              "title": "Draw an emergency button",
+              "example": "Draw a ridiculous emergency button that absolutely should not be pressed.",
+              "kind": "drawing"
+            },
+            {
+              "title": "Claim the nearest chair",
+              "example": "Turn the nearest chair into your command desk.",
+              "kind": "choice"
+            }
           ],
           "doneWhen": "Your first station has a marker.",
           "ifStuck": "Can't decide? Use the nearest chair. That's Station One.",

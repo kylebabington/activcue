@@ -119,6 +119,11 @@ const stepDetailSchema = {
   properties: {
     title: { type: "string" },
     instruction: { type: "string" },
+    starterIdeas: {
+      type: "array",
+      items: starterIdeaSchema,
+    },
+    /** Legacy field — prefer starterIdeas for new activities. */
     examples: {
       type: "array",
       items: { type: "string" },
@@ -133,7 +138,7 @@ const stepDetailSchema = {
   required: [
     "title",
     "instruction",
-    "examples",
+    "starterIdeas",
     "doneWhen",
     "ifStuck",
     "roleInstructions",

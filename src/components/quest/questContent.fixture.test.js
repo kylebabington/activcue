@@ -20,6 +20,12 @@ describe("completeActivityV2Fixture", () => {
     expect(steps.every((step) => step.instruction)).toBe(true);
     expect(steps.every((step) => step.doneWhen)).toBe(true);
     expect(steps.every((step) => step.ifStuck)).toBe(true);
+    expect(
+      steps.every(
+        (step) =>
+          Array.isArray(step.starterIdeas) && step.starterIdeas.length >= 2
+      )
+    ).toBe(true);
     expect(Array.isArray(activity.uses)).toBe(true);
     expect(activity.uses.length).toBeGreaterThan(0);
   });

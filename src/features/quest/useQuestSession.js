@@ -234,6 +234,7 @@ export function useQuestSession({
       selectedAt: new Date().toISOString(),
       questPhase: "playing",
       checkedStarterIndexes: [],
+      selectedStepStarterByIndex: {},
       selectedRoleName:
         activity.roleGuide?.name || activity.kidRole || roles[0] || "",
       roleAssignments: Object.fromEntries(
@@ -711,6 +712,33 @@ export function useQuestSession({
     }
   }
 
+  function selectStepStarter(stepIndex, starterIndex) {
+    if (!activeActivity) {
+      return;
+    }
+    const current =
+      activeActivity.selectedStepStarterByIndex &&
+      typeof activeActivity.selectedStepStarterByIndex === "object"
+        ? { ...activeActivity.selectedStepStarterByIndex }
+        : {};
+    const key = String(stepIndex);
+    const previous = current[key];
+    if (previous === starterIndex) {
+      delete current[key];
+    } else {
+      current[key] = starterIndex;
+      trackProductEvent("step_starter_selected", {
+        title: activeActivity.title,
+        stepIndex,
+        starterIndex,
+      });
+    }
+    setActiveActivity({
+      ...activeActivity,
+      selectedStepStarterByIndex: current,
+    });
+  }
+
   function assignRole(childId, roleName) {
     if (!activeActivity || !childId) {
       return;
@@ -873,6 +901,7 @@ export function useQuestSession({
     setActivityReadingModeEnabled,
     setQuestPhase,
     toggleStarterIdea,
+    selectStepStarter,
     assignRole,
     toggleBuiltInHelp,
     setOpenSection,

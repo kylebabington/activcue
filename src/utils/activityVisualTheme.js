@@ -15,6 +15,14 @@ export const VISUAL_THEME_META = {
   mystery: { label: "Mystery", icon: "🔮", accent: "#4a3f6b" },
 };
 
+export const STARTER_KIND_ICONS = {
+  imagination: "✨",
+  choice: "🔎",
+  dialogue: "💬",
+  drawing: "✏️",
+  building: "🧱",
+};
+
 export function getVisualThemeMeta(visualTheme) {
   const key =
     typeof visualTheme === "string" && VISUAL_THEME_META[visualTheme]
@@ -47,22 +55,88 @@ export function getStarterIdeas(activity) {
 }
 
 /**
+ * Age band for kid-facing UI copy, from activity.ageFit.
+ * younger <10 | tween 10–12 | teen 13+
+ */
+export function getActivityCopyAgeBand(activity) {
+  const maturity = activity?.ageFit?.maturityLevel;
+  if (maturity === "teen") return "teen";
+  if (maturity === "tween") return "tween";
+  if (maturity === "young-child" || maturity === "child") return "younger";
+
+  const maxAge = Number(activity?.ageFit?.maxAge);
+  if (Number.isFinite(maxAge)) {
+    if (maxAge >= 13) return "teen";
+    if (maxAge >= 10) return "tween";
+  }
+  return "younger";
+}
+
+/** Activity-level starters: “what kind of version sounds fun?” */
+export function getActivityStarterSectionLabel(activity) {
+  const isImaginative = activity?.activityStyle !== "simple";
+  const band = getActivityCopyAgeBand(activity);
+  if (!isImaginative) {
+    return band === "younger" ? "Starter Ideas" : "Pick a starting direction";
+  }
+  if (band === "younger") return "Pick how your story begins";
+  return "Pick a starting direction";
+}
+
+/** Step-level starters: “what could I do right now?” */
+export function getStepStarterSectionLabel(activity) {
+  const band = getActivityCopyAgeBand(activity);
+  if (band === "teen") return "Try this";
+  if (band === "tween") return "A few ways in";
+  return "Need an idea? Try one of these";
+}
+
+export function getStarterKindIcon(kind) {
+  return STARTER_KIND_ICONS[kind] || STARTER_KIND_ICONS.imagination;
+}
+
+/**
+ * Prefer structured step starterIdeas; fall back to legacy examples[].
+ */
+export function getStepStarterIdeas(step) {
+  if (!step || typeof step !== "object") return [];
+
+  if (Array.isArray(step.starterIdeas) && step.starterIdeas.length > 0) {
+    return step.starterIdeas
+      .filter((idea) => idea && (idea.title || idea.example))
+      .map((idea) => ({
+        title: idea.title || idea.example,
+        example: idea.example || idea.title,
+        kind: idea.kind || "imagination",
+      }))
+      .slice(0, 3);
+  }
+
+  const examples = Array.isArray(step.examples) ? step.examples : [];
+  return examples
+    .filter((example) => typeof example === "string" && example.trim())
+    .slice(0, 3)
+    .map((example) => {
+      const text = example.trim();
+      return {
+        title: text.length > 48 ? `${text.slice(0, 45)}…` : text,
+        example: text,
+        kind: "imagination",
+      };
+    });
+}
+
+/**
  * Return at most three deterministic, step-local recovery prompts.
  *
- * Newer activities may provide stuckPrompts directly. Older Activity V2 data
- * already includes ifStuck plus concrete examples, so those become the
- * fallback pool. This keeps the button useful without making another AI call.
+ * Stuck help is lowest-friction rescue only (stuckPrompts / ifStuck).
+ * Creative possibilities live on starterIdeas, not in this pool.
  */
 export function getStepStuckPrompts(step) {
   if (!step || typeof step !== "object") return [];
 
   const explicit = Array.isArray(step.stuckPrompts) ? step.stuckPrompts : [];
-  const examples = Array.isArray(step.examples) ? step.examples : [];
-  const candidates = [
-    ...explicit,
-    step.ifStuck,
-    ...examples.map((example) => `Try this: ${example}`),
-  ];
+  const candidates = [...explicit, step.ifStuck];
 
   const seen = new Set();
   return candidates
@@ -85,6 +159,7 @@ export function getStepDetails(activity) {
     return activity.steps.filter(Boolean).map((step, index) => ({
       title: `Step ${index + 1}`,
       instruction: step,
+      starterIdeas: [],
       examples: [],
       doneWhen: "You finished this step.",
       ifStuck: "Do a simpler version of this step and move on.",

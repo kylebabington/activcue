@@ -19,8 +19,8 @@ A React app that collected a parent “moment,” called OpenAI for three activi
 Generated imaginative activities now ship as **Activity Format V2**:
 
 - `roleGuide` — who the child is, their job, and the first action
-- `starterIdeas` — checkable “doors” so kids begin without asking an adult
-- `stepDetails` — title, instruction, examples, `doneWhen`, and built-in `ifStuck`
+- `starterIdeas` — activity-level “how to begin” doors so kids pick a direction without asking an adult
+- `stepDetails` — title, instruction, per-step `starterIdeas`, `doneWhen`, and built-in `ifStuck`
 - Deterministic `visualTheme` accents (no AI images)
 
 The quest UI leads with **The World → Your Role → Start Here**, then step cards. Built-in help is the default recovery path; AI hints are demoted to “Still stuck?” emergency fallback. Target: AI hints on &lt;5% of started activities.

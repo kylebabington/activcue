@@ -8,7 +8,10 @@ import { trackProductEvent } from "../../utils/analytics";
 import {
   getActivityRoleLabel,
   getStepDetails,
+  getStepStarterIdeas,
+  getStepStarterSectionLabel,
   getStepStuckPrompts,
+  getStarterKindIcon,
   getVisualThemeMeta,
 } from "../../utils/activityVisualTheme";
 import { formatTimer } from "../../utils/activityFormatters";
@@ -86,11 +89,23 @@ export default function ListeningModePanel({
     selectedRoleName,
     roleAssignments
   );
+  const stepStarters = getStepStarterIdeas(currentStep);
+  const stepStarterLabel = getStepStarterSectionLabel(activity);
+  const selectedStepStarterByIndex =
+    activity?.selectedStepStarterByIndex &&
+    typeof activity.selectedStepStarterByIndex === "object"
+      ? activity.selectedStepStarterByIndex
+      : {};
+  const selectedStarterIndex =
+    selectedStepStarterByIndex?.[String(currentStepIndex)] ??
+    selectedStepStarterByIndex?.[currentStepIndex] ??
+    null;
   const stepNarration = activity
     ? buildNarrationText(activity, "step", {
         stepIndex: currentStepIndex,
         selectedRoleName,
         roleAssignments,
+        selectedStarterIndex,
       })
     : "";
   const stuckPrompts = getStepStuckPrompts(currentStep);
@@ -267,6 +282,32 @@ export default function ListeningModePanel({
             {currentStep.title || `Step ${currentStepIndex + 1}`}
           </h2>
           <p className="listening-mode-instruction">{stepInstruction}</p>
+          {stepStarters.length > 0 ? (
+            <div className="listening-mode-starters">
+              <p className="quest-step-starters-label">{stepStarterLabel}</p>
+              <ul className="listening-mode-starter-list">
+                {stepStarters.map((idea, index) => {
+                  const selected = selectedStarterIndex === index;
+                  return (
+                    <li
+                      key={`${idea.title}-${index}`}
+                      className={
+                        selected
+                          ? "listening-mode-starter is-selected"
+                          : "listening-mode-starter"
+                      }
+                    >
+                      <span aria-hidden="true">
+                        {selected ? "✓" : getStarterKindIcon(idea.kind)}
+                      </span>{" "}
+                      <strong>{idea.title}</strong>
+                      {idea.example ? ` — ${idea.example}` : ""}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ) : null}
           {currentStep.doneWhen ? (
             <p className="listening-mode-done-when">
               {isImaginative
