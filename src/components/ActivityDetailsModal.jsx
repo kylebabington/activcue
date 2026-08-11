@@ -157,7 +157,7 @@ function ActivityDetailsModal({
   const resolvedStartLabel =
     startLabel ||
     (activity.activityStyle === "imaginative"
-      ? "Enter the story"
+      ? "Start the story"
       : "Start this activity");
 
   const footer = (

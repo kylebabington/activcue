@@ -22,7 +22,7 @@ Parents name what they can handle *right now*. ActivCue generates structured **A
 | Screen | What to show |
 |--------|----------------|
 | **Landing** | “Need 20 quiet minutes?” + Activity V2 preview card |
-| **Onboarding** | Kids → supplies → moment → first Enter the story |
+| **Onboarding** | Kids → supplies → moment → first Start the story |
 | **Parent Moment** | Moment cards / Rescue Mode (10/20/30 → start) |
 | **Kid Mode** | Energy + Simple vs Imaginative; “I’m Bored” |
 | **Activity (Quest)** | World/role/starters intro, step cards, Plan B, independence outcome |

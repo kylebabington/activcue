@@ -503,7 +503,7 @@
 
 @media (min-width: 1024px) /* Large */ {
   .quest-choice-list--horizontal {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(260px, 1fr));
   }
 }
 
@@ -515,11 +515,12 @@
 
 .quest-choice-card {
   display: grid;
-  gap: var(--space-3);
-  padding: var(--space-3);
+  gap: var(--space-4);
+  padding: var(--space-4);
   border: 1px solid transparent;
   border-radius: var(--radius-medium);
   background: var(--color-surface-transparent);
+  min-width: 0;
 }
 
 .quest-choice-main {
@@ -723,7 +724,7 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  margin: calc(var(--space-3) * -1) calc(var(--space-3) * -1) 0;
+  margin: calc(var(--space-4) * -1) calc(var(--space-4) * -1) 0;
   padding: 0.55rem 0.85rem;
   border-radius: var(--radius-medium) var(--radius-medium) 0 0;
   background: color-mix(in srgb, var(--activity-theme-accent, var(--color-primary)) 18%, white);
@@ -745,9 +746,36 @@
 
 .activity-card-mission-tease {
   margin: 0;
-  color: var(--color-text-muted);
+  color: var(--color-text);
   font-size: var(--font-size-sm);
-  line-height: 1.45;
+  line-height: 1.5;
+}
+
+.activity-card-feedback-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.5rem;
+  margin-top: 0.15rem;
+}
+
+.activity-card-feedback-footer .text-action {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+}
+
+.activity-card-feedback-footer .text-action:hover:not(:disabled) {
+  color: var(--color-primary);
+}
+
+.activity-card-feedback-sep {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  opacity: 0.7;
 }
 
 .activity-card-role-badge {

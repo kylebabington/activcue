@@ -45,33 +45,22 @@ test("record ActivCue real product walkthrough", async ({ page }, testInfo) => {
 
   // 3. Activity screen with exactly three imaginative suggestions.
   await expect(
-    page.getByRole("heading", { name: /What should happen next/i })
+    page.getByRole("heading", { name: /Pick something to do/i })
   ).toBeVisible();
   const imaginativeCards = page.locator(".activity-card--imaginative");
   await expect(imaginativeCards).toHaveCount(3);
   await expect(page.locator(".activity-card--simple")).toHaveCount(0);
   await pause(page, 3600);
 
-  // 4. Open the real full-page activity details UI.
+  // 4. Start the story from the card (playbook opens after choose).
   const firstCard = imaginativeCards.first();
-  const firstTitle = (await firstCard.locator("h3").innerText()).trim();
-  await firstCard.getByRole("button", { name: /^Details$/i }).click();
-
-  const dialog = page.getByRole("dialog");
-  await expect(dialog).toBeVisible();
-  await expect(
-    dialog.getByRole("heading", { name: firstTitle, exact: true })
-  ).toBeVisible();
-  await pause(page, 4200);
-
-  // 5. Start from Details and finish the movie on the first activity step.
-  await dialog.getByRole("button", { name: /Enter the story/i }).click();
+  await firstCard.getByRole("button", { name: /Start the story/i }).click();
   await expect(
     page.getByLabel("First activity step demo screen")
   ).toBeVisible();
   await expect(page.getByRole("heading", { name: /^Steps$/i })).toBeVisible();
   await expect(page.locator("#quest-step-0")).toBeVisible();
-  await expect(page.locator("#quest-step-0")).toContainText(/Step 1/i);
+  await expect(page.locator("#quest-step-0")).toContainText(/Step 1|Scene 1/i);
   await expect(page.locator("#quest-step-1")).toBeHidden();
   await page.locator("#quest-step-0").scrollIntoViewIfNeeded();
   await pause(page, 5200);

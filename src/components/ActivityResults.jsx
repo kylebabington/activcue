@@ -11,7 +11,6 @@ import {
 import {
   getActivityMissionText,
   getActivityRoleLabel,
-  getStepDetails,
   getVisualThemeMeta,
 } from "../utils/activityVisualTheme";
 import { trackProductEvent } from "../utils/analytics";
@@ -37,6 +36,28 @@ function MetaChips({ activity }) {
   );
 }
 
+function CardFeedbackFooter({
+  hideFeedbackActions,
+  onToggleFeedback,
+  onMoreLikeThis,
+}) {
+  if (hideFeedbackActions) return null;
+
+  return (
+    <div className="activity-card-feedback-footer">
+      <button type="button" className="text-action" onClick={onToggleFeedback}>
+        Not this
+      </button>
+      <span className="activity-card-feedback-sep" aria-hidden="true">
+        ·
+      </span>
+      <button type="button" className="text-action" onClick={onMoreLikeThis}>
+        More like this
+      </button>
+    </div>
+  );
+}
+
 function SimpleActivityCard({
   activity,
   isBestFit,
@@ -45,6 +66,7 @@ function SimpleActivityCard({
   fitFacts,
   feedbackIsOpen,
   hideFeedbackActions = false,
+  hideDetails = false,
   onStart,
   onDetails,
   onToggleFeedback,
@@ -93,28 +115,18 @@ function SimpleActivityCard({
           <button type="button" className="quest-start-button" onClick={onStart}>
             {activity.isLocked ? "Unlock free" : "Start"}
           </button>
-          <button type="button" className="text-action" onClick={onDetails}>
-            Details
-          </button>
-          {!hideFeedbackActions ? (
-            <>
-              <button
-                type="button"
-                className="text-action"
-                onClick={onToggleFeedback}
-              >
-                Not this
-              </button>
-              <button
-                type="button"
-                className="text-action"
-                onClick={onMoreLikeThis}
-              >
-                More like this
-              </button>
-            </>
+          {!hideDetails ? (
+            <button type="button" className="text-action" onClick={onDetails}>
+              Details
+            </button>
           ) : null}
         </div>
+
+        <CardFeedbackFooter
+          hideFeedbackActions={hideFeedbackActions}
+          onToggleFeedback={onToggleFeedback}
+          onMoreLikeThis={onMoreLikeThis}
+        />
       </div>
 
       {!hideFeedbackActions && feedbackIsOpen ? (
@@ -152,6 +164,7 @@ function ImaginativeActivityCard({
   fitFacts,
   feedbackIsOpen,
   hideFeedbackActions = false,
+  hideDetails = false,
   onStart,
   onDetails,
   onToggleFeedback,
@@ -166,7 +179,6 @@ function ImaginativeActivityCard({
   const theme = getVisualThemeMeta(activity.visualTheme);
   const role = getActivityRoleLabel(activity);
   const mission = getActivityMissionText(activity);
-  const stepCount = getStepDetails(activity).length;
 
   return (
     <article
@@ -189,21 +201,17 @@ function ImaginativeActivityCard({
           <h3>{activity.title}</h3>
 
           {mission ? (
-            <p className="activity-card-mission-tease">
-              {mission.length > 180 ? `${mission.slice(0, 177)}…` : mission}
-            </p>
+            <p className="activity-card-mission-tease">{mission}</p>
           ) : null}
 
-          <div className="activity-card-role-badge">
-            <span className="activity-card-role-kicker">You are</span>
-            <strong>{role}</strong>
-          </div>
+          {role ? (
+            <div className="activity-card-role-badge">
+              <span className="activity-card-role-kicker">You are</span>
+              <strong>{role}</strong>
+            </div>
+          ) : null}
 
           <MetaChips activity={activity} />
-
-          {stepCount > 0 ? (
-            <p className="activity-card-step-count">{stepCount} guided steps</p>
-          ) : null}
 
           {fitFacts.length > 0 ? (
             <div className="fit-fact-chip-row">
@@ -218,30 +226,20 @@ function ImaginativeActivityCard({
 
         <div className="quest-choice-actions">
           <button type="button" className="quest-start-button" onClick={onStart}>
-            {activity.isLocked ? "Unlock free" : "Enter the story"}
+            {activity.isLocked ? "Unlock free" : "Start the story"}
           </button>
-          <button type="button" className="text-action" onClick={onDetails}>
-            Details
-          </button>
-          {!hideFeedbackActions ? (
-            <>
-              <button
-                type="button"
-                className="text-action"
-                onClick={onToggleFeedback}
-              >
-                Not this
-              </button>
-              <button
-                type="button"
-                className="text-action"
-                onClick={onMoreLikeThis}
-              >
-                More like this
-              </button>
-            </>
+          {!hideDetails ? (
+            <button type="button" className="text-action" onClick={onDetails}>
+              Details
+            </button>
           ) : null}
         </div>
+
+        <CardFeedbackFooter
+          hideFeedbackActions={hideFeedbackActions}
+          onToggleFeedback={onToggleFeedback}
+          onMoreLikeThis={onMoreLikeThis}
+        />
       </div>
 
       {!hideFeedbackActions && feedbackIsOpen ? (
@@ -293,6 +291,7 @@ function ActivityResults({
   activeChildId = "",
   inventoryEmpty = false,
   hideFeedbackActions = false,
+  hideDetails = false,
   hideSaveFavorite = false,
   detailsStartLabel = null,
   detailsVariant = "full",
@@ -382,6 +381,7 @@ function ActivityResults({
               fitFacts,
               feedbackIsOpen,
               hideFeedbackActions,
+              hideDetails,
               onStart: () => handleStartActivity(activity),
               onDetails: () => {
                 setDetailsActivityTitle(activity.title);

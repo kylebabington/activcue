@@ -24,11 +24,8 @@ export function getVisualThemeMeta(visualTheme) {
 }
 
 export function getActivityRoleLabel(activity) {
-  return (
-    activity?.roleGuide?.name ||
-    activity?.kidRole ||
-    (activity?.activityStyle === "imaginative" ? "Adventurer" : "Player")
-  );
+  const name = activity?.roleGuide?.name || activity?.kidRole || "";
+  return typeof name === "string" ? name.trim() : "";
 }
 
 export function getActivityMissionText(activity) {

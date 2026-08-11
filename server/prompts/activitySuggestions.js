@@ -28,27 +28,33 @@ Match the framing to the oldest participating child's age:
 
 - Ages ~0–9: pretend play, roles, themes, and light story framing are welcome.
 - Ages ~10–12 (tween): mix creative challenges with light theme. Prefer puzzles, design briefs, invention, strategy, experiments, and skill challenges. Optional light narrative is OK; do not require a full make-believe world.
-- Ages 13+ (teen): imaginative = thinking skills. Prefer design challenges, strategy games, invention briefs, creative problem-solving, systems thinking, photography concepts, music challenges, debate/prompt writing, building with constraints, outdoor exploration with a goal. Do NOT default to imaginary stories, costume roleplay, "you are a hero/agent/wizard," or nursery-style pretend. roleGuide is a job/brief title (Designer, Strategist, Inventor, Director), not a fantasy character. mission is a crisp challenge brief (1–3 sentences), not a 3–5 sentence setup story.
+- Ages 13+ (teen): imaginative = thinking skills. Prefer design challenges, strategy games, invention briefs, creative problem-solving, systems thinking, photography concepts, music challenges, debate/prompt writing, building with constraints, outdoor exploration with a goal. Do NOT default to imaginary stories, costume roleplay, "you are a hero/agent/wizard," or nursery-style pretend. roleGuide is a specific activity title (e.g. "Room Redesign Lead"), not a fantasy character and not a generic one-word job. mission is a crisp challenge brief (1–3 sentences), not a 3–5 sentence setup story.
 
 The requested activity style is: ${safeActivityStyle}
 
 VOICE FOR IMAGINATIVE ACTIVITIES:
-- Sound like a bubbly, creative teacher who has a gift for making ordinary things feel exciting.
-- Be warm, animated, encouraging, curious, and specific. Make the child feel like something interesting is already happening and they have an important part in it.
-- For ages under ~10, put the action INSIDE the story instead of presenting a worksheet or list of chores. Every step should advance the story, reveal a new situation, create a playful problem, or invite a meaningful choice.
-- For ages 10–12, keep energy and stakes, but prefer creative challenge framing over full make-believe worlds.
-- For ages 13+, do NOT force story framing. Use an upbeat creative-coach voice: intriguing brief, autonomy, humor, constraints, and interesting choices — without preschool pretend language or "you are a hero" roleplay.
+- Write like a warm teacher sitting beside the child and getting them started.
+- Use contractions. Use ordinary words. Speak directly to the child.
+- Give them something concrete to do, then tell them naturally what happens next.
+- Never explain the structure of the activity to the child. Never describe a step in abstract terms like "when the story has changed," "when the objective is complete," "when you have affected the scene," "your task is to," or "complete the following."
+- Every scene should feel like invitation → action → response: invite them into a moment, ask for a concrete action, then cue what comes next.
 - The child should feel spoken to, not instructed at.
 - Use sensory or situational details when they help.
 - Keep the actual action crystal clear underneath the fun framing.
-- Enthusiastic does NOT mean babyish. Avoid fake praise, excessive exclamation marks, sing-song language, and repetitive phrases like "Great job!" or "Wow!".
-- For younger children, the voice can feel like an energetic classroom teacher beginning a great game.
-- For tweens, use the energy of a clever, enthusiastic creative teacher who respects their ideas.
-- For teens, shift toward an upbeat creative coach: autonomy, humor, stakes, and interesting choices without preschool-style pretend language.
+- Warm does NOT mean babyish. Avoid fake praise, excessive exclamation marks, sing-song language, and repetitive phrases like "Great job!" or "Wow!".
+- For ages under ~10, put the action INSIDE the story instead of presenting a worksheet or list of chores.
+- For ages 10–12, keep energy and stakes, but prefer creative challenge framing over full make-believe worlds.
+- For ages 13+, do NOT force story framing. Use an upbeat creative-coach voice: intriguing brief, autonomy, humor, constraints, and interesting choices — without preschool pretend language or "you are a hero" roleplay.
+
+ROLE NAMING RULES:
+- Roles must be specific to THIS activity. Prefer titles like "Sea Signal Finder", "Bridge Builder", "Room Redesign Lead", "Missing Toy Detective", "Backyard Movie Director", "Cardboard Contraption Inventor", "Monster Portrait Artist", "Pillow Obstacle Course Planner".
+- NEVER use a generic one-word role such as Explorer, Player, Helper, Creator, Designer, Inventor, Strategist, Maker, Director, Adventurer, Artist, Builder, Reader, or Detective by itself.
+- If a natural role does not exist (for example a kid just drawing a picture), leave roleGuide.name / kidRole empty or use a plain short phrase — do not invent "The Creative Vision Artist."
+- For simple activities, roles are usually unnecessary; omit them unless family mode needs real per-child jobs.
 
 ACTIVITY FORMAT V2 (required for every activity):
 - Set activityFormatVersion to 2.
-- Fill roleGuide: { name, description, goal, firstAction, childRoles[] }.
+- Fill roleGuide: { name, description, goal, firstAction, childRoles[] }. name may be "" when no natural role exists.
 - childRoles may be [] for single-child. For family/mixed-age, include one entry per participating child: { childName, age, roleTitle, responsibility, firstAction }.
 - Fill ageFit: { minAge, maxAge, targetAges[], maturityLevel, independenceLevel, ageFitReason }.
   maturityLevel is one of young-child | child | tween | teen | mixed-age.
@@ -85,6 +91,7 @@ MIXED-AGE / FAMILY ROLE RULES:
 - Give older children genuine autonomy, strategy, complexity, leadership, design control, or problem-solving.
 - Younger children get simpler but real participation, not token busywork.
 - Do not average ages into one middle age. Respect the full age span.
+- childRoles.roleTitle must also be activity-specific, never a generic one-word title.
 
 STYLE RULES:
 
@@ -97,7 +104,7 @@ If safeActivityStyle is "simple":
 - Do NOT create an elaborate pretend story.
 - Do NOT invent a fantasy mission.
 - Do NOT use words like quest, mission, adventure, challenge, hero, explorer, kingdom, secret, agent, wizard, or rescue.
-- theme / kidRole / roleGuide.name should be plain (Artist, Builder, Reader, Player).
+- theme should be plain. kidRole / roleGuide.name may be empty unless family mode needs real jobs.
 - mission / roleGuide.goal should be a plain real-world goal.
 - starterIdeas may be 0 to 3 practical starters; kind can be drawing or building when relevant.
 - roles and roleInstructions should usually be empty unless this is a family activity.
@@ -116,23 +123,23 @@ If safeActivityStyle is "imaginative":
 - Keep physical setup easy with household items. Do not require parent setup.
 
 When oldest participant is under 10:
-- Vivid theme framing and a clear pretend role are OK.
+- Vivid theme framing and a clear pretend role are OK when a natural role exists.
 - mission may be a rich 3-to-5-sentence setup story (world, problem/invitation, who they are, why it matters, first direction).
-- roleGuide explains the pretend role, what they control, goal, and first action.
-- Prefer story-beat step titles and in-world doneWhen / ifStuck, matching the ${BRAND.name} teacher voice.
+- roleGuide explains the pretend role, what they control, goal, and first action — with an activity-specific name.
+- Prefer story-beat step titles and natural transition cues for doneWhen / ifStuck, matching the teacher voice above.
 - Make the steps feel connected. Step 2 should feel like something happened because of Step 1.
 - Vary the rhythm: surprise, choice, discovery, design problem, clue, countdown, or final reveal.
 
 When oldest participant is 10–12:
 - Prefer creative challenges over full pretend worlds. Light theme is optional.
 - mission: short challenge brief (1–3 sentences), not a long lore dump.
-- roleGuide.name: Designer, Inventor, Strategist, Maker, Director, Explorer — not "Princess" or "Space Cadet" unless the child's interests clearly ask for that.
+- roleGuide.name: activity-specific (e.g. "Pillow Obstacle Course Planner", "Cardboard Bridge Engineer") — never a bare "Designer" / "Explorer" / "Inventor".
 - Avoid forced make-believe dialogue and costume play.
 
 When oldest participant is 13+:
 - HARD RULE: do not invent an imaginary story world unless the child's listed interests explicitly ask for roleplay/fiction.
 - mission: a crisp real creative brief (goal + constraints + what "done" looks like). Max ~3 sentences. No "Once upon a time" / fantasy world-building.
-- roleGuide: real creative job framing (what they decide, what they produce), not a make-believe character.
+- roleGuide: specific creative job for this brief (e.g. "Room Redesign Lead"), not a make-believe character and not a generic one-word title.
 - Prefer categories: puzzle, creative, science, building, music, reading, nature, social-game. Avoid "pretend" as a category unless interests demand it.
 - starterIdeas should be thinking prompts: alternate approaches, constraints to try, critique angles, variations — not "pretend you are…" prompts.
 - visualTheme: prefer building, science, art, detective, mystery, expedition, neighborhood — avoid fantasy unless interests demand it.
@@ -146,13 +153,15 @@ IMAGINATIVE STARTER IDEA RULES:
 - Each starterIdea needs a short title and a concrete example the child can copy or twist.
 - Avoid thin prompts without an example.
 
-IMAGINATIVE STEP DETAIL RULES:
-- Under 10: title = story beat; instruction = lively setup + clear action; doneWhen = what changed in the story; ifStuck = warm teacher nudge.
-- Ages 10+: title/instruction can be challenge-first while staying warm and specific.
-- Ages 13+: instruction = clear creative action with stakes/constraints; doneWhen = tangible result; ifStuck = simpler strategy.
+IMAGINATIVE STEP DETAIL RULES (invitation → action → response):
+- Under 10: title = invitation beat; instruction = lively setup + clear do-this action; doneWhen = a natural transition cue (what they can notice when they're ready to move on), NOT a completion criterion or abstract story-change; ifStuck = one decisive teacher nudge.
+- Ages 10+: title/instruction can be challenge-first while staying warm and specific; doneWhen still sounds like a transition cue.
+- Ages 13+: instruction = clear creative action with stakes/constraints; doneWhen = tangible ready-to-continue cue; ifStuck = simpler strategy.
+- doneWhen field name stays doneWhen, but write it as a kid-natural transition: e.g. "You've picked three clues you think matter." Never write "Something in the story has changed because of what you did."
+- Prefer doneWhen text that can follow the UI label "Ready for the next part when:" without sounding robotic.
 - examples = need-an-idea options the child can borrow or twist.
 - Do not dump all step instructions into mission.
-- Avoid worksheet language such as "complete the following," "write three items," "perform task," "objective," "record your answer," or repetitive bare commands.
+- Avoid worksheet / robot language such as "complete the following," "write three items," "perform task," "the objective," "record your answer," "this scene is complete when," "the activity is complete when," or repetitive bare commands.
 
 CURRENT MOMENT RULES:
 - Treat the current family moment as the source of truth.
@@ -205,29 +214,31 @@ CATEGORY AND TRAIT RULES:
 
 QUALITY BAR:
 
-Bad imaginative step — this feels like homework:
-stepDetails[0].title: "Build your communication station"
-stepDetails[0].instruction: "Choose a table, chair, or floor space for your desk. Put paper and drawing supplies there."
-stepDetails[0].doneWhen: "Your station is finished."
+Bad imaginative step — robotic / schema-leaking:
+stepDetails[0].title: "Establish the signal station"
+stepDetails[0].instruction: "Select an area and construct your communication station."
+stepDetails[0].doneWhen: "Something in the story has changed because of what you did."
+roleGuide.name: "Explorer"
 
-Good imaginative step — same action, but the child is inside the story:
-Title: "Moon Base Message Mission"
-visualTheme: "space"
-roleGuide.name: "Moon Base Communications Officer"
-roleGuide.goal: "Send three important messages before the night crew arrives."
-stepDetails[0].title: "Mission Control Wakes Up"
-stepDetails[0].instruction: "A crackle bursts through the silent moon base—Mission Control needs a station before the next message arrives. Claim a table, chair, or floor spot nearby and turn it into your command desk with whatever you already have."
-stepDetails[0].examples: ["Stack two books into a radio tower.", "Draw a ridiculous emergency button that absolutely should not be pressed."]
-stepDetails[0].doneWhen: "Mission Control has a command spot and at least one piece of pretend equipment ready for the first transmission."
-stepDetails[0].ifStuck: "Start tiny: put one sheet of paper down as your control screen, grab a pencil antenna, and you are officially online."
+Good imaginative step — invitation → action → response:
+Title: "The Lost Shell Signal"
+visualTheme: "expedition"
+roleGuide.name: "Sea Signal Finder"
+roleGuide.goal: "Find the clues the ocean left behind and figure out what the shells are trying to say."
+stepDetails[0].title: "Find the first signal"
+stepDetails[0].instruction: "Something's coming through—but it's faint. Pick a corner of the room for your first signal station and leave something there so you'll remember where it is. A pillow, a piece of paper, or even a book works."
+stepDetails[0].examples: ["Use the nearest chair as Station One.", "Put a sock on the floor as your marker."]
+stepDetails[0].doneWhen: "Your first station has a marker."
+stepDetails[0].ifStuck: "Can't decide? Use the nearest chair. That's Station One."
 
 Good imaginative activity for a teen (~13) — thinking challenge, not pretend story:
 Title: "10-Minute Room Redesign Challenge"
 visualTheme: "building"
-roleGuide.name: "Interior Strategist"
+roleGuide.name: "Room Redesign Lead"
 roleGuide.goal: "Propose and mock up one layout change that improves focus or hangout space using only items already in the room."
 mission: "You have one room and the supplies on hand. Design a better layout for focus or hanging out. Sketch the before/after, move (or mock) one zone, and explain why it works."
 stepDetails[0].title: "Audit the current layout"
+stepDetails[0].doneWhen: "You've circled one friction point worth fixing."
 stepDetails[0].ifStuck: "Pick one friction point only — where you trip, lose stuff, or can't sit comfortably — and redesign around that."
 `;
 }
@@ -308,7 +319,7 @@ ${
 - Inventory constraint: uses[] may ONLY reference items from that list (or common household basics if the list is empty). Never invent supplies.
 - Output style requirement:
   - If activity style is simple, make every activity feel like a plain real-world kid activity.
-  - If activity style is imaginative, write it in ${BRAND.name}'s lively teacher voice for younger kids (story advances with clear action). For ages 13+, imaginative means creative thinking challenges — not pretend stories; mission is a short brief and roleGuide is a job/brief title. Include at least 5 starterIdeas and rich stepDetails with ifStuck on every step.
+  - If activity style is imaginative, write like a warm teacher sitting beside the child: invitation → action → response, contractions, ordinary words. For ages 13+, imaginative means creative thinking challenges — not pretend stories; mission is a short brief and roleGuide is a specific activity title (never a generic one-word role). Include at least 5 starterIdeas and rich stepDetails with transition-style doneWhen and ifStuck on every step.
 - Feedback context: ${safeFeedbackContext}
 - Previous activity titles to avoid: ${safePreviousActivityTitles.join(", ")}
 - Safety settings:
@@ -365,8 +376,8 @@ Return JSON in exactly this shape:
             "Stack two books into a radio tower.",
             "Draw a ridiculous emergency button that absolutely should not be pressed."
           ],
-          "doneWhen": "Mission Control has a command spot and at least one piece of pretend equipment ready for the first transmission.",
-          "ifStuck": "Start tiny: put down one sheet of paper as your control screen and grab a pencil antenna. You're online.",
+          "doneWhen": "Your first station has a marker.",
+          "ifStuck": "Can't decide? Use the nearest chair. That's Station One.",
           "roleInstructions": []
         }
       ],

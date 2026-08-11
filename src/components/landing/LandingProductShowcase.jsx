@@ -35,7 +35,7 @@ const PRODUCT_FRAMES = [
     title: "Clear activity steps",
     caption: "Mission, materials, and what to do next.",
     src: "/marketing/activity-details.png",
-    alt: "Activity details with overview, materials, and Enter the story",
+    alt: "Activity details with overview, materials, and Start the story",
   },
   {
     id: "play",

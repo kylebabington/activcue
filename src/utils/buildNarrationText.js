@@ -138,7 +138,11 @@ export function buildNarrationText(activity, section, options = {}) {
     ];
 
     if (options.includeDoneWhen !== false && step.doneWhen) {
-      parts.push(`You're done when: ${step.doneWhen}`);
+      const isImaginative = activity?.activityStyle === "imaginative";
+      const doneWhenLabel = isImaginative
+        ? "Ready for the next part when"
+        : "You're done when";
+      parts.push(`${doneWhenLabel}: ${step.doneWhen}`);
     }
 
     return joinSentences(parts);

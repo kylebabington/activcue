@@ -269,7 +269,10 @@ export default function ListeningModePanel({
           <p className="listening-mode-instruction">{stepInstruction}</p>
           {currentStep.doneWhen ? (
             <p className="listening-mode-done-when">
-              Done when: {currentStep.doneWhen}
+              {isImaginative
+                ? "Ready for the next part when: "
+                : "Done when: "}
+              {currentStep.doneWhen}
             </p>
           ) : null}
 
