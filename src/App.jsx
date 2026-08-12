@@ -406,7 +406,7 @@ function App() {
       saveActivityFeedbackRef.current?.(...args),
     showStatus,
     readingModePreference,
-    onNeedAnotherIdea: (previousTitle) => {
+    onNeedAnotherIdea: (previousTitle, options = {}) => {
       const intent = buildFeedbackIntent({
         feedbackIntent: "need-another-idea",
         previousActivityTitle: previousTitle,
@@ -415,6 +415,9 @@ function App() {
       });
       generateActivitiesRef.current?.(intentToLegacyFeedbackContext(intent), {
         generationIntent: intent,
+        excludeCandidateIds: Array.isArray(options.excludeCandidateIds)
+          ? options.excludeCandidateIds
+          : [],
       });
     },
   });
