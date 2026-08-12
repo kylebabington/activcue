@@ -1,7 +1,7 @@
-// src/components/GenerationLoader.test.js
+// src/utils/generationLoaderStages.test.js
 
 import { describe, expect, it } from "vitest";
-import { buildGenerationLoaderStages } from "./GenerationLoader.jsx";
+import { buildGenerationLoaderStages } from "./generationLoaderStages";
 
 describe("buildGenerationLoaderStages", () => {
   it("personalizes stages from moment + style", () => {
