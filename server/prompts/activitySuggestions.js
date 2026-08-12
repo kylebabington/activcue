@@ -178,6 +178,15 @@ export function buildActivitySuggestionsInstructions(
       ? buildSimpleStyleRules()
       : buildImaginativeStyleRules(ageBand);
 
+  const requestedCount = Math.max(
+    1,
+    Math.min(3, Number(options.activityCount) || 3)
+  );
+  const countPhrase =
+    requestedCount === 1
+      ? "1 activity"
+      : `${requestedCount} activities`;
+
   return `
 You are ${BRAND.name}'s kid-facing activity guide.
 
@@ -234,7 +243,7 @@ PERSONALIZATION RULES:
 
 OUTPUT RULES:
 - Return only valid JSON matching the schema.
-- Give exactly 3 activities.
+- Give exactly ${countPhrase}.
 - Do NOT include kidRole, mission, starterPrompts, firstMoves, steps, or roles — the server derives those.
 
 CATEGORY AND TRAIT RULES:
@@ -270,6 +279,7 @@ export function buildActivitySuggestionsInput({
   safeSafetySettings,
   playModeTheme = "playroom",
   activityPreferences = null,
+  activityCount = 3,
 }) {
   const children = Array.isArray(childrenContext) ? childrenContext : [];
   const activeResolved =
@@ -281,6 +291,7 @@ export function buildActivitySuggestionsInput({
       ? activityPreferences
       : {};
   const ageBand = resolvePromptAgeBand(groupAgeContext, children);
+  const requestedCount = Math.max(1, Math.min(3, Number(activityCount) || 3));
 
   return `
 Family context:
@@ -340,7 +351,7 @@ ${
   - Max activity minutes: ${safeSafetySettings.maxActivityMinutes}
   - Adult help allowed: ${safeSafetySettings.adultHelpAllowed}
 
-Return exactly 3 V2 activities. Required fields per activity:
+Return exactly ${requestedCount} V2 activities. Required fields per activity:
 activityFormatVersion, title, activityStyle, visualTheme, theme, summary,
 roleGuide{name,description,goal,firstAction,childRoles[]},
 ageFit{minAge,maxAge,targetAges,maturityLevel,independenceLevel,ageFitReason},
