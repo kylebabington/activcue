@@ -321,7 +321,71 @@ function setupEffortRank(traits) {
 }
 
 /**
+ * Bump times_served / times_shown for library candidates already returned to a user.
+ */
+export async function recordCandidatesShown({
+  userId,
+  candidateIds = [],
+} = {}) {
+  if (!userId || !Array.isArray(candidateIds) || candidateIds.length === 0) {
+    return;
+  }
+
+  const supabase = getSupabaseAdminClient();
+  const now = new Date().toISOString();
+  const uniqueIds = [
+    ...new Set(candidateIds.map((id) => String(id)).filter(Boolean)),
+  ];
+
+  for (const candidateId of uniqueIds) {
+    const { data: candidate } = await supabase
+      .from("shared_activity_candidates")
+      .select("id, times_served")
+      .eq("id", candidateId)
+      .maybeSingle();
+
+    if (!candidate) {
+      continue;
+    }
+
+    await supabase
+      .from("shared_activity_candidates")
+      .update({
+        times_served: (candidate.times_served || 0) + 1,
+        updated_at: now,
+      })
+      .eq("id", candidateId);
+
+    const { data: impression } = await supabase
+      .from("user_candidate_impressions")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("candidate_id", candidateId)
+      .maybeSingle();
+
+    if (impression) {
+      await supabase
+        .from("user_candidate_impressions")
+        .update({
+          last_seen_at: now,
+          times_shown: (impression.times_shown || 0) + 1,
+        })
+        .eq("id", impression.id);
+    } else {
+      await supabase.from("user_candidate_impressions").insert({
+        user_id: userId,
+        candidate_id: candidateId,
+        first_seen_at: now,
+        last_seen_at: now,
+        times_shown: 1,
+      });
+    }
+  }
+}
+
+/**
  * Pull Plan B / Rescue candidates the user has not recently started.
+ * Shown-but-not-disliked ideas remain eligible (soft score penalty only).
  */
 export async function querySharedCandidatesForUser({
   userId,
@@ -329,6 +393,7 @@ export async function querySharedCandidatesForUser({
   currentMoment = {},
   excludeCandidateIds = [],
   excludeCategories = [],
+  activityStyle = null,
   limit = 5,
 } = {}) {
   if (!userId) {
@@ -336,12 +401,22 @@ export async function querySharedCandidatesForUser({
   }
 
   const supabase = getSupabaseAdminClient();
-  const { data: rows, error } = await supabase
+  let query = supabase
     .from("shared_activity_candidates")
     .select("*")
     .eq("is_active", true)
     .order("times_completed", { ascending: false })
     .limit(80);
+
+  const style =
+    typeof activityStyle === "string" && activityStyle.trim()
+      ? activityStyle.trim().toLowerCase()
+      : null;
+  if (style === "simple" || style === "imaginative") {
+    query = query.eq("activity_style", style);
+  }
+
+  const { data: rows, error } = await query;
 
   if (error || !rows) {
     console.warn("Could not query shared candidates:", error);
@@ -379,7 +454,8 @@ export async function querySharedCandidatesForUser({
     if (impression && (impression.times_started || 0) > 0) {
       continue;
     }
-    if (impression && (impression.times_rejected || 0) >= 2) {
+    // One "Not this" is enough — reuse shown-but-not-disliked ideas.
+    if (impression && (impression.times_rejected || 0) >= 1) {
       continue;
     }
 

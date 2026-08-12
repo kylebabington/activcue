@@ -532,6 +532,11 @@ export function useQuestSession({
       messLevel,
       locationPreference,
       childAgeRange: effectiveChildAgeRange,
+      candidateId: activity.candidateId || activity.candidate_id || null,
+      recommendationBatchId:
+        activity.recommendationBatchId ||
+        activity.recommendation_batch_id ||
+        null,
     });
     setActiveActivity(null);
     persistSessionExit(activity, "abandoned");
@@ -552,7 +557,11 @@ export function useQuestSession({
         outcome: "rejected",
       }).catch(() => {});
     }
-    onNeedAnotherIdea?.(previousTitle);
+    onNeedAnotherIdea?.(previousTitle, {
+      excludeCandidateIds: activity.candidateId
+        ? [String(activity.candidateId)]
+        : [],
+    });
   }
 
   function clearLastCompletedQuest() {

@@ -1,11 +1,23 @@
 import { describe, expect, it } from "vitest";
-import { buildActivitySuggestionsInstructions } from "./activitySuggestions.js";
+import {
+  buildActivitySuggestionsInstructions,
+  resolvePromptAgeBand,
+} from "./activitySuggestions.js";
+
+describe("resolvePromptAgeBand", () => {
+  it("maps oldest ages to under10 / tween / teen", () => {
+    expect(resolvePromptAgeBand({ oldestAge: 7 })).toBe("under10");
+    expect(resolvePromptAgeBand({ oldestAge: 11 })).toBe("tween");
+    expect(resolvePromptAgeBand({ oldestAge: 14 })).toBe("teen");
+  });
+});
 
 describe("buildActivitySuggestionsInstructions", () => {
   it("gives imaginative activities a warm teacher voice for younger kids", () => {
     const instructions = buildActivitySuggestionsInstructions(
       "imaginative",
-      "playroom"
+      "playroom",
+      { groupAgeContext: { oldestAge: 7 } }
     );
 
     expect(instructions).toContain(
@@ -14,40 +26,56 @@ describe("buildActivitySuggestionsInstructions", () => {
     expect(instructions).toContain(
       "Every scene should feel like invitation → action → response"
     );
-    expect(instructions).toContain(
-      "doneWhen = a natural transition cue"
-    );
-    expect(instructions).toContain(
-      "The child should feel spoken to, not instructed at."
-    );
+    expect(instructions).toContain("UNDER-10 FRAMING");
+    expect(instructions).not.toContain("TEEN (13+) FRAMING");
+    expect(instructions).toContain("Do NOT include kidRole, mission");
   });
 
   it("steers teens toward creative thinking instead of pretend stories", () => {
     const instructions = buildActivitySuggestionsInstructions(
       "imaginative",
-      "playroom"
+      "playroom",
+      { groupAgeContext: { oldestAge: 13 } }
     );
 
-    expect(instructions).toContain("Ages 13+ (teen): imaginative = thinking skills");
+    expect(instructions).toContain("TEEN (13+) FRAMING");
     expect(instructions).toContain(
       "do not invent an imaginary story world unless the child's listed interests explicitly ask for roleplay/fiction"
     );
-    expect(instructions).toContain(
-      'roleGuide is a specific activity title (e.g. "Room Redesign Lead")'
-    );
-    expect(instructions).toContain(
-      "NEVER use a generic one-word role such as Explorer"
-    );
+    expect(instructions).toContain("Room Redesign Lead");
+    expect(instructions).toContain("NEVER use a generic one-word role");
+    expect(instructions).not.toContain("UNDER-10 FRAMING");
   });
 
   it("keeps simple activities practical instead of forcing story framing", () => {
-    const instructions = buildActivitySuggestionsInstructions("simple", "playroom");
-
-    expect(instructions).toContain(
-      'If safeActivityStyle is "simple":'
+    const instructions = buildActivitySuggestionsInstructions(
+      "simple",
+      "playroom",
+      { groupAgeContext: { oldestAge: 8 } }
     );
+
+    expect(instructions).toContain("STYLE RULES (simple — only)");
     expect(instructions).toContain(
       "Do NOT create an elaborate pretend story."
     );
+    expect(instructions).not.toContain("STYLE RULES (imaginative");
+  });
+
+  it("omits the opposite style block to shrink prompt size", () => {
+    const imaginative = buildActivitySuggestionsInstructions(
+      "imaginative",
+      "playroom",
+      { groupAgeContext: { oldestAge: 8 } }
+    );
+    const simple = buildActivitySuggestionsInstructions(
+      "simple",
+      "playroom",
+      { groupAgeContext: { oldestAge: 8 } }
+    );
+
+    expect(imaginative.length).toBeLessThan(14000);
+    expect(simple.length).toBeLessThan(imaginative.length);
+    // Pre-pass instructions were ~20.5k chars; trimmed target stays well under half.
+    expect(imaginative.length).toBeLessThan(20500 / 2 + 2000);
   });
 });

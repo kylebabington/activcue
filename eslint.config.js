@@ -39,7 +39,7 @@ export default [
     },
   },
   {
-    files: ["server/**/*.js"],
+    files: ["server/**/*.js", "server/**/*.mjs"],
     languageOptions: {
       globals: globals.node,
     },
