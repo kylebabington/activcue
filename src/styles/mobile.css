@@ -1,0 +1,281 @@
+/* ============================================================
+   MOBILE — phone-first spacing, touch targets, and overflow safety
+   Imported last so these rules can normalize page-specific desktop styles.
+   ============================================================ */
+
+@media (max-width: 767px) {
+  :root,
+  [data-theme="playroom"],
+  [data-theme="workshop"],
+  [data-theme="storybook"] {
+    --page-side-padding: 1rem;
+    --panel-padding: 1rem;
+    --card-padding: 1rem;
+    --modal-padding: 1rem;
+    --card-gap: 0.85rem;
+    --navigation-gap: 0.5rem;
+    --control-height: 2.75rem;
+    --control-height-large: 3rem;
+  }
+
+  html,
+  body,
+  #root {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: clip;
+  }
+
+  body {
+    background-attachment: scroll;
+  }
+
+  img,
+  svg,
+  video,
+  canvas {
+    max-width: 100%;
+    height: auto;
+  }
+
+  .app-shell {
+    width: 100%;
+    padding-top: 0;
+  }
+
+  .app-header {
+    margin-bottom: var(--space-3);
+    padding-bottom: var(--space-1);
+  }
+
+  .app-header-bar,
+  .app-header-brand,
+  .app-header-brand-link {
+    min-width: 0;
+  }
+
+  .app-brand-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .app-nav-drawer {
+    max-height: calc(100dvh - 4.25rem - env(safe-area-inset-top, 0px));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .page-layout,
+  .content-grid-2,
+  .kid-center-column,
+  .activity-board-column,
+  .settings-layout,
+  .panel,
+  .hero-card,
+  .quest-choice-list,
+  .quest-choice-card,
+  .quest-choice-main,
+  .quest-choice-body {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .panel,
+  .hero-card {
+    border-radius: var(--radius-medium);
+  }
+
+  .panel-header,
+  .current-moment-banner,
+  .auto-pick-panel,
+  .first-run-coach {
+    align-items: stretch;
+  }
+
+  .panel-header {
+    flex-direction: column;
+    margin-bottom: var(--space-2);
+  }
+
+  .panel-header > *,
+  .current-moment-banner > *,
+  .auto-pick-panel > *,
+  .first-run-coach > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .quest-choice-card {
+    gap: var(--space-3);
+    padding: 1rem;
+  }
+
+  .activity-card-world-band {
+    margin: -1rem -1rem 0;
+    padding-inline: 1rem;
+  }
+
+  .quest-choice-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-1);
+    width: 100%;
+  }
+
+  .quest-choice-actions .quest-start-button {
+    width: 100%;
+    min-height: 2.75rem;
+  }
+
+  .quest-choice-actions .text-action {
+    justify-self: start;
+    min-height: 2.5rem;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .activity-card-feedback-footer {
+    gap: 0.25rem 0.55rem;
+  }
+
+  .activity-card-meta-chip,
+  .fit-fact-chip,
+  .activity-style-badge,
+  .best-fit-badge {
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .quick-chip-row,
+  .chip-list,
+  .chip-grid,
+  .moment-chip-list,
+  .fit-fact-chip-row,
+  .parent-now-chips,
+  .kid-secondary-actions,
+  .insights-actions,
+  .activity-empty-actions {
+    max-width: 100%;
+  }
+
+  .quick-chip,
+  .quick-chip-row button,
+  .chip,
+  .kid-energy-chip,
+  .kid-playing-chip {
+    min-height: 2.75rem;
+  }
+
+  .generate-button,
+  .primary-link-button,
+  .secondary-action,
+  .danger-button {
+    max-width: 100%;
+    min-height: 2.75rem;
+    white-space: normal;
+  }
+
+  .pin-row {
+    grid-template-columns: 1fr;
+  }
+
+  .pin-row button,
+  .generate-button,
+  .primary-link-button {
+    width: 100%;
+  }
+
+  .settings-field select {
+    max-width: 100%;
+  }
+
+  .settings-nav {
+    margin-inline: calc(var(--page-side-padding) * -1);
+    padding-inline: var(--page-side-padding);
+    scrollbar-width: none;
+  }
+
+  .settings-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .modal-backdrop {
+    padding: max(0.75rem, env(safe-area-inset-top, 0px))
+      max(0.75rem, env(safe-area-inset-right, 0px))
+      max(0.75rem, env(safe-area-inset-bottom, 0px))
+      max(0.75rem, env(safe-area-inset-left, 0px));
+  }
+
+  .modal-panel:not(.modal-panel--full-page) {
+    border-radius: var(--radius-medium);
+  }
+
+  .modal-header,
+  .modal-body,
+  .modal-footer {
+    min-width: 0;
+  }
+
+  .modal-footer > * {
+    width: 100%;
+  }
+
+  table {
+    width: 100%;
+  }
+
+  pre,
+  code {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+}
+
+@media (max-width: 479px) {
+  :root,
+  [data-theme="playroom"],
+  [data-theme="workshop"],
+  [data-theme="storybook"] {
+    --page-side-padding: 0.75rem;
+    --panel-padding: 0.85rem;
+    --card-padding: 0.85rem;
+    --modal-padding: 0.85rem;
+  }
+
+  .app-brand-name {
+    font-size: 0.82rem;
+  }
+
+  .kid-main-panel {
+    padding: var(--space-3) var(--space-2);
+  }
+
+  .kid-style-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .quest-choice-card {
+    padding: 0.85rem;
+  }
+
+  .activity-card-world-band {
+    margin: -0.85rem -0.85rem 0;
+    padding-inline: 0.85rem;
+  }
+
+  .preset-grid--dense {
+    grid-template-columns: 1fr;
+  }
+
+  .first-run-coach,
+  .auto-pick-panel {
+    flex-direction: column;
+  }
+
+  .first-run-coach button,
+  .auto-pick-panel button {
+    width: 100%;
+  }
+}
