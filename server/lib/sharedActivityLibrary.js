@@ -2,6 +2,82 @@
 
 import { createHash } from "crypto";
 import { getSupabaseAdminClient } from "./supabaseAdminClient.js";
+import { isEligibleForChildren } from "../utils/childAge.js";
+
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+/**
+ * Days since an ISO timestamp. Missing/invalid → Infinity (no recency hit).
+ */
+export function daysSinceTimestamp(iso, now = Date.now()) {
+  const t = Date.parse(iso);
+  if (!Number.isFinite(t)) {
+    return Number.POSITIVE_INFINITY;
+  }
+  return Math.max(0, (now - t) / MS_PER_DAY);
+}
+
+/**
+ * Soft ranking penalties from per-user impression history.
+ * Shown / started / completed are never hard bans — only "Not this" is.
+ */
+export function impressionRankingPenalty(impression, now = Date.now()) {
+  if (!impression) {
+    return 0;
+  }
+
+  // Prefer fresher ideas when equally good: shown once −1 … capped at −4.
+  let penalty = Math.min(4, Number(impression.times_shown) || 0);
+
+  // Started (and completed-as-engagement) → temporary recency cooldown.
+  if ((Number(impression.times_started) || 0) > 0) {
+    const days = daysSinceTimestamp(
+      impression.last_seen_at || impression.first_seen_at,
+      now
+    );
+    if (days < 7) penalty += 12;
+    else if (days < 21) penalty += 8;
+    else if (days < 60) penalty += 4;
+    else if (days < 120) penalty += 2;
+    else penalty += 1;
+  }
+
+  return penalty;
+}
+
+/**
+ * Hard age-range gate for library rows (same bar as style / time / mess).
+ * When childAges is empty, skip (Plan B / Rescue may omit ages).
+ * When ages are known, require structured ageFit that covers every child.
+ */
+export function candidatePassesAgeRange(row, childAges = []) {
+  const ages = (Array.isArray(childAges) ? childAges : [])
+    .map((age) => Number(age))
+    .filter((age) => Number.isFinite(age));
+
+  if (ages.length === 0) {
+    return true;
+  }
+
+  const data =
+    row?.activity_data && typeof row.activity_data === "object"
+      ? row.activity_data
+      : row && typeof row === "object"
+        ? row
+        : {};
+  const ageFit = data.ageFit;
+  if (!ageFit || typeof ageFit !== "object") {
+    return false;
+  }
+
+  const minAge = Number(ageFit.minAge);
+  const maxAge = Number(ageFit.maxAge);
+  if (!Number.isFinite(minAge) || !Number.isFinite(maxAge)) {
+    return false;
+  }
+
+  return isEligibleForChildren({ ageFit }, ages);
+}
 
 function stableStringify(value) {
   if (Array.isArray(value)) {
@@ -384,8 +460,10 @@ export async function recordCandidatesShown({
 }
 
 /**
- * Pull Plan B / Rescue candidates the user has not recently started.
- * Shown-but-not-disliked ideas remain eligible (soft score penalty only).
+ * Pull shared-library candidates for cache-first / Plan B / Rescue.
+ * Hard excludes: explicit exclude ids, "Not this" (rejected), style/time/mess,
+ * and age-range mismatch when childAges are provided.
+ * Soft penalties: times_shown, recent started/completed engagement.
  */
 export async function querySharedCandidatesForUser({
   userId,
@@ -394,6 +472,7 @@ export async function querySharedCandidatesForUser({
   excludeCandidateIds = [],
   excludeCategories = [],
   activityStyle = null,
+  childAges = [],
   limit = 5,
 } = {}) {
   if (!userId) {
@@ -442,6 +521,7 @@ export async function querySharedCandidatesForUser({
   const maxMinutes = Number(currentMoment.timeNeededMinutes) || 30;
   const messLimit = String(currentMoment.messLevel || "medium").toLowerCase();
   const messRank = { low: 1, medium: 2, high: 3 };
+  const now = Date.now();
 
   const scored = [];
 
@@ -451,11 +531,12 @@ export async function querySharedCandidatesForUser({
     }
 
     const impression = impressionByCandidate.get(row.id);
-    if (impression && (impression.times_started || 0) > 0) {
+    // One "Not this" is enough — permanent exclude until we add forgiveness.
+    if (impression && (impression.times_rejected || 0) >= 1) {
       continue;
     }
-    // One "Not this" is enough — reuse shown-but-not-disliked ideas.
-    if (impression && (impression.times_rejected || 0) >= 1) {
+
+    if (!candidatePassesAgeRange(row, childAges)) {
       continue;
     }
 
@@ -481,11 +562,10 @@ export async function querySharedCandidatesForUser({
     score += inventoryOverlapScore(row.supplies, inventory) * 8;
     if (adultHelp === "none") score += 4;
     else if (adultHelp === "optional") score += 2;
+    // Global quality signal (all users), not a per-user ban.
     score += Math.max(0, 3 - (row.times_rejected || 0));
     score += Math.min(5, row.times_completed || 0);
-    if (impression) {
-      score -= Math.min(4, impression.times_shown || 0);
-    }
+    score -= impressionRankingPenalty(impression, now);
 
     scored.push({ row, score });
   }
@@ -523,6 +603,9 @@ export async function recordCandidateOutcome({
     impressionPatch.times_started = true;
   } else if (outcome === "completed") {
     candidatePatch.times_completed = (candidate.times_completed || 0) + 1;
+    // No times_completed column on impressions yet — treat complete as
+    // engagement so recency penalties apply (and refresh last_seen_at).
+    impressionPatch.ensureEngaged = true;
   } else if (outcome === "rejected") {
     candidatePatch.times_rejected = (candidate.times_rejected || 0) + 1;
     impressionPatch.times_rejected = true;
@@ -544,6 +627,11 @@ export async function recordCandidateOutcome({
     const update = { last_seen_at: impressionPatch.last_seen_at };
     if (impressionPatch.times_started) {
       update.times_started = (impression.times_started || 0) + 1;
+    } else if (
+      impressionPatch.ensureEngaged &&
+      (impression.times_started || 0) === 0
+    ) {
+      update.times_started = 1;
     }
     if (impressionPatch.times_rejected) {
       update.times_rejected = (impression.times_rejected || 0) + 1;
@@ -556,7 +644,8 @@ export async function recordCandidateOutcome({
     await supabase.from("user_candidate_impressions").insert({
       user_id: userId,
       candidate_id: candidateId,
-      times_started: outcome === "started" ? 1 : 0,
+      times_started:
+        outcome === "started" || outcome === "completed" ? 1 : 0,
       times_rejected: outcome === "rejected" ? 1 : 0,
     });
   }

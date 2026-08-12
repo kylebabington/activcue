@@ -78,4 +78,18 @@ describe("buildActivitySuggestionsInstructions", () => {
     // Pre-pass instructions were ~20.5k chars; trimmed target stays well under half.
     expect(imaginative.length).toBeLessThan(20500 / 2 + 2000);
   });
+
+  it("requests a variable activity count for hybrid cache fill", () => {
+    const one = buildActivitySuggestionsInstructions("simple", "playroom", {
+      groupAgeContext: { oldestAge: 8 },
+      activityCount: 1,
+    });
+    const two = buildActivitySuggestionsInstructions("simple", "playroom", {
+      groupAgeContext: { oldestAge: 8 },
+      activityCount: 2,
+    });
+
+    expect(one).toContain("Give exactly 1 activity.");
+    expect(two).toContain("Give exactly 2 activities.");
+  });
 });

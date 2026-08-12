@@ -38,7 +38,9 @@ import { aiSuggestionsRateLimiter } from "../middleware/rateLimits.js";
 
 const router = Router();
 const isDebugLogging = process.env.DEBUG_AI_RESPONSES === "true";
-const CACHE_FIRST_MIN = 3;
+const SUGGESTION_COUNT = 3;
+/** Over-fetch before age-fit so we still fill the pool after rejects. */
+const CACHE_LOOKUP_LIMIT = 12;
 
 function logSuggestionTiming(payload) {
   try {
@@ -49,6 +51,27 @@ function logSuggestionTiming(payload) {
   } catch {
     // ignore
   }
+}
+
+function preserveLibraryIds(activity) {
+  return {
+    ...activity,
+    candidateId: activity.candidateId || activity.candidate_id,
+    contentHash: activity.contentHash || activity.content_hash,
+    sharedCandidateId:
+      activity.candidateId || activity.candidate_id || null,
+  };
+}
+
+function maxTokensForCount(count) {
+  const n = Math.max(1, Math.min(SUGGESTION_COUNT, Number(count) || 1));
+  return Math.max(1800, Math.ceil(4500 * (n / SUGGESTION_COUNT)));
+}
+
+function resolveSuggestionSource(cacheCount, aiCount) {
+  if (cacheCount > 0 && aiCount > 0) return "hybrid";
+  if (cacheCount > 0) return "shared_library";
+  return "openai";
 }
 
 export default function createActivitySuggestionsRouter(client) {
@@ -162,7 +185,12 @@ export default function createActivitySuggestionsRouter(client) {
               ? req.body.moment_id.trim()
               : null;
 
-        // Cache-first: serve shared-library fits unless Not this / started / excluded.
+        const oldestAge =
+          childAges.length > 0 ? Math.max(...childAges) : null;
+        const enforceTeenAgeFit =
+          Number.isFinite(oldestAge) && oldestAge >= 12;
+
+        // Cache-first pool: keep good library fits, fill remaining slots with AI.
         const cacheLookupStarted = Date.now();
         let cachedCandidates = [];
         try {
@@ -172,7 +200,8 @@ export default function createActivitySuggestionsRouter(client) {
             currentMoment: safeCurrentMoment,
             excludeCandidateIds: safeExcludeCandidateIds,
             activityStyle: safeActivityStyle,
-            limit: CACHE_FIRST_MIN,
+            childAges,
+            limit: CACHE_LOOKUP_LIMIT,
           });
         } catch (cacheError) {
           console.warn("Cache-first library lookup failed:", cacheError);
@@ -180,345 +209,290 @@ export default function createActivitySuggestionsRouter(client) {
         }
         msCacheLookup = Date.now() - cacheLookupStarted;
 
-        if (
-          Array.isArray(cachedCandidates) &&
-          cachedCandidates.length >= CACHE_FIRST_MIN
-        ) {
-          const normalizeStarted = Date.now();
-          const normalizedCached = cachedCandidates
-            .slice(0, CACHE_FIRST_MIN)
-            .map((activity) =>
-              normalizeActivity(activity, safeActivityStyle, childAges)
-            );
-          msNormalize = Date.now() - normalizeStarted;
-
-          const withIds = attachRecommendationIds(
-            normalizedCached.map((activity) => ({
-              ...activity,
-              // Preserve library candidate id for impression / reject tracking.
-              candidateId: activity.candidateId || activity.candidate_id,
-              contentHash: activity.contentHash || activity.content_hash,
-              sharedCandidateId:
-                activity.candidateId || activity.candidate_id || null,
-            }))
-          );
-          const presentedAt = new Date().toISOString();
-          const activitiesWithMeta = withIds.activities.map((activity) => ({
-            ...activity,
-            presentedAt,
-            momentId: requestMomentId,
-          }));
-          const recommendationBatchId = withIds.recommendationBatchId;
-          const msTotal = Date.now() - startedAt;
-
-          logSuggestionTiming({
-            source: "shared_library",
-            msCacheLookup,
-            msOpenai: 0,
-            msNormalize,
-            msTotal,
-            candidateCount: activitiesWithMeta.length,
-          });
-
-          res.json({
-            source: "shared_library",
-            recommendationBatchId,
-            momentId: requestMomentId,
-            activities: activitiesWithMeta,
-            ageFitRejectedCount: 0,
-            timing: {
-              source: "shared_library",
-              msCacheLookup,
-              msOpenai: 0,
-              msNormalize,
-              msTotal,
-            },
-          });
-
-          void (async () => {
-            try {
-              await recordCandidatesShown({
-                userId: req.auth.userId,
-                candidateIds: activitiesWithMeta.map((a) => a.candidateId),
-              });
-
-              let momentId = requestMomentId;
-              if (!momentId) {
-                const momentSnapshot = await createActivityMoment({
-                  userId: req.auth.userId,
-                  moment: safeCurrentMoment,
-                  kidMood,
-                  childIds: [
-                    ...(activeChildProfile?.id
-                      ? [activeChildProfile.id]
-                      : []),
-                    ...safeSelectedChildProfiles
-                      .map((c) => c?.id)
-                      .filter(Boolean),
-                  ],
-                  rescueMode: false,
-                });
-                momentId = momentSnapshot?.id || null;
-              }
-
-              await createRecommendationBatch({
-                userId: req.auth.userId,
-                momentId,
-                source: "shared_library",
-                mode: "normal",
-                latencyMs: msTotal,
-                activities: activitiesWithMeta,
-                batchId: recommendationBatchId,
-              });
-            } catch (telemetryError) {
-              console.warn(
-                "Post-response cache-hit telemetry failed:",
-                telemetryError
-              );
-            }
-          })();
-
-          return;
-        }
-
-        const instructions = buildActivitySuggestionsInstructions(
-          safeActivityStyle,
-          safePlayModeTheme,
-          { childrenContext, groupAgeContext }
-        );
-        const input = buildActivitySuggestionsInput({
-          safeCurrentMoment,
-          kidMood,
-          locationPreference,
-          childAgeRange,
-          childrenContext,
-          groupAgeContext,
-          activeChildProfile,
-          safeActivityStyle,
-          activityMode,
-          safeSelectedChildProfiles,
-          inventory,
-          safeFeedbackContext,
-          safePreviousActivityTitles,
-          safeSafetySettings,
-          playModeTheme: safePlayModeTheme,
-          activityPreferences:
-            activityPreferences && typeof activityPreferences === "object"
-              ? activityPreferences
-              : null,
-        });
-
-        const openaiStarted = Date.now();
-        const aiResult = await createStructuredResponseWithMeta(client, {
-          instructions,
-          input,
-          schemaName: "activity_suggestions",
-          schema: activitySuggestionsSchema,
-          verbosity: "low",
-          maxOutputTokens: 4500,
-        });
-        msOpenai = Date.now() - openaiStarted;
-        const rawText = aiResult.outputText;
-        let usageMeta = {
-          model: aiResult.model || OPENAI_MODEL,
-          inputTokens: aiResult.inputTokens,
-          outputTokens: aiResult.outputTokens,
-          totalTokens: aiResult.totalTokens,
-          responseId: aiResult.responseId,
-          instructionChars: typeof instructions === "string" ? instructions.length : null,
-          inputChars: typeof input === "string" ? input.length : null,
-        };
-
-        if (isDebugLogging) {
-          console.log("RAW AI RESPONSE:");
-          console.log(rawText);
-        }
-
-        const parsed = JSON.parse(rawText);
-        const rawActivities = Array.isArray(parsed.activities)
-          ? parsed.activities
-          : [];
-
-        const normalizeStarted = Date.now();
-        const normalizedActivities = rawActivities.map((activity) =>
+        const normalizeCacheStarted = Date.now();
+        const normalizedCached = (Array.isArray(cachedCandidates)
+          ? cachedCandidates
+          : []
+        ).map((activity) =>
           normalizeActivity(activity, safeActivityStyle, childAges)
         );
-
-        let ageFiltered = filterActivitiesByAgeFit(
-          normalizedActivities,
+        const cacheAgeFiltered = filterActivitiesByAgeFit(
+          normalizedCached,
           childrenContext
         );
-        let totalAgeFitRejected = ageFiltered.rejectedCount;
+        let totalAgeFitRejected = cacheAgeFiltered.rejectedCount;
+        const cachedKept = cacheAgeFiltered.activities
+          .slice(0, SUGGESTION_COUNT)
+          .map(preserveLibraryIds);
+        msNormalize += Date.now() - normalizeCacheStarted;
 
-        const oldestAge =
-          childAges.length > 0 ? Math.max(...childAges) : null;
-        const enforceTeenAgeFit =
-          Number.isFinite(oldestAge) && oldestAge >= 12;
+        const aiSlots = SUGGESTION_COUNT - cachedKept.length;
+        let aiActivities = [];
+        let usageMeta = null;
 
-        let eligibleActivities = ageFiltered.activities;
+        if (aiSlots > 0) {
+          const instructions = buildActivitySuggestionsInstructions(
+            safeActivityStyle,
+            safePlayModeTheme,
+            { childrenContext, groupAgeContext, activityCount: aiSlots }
+          );
+          const titlesToAvoid = [
+            ...safePreviousActivityTitles,
+            ...cachedKept.map((a) => a.title).filter(Boolean),
+          ];
+          const input = buildActivitySuggestionsInput({
+            safeCurrentMoment,
+            kidMood,
+            locationPreference,
+            childAgeRange,
+            childrenContext,
+            groupAgeContext,
+            activeChildProfile,
+            safeActivityStyle,
+            activityMode,
+            safeSelectedChildProfiles,
+            inventory,
+            safeFeedbackContext,
+            safePreviousActivityTitles: titlesToAvoid,
+            safeSafetySettings,
+            playModeTheme: safePlayModeTheme,
+            activityPreferences:
+              activityPreferences && typeof activityPreferences === "object"
+                ? activityPreferences
+                : null,
+            activityCount: aiSlots,
+          });
 
-        if (eligibleActivities.length === 0) {
-          if (enforceTeenAgeFit) {
-            const rejectionTitles = (ageFiltered.rejectionDetails || [])
-              .map((detail) => detail.title)
-              .filter(Boolean)
-              .slice(0, 5);
-            const retrySteer = [
-              "AGE RETRY: The previous activity batch was rejected for age fit or voice quality.",
-              "Suggest mature alternatives for ages 12+.",
-              "Avoid blanket forts, cozy forts, blanket/pillow caves, dens, hideouts, stuffed-animal play, magical castles, and other young-child framing.",
-              "For imaginative style: do NOT invent pretend story worlds or fantasy roleplay. Use creative thinking challenges — design briefs, strategy, invention, puzzles, skill challenges.",
-              "Prefer autonomy, strategy, design, building, cooking, photography, music, outdoor exploration, or skill challenges.",
-              "roleGuide.name must be activity-specific (e.g. Room Redesign Lead), never a generic one-word role like Designer, Strategist, Inventor, Explorer, or Player.",
-              "Write like a warm teacher: invitation → action → response. doneWhen must be a natural transition cue, never phrases like \"something in the story has changed\" or \"the objective is complete.\"",
-              rejectionTitles.length > 0
-                ? `Rejected titles to avoid repeating: ${rejectionTitles
-                    .map((title) => `"${title}"`)
-                    .join(", ")}.`
-                : "",
-            ]
-              .filter(Boolean)
-              .join("\n");
+          const openaiStarted = Date.now();
+          const aiResult = await createStructuredResponseWithMeta(client, {
+            instructions,
+            input,
+            schemaName: "activity_suggestions",
+            schema: activitySuggestionsSchema,
+            verbosity: "low",
+            maxOutputTokens: maxTokensForCount(aiSlots),
+          });
+          msOpenai = Date.now() - openaiStarted;
+          const rawText = aiResult.outputText;
+          usageMeta = {
+            model: aiResult.model || OPENAI_MODEL,
+            inputTokens: aiResult.inputTokens,
+            outputTokens: aiResult.outputTokens,
+            totalTokens: aiResult.totalTokens,
+            responseId: aiResult.responseId,
+            instructionChars:
+              typeof instructions === "string" ? instructions.length : null,
+            inputChars: typeof input === "string" ? input.length : null,
+          };
 
-            const retryFeedback = [safeFeedbackContext, retrySteer]
-              .filter(Boolean)
-              .join("\n\n");
-
-            const retryInput = buildActivitySuggestionsInput({
-              safeCurrentMoment,
-              kidMood,
-              locationPreference,
-              childAgeRange,
-              childrenContext,
-              groupAgeContext,
-              activeChildProfile,
-              safeActivityStyle,
-              activityMode,
-              safeSelectedChildProfiles,
-              inventory,
-              safeFeedbackContext: retryFeedback,
-              safePreviousActivityTitles: [
-                ...safePreviousActivityTitles,
-                ...rejectionTitles,
-              ],
-              safeSafetySettings,
-              playModeTheme: safePlayModeTheme,
-              activityPreferences:
-                activityPreferences && typeof activityPreferences === "object"
-                  ? activityPreferences
-                  : null,
-            });
-
-            const retryStarted = Date.now();
-            const retryResult = await createStructuredResponseWithMeta(
-              client,
-              {
-                instructions,
-                input: retryInput,
-                schemaName: "activity_suggestions",
-                schema: activitySuggestionsSchema,
-                verbosity: "low",
-                maxOutputTokens: 4500,
-              }
-            );
-            msOpenai += Date.now() - retryStarted;
-            const retryRawText = retryResult.outputText;
-            usageMeta = {
-              model: retryResult.model || usageMeta.model,
-              inputTokens:
-                (usageMeta.inputTokens || 0) + (retryResult.inputTokens || 0),
-              outputTokens:
-                (usageMeta.outputTokens || 0) +
-                (retryResult.outputTokens || 0),
-              totalTokens:
-                (usageMeta.totalTokens || 0) + (retryResult.totalTokens || 0),
-              responseId: retryResult.responseId || usageMeta.responseId,
-              instructionChars: usageMeta.instructionChars,
-              inputChars: usageMeta.inputChars,
-            };
-
-            if (isDebugLogging) {
-              console.log("RAW AI AGE-RETRY RESPONSE:");
-              console.log(retryRawText);
-            }
-
-            const retryParsed = JSON.parse(retryRawText);
-            const retryRawActivities = Array.isArray(retryParsed.activities)
-              ? retryParsed.activities
-              : [];
-            const retryNormalized = retryRawActivities.map((activity) =>
-              normalizeActivity(activity, safeActivityStyle, childAges)
-            );
-            ageFiltered = filterActivitiesByAgeFit(
-              retryNormalized,
-              childrenContext
-            );
-            totalAgeFitRejected += ageFiltered.rejectedCount;
-            eligibleActivities = ageFiltered.activities;
-
-            if (eligibleActivities.length === 0) {
-              console.warn("[ageFit] age retry still empty for 12+", {
-                oldestAge,
-                totalAgeFitRejected,
-                details: ageFiltered.rejectionDetails,
-              });
-              await recordAiUsageEvent({
-                userId: req.auth.userId,
-                operation: "activity-suggestions",
-                model: usageMeta.model,
-                inputTokens: usageMeta.inputTokens,
-                outputTokens: usageMeta.outputTokens,
-                totalTokens: usageMeta.totalTokens,
-                responseId: usageMeta.responseId,
-                latencyMs: Date.now() - startedAt,
-                success: false,
-                error: { message: "age-fit-empty-after-retry" },
-              });
-              return res.status(422).json({
-                error:
-                  "Could not generate age-appropriate activities for this child. Try regenerating or updating interests.",
-                message:
-                  "Could not generate age-appropriate activities for this child. Try regenerating or updating interests.",
-                ageFitRejectedCount: totalAgeFitRejected,
-              });
-            }
-          } else {
-            // Younger kids / unknown ages: keep normalized batch so the family still gets ideas.
-            eligibleActivities = normalizedActivities;
+          if (isDebugLogging) {
+            console.log("RAW AI RESPONSE:");
+            console.log(rawText);
           }
-        }
-        msNormalize = Date.now() - normalizeStarted;
 
-        const withIds = attachRecommendationIds(eligibleActivities);
+          const parsed = JSON.parse(rawText);
+          const rawActivities = Array.isArray(parsed.activities)
+            ? parsed.activities
+            : [];
+
+          const normalizeAiStarted = Date.now();
+          const normalizedActivities = rawActivities.map((activity) =>
+            normalizeActivity(activity, safeActivityStyle, childAges)
+          );
+
+          let ageFiltered = filterActivitiesByAgeFit(
+            normalizedActivities,
+            childrenContext
+          );
+          totalAgeFitRejected += ageFiltered.rejectedCount;
+          let eligibleActivities = ageFiltered.activities;
+
+          if (eligibleActivities.length === 0) {
+            if (enforceTeenAgeFit) {
+              const rejectionTitles = (ageFiltered.rejectionDetails || [])
+                .map((detail) => detail.title)
+                .filter(Boolean)
+                .slice(0, 5);
+              const retrySteer = [
+                "AGE RETRY: The previous activity batch was rejected for age fit or voice quality.",
+                "Suggest mature alternatives for ages 12+.",
+                "Avoid blanket forts, cozy forts, blanket/pillow caves, dens, hideouts, stuffed-animal play, magical castles, and other young-child framing.",
+                "For imaginative style: do NOT invent pretend story worlds or fantasy roleplay. Use creative thinking challenges — design briefs, strategy, invention, puzzles, skill challenges.",
+                "Prefer autonomy, strategy, design, building, cooking, photography, music, outdoor exploration, or skill challenges.",
+                "roleGuide.name must be activity-specific (e.g. Room Redesign Lead), never a generic one-word role like Designer, Strategist, Inventor, Explorer, or Player.",
+                "Write like a warm teacher: invitation → action → response. doneWhen must be a natural transition cue, never phrases like \"something in the story has changed\" or \"the objective is complete.\"",
+                rejectionTitles.length > 0
+                  ? `Rejected titles to avoid repeating: ${rejectionTitles
+                      .map((title) => `"${title}"`)
+                      .join(", ")}.`
+                  : "",
+              ]
+                .filter(Boolean)
+                .join("\n");
+
+              const retryFeedback = [safeFeedbackContext, retrySteer]
+                .filter(Boolean)
+                .join("\n\n");
+
+              const retryInput = buildActivitySuggestionsInput({
+                safeCurrentMoment,
+                kidMood,
+                locationPreference,
+                childAgeRange,
+                childrenContext,
+                groupAgeContext,
+                activeChildProfile,
+                safeActivityStyle,
+                activityMode,
+                safeSelectedChildProfiles,
+                inventory,
+                safeFeedbackContext: retryFeedback,
+                safePreviousActivityTitles: [
+                  ...titlesToAvoid,
+                  ...rejectionTitles,
+                ],
+                safeSafetySettings,
+                playModeTheme: safePlayModeTheme,
+                activityPreferences:
+                  activityPreferences && typeof activityPreferences === "object"
+                    ? activityPreferences
+                    : null,
+                activityCount: aiSlots,
+              });
+
+              const retryStarted = Date.now();
+              const retryResult = await createStructuredResponseWithMeta(
+                client,
+                {
+                  instructions,
+                  input: retryInput,
+                  schemaName: "activity_suggestions",
+                  schema: activitySuggestionsSchema,
+                  verbosity: "low",
+                  maxOutputTokens: maxTokensForCount(aiSlots),
+                }
+              );
+              msOpenai += Date.now() - retryStarted;
+              const retryRawText = retryResult.outputText;
+              usageMeta = {
+                model: retryResult.model || usageMeta.model,
+                inputTokens:
+                  (usageMeta.inputTokens || 0) + (retryResult.inputTokens || 0),
+                outputTokens:
+                  (usageMeta.outputTokens || 0) +
+                  (retryResult.outputTokens || 0),
+                totalTokens:
+                  (usageMeta.totalTokens || 0) + (retryResult.totalTokens || 0),
+                responseId: retryResult.responseId || usageMeta.responseId,
+                instructionChars: usageMeta.instructionChars,
+                inputChars: usageMeta.inputChars,
+              };
+
+              if (isDebugLogging) {
+                console.log("RAW AI AGE-RETRY RESPONSE:");
+                console.log(retryRawText);
+              }
+
+              const retryParsed = JSON.parse(retryRawText);
+              const retryRawActivities = Array.isArray(retryParsed.activities)
+                ? retryParsed.activities
+                : [];
+              const retryNormalized = retryRawActivities.map((activity) =>
+                normalizeActivity(activity, safeActivityStyle, childAges)
+              );
+              ageFiltered = filterActivitiesByAgeFit(
+                retryNormalized,
+                childrenContext
+              );
+              totalAgeFitRejected += ageFiltered.rejectedCount;
+              eligibleActivities = ageFiltered.activities;
+
+              if (eligibleActivities.length === 0 && cachedKept.length === 0) {
+                console.warn("[ageFit] age retry still empty for 12+", {
+                  oldestAge,
+                  totalAgeFitRejected,
+                  details: ageFiltered.rejectionDetails,
+                });
+                await recordAiUsageEvent({
+                  userId: req.auth.userId,
+                  operation: "activity-suggestions",
+                  model: usageMeta.model,
+                  inputTokens: usageMeta.inputTokens,
+                  outputTokens: usageMeta.outputTokens,
+                  totalTokens: usageMeta.totalTokens,
+                  responseId: usageMeta.responseId,
+                  latencyMs: Date.now() - startedAt,
+                  success: false,
+                  error: { message: "age-fit-empty-after-retry" },
+                });
+                return res.status(422).json({
+                  error:
+                    "Could not generate age-appropriate activities for this child. Try regenerating or updating interests.",
+                  message:
+                    "Could not generate age-appropriate activities for this child. Try regenerating or updating interests.",
+                  ageFitRejectedCount: totalAgeFitRejected,
+                });
+              }
+            } else {
+              // Younger kids / unknown ages: keep normalized batch so the family still gets ideas.
+              eligibleActivities = normalizedActivities;
+            }
+          }
+          msNormalize += Date.now() - normalizeAiStarted;
+
+          aiActivities = eligibleActivities.slice(0, aiSlots);
+        }
+
+        const mergedActivities = [...cachedKept, ...aiActivities].slice(
+          0,
+          SUGGESTION_COUNT
+        );
+
+        if (mergedActivities.length === 0) {
+          return res.status(422).json({
+            error: "Could not generate activity suggestions.",
+            message: "Could not generate activity suggestions.",
+            ageFitRejectedCount: totalAgeFitRejected,
+          });
+        }
+
+        const source = resolveSuggestionSource(
+          cachedKept.length,
+          aiActivities.length
+        );
+        const withIds = attachRecommendationIds(mergedActivities);
         const presentedAt = new Date().toISOString();
         const activitiesWithMeta = withIds.activities.map((activity) => ({
           ...activity,
           presentedAt,
+          momentId: requestMomentId,
         }));
-
         const recommendationBatchId = withIds.recommendationBatchId;
         const msTotal = Date.now() - startedAt;
         const timing = {
-          source: "openai",
+          source,
           msCacheLookup,
           msOpenai,
           msNormalize,
           msTotal,
-          instructionChars: usageMeta.instructionChars,
-          inputChars: usageMeta.inputChars,
-          inputTokens: usageMeta.inputTokens,
-          outputTokens: usageMeta.outputTokens,
+          cacheCount: cachedKept.length,
+          aiCount: aiActivities.length,
+          ...(usageMeta
+            ? {
+                instructionChars: usageMeta.instructionChars,
+                inputChars: usageMeta.inputChars,
+                inputTokens: usageMeta.inputTokens,
+                outputTokens: usageMeta.outputTokens,
+              }
+            : {}),
         };
         logSuggestionTiming(timing);
 
         const normalizedResponse = {
-          source: "openai",
+          source,
           recommendationBatchId,
           momentId: requestMomentId,
-          activities: activitiesWithMeta.map((activity) => ({
-            ...activity,
-            momentId: requestMomentId,
-          })),
+          activities: activitiesWithMeta,
           ageFitRejectedCount: totalAgeFitRejected,
           timing,
         };
@@ -528,16 +502,43 @@ export default function createActivitySuggestionsRouter(client) {
           console.log(JSON.stringify(normalizedResponse, null, 2));
         }
 
-        // Return activities immediately; persist library + telemetry in the background.
         res.json(normalizedResponse);
 
         void (async () => {
           try {
-            const ingested = await ingestGeneratedActivities({
-              userId: req.auth.userId,
-              activities: activitiesWithMeta,
-              source: "ai",
-            });
+            const libraryCandidateIds = activitiesWithMeta
+              .map((a) => a.candidateId || a.sharedCandidateId)
+              .filter(Boolean);
+            if (libraryCandidateIds.length > 0) {
+              await recordCandidatesShown({
+                userId: req.auth.userId,
+                candidateIds: libraryCandidateIds,
+              });
+            }
+
+            const aiOnly = activitiesWithMeta.filter(
+              (a) => !(a.candidateId || a.sharedCandidateId)
+            );
+            let ingested = activitiesWithMeta;
+            if (aiOnly.length > 0) {
+              const ingestedAi = await ingestGeneratedActivities({
+                userId: req.auth.userId,
+                activities: aiOnly,
+                source: "ai",
+              });
+              const ingestedByTitle = new Map(
+                ingestedAi.map((a) => [String(a.title || "").toLowerCase(), a])
+              );
+              ingested = activitiesWithMeta.map((activity) => {
+                if (activity.candidateId || activity.sharedCandidateId) {
+                  return activity;
+                }
+                const match = ingestedByTitle.get(
+                  String(activity.title || "").toLowerCase()
+                );
+                return match || activity;
+              });
+            }
 
             let momentId = requestMomentId;
             if (!momentId) {
@@ -547,7 +548,9 @@ export default function createActivitySuggestionsRouter(client) {
                 kidMood,
                 childIds: [
                   ...(activeChildProfile?.id ? [activeChildProfile.id] : []),
-                  ...safeSelectedChildProfiles.map((c) => c?.id).filter(Boolean),
+                  ...safeSelectedChildProfiles
+                    .map((c) => c?.id)
+                    .filter(Boolean),
                 ],
                 rescueMode: false,
               });
@@ -557,33 +560,15 @@ export default function createActivitySuggestionsRouter(client) {
             const batch = await createRecommendationBatch({
               userId: req.auth.userId,
               momentId,
-              source: "openai",
+              source,
               mode: "normal",
-              model: usageMeta.model || OPENAI_MODEL,
+              model: usageMeta?.model || null,
               latencyMs: msTotal,
               activities: ingested,
               batchId: recommendationBatchId,
             });
 
-            await recordAiUsageEvent({
-              userId: req.auth.userId,
-              operation: "activity-suggestions",
-              model: usageMeta.model,
-              inputTokens: usageMeta.inputTokens,
-              outputTokens: usageMeta.outputTokens,
-              totalTokens: usageMeta.totalTokens,
-              responseId: usageMeta.responseId,
-              recommendationBatchId:
-                batch.recommendationBatchId || recommendationBatchId,
-              latencyMs: msTotal,
-              success: true,
-            });
-          } catch (telemetryError) {
-            console.warn(
-              "Post-response activity telemetry failed:",
-              telemetryError
-            );
-            try {
+            if (usageMeta) {
               await recordAiUsageEvent({
                 userId: req.auth.userId,
                 operation: "activity-suggestions",
@@ -592,16 +577,41 @@ export default function createActivitySuggestionsRouter(client) {
                 outputTokens: usageMeta.outputTokens,
                 totalTokens: usageMeta.totalTokens,
                 responseId: usageMeta.responseId,
-                recommendationBatchId,
+                recommendationBatchId:
+                  batch.recommendationBatchId || recommendationBatchId,
                 latencyMs: msTotal,
                 success: true,
-                error: {
-                  message: "telemetry-deferred-failed",
-                  detail: String(telemetryError?.message || telemetryError),
-                },
               });
-            } catch (usageError) {
-              console.warn("Could not record AI usage after telemetry failure:", usageError);
+            }
+          } catch (telemetryError) {
+            console.warn(
+              "Post-response activity telemetry failed:",
+              telemetryError
+            );
+            if (usageMeta) {
+              try {
+                await recordAiUsageEvent({
+                  userId: req.auth.userId,
+                  operation: "activity-suggestions",
+                  model: usageMeta.model,
+                  inputTokens: usageMeta.inputTokens,
+                  outputTokens: usageMeta.outputTokens,
+                  totalTokens: usageMeta.totalTokens,
+                  responseId: usageMeta.responseId,
+                  recommendationBatchId,
+                  latencyMs: msTotal,
+                  success: true,
+                  error: {
+                    message: "telemetry-deferred-failed",
+                    detail: String(telemetryError?.message || telemetryError),
+                  },
+                });
+              } catch (usageError) {
+                console.warn(
+                  "Could not record AI usage after telemetry failure:",
+                  usageError
+                );
+              }
             }
           }
         })();

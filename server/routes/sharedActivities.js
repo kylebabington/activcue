@@ -16,6 +16,9 @@ import { getSupabaseAdminClient } from "../lib/supabaseAdminClient.js";
 import {
   attachRecommendationIds,
 } from "../lib/recommendationIds.js";
+import {
+  buildChildrenAgeContext,
+} from "../utils/childAge.js";
 
 const router = Router();
 
@@ -23,6 +26,23 @@ router.use(familyDataRateLimiter);
 
 function isPlainObject(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function childAgesFromBody(body) {
+  if (Array.isArray(body.childAges) && body.childAges.length > 0) {
+    return body.childAges
+      .map((age) => Number(age))
+      .filter((age) => Number.isFinite(age));
+  }
+  const profiles = Array.isArray(body.selectedChildProfiles)
+    ? body.selectedChildProfiles
+    : body.activeChildProfile
+      ? [body.activeChildProfile]
+      : [];
+  if (profiles.length === 0) {
+    return [];
+  }
+  return buildChildrenAgeContext(profiles).map((child) => child.ageYears);
 }
 
 /*
@@ -48,6 +68,7 @@ router.post(
         excludeCategories: Array.isArray(body.excludeCategories)
           ? body.excludeCategories
           : [],
+        childAges: childAgesFromBody(body),
         limit: Math.min(Math.max(Number(body.limit) || 3, 1), 10),
       });
 
@@ -123,6 +144,7 @@ router.post(
         excludeCandidateIds: Array.isArray(body.excludeCandidateIds)
           ? body.excludeCandidateIds
           : [],
+        childAges: childAgesFromBody(body),
         limit: 4,
       });
 
