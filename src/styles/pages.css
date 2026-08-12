@@ -1059,7 +1059,7 @@
   grid-template-columns: 1fr;
 }
 
-@media (min-width: 720px) {
+@media (min-width: 768px) /* Medium */ {
   .quest-step-starter-grid[data-count="2"],
   .quest-step-starter-grid[data-count="3"] {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1383,6 +1383,7 @@ button.quest-step-starter-card:focus-visible {
 .pretend-active-panel {
   text-align: center;
   padding: var(--space-3);
+  padding-bottom: calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
 }
 
 .quest-v2-panel.pretend-active-panel {
@@ -1498,6 +1499,16 @@ button.quest-step-starter-card:focus-visible {
 @media (max-width: 639px) /* below Small */ {
   .simple-active-actions {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 767px) /* below Medium */ {
+  .simple-active-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .simple-active-actions:has(> :nth-child(2):last-child) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -1781,9 +1792,69 @@ button.quest-step-starter-card:focus-visible {
     grid-template-columns: 1fr;
   }
 
-  .completion-actions>* {
+  .completion-actions > *,
+  .completion-ritual-actions > *,
+  .independence-outcome-actions > * {
     width: 100%;
     justify-content: center;
+  }
+
+  .rescue-mode-banner,
+  .parent-while-you-ritual {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .rescue-mode-button {
+    width: 100%;
+  }
+
+  .quest-choice-card {
+    padding: var(--space-3);
+    gap: var(--space-3);
+  }
+
+  .activity-card-feedback-footer .text-action {
+    min-height: 2.5rem;
+    display: inline-flex;
+    align-items: center;
+    padding: 0.35rem 0.15rem;
+  }
+
+  .kid-energy-chip,
+  .kid-playing-chip {
+    min-height: 2.75rem;
+  }
+
+  .kid-secondary-actions .text-action {
+    min-height: 2.5rem;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .kid-demo-banner {
+    padding: 1rem;
+  }
+
+  .kid-demo-banner a,
+  .kid-demo-banner .kid-plus-link {
+    min-height: 2.5rem;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .speak-button {
+    min-height: 2.75rem;
+  }
+
+  .inventory-filter-row button {
+    min-height: 2.75rem;
+    padding: 0.45rem 0.25rem;
+  }
+
+  .child-profile-form-actions > * {
+    flex: 1 1 auto;
+    min-width: min(100%, 8rem);
   }
 }
 
@@ -2429,6 +2500,10 @@ button.quest-step-starter-card:focus-visible {
   margin-bottom: 0;
 }
 
+.inventory-add-grid > * {
+  min-width: 0;
+}
+
 .inventory-add-grid button {
   border: 0;
   border-radius: var(--radius-small);
@@ -2621,6 +2696,39 @@ button.quest-step-starter-card:focus-visible {
   }
 }
 
+@media (max-width: 639px) /* below Small */ {
+  .preset-grid--dense {
+    grid-template-columns: 1fr;
+  }
+
+  .billing-plan-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .activity-history-timestamp,
+  .activity-history-feedback-badge {
+    white-space: normal;
+  }
+
+  .activity-history-timestamp {
+    display: block;
+    margin-top: 0.25rem;
+  }
+
+  .independence-outcome-button {
+    flex: 1 1 100%;
+  }
+
+  .quest-choice-actions .primary-button,
+  .quest-choice-actions > button:first-child {
+    width: 100%;
+  }
+
+  .insights-actions > * {
+    width: 100%;
+  }
+}
+
 /* Speak / Listening Mode */
 .quest-section-speak-row {
   display: flex;
@@ -2797,12 +2905,13 @@ button.quest-step-starter-card:focus-visible {
 
 .what-next-bar {
   position: sticky;
-  bottom: 0.75rem;
+  bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
   z-index: 2;
   display: flex;
   justify-content: center;
   margin-top: 1rem;
-  padding: 0.35rem 0;
+  padding: 0.35rem 0
+    calc(0.35rem + env(safe-area-inset-bottom, 0px));
 }
 
 .what-next-button,

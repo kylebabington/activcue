@@ -307,6 +307,23 @@
   .moment-chip-list {
     justify-content: flex-start;
   }
+
+  .moment-chip-list span {
+    min-height: 2rem;
+    padding: 0.35rem 0.55rem;
+    white-space: normal;
+  }
+
+  .quick-chip,
+  .quick-chip-row button {
+    min-height: 2.5rem;
+    padding: 0.4rem 0.75rem;
+  }
+
+  .insights-actions > * {
+    flex: 1 1 100%;
+    justify-content: center;
+  }
 }
 
 /* ========== FIT FACTS ========== */
@@ -415,7 +432,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--space-3);
+  padding: max(var(--space-3), env(safe-area-inset-top, 0px))
+    max(var(--space-3), env(safe-area-inset-right, 0px))
+    max(var(--space-3), env(safe-area-inset-bottom, 0px))
+    max(var(--space-3), env(safe-area-inset-left, 0px));
   background: rgba(36, 48, 56, 0.4);
 }
 
@@ -441,8 +461,11 @@
   max-width: none;
   height: 100%;
   max-height: 100vh;
+  max-height: 100dvh;
   border-radius: 0;
   border: none;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 .modal-panel--compact .modal-header,
@@ -470,8 +493,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 1.75rem;
-  height: 1.75rem;
+  width: 2.75rem;
+  height: 2.75rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-small);
   background: white;
@@ -479,6 +502,7 @@
   font-size: 1.1rem;
   line-height: 1;
   padding: 0;
+  flex-shrink: 0;
 }
 
 .modal-body {
@@ -498,6 +522,26 @@
 
 .modal-footer button {
   min-width: 5.5rem;
+}
+
+@media (max-width: 639px) /* below Small */ {
+  .modal-panel:not(.modal-panel--full-page) {
+    width: 100%;
+    max-height: calc(100dvh - 1.5rem);
+  }
+
+  .modal-footer {
+    flex-direction: column;
+  }
+
+  .modal-footer button {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .ghost-button {
+    white-space: normal;
+  }
 }
 
 .modal-panel--full-page .modal-header,

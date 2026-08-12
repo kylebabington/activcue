@@ -438,3 +438,10 @@
   --radius-large: 0.75rem;
   --radius-chip: 0.25rem;
 }
+
+@media (max-width: 767px) /* below Medium */ {
+  :root {
+    --page-side-padding: 1rem;
+    --modal-max-height: 100dvh;
+  }
+}

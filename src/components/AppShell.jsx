@@ -6,16 +6,7 @@ import FeedbackModal from "./FeedbackModal";
 
 export function AppShellLoading() {
   return (
-    <main
-      role="status"
-      aria-live="polite"
-      style={{
-        minHeight: "100vh",
-        display: "grid",
-        placeItems: "center",
-        padding: "2rem",
-      }}
-    >
+    <main className="app-shell-status" role="status" aria-live="polite">
       <p>Loading family settings…</p>
     </main>
   );
@@ -23,16 +14,7 @@ export function AppShellLoading() {
 
 export function AppShellError({ message }) {
   return (
-    <main
-      role="alert"
-      style={{
-        minHeight: "100vh",
-        display: "grid",
-        placeItems: "center",
-        padding: "2rem",
-        textAlign: "center",
-      }}
-    >
+    <main className="app-shell-status" role="alert">
       <section>
         <p>{message}</p>
         <button type="button" onClick={() => window.location.reload()}>
