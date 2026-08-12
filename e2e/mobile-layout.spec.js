@@ -42,3 +42,37 @@ test("mobile app header uses the menu button instead of desktop navigation", asy
 
   expect(horizontalOverflow).toBeLessThanOrEqual(1);
 });
+
+test("checkbox controls do not consume the settings row on phones", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+
+  const metrics = await page.evaluate(() => {
+    const fixture = document.createElement("label");
+    fixture.className = "settings-toggle-row";
+    fixture.style.width = "360px";
+    fixture.innerHTML = `
+      <input type="checkbox" checked />
+      <span>
+        Assume common household basics
+        <small>Paper, pencil, towels, cups, cardboard, blankets, and similar items.</small>
+      </span>
+    `;
+    document.body.appendChild(fixture);
+
+    const checkbox = fixture.querySelector('input[type="checkbox"]');
+    const copy = fixture.querySelector("span");
+
+    return {
+      checkboxWidth: checkbox.getBoundingClientRect().width,
+      copyWidth: copy.getBoundingClientRect().width,
+      rowWidth: fixture.getBoundingClientRect().width,
+    };
+  });
+
+  expect(metrics.checkboxWidth).toBeLessThanOrEqual(32);
+  expect(metrics.copyWidth).toBeGreaterThan(250);
+  expect(metrics.rowWidth).toBeLessThanOrEqual(360);
+});
