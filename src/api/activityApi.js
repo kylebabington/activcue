@@ -20,6 +20,8 @@ export async function getActivitySuggestions(activityRequest) {
         activities: Array.isArray(data.activities) ? data.activities : [],
         recommendationBatchId: data.recommendationBatchId || null,
         momentId: data.momentId || null,
+        source: data.source || null,
+        timing: data.timing || null,
     };
 }
 

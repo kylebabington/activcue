@@ -33,13 +33,18 @@ export function useActivityFeedback({
   kidEnergyLevel,
 } = {}) {
   function saveActivityFeedback(activity, feedbackType) {
-    const rejectionReason = [
+    const notThisFeedbackTypes = [
       "too-messy",
       "too-hard",
+      "too-easy",
+      "too-young",
+      "too-old",
       "need-quieter",
       "activity_rejected",
       "need-another-idea",
-    ].includes(feedbackType)
+    ];
+    const isNotThis = notThisFeedbackTypes.includes(feedbackType);
+    const rejectionReason = isNotThis
       ? mapFeedbackToRejectionReason(feedbackType)
       : null;
 
@@ -83,6 +88,7 @@ export function useActivityFeedback({
         candidateId: historyItem.candidateId,
         recommendationBatchId: historyItem.recommendationBatchId,
       });
+      // Any "Not this" bumps library reject so cache-first will not re-serve it.
       if (historyItem.candidateId) {
         void recordSharedActivityOutcome({
           candidateId: historyItem.candidateId,
@@ -96,7 +102,11 @@ export function useActivityFeedback({
     }
   }
 
-  function regenerateFromFeedback(feedbackIntent, previousActivityTitle) {
+  function regenerateFromFeedback(
+    feedbackIntent,
+    previousActivityTitle,
+    options = {}
+  ) {
     const intent = buildFeedbackIntent({
       feedbackIntent,
       previousActivityTitle,
@@ -106,7 +116,62 @@ export function useActivityFeedback({
 
     handleGenerateActivities?.(intentToLegacyFeedbackContext(intent), {
       generationIntent: intent,
+      excludeCandidateIds: Array.isArray(options.excludeCandidateIds)
+        ? options.excludeCandidateIds
+        : [],
     });
+  }
+
+  function excludeIdsFromActivity(activity) {
+    const id = activity?.candidateId || activity?.candidate_id;
+    return id ? [String(id)] : [];
+  }
+
+  function handleTooMessy(activity) {
+    saveActivityFeedback(activity, "too-messy");
+    regenerateFromFeedback("too-messy", activity.title, {
+      excludeCandidateIds: excludeIdsFromActivity(activity),
+    });
+  }
+
+  function handleTooHard(activity) {
+    saveActivityFeedback(activity, "too-hard");
+    regenerateFromFeedback("too-hard", activity.title, {
+      excludeCandidateIds: excludeIdsFromActivity(activity),
+    });
+  }
+
+  function handleTooYoung(activity) {
+    saveActivityFeedback(activity, "too-young");
+    regenerateFromFeedback("too-young", activity.title, {
+      excludeCandidateIds: excludeIdsFromActivity(activity),
+    });
+  }
+
+  function handleTooOld(activity) {
+    saveActivityFeedback(activity, "too-old");
+    regenerateFromFeedback("too-old", activity.title, {
+      excludeCandidateIds: excludeIdsFromActivity(activity),
+    });
+  }
+
+  function handleTooEasy(activity) {
+    saveActivityFeedback(activity, "too-easy");
+    regenerateFromFeedback("too-easy", activity.title, {
+      excludeCandidateIds: excludeIdsFromActivity(activity),
+    });
+  }
+
+  function handleNeedQuieter(activity) {
+    saveActivityFeedback(activity, "need-quieter");
+    regenerateFromFeedback("need-quieter", activity.title, {
+      excludeCandidateIds: excludeIdsFromActivity(activity),
+    });
+  }
+
+  function handleMoreLikeThis(activity) {
+    saveActivityFeedback(activity, "more-like-this");
+    regenerateFromFeedback("more-like-this", activity.title);
   }
 
   function saveFavoriteActivity(activity) {
@@ -211,41 +276,6 @@ export function useActivityFeedback({
     regenerateFromFeedback("timer-more-like-this", previousTitle);
   }
 
-  function handleTooMessy(activity) {
-    saveActivityFeedback(activity, "too-messy");
-    regenerateFromFeedback("too-messy", activity.title);
-  }
-
-  function handleTooHard(activity) {
-    saveActivityFeedback(activity, "too-hard");
-    regenerateFromFeedback("too-hard", activity.title);
-  }
-
-  function handleTooYoung(activity) {
-    saveActivityFeedback(activity, "too-young");
-    regenerateFromFeedback("too-young", activity.title);
-  }
-
-  function handleTooOld(activity) {
-    saveActivityFeedback(activity, "too-old");
-    regenerateFromFeedback("too-old", activity.title);
-  }
-
-  function handleTooEasy(activity) {
-    saveActivityFeedback(activity, "too-easy");
-    regenerateFromFeedback("too-easy", activity.title);
-  }
-
-  function handleNeedQuieter(activity) {
-    saveActivityFeedback(activity, "need-quieter");
-    regenerateFromFeedback("need-quieter", activity.title);
-  }
-
-  function handleMoreLikeThis(activity) {
-    saveActivityFeedback(activity, "more-like-this");
-    regenerateFromFeedback("more-like-this", activity.title);
-  }
-
   function handleTryNextBest(scoredActivities = []) {
     const ranked = Array.isArray(scoredActivities) ? scoredActivities : [];
     if (ranked.length < 2) {
@@ -309,15 +339,25 @@ export function useActivityFeedback({
     }
 
     const completedTitle = lastCompletedQuest.title;
+    const excludeCandidateIds = excludeIdsFromActivity(
+      lastCompletedQuest.activity
+    );
     clearLastCompletedQuest?.();
-    regenerateFromFeedback("more-like-this", completedTitle);
+    regenerateFromFeedback("more-like-this", completedTitle, {
+      excludeCandidateIds,
+    });
     navigate?.("/quest");
   }
 
   function handleCompletedQuestNeedAnotherIdea() {
     const completedTitle = lastCompletedQuest?.title || "the last activity";
+    const excludeCandidateIds = excludeIdsFromActivity(
+      lastCompletedQuest?.activity
+    );
     clearLastCompletedQuest?.();
-    regenerateFromFeedback("need-another-idea", completedTitle);
+    regenerateFromFeedback("need-another-idea", completedTitle, {
+      excludeCandidateIds,
+    });
     navigate?.("/quest");
   }
 

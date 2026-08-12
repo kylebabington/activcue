@@ -14,25 +14,44 @@ export function createOpenAIClient() {
 
 /**
  * Structured Responses API call with usage + latency metadata for cost logging.
+ * Defaults to low text verbosity to keep activity JSON prose shorter.
  */
 export async function createStructuredResponseWithMeta(
   client,
-  { instructions, input, schemaName, schema, model = OPENAI_MODEL }
+  {
+    instructions,
+    input,
+    schemaName,
+    schema,
+    model = OPENAI_MODEL,
+    verbosity = "low",
+    maxOutputTokens = null,
+  }
 ) {
   const startedAt = Date.now();
-  const response = await client.responses.create({
+  const textConfig = {
+    format: {
+      type: "json_schema",
+      name: schemaName,
+      strict: true,
+      schema,
+    },
+  };
+  if (verbosity === "low" || verbosity === "medium" || verbosity === "high") {
+    textConfig.verbosity = verbosity;
+  }
+
+  const request = {
     model,
     instructions,
     input,
-    text: {
-      format: {
-        type: "json_schema",
-        name: schemaName,
-        strict: true,
-        schema,
-      },
-    },
-  });
+    text: textConfig,
+  };
+  if (Number.isFinite(Number(maxOutputTokens)) && Number(maxOutputTokens) > 0) {
+    request.max_output_tokens = Math.round(Number(maxOutputTokens));
+  }
+
+  const response = await client.responses.create(request);
 
   return {
     outputText: response.output_text,

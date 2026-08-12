@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ActivityDetailsModal } from "./ActivityDetailsModal";
+import { GenerationLoader } from "./GenerationLoader";
 import { getVerifiedFitFacts, buildWhyThisFits } from "../utils/inventoryFit";
 import { buildRecommendationReasons } from "../utils/confidenceCopy";
 import {
@@ -297,19 +298,18 @@ function ActivityResults({
   detailsVariant = "full",
   panelTitle = "Pick something to do",
   panelNote = null,
+  activityStyle = "",
 }) {
   const [detailsActivityTitle, setDetailsActivityTitle] = useState(null);
   const [feedbackActivityTitle, setFeedbackActivityTitle] = useState(null);
 
   if (isLoading) {
     return (
-      <section className="panel loading-panel">
-        <h2>Thinking up activities...</h2>
-        <p>
-          Finding something that fits your home, supplies, and the current
-          family moment.
-        </p>
-      </section>
+      <GenerationLoader
+        currentMoment={currentMoment}
+        activityStyle={activityStyle}
+        inventoryEmpty={inventoryEmpty}
+      />
     );
   }
 

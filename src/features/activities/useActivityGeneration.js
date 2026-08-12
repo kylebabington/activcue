@@ -130,6 +130,7 @@ export function useActivityGeneration(deps = {}) {
         allowOfflineFallback = false,
         preferSimpleTemplates = false,
         generationIntent = null,
+        excludeCandidateIds = [],
       } = options;
       const d = depsRef.current;
 
@@ -155,6 +156,31 @@ export function useActivityGeneration(deps = {}) {
         const previousActivityTitles = (d.activityHistory || [])
           .slice(-10)
           .map((historyItem) => historyItem.title);
+
+        const historyExcludeIds = (d.activityHistory || [])
+          .filter((item) => {
+            const type = item?.feedbackType;
+            return (
+              type === "too-messy" ||
+              type === "too-hard" ||
+              type === "too-easy" ||
+              type === "too-young" ||
+              type === "too-old" ||
+              type === "need-quieter" ||
+              type === "activity_rejected" ||
+              type === "need-another-idea"
+            );
+          })
+          .map((item) => item.candidateId || item.candidate_id)
+          .filter(Boolean);
+
+        const mergedExcludeIds = [
+          ...new Set(
+            [...(excludeCandidateIds || []), ...historyExcludeIds]
+              .map((id) => String(id))
+              .filter(Boolean)
+          ),
+        ];
 
         trackProductEvent("generation_requested", {
           momentId: d.activeMomentId || getTimeToStartTiming()?.momentId || null,
@@ -183,6 +209,7 @@ export function useActivityGeneration(deps = {}) {
           feedbackContext,
           generationIntent: intent || undefined,
           previousActivityTitles,
+          excludeCandidateIds: mergedExcludeIds,
           playModeTheme: playModeFlavorFromActivityStyle(
             d.activityPreferences?.activityStylePreference
           ),
@@ -199,6 +226,7 @@ export function useActivityGeneration(deps = {}) {
           candidateCount: Array.isArray(result?.activities)
             ? result.activities.length
             : 0,
+          source: result?.source || null,
         });
 
         return result;

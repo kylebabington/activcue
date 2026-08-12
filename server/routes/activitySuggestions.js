@@ -25,7 +25,11 @@ import { filterActivitiesByAgeFit } from "../utils/ageFitValidation.js";
 import { recordAiUsageEvent } from "../lib/aiUsage.js";
 import { expandGenerationIntent } from "../lib/generationIntent.js";
 import { attachRecommendationIds } from "../lib/recommendationIds.js";
-import { ingestGeneratedActivities } from "../lib/sharedActivityLibrary.js";
+import {
+  ingestGeneratedActivities,
+  querySharedCandidatesForUser,
+  recordCandidatesShown,
+} from "../lib/sharedActivityLibrary.js";
 import {
   createActivityMoment,
   createRecommendationBatch,
@@ -34,6 +38,18 @@ import { aiSuggestionsRateLimiter } from "../middleware/rateLimits.js";
 
 const router = Router();
 const isDebugLogging = process.env.DEBUG_AI_RESPONSES === "true";
+const CACHE_FIRST_MIN = 3;
+
+function logSuggestionTiming(payload) {
+  try {
+    console.info(
+      "[activity-suggestions:timing]",
+      JSON.stringify(payload)
+    );
+  } catch {
+    // ignore
+  }
+}
 
 export default function createActivitySuggestionsRouter(client) {
   router.post(
@@ -44,6 +60,9 @@ export default function createActivitySuggestionsRouter(client) {
     aiSuggestionsRateLimiter,
     async (req, res) => {
       const startedAt = Date.now();
+      let msCacheLookup = 0;
+      let msOpenai = 0;
+      let msNormalize = 0;
       try {
         const {
           currentMoment,
@@ -65,6 +84,7 @@ export default function createActivitySuggestionsRouter(client) {
           safetySettings,
           playModeTheme,
           activityPreferences,
+          excludeCandidateIds,
         } = req.body;
 
         const safeActivityStyle = resolveActivityStyle(
@@ -130,9 +150,141 @@ export default function createActivitySuggestionsRouter(client) {
           safetySettings
         );
 
+        const safeExcludeCandidateIds = Array.isArray(excludeCandidateIds)
+          ? excludeCandidateIds.map((id) => String(id)).filter(Boolean)
+          : [];
+
+        const requestMomentId =
+          typeof req.body?.momentId === "string" && req.body.momentId.trim()
+            ? req.body.momentId.trim()
+            : typeof req.body?.moment_id === "string" &&
+                req.body.moment_id.trim()
+              ? req.body.moment_id.trim()
+              : null;
+
+        // Cache-first: serve shared-library fits unless Not this / started / excluded.
+        const cacheLookupStarted = Date.now();
+        let cachedCandidates = [];
+        try {
+          cachedCandidates = await querySharedCandidatesForUser({
+            userId: req.auth.userId,
+            inventory,
+            currentMoment: safeCurrentMoment,
+            excludeCandidateIds: safeExcludeCandidateIds,
+            activityStyle: safeActivityStyle,
+            limit: CACHE_FIRST_MIN,
+          });
+        } catch (cacheError) {
+          console.warn("Cache-first library lookup failed:", cacheError);
+          cachedCandidates = [];
+        }
+        msCacheLookup = Date.now() - cacheLookupStarted;
+
+        if (
+          Array.isArray(cachedCandidates) &&
+          cachedCandidates.length >= CACHE_FIRST_MIN
+        ) {
+          const normalizeStarted = Date.now();
+          const normalizedCached = cachedCandidates
+            .slice(0, CACHE_FIRST_MIN)
+            .map((activity) =>
+              normalizeActivity(activity, safeActivityStyle, childAges)
+            );
+          msNormalize = Date.now() - normalizeStarted;
+
+          const withIds = attachRecommendationIds(
+            normalizedCached.map((activity) => ({
+              ...activity,
+              // Preserve library candidate id for impression / reject tracking.
+              candidateId: activity.candidateId || activity.candidate_id,
+              contentHash: activity.contentHash || activity.content_hash,
+              sharedCandidateId:
+                activity.candidateId || activity.candidate_id || null,
+            }))
+          );
+          const presentedAt = new Date().toISOString();
+          const activitiesWithMeta = withIds.activities.map((activity) => ({
+            ...activity,
+            presentedAt,
+            momentId: requestMomentId,
+          }));
+          const recommendationBatchId = withIds.recommendationBatchId;
+          const msTotal = Date.now() - startedAt;
+
+          logSuggestionTiming({
+            source: "shared_library",
+            msCacheLookup,
+            msOpenai: 0,
+            msNormalize,
+            msTotal,
+            candidateCount: activitiesWithMeta.length,
+          });
+
+          res.json({
+            source: "shared_library",
+            recommendationBatchId,
+            momentId: requestMomentId,
+            activities: activitiesWithMeta,
+            ageFitRejectedCount: 0,
+            timing: {
+              source: "shared_library",
+              msCacheLookup,
+              msOpenai: 0,
+              msNormalize,
+              msTotal,
+            },
+          });
+
+          void (async () => {
+            try {
+              await recordCandidatesShown({
+                userId: req.auth.userId,
+                candidateIds: activitiesWithMeta.map((a) => a.candidateId),
+              });
+
+              let momentId = requestMomentId;
+              if (!momentId) {
+                const momentSnapshot = await createActivityMoment({
+                  userId: req.auth.userId,
+                  moment: safeCurrentMoment,
+                  kidMood,
+                  childIds: [
+                    ...(activeChildProfile?.id
+                      ? [activeChildProfile.id]
+                      : []),
+                    ...safeSelectedChildProfiles
+                      .map((c) => c?.id)
+                      .filter(Boolean),
+                  ],
+                  rescueMode: false,
+                });
+                momentId = momentSnapshot?.id || null;
+              }
+
+              await createRecommendationBatch({
+                userId: req.auth.userId,
+                momentId,
+                source: "shared_library",
+                mode: "normal",
+                latencyMs: msTotal,
+                activities: activitiesWithMeta,
+                batchId: recommendationBatchId,
+              });
+            } catch (telemetryError) {
+              console.warn(
+                "Post-response cache-hit telemetry failed:",
+                telemetryError
+              );
+            }
+          })();
+
+          return;
+        }
+
         const instructions = buildActivitySuggestionsInstructions(
           safeActivityStyle,
-          safePlayModeTheme
+          safePlayModeTheme,
+          { childrenContext, groupAgeContext }
         );
         const input = buildActivitySuggestionsInput({
           safeCurrentMoment,
@@ -156,12 +308,16 @@ export default function createActivitySuggestionsRouter(client) {
               : null,
         });
 
+        const openaiStarted = Date.now();
         const aiResult = await createStructuredResponseWithMeta(client, {
           instructions,
           input,
           schemaName: "activity_suggestions",
           schema: activitySuggestionsSchema,
+          verbosity: "low",
+          maxOutputTokens: 4500,
         });
+        msOpenai = Date.now() - openaiStarted;
         const rawText = aiResult.outputText;
         let usageMeta = {
           model: aiResult.model || OPENAI_MODEL,
@@ -169,6 +325,8 @@ export default function createActivitySuggestionsRouter(client) {
           outputTokens: aiResult.outputTokens,
           totalTokens: aiResult.totalTokens,
           responseId: aiResult.responseId,
+          instructionChars: typeof instructions === "string" ? instructions.length : null,
+          inputChars: typeof input === "string" ? input.length : null,
         };
 
         if (isDebugLogging) {
@@ -181,6 +339,7 @@ export default function createActivitySuggestionsRouter(client) {
           ? parsed.activities
           : [];
 
+        const normalizeStarted = Date.now();
         const normalizedActivities = rawActivities.map((activity) =>
           normalizeActivity(activity, safeActivityStyle, childAges)
         );
@@ -210,7 +369,7 @@ export default function createActivitySuggestionsRouter(client) {
               "Avoid blanket forts, cozy forts, blanket/pillow caves, dens, hideouts, stuffed-animal play, magical castles, and other young-child framing.",
               "For imaginative style: do NOT invent pretend story worlds or fantasy roleplay. Use creative thinking challenges — design briefs, strategy, invention, puzzles, skill challenges.",
               "Prefer autonomy, strategy, design, building, cooking, photography, music, outdoor exploration, or skill challenges.",
-              "mission should be a short challenge brief; roleGuide.name must be activity-specific (e.g. Room Redesign Lead), never a generic one-word role like Designer, Strategist, Inventor, Explorer, or Player.",
+              "roleGuide.name must be activity-specific (e.g. Room Redesign Lead), never a generic one-word role like Designer, Strategist, Inventor, Explorer, or Player.",
               "Write like a warm teacher: invitation → action → response. doneWhen must be a natural transition cue, never phrases like \"something in the story has changed\" or \"the objective is complete.\"",
               rejectionTitles.length > 0
                 ? `Rejected titles to avoid repeating: ${rejectionTitles
@@ -250,6 +409,7 @@ export default function createActivitySuggestionsRouter(client) {
                   : null,
             });
 
+            const retryStarted = Date.now();
             const retryResult = await createStructuredResponseWithMeta(
               client,
               {
@@ -257,8 +417,11 @@ export default function createActivitySuggestionsRouter(client) {
                 input: retryInput,
                 schemaName: "activity_suggestions",
                 schema: activitySuggestionsSchema,
+                verbosity: "low",
+                maxOutputTokens: 4500,
               }
             );
+            msOpenai += Date.now() - retryStarted;
             const retryRawText = retryResult.outputText;
             usageMeta = {
               model: retryResult.model || usageMeta.model,
@@ -270,6 +433,8 @@ export default function createActivitySuggestionsRouter(client) {
               totalTokens:
                 (usageMeta.totalTokens || 0) + (retryResult.totalTokens || 0),
               responseId: retryResult.responseId || usageMeta.responseId,
+              instructionChars: usageMeta.instructionChars,
+              inputChars: usageMeta.inputChars,
             };
 
             if (isDebugLogging) {
@@ -322,6 +487,7 @@ export default function createActivitySuggestionsRouter(client) {
             eligibleActivities = normalizedActivities;
           }
         }
+        msNormalize = Date.now() - normalizeStarted;
 
         const withIds = attachRecommendationIds(eligibleActivities);
         const presentedAt = new Date().toISOString();
@@ -330,15 +496,23 @@ export default function createActivitySuggestionsRouter(client) {
           presentedAt,
         }));
 
-        const requestMomentId =
-          typeof req.body?.momentId === "string" && req.body.momentId.trim()
-            ? req.body.momentId.trim()
-            : typeof req.body?.moment_id === "string" && req.body.moment_id.trim()
-              ? req.body.moment_id.trim()
-              : null;
-
         const recommendationBatchId = withIds.recommendationBatchId;
+        const msTotal = Date.now() - startedAt;
+        const timing = {
+          source: "openai",
+          msCacheLookup,
+          msOpenai,
+          msNormalize,
+          msTotal,
+          instructionChars: usageMeta.instructionChars,
+          inputChars: usageMeta.inputChars,
+          inputTokens: usageMeta.inputTokens,
+          outputTokens: usageMeta.outputTokens,
+        };
+        logSuggestionTiming(timing);
+
         const normalizedResponse = {
+          source: "openai",
           recommendationBatchId,
           momentId: requestMomentId,
           activities: activitiesWithMeta.map((activity) => ({
@@ -346,6 +520,7 @@ export default function createActivitySuggestionsRouter(client) {
             momentId: requestMomentId,
           })),
           ageFitRejectedCount: totalAgeFitRejected,
+          timing,
         };
 
         if (isDebugLogging) {
@@ -385,7 +560,7 @@ export default function createActivitySuggestionsRouter(client) {
               source: "openai",
               mode: "normal",
               model: usageMeta.model || OPENAI_MODEL,
-              latencyMs: Date.now() - startedAt,
+              latencyMs: msTotal,
               activities: ingested,
               batchId: recommendationBatchId,
             });
@@ -400,7 +575,7 @@ export default function createActivitySuggestionsRouter(client) {
               responseId: usageMeta.responseId,
               recommendationBatchId:
                 batch.recommendationBatchId || recommendationBatchId,
-              latencyMs: Date.now() - startedAt,
+              latencyMs: msTotal,
               success: true,
             });
           } catch (telemetryError) {
@@ -418,7 +593,7 @@ export default function createActivitySuggestionsRouter(client) {
                 totalTokens: usageMeta.totalTokens,
                 responseId: usageMeta.responseId,
                 recommendationBatchId,
-                latencyMs: Date.now() - startedAt,
+                latencyMs: msTotal,
                 success: true,
                 error: {
                   message: "telemetry-deferred-failed",
