@@ -12,52 +12,94 @@ function formatRatio(value) {
   return `${Math.round(value * 1000) / 10}%`;
 }
 
-function MetricTable({ title, metrics }) {
+function FunnelTable({ title, metrics }) {
   if (!metrics) {
     return null;
   }
 
-  const rows = [
-    ["Visitors", metrics.visitors],
-    ["Demo starts", metrics.demoStarts],
-    ["Demo activities generated", metrics.demoActivitiesGenerated],
-    ["Accounts created", metrics.accountsCreated],
-    ["Full activities generated", metrics.activitiesGenerated],
-    ["Returning users", metrics.returningUsers],
-    ["Checkout started", metrics.checkoutStarted],
-    ["Paid subscribers", metrics.paidSubscribers],
-  ];
+  const funnel = Array.isArray(metrics.funnel) ? metrics.funnel : [];
 
   return (
     <section className="panel admin-growth-panel">
       <h2>{title}</h2>
-      <table className="admin-growth-table">
-        <thead>
-          <tr>
-            <th scope="col">Metric</th>
-            <th scope="col">Count</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map(([label, value]) => (
-            <tr key={label}>
-              <td>{label}</td>
-              <td>{value ?? 0}</td>
+      {funnel.length ? (
+        <table className="admin-growth-table">
+          <thead>
+            <tr>
+              <th scope="col">Step</th>
+              <th scope="col">Count</th>
+              <th scope="col">From previous</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {funnel.map((step) => (
+              <tr key={step.id}>
+                <td>{step.label}</td>
+                <td>{step.count ?? 0}</td>
+                <td>{formatRatio(step.stepConversion)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        <table className="admin-growth-table">
+          <thead>
+            <tr>
+              <th scope="col">Metric</th>
+              <th scope="col">Count</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Landing page viewed</td>
+              <td>{metrics.visitors ?? 0}</td>
+            </tr>
+            <tr>
+              <td>Demo started</td>
+              <td>{metrics.demoStarts ?? 0}</td>
+            </tr>
+            <tr>
+              <td>Demo completed</td>
+              <td>{metrics.demoCompleted ?? metrics.demoActivitiesGenerated ?? 0}</td>
+            </tr>
+            <tr>
+              <td>Signup started</td>
+              <td>{metrics.signupStarted ?? 0}</td>
+            </tr>
+            <tr>
+              <td>Signup completed</td>
+              <td>{metrics.accountsCreated ?? 0}</td>
+            </tr>
+            <tr>
+              <td>First activity generated</td>
+              <td>{metrics.firstActivityGenerated ?? 0}</td>
+            </tr>
+            <tr>
+              <td>Subscription checkout started</td>
+              <td>{metrics.checkoutStarted ?? 0}</td>
+            </tr>
+            <tr>
+              <td>Subscription purchased</td>
+              <td>{metrics.paidSubscribers ?? 0}</td>
+            </tr>
+          </tbody>
+        </table>
+      )}
       <ul className="admin-growth-conversions">
         <li>
-          Demo conversion: {formatRatio(metrics.conversions?.demoConversion)}
+          Landing → demo: {formatRatio(metrics.conversions?.demoConversion)}
         </li>
         <li>
-          Signup conversion:{" "}
-          {formatRatio(metrics.conversions?.signupConversion)}
+          Demo → signup: {formatRatio(metrics.conversions?.signupConversion)}
         </li>
         <li>
-          Paid conversion: {formatRatio(metrics.conversions?.paidConversion)}
+          Signup → first activity:{" "}
+          {formatRatio(metrics.conversions?.firstActivityConversion)}
         </li>
+        <li>
+          Signup → paid: {formatRatio(metrics.conversions?.paidConversion)}
+        </li>
+        <li>Returning users: {metrics.returningUsers ?? 0}</li>
       </ul>
     </section>
   );
@@ -114,8 +156,8 @@ export default function AdminGrowthPage() {
         </p>
         <h1>Growth funnel</h1>
         <p className="lede">
-          Visits, demo use, signups, and paid conversions — with UTM source
-          breakdown.
+          Ad conversion path: landing → demo → signup → first activity →
+          checkout → purchase — with UTM source breakdown.
         </p>
       </header>
 
@@ -147,8 +189,8 @@ export default function AdminGrowthPage() {
 
       {!loading && !error && data ? (
         <>
-          <MetricTable title="Selected range" metrics={data.metrics} />
-          <MetricTable title="Yesterday (UTC)" metrics={data.yesterday} />
+          <FunnelTable title="Selected range" metrics={data.metrics} />
+          <FunnelTable title="Yesterday (UTC)" metrics={data.yesterday} />
 
           <section className="panel admin-growth-panel">
             <h2>Where visitors came from</h2>
@@ -158,11 +200,13 @@ export default function AdminGrowthPage() {
                   <tr>
                     <th scope="col">Source</th>
                     <th scope="col">Campaign</th>
-                    <th scope="col">Visitors</th>
+                    <th scope="col">Landing</th>
                     <th scope="col">Demo</th>
-                    <th scope="col">Accounts</th>
+                    <th scope="col">Demo done</th>
+                    <th scope="col">Signup</th>
+                    <th scope="col">First activity</th>
                     <th scope="col">Checkout</th>
-                    <th scope="col">Paid</th>
+                    <th scope="col">Purchased</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -170,11 +214,15 @@ export default function AdminGrowthPage() {
                     <tr key={`${row.utm_source}-${row.utm_campaign}`}>
                       <td>{row.utm_source}</td>
                       <td>{row.utm_campaign}</td>
-                      <td>{row.visitors}</td>
-                      <td>{row.demoStarts}</td>
-                      <td>{row.accountsCreated}</td>
-                      <td>{row.checkoutStarted}</td>
-                      <td>{row.paidSubscribers}</td>
+                      <td>{row.landingPageViewed ?? row.visitors ?? 0}</td>
+                      <td>{row.demoStarted ?? row.demoStarts ?? 0}</td>
+                      <td>{row.demoCompleted ?? 0}</td>
+                      <td>{row.signupCompleted ?? row.accountsCreated ?? 0}</td>
+                      <td>{row.firstActivityGenerated ?? 0}</td>
+                      <td>{row.checkoutStarted ?? 0}</td>
+                      <td>
+                        {row.subscriptionPurchased ?? row.paidSubscribers ?? 0}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

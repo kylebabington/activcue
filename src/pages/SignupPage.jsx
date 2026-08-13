@@ -11,6 +11,7 @@ import { useAuth } from "../hooks/useAuth";
 import { supabase } from "../lib/supabaseClient";
 import {
   clearDemoUnlockIntent,
+  parseSafeAppRedirect,
   parseSignupCheckoutIntent,
   readDemoUnlockIntent,
   writeDemoActivityHandoff,
@@ -207,18 +208,13 @@ function SignupPage() {
 
       await preserveDemoActivityAfterSignup(searchParams);
 
-      trackProductEvent("signup_completed", {
-        hasCheckoutIntent: checkoutIntent.shouldCheckout,
-        plan: checkoutIntent.plan || null,
-        fromDemo: searchParams.get("from") === "demo",
-      });
-
       if (checkoutIntent.shouldCheckout) {
         await startCheckout(expectedUserId);
         return;
       }
 
-      navigate("/onboarding", { replace: true });
+      const redirectTo = parseSafeAppRedirect(searchParams.get("redirect"));
+      navigate(redirectTo || "/onboarding", { replace: true });
     } catch (error) {
       if (error instanceof ApiRequestError) {
         if (error.code === "EMAIL_ALREADY_REGISTERED") {

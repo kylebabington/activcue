@@ -43,6 +43,7 @@ export default function BillingPlanCards({
   annualPlan,
   plansLoading = false,
   plansError = "",
+  onRetryPlans,
   mode = "checkout",
   checkoutBusyPlan = null,
   checkoutDisabled = false,
@@ -86,7 +87,16 @@ export default function BillingPlanCards({
     <div className="billing-plan-grid">
       {plansError ? (
         <div className="billing-notice billing-notice--error" role="alert">
-          {plansError}
+          <p>{plansError}</p>
+          {typeof onRetryPlans === "function" ? (
+            <button
+              type="button"
+              className="text-action"
+              onClick={onRetryPlans}
+            >
+              Retry loading prices
+            </button>
+          ) : null}
         </div>
       ) : null}
 

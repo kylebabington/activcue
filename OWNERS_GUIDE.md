@@ -488,9 +488,9 @@ Marketing demo recording (real-app launch video): `npm run demo:record` then `np
 ### Observability crumbs
 
 - `src/utils/analytics.js` — product events (localStorage cache + batched POST). Authenticated users hit `POST /api/product-events`; landing/demo visitors hit `POST /api/product-events/public` (session_id required, allowlisted funnel names only).
-- **Phase 1 growth funnel** (canonical names): `landing_page_viewed` → `demo_started` → `demo_activity_generated` → `signup_started` → `signup_completed` → `activity_generated` → `pricing_viewed` → `checkout_started` → `subscription_started`. Keep client/server allowlists in sync (`src/utils/analytics.js` + `server/lib/productEventNames.js`).
+- **Phase 1 growth funnel** (canonical names): `landing_page_viewed` → `demo_started` → `demo_completed` → `signup_started` → `signup_completed` → `first_activity_generated` → `checkout_started` → `subscription_started` (shown as “Subscription purchased” in Admin Growth). Keep client/server allowlists in sync (`src/utils/analytics.js` + `server/lib/productEventNames.js`). `signup_completed` is server-owned on convert-anonymous (do not also fire from the client).
 - **UTM attribution** — Share links like `/?utm_source=tiktok&utm_campaign=bored-kids-video`. Params are captured into `sessionStorage` (`ff_attribution`) on landing/demo/signup and attached to event `properties`.
-- **Growth dashboard** — Admins (`profiles.role = admin`) open `/admin/growth` or `GET /api/admin/growth?range=7d`. Shows visitors, demo starts, accounts, returning users, checkout, paid, conversion ratios, and UTM breakdown. Grant admin with `node server/scripts/setProfilePrivileges.js --user-id <uuid> --role admin`.
+- **Growth dashboard** — Admins (`profiles.role = admin`) open `/admin/growth` or `GET /api/admin/growth?range=7d`. Shows the 8-step ad funnel (landing → demo → demo completed → signup started/completed → first activity → checkout → purchased), step conversion ratios, and UTM breakdown. Grant admin with `node server/scripts/setProfilePrivileges.js --user-id <uuid> --role admin`.
 - `signup_completed` is written server-side on convert-anonymous; `subscription_started` is written once from Stripe webhook handlers.
 - `ai_usage_events` — server-side AI call logging with tokens, estimated cost, latency, and failure type
 - Consumer basics — `/forgot-password`, `/reset-password`, `/privacy`, `/terms`; Settings support mailto + delete account
@@ -527,6 +527,18 @@ Marketing demo recording (real-app launch video): `npm run demo:record` then `np
 7. Create an account (email + password in one step), upgrade with Stripe test mode, confirm AI generation and hints unlock after checkout return—without a hard refresh.
 
 If that path feels smooth, the product thesis is working.
+
+### Brand-new account Stripe QA (test mode)
+
+Use a fresh email each run. Locally: `stripe listen --forward-to localhost:3001/api/billing/webhook` and put the printed `whsec_…` in `STRIPE_WEBHOOK_SECRET`.
+
+1. **Signup → onboarding → free Quick ideas → save favorite** (confirms permanent account + memory before money).
+2. **Monthly upgrade:** Settings → Plus → Start monthly Checkout → pay with Stripe test card `4242…` → return to Settings → Plus unlocked **without** a hard refresh (checkout-return polling). Confirm Admin Growth shows checkout started + subscription purchased (`subscription_started`).
+3. **Cancel:** Settings → Manage renewal → cancel at period end → UI shows cancel pending; AI still works until `current_period_end`.
+4. **Resume:** Resume renewal → cancel flag clears.
+5. **Annual path (second fresh account):** Signup → Settings → annual Checkout once → webhook → Plus unlocked. (There is no mid-cycle monthly↔annual switch in-app.)
+
+Card declines / abandoned Checkout should leave Free entitlement unchanged and show a clear Settings billing message.
 
 ---
 

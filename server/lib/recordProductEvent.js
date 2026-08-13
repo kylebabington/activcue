@@ -81,11 +81,15 @@ export async function recordProductEvent({
 }
 
 /**
- * Record subscription_started once per user (idempotent).
+ * Record a once-per-user product event (idempotent).
  */
-export async function recordSubscriptionStartedOnce(userId, properties = {}) {
+async function recordProductEventOnce(userId, eventName, properties = {}) {
   if (!userId) {
     return { ok: false, reason: "missing_user" };
+  }
+
+  if (!eventName || !PRODUCT_EVENT_NAME_SET.has(eventName)) {
+    return { ok: false, reason: "not_allowed" };
   }
 
   const supabase = getSupabaseAdminClient();
@@ -93,12 +97,12 @@ export async function recordSubscriptionStartedOnce(userId, properties = {}) {
     .from("product_events")
     .select("id")
     .eq("user_id", userId)
-    .eq("event_name", "subscription_started")
+    .eq("event_name", eventName)
     .limit(1)
     .maybeSingle();
 
   if (lookupError) {
-    console.error("Could not check subscription_started:", lookupError);
+    console.error(`Could not check ${eventName}:`, lookupError);
     return { ok: false, reason: "lookup_failed", error: lookupError };
   }
 
@@ -108,7 +112,21 @@ export async function recordSubscriptionStartedOnce(userId, properties = {}) {
 
   return recordProductEvent({
     userId,
-    eventName: "subscription_started",
+    eventName,
     properties,
   });
+}
+
+/**
+ * Record subscription_started once per user (idempotent).
+ */
+export async function recordSubscriptionStartedOnce(userId, properties = {}) {
+  return recordProductEventOnce(userId, "subscription_started", properties);
+}
+
+/**
+ * Record first_activity_generated once per user (idempotent).
+ */
+export async function recordFirstActivityGeneratedOnce(userId, properties = {}) {
+  return recordProductEventOnce(userId, "first_activity_generated", properties);
 }

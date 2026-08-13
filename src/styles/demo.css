@@ -125,6 +125,23 @@
   .demo-topbar-label {
     display: none;
   }
+
+  .demo-sticky-banner {
+    gap: 0.65rem;
+    padding: 0.7rem 0.85rem;
+    align-items: flex-start;
+  }
+
+  .demo-sticky-banner-actions {
+    width: 100%;
+  }
+
+  .demo-sticky-banner-actions > * {
+    flex: 1 1 auto;
+    min-height: 2.75rem;
+    justify-content: center;
+    text-align: center;
+  }
 }
 
 .demo-topbar-actions {

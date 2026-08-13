@@ -15,6 +15,60 @@ const RANGE_MS = {
   "30d": 30 * 24 * 60 * 60 * 1000,
 };
 
+/** Ordered conversion funnel shown in Admin Growth (human labels → event names). */
+export const GROWTH_FUNNEL_STEPS = Object.freeze([
+  {
+    id: "landing_page_viewed",
+    label: "Landing page viewed",
+    eventName: "landing_page_viewed",
+    distinct: "session",
+  },
+  {
+    id: "demo_started",
+    label: "Demo started",
+    eventName: "demo_started",
+    distinct: "session",
+  },
+  {
+    id: "demo_completed",
+    label: "Demo completed",
+    eventName: "demo_completed",
+    distinct: "session",
+    /** Pre-gap fallback while older traffic only has demo_activity_generated. */
+    fallbackEventName: "demo_activity_generated",
+  },
+  {
+    id: "signup_started",
+    label: "Signup started",
+    eventName: "signup_started",
+    distinct: "session",
+  },
+  {
+    id: "signup_completed",
+    label: "Signup completed",
+    eventName: "signup_completed",
+    distinct: "user",
+  },
+  {
+    id: "first_activity_generated",
+    label: "First activity generated",
+    eventName: "first_activity_generated",
+    distinct: "user",
+  },
+  {
+    id: "checkout_started",
+    label: "Subscription checkout started",
+    eventName: "checkout_started",
+    distinct: "count",
+  },
+  {
+    id: "subscription_purchased",
+    label: "Subscription purchased",
+    eventName: "subscription_started",
+    distinct: "user",
+  },
+]);
+
 function parseRange(query) {
   const rangeKey =
     typeof query?.range === "string" && RANGE_MS[query.range]
@@ -81,6 +135,43 @@ function distinctUsersFor(rows, eventName) {
   );
 }
 
+function measureStep(rows, step) {
+  if (step.distinct === "session") {
+    const primary = distinctSessionsFor(rows, step.eventName);
+    if (primary > 0 || !step.fallbackEventName) {
+      return primary;
+    }
+    return distinctSessionsFor(rows, step.fallbackEventName);
+  }
+
+  if (step.distinct === "user") {
+    const byUser = distinctUsersFor(rows, step.eventName);
+    if (byUser > 0) {
+      return byUser;
+    }
+    return countEvent(rows, step.eventName);
+  }
+
+  return countEvent(rows, step.eventName);
+}
+
+function buildFunnel(rows) {
+  const steps = GROWTH_FUNNEL_STEPS.map((step, index) => {
+    const count = measureStep(rows, step);
+    const previousCount =
+      index === 0 ? null : measureStep(rows, GROWTH_FUNNEL_STEPS[index - 1]);
+    return {
+      id: step.id,
+      label: step.label,
+      eventName: step.eventName,
+      count,
+      stepConversion: index === 0 ? null : ratio(count, previousCount),
+    };
+  });
+
+  return steps;
+}
+
 function buildUtmBreakdown(rows) {
   const bySource = new Map();
 
@@ -103,29 +194,45 @@ function buildUtmBreakdown(rows) {
       bySource.set(key, {
         utm_source: source,
         utm_campaign: campaign,
-        visitors: new Set(),
+        landing: new Set(),
         demoStarts: new Set(),
+        demoCompleted: new Set(),
+        signupStarted: new Set(),
         signups: new Set(),
+        firstActivity: new Set(),
         checkouts: 0,
-        paid: 0,
+        paid: new Set(),
       });
     }
 
     const bucket = bySource.get(key);
     if (row.event_name === "landing_page_viewed" && row.session_id) {
-      bucket.visitors.add(row.session_id);
+      bucket.landing.add(row.session_id);
     }
     if (row.event_name === "demo_started" && row.session_id) {
       bucket.demoStarts.add(row.session_id);
     }
+    if (
+      (row.event_name === "demo_completed" ||
+        row.event_name === "demo_activity_generated") &&
+      row.session_id
+    ) {
+      bucket.demoCompleted.add(row.session_id);
+    }
+    if (row.event_name === "signup_started" && row.session_id) {
+      bucket.signupStarted.add(row.session_id);
+    }
     if (row.event_name === "signup_completed") {
       bucket.signups.add(row.user_id || row.session_id || row.id);
+    }
+    if (row.event_name === "first_activity_generated") {
+      bucket.firstActivity.add(row.user_id || row.session_id || row.id);
     }
     if (row.event_name === "checkout_started") {
       bucket.checkouts += 1;
     }
     if (row.event_name === "subscription_started") {
-      bucket.paid += 1;
+      bucket.paid.add(row.user_id || row.session_id || row.id);
     }
   }
 
@@ -133,13 +240,25 @@ function buildUtmBreakdown(rows) {
     .map((bucket) => ({
       utm_source: bucket.utm_source,
       utm_campaign: bucket.utm_campaign,
-      visitors: bucket.visitors.size,
+      landingPageViewed: bucket.landing.size,
+      demoStarted: bucket.demoStarts.size,
+      demoCompleted: bucket.demoCompleted.size,
+      signupStarted: bucket.signupStarted.size,
+      signupCompleted: bucket.signups.size,
+      firstActivityGenerated: bucket.firstActivity.size,
+      checkoutStarted: bucket.checkouts,
+      subscriptionPurchased: bucket.paid.size,
+      // Legacy keys for any older clients
+      visitors: bucket.landing.size,
       demoStarts: bucket.demoStarts.size,
       accountsCreated: bucket.signups.size,
-      checkoutStarted: bucket.checkouts,
-      paidSubscribers: bucket.paid,
+      paidSubscribers: bucket.paid.size,
     }))
-    .sort((a, b) => b.visitors - a.visitors || b.accountsCreated - a.accountsCreated);
+    .sort(
+      (a, b) =>
+        b.landingPageViewed - a.landingPageViewed ||
+        b.signupCompleted - a.signupCompleted
+    );
 }
 
 function countReturningUsers(rows) {
@@ -165,33 +284,40 @@ function countReturningUsers(rows) {
 }
 
 function buildMetrics(rows) {
-  const visitors = distinctSessionsFor(rows, "landing_page_viewed");
-  const demoStarts = distinctSessionsFor(rows, "demo_started");
-  const demoActivities = countEvent(rows, "demo_activity_generated");
-  const accountsCreated = Math.max(
-    distinctUsersFor(rows, "signup_completed"),
-    countEvent(rows, "signup_completed")
-  );
+  const funnel = buildFunnel(rows);
+  const byId = Object.fromEntries(funnel.map((step) => [step.id, step.count]));
+
+  const visitors = byId.landing_page_viewed || 0;
+  const demoStarts = byId.demo_started || 0;
+  const demoCompleted = byId.demo_completed || 0;
+  const signupStarted = byId.signup_started || 0;
+  const accountsCreated = byId.signup_completed || 0;
+  const firstActivityGenerated = byId.first_activity_generated || 0;
+  const checkoutStarted = byId.checkout_started || 0;
+  const paidSubscribers = byId.subscription_purchased || 0;
   const returningUsers = countReturningUsers(rows);
-  const checkoutStarted = countEvent(rows, "checkout_started");
-  const paidSubscribers = Math.max(
-    distinctUsersFor(rows, "subscription_started"),
-    countEvent(rows, "subscription_started")
-  );
   const fullActivities = countEvent(rows, "activity_generated");
 
   return {
+    funnel,
     visitors,
     demoStarts,
-    demoActivitiesGenerated: demoActivities,
+    demoCompleted,
+    demoActivitiesGenerated: demoCompleted,
+    signupStarted,
     accountsCreated,
+    firstActivityGenerated,
     returningUsers,
     checkoutStarted,
     paidSubscribers,
     activitiesGenerated: fullActivities,
     conversions: {
       demoConversion: ratio(demoStarts, visitors),
+      demoCompletionConversion: ratio(demoCompleted, demoStarts),
+      signupStartConversion: ratio(signupStarted, demoCompleted),
       signupConversion: ratio(accountsCreated, demoStarts),
+      firstActivityConversion: ratio(firstActivityGenerated, accountsCreated),
+      checkoutConversion: ratio(checkoutStarted, firstActivityGenerated || accountsCreated),
       paidConversion: ratio(paidSubscribers, accountsCreated),
     },
   };

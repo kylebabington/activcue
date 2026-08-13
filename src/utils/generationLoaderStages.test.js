@@ -15,4 +15,10 @@ describe("buildGenerationLoaderStages", () => {
     expect(stages[2].title.toLowerCase()).toContain("plain");
     expect(stages[2].detail.toLowerCase()).toContain("already have");
   });
+
+  it("keeps stage copy moving through a ~30s wait", () => {
+    const stages = buildGenerationLoaderStages({}, {});
+    expect(stages.length).toBeGreaterThanOrEqual(6);
+    expect(stages.at(-1).atMs).toBeGreaterThanOrEqual(25000);
+  });
 });

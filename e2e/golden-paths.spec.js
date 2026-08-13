@@ -8,13 +8,19 @@ import {
   waitForSavedActivities,
   listSavedActivities,
 } from "./helpers/authApi.js";
+import {
+  ensurePermanentAppSession,
+  signupAndOnboard,
+} from "./helpers/signupFlow.js";
 
 async function reachApp(page) {
+  await ensurePermanentAppSession(page);
   await page.goto("/app");
   await waitForAuthSession(page);
 }
 
 async function reachParent(page) {
+  await ensurePermanentAppSession(page);
   await page.goto("/parent");
   await waitForAuthSession(page);
   await expect(
@@ -25,6 +31,7 @@ async function reachParent(page) {
 }
 
 async function reachKid(page) {
+  await ensurePermanentAppSession(page);
   await page.goto("/kid");
   await waitForAuthSession(page);
   await expect(page).toHaveURL(/\/kid/, { timeout: 20000 });
@@ -187,6 +194,47 @@ test.describe("ActivCue golden paths", () => {
     await expect(
       page.getByRole("heading", { name: /happening right now/i })
     ).toBeVisible({ timeout: 15000 });
+  });
+
+  test("signup → onboarding → generate → save favorite", async ({ page }) => {
+    test.setTimeout(120_000);
+    await signupAndOnboard(page, { addChild: true, childName: "Riley" });
+
+    // If onboarding started an activity, finish or leave to Parent for a clean free path.
+    if (/\/quest/.test(page.url())) {
+      const done = page.getByRole("button", { name: /^Done$/i });
+      if (await done.first().isVisible().catch(() => false)) {
+        await done.first().click();
+      } else {
+        await page.goto("/parent");
+      }
+    }
+
+    await setCookingMoment(page);
+    await reachKid(page);
+
+    const simple = page.getByRole("button", { name: /Simple/i }).first();
+    await expect(simple).toBeVisible({ timeout: 15000 });
+    await simple.click();
+
+    const doneButton = await openQuickIdeasAndStart(page);
+    await doneButton.click();
+
+    await expect(page.getByText(/Activity complete/i)).toBeVisible({
+      timeout: 15000,
+    });
+
+    const saveFavorite = page.getByRole("button", {
+      name: /Save favorite\??/i,
+    });
+    await expect(saveFavorite).toBeVisible({ timeout: 10000 });
+    await saveFavorite.click();
+
+    const favorites = await waitForSavedActivities(
+      page,
+      (rows) => rows.length >= 1
+    );
+    expect(favorites.length).toBeGreaterThanOrEqual(1);
   });
 
   test("core free path: moment → kid → quick ideas → start → finish → independence", async ({

@@ -5,6 +5,7 @@ export const PRODUCT_EVENT_NAMES = Object.freeze([
   "landing_page_viewed",
   "demo_started",
   "demo_activity_generated",
+  "demo_completed",
   "signup_started",
   "signup_completed",
   "pricing_viewed",
@@ -13,6 +14,7 @@ export const PRODUCT_EVENT_NAMES = Object.freeze([
   // Existing product events
   "account_created",
   "activity_generated",
+  "first_activity_generated",
   "quick_activity_generated",
   "activity_started",
   "activity_finished",
@@ -90,6 +92,7 @@ export const PUBLIC_PRODUCT_EVENT_NAMES = Object.freeze([
   "landing_page_viewed",
   "demo_started",
   "demo_activity_generated",
+  "demo_completed",
   "signup_started",
   "pricing_viewed",
   "checkout_started",

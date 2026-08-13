@@ -658,6 +658,14 @@ function DemoPage() {
         count: result.results.length,
         source: "demo_page",
       });
+      trackProductEvent("demo_completed", {
+        momentId,
+        ages,
+        style: activityStyle,
+        energy,
+        count: result.results.length,
+        source: "demo_page",
+      });
       trackProductEvent("demo_page_results_viewed", {
         momentId,
         count: result.results.length,
