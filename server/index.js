@@ -8,6 +8,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 import { createOpenAIClient } from "./lib/openaiClient.js";
+import { shouldRejectSpaFallback } from "./lib/spaFallbackGuard.js";
 import healthRouter from "./routes/health.js";
 import authRouter from "./routes/auth.js";
 import billingRouter, {
@@ -350,18 +351,20 @@ app.use(express.static(clientDistPath));
  * REACT ROUTER FALLBACK
  * ---------------------
  *
- * Any request that did not match an API endpoint or static file receives
- * React's index.html.
+ * Extensionless app routes that did not match an API endpoint or static
+ * file receive React's index.html (refresh / bookmark / deep link).
  *
- * This lets routes continue working when someone:
- *
- *   - refreshes a React page
- *   - bookmarks a React route
- *   - opens a React route directly
+ * Scanner and file-like paths (/.env, /wp-login.php, etc.) get 404 instead
+ * of a misleading 200 + SPA HTML.
  *
  * This must remain after every /api route.
  */
 app.get("*", (req, res) => {
+  if (shouldRejectSpaFallback(req.path)) {
+    res.status(404).end();
+    return;
+  }
+
   res.sendFile(path.join(clientDistPath, "index.html"));
 });
 
