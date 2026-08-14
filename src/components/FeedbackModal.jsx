@@ -1,6 +1,6 @@
 // src/components/FeedbackModal.jsx
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import {
   FEEDBACK_CATEGORIES,
@@ -16,9 +16,14 @@ export default function FeedbackModal({ isOpen, onClose }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [sent, setSent] = useState(false);
+  const submitLockRef = useRef(false);
 
   async function handleSubmit(event) {
     event.preventDefault();
+    if (submitLockRef.current) {
+      return;
+    }
+    submitLockRef.current = true;
     setBusy(true);
     setError("");
     try {
@@ -37,6 +42,7 @@ export default function FeedbackModal({ isOpen, onClose }) {
       setError(err instanceof Error ? err.message : "Could not send feedback.");
     } finally {
       setBusy(false);
+      submitLockRef.current = false;
     }
   }
 

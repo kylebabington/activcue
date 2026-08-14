@@ -1,6 +1,7 @@
 // src/api/feedbackApi.js
 
 import { supabase } from "../lib/supabaseClient";
+import { authenticatedRequest } from "./apiClient";
 
 export const FEEDBACK_CATEGORIES = Object.freeze([
   { value: "bug", label: "Bug" },
@@ -17,44 +18,24 @@ export const FEEDBACK_STATUSES = Object.freeze([
 ]);
 
 /**
- * Insert product feedback for the signed-in user (RLS enforces ownership).
+ * Insert product feedback for the signed-in user via the Railway API.
  */
 export async function submitUserFeedback({ category, message, page }) {
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-
-  if (userError) {
-    throw new Error(userError.message);
-  }
-
-  if (!user?.id) {
-    throw new Error("Sign in to send feedback.");
-  }
-
   const trimmed = String(message || "").trim();
   if (!trimmed) {
     throw new Error("Write a short message before sending.");
   }
 
-  const { data, error } = await supabase
-    .from("user_feedback")
-    .insert({
-      user_id: user.id,
+  const response = await authenticatedRequest("/api/feedback", {
+    method: "POST",
+    body: JSON.stringify({
       category,
       message: trimmed,
       page: String(page || "").slice(0, 500),
-      status: "new",
-    })
-    .select("id")
-    .single();
+    }),
+  });
 
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  return data;
+  return response.json();
 }
 
 export async function listUserFeedback({ status } = {}) {

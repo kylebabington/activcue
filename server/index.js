@@ -26,6 +26,7 @@ import recommendationTelemetryRouter from "./routes/recommendationTelemetry.js";
 import aiUsageReportRouter from "./routes/aiUsageReport.js";
 import householdsRouter from "./routes/households.js";
 import accountRouter from "./routes/account.js";
+import feedbackRouter from "./routes/feedback.js";
 import createActivitySuggestionsRouter from "./routes/activitySuggestions.js";
 import createQuestStepHintRouter from "./routes/questStepHint.js";
 import barcodeLookupRouter from "./routes/barcodeLookup.js";
@@ -298,6 +299,13 @@ app.use("/api", householdsRouter);
  * Permanent account deletion (family data, then Auth admin delete).
  */
 app.use("/api", accountRouter);
+
+/*
+ * In-app product feedback. Writes go through the API so we can rate-limit
+ * and collapse duplicate submissions. The browser cannot insert into
+ * user_feedback directly.
+ */
+app.use("/api", feedbackRouter);
 
 /*
  * Protected OpenAI routes.
