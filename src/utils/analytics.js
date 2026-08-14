@@ -20,6 +20,7 @@ export const PRODUCT_EVENT_NAMES = Object.freeze([
   "landing_page_viewed",
   "demo_started",
   "demo_activity_generated",
+  "demo_completed",
   "signup_started",
   "signup_completed",
   "pricing_viewed",
@@ -28,6 +29,7 @@ export const PRODUCT_EVENT_NAMES = Object.freeze([
   // Existing product events
   "account_created",
   "activity_generated",
+  "first_activity_generated",
   "quick_activity_generated",
   "activity_started",
   "activity_finished",
@@ -100,6 +102,7 @@ export const PUBLIC_PRODUCT_EVENT_NAMES = Object.freeze([
   "landing_page_viewed",
   "demo_started",
   "demo_activity_generated",
+  "demo_completed",
   "signup_started",
   "pricing_viewed",
   "checkout_started",
@@ -414,4 +417,24 @@ export function trackProductEvent(eventName, payload = {}) {
   } else {
     scheduleFlush();
   }
+}
+
+const FIRST_ACTIVITY_GENERATED_FLAG = "ff_first_activity_generated";
+
+/**
+ * Fire first_activity_generated at most once per browser profile.
+ * Server Admin Growth counts distinct users, so cross-device duplicates are fine.
+ */
+export function trackFirstActivityGeneratedOnce(payload = {}) {
+  if (typeof window !== "undefined") {
+    try {
+      if (window.localStorage.getItem(FIRST_ACTIVITY_GENERATED_FLAG) === "1") {
+        return;
+      }
+      window.localStorage.setItem(FIRST_ACTIVITY_GENERATED_FLAG, "1");
+    } catch {
+      // Still attempt to record once this page load.
+    }
+  }
+  trackProductEvent("first_activity_generated", payload);
 }

@@ -47,6 +47,7 @@ export default function SettingsPlusSection({
   const [plansById, setPlansById] = useState({});
   const [plansLoading, setPlansLoading] = useState(true);
   const [plansError, setPlansError] = useState("");
+  const [plansReloadKey, setPlansReloadKey] = useState(0);
 
   useEffect(() => {
     trackProductEvent("pricing_viewed", { source: "settings" });
@@ -82,7 +83,7 @@ export default function SettingsPlusSection({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [plansReloadKey]);
 
   const monthlyPlan = plansById.monthly || null;
   const annualPlan = plansById.annual || null;
@@ -239,16 +240,12 @@ export default function SettingsPlusSection({
         </div>
       ) : (
         <>
-          {plansError ? (
-            <div className="billing-notice billing-notice--error" role="alert">
-              {plansError}
-            </div>
-          ) : null}
-
           <BillingPlanCards
             monthlyPlan={monthlyPlan}
             annualPlan={annualPlan}
             plansLoading={plansLoading}
+            plansError={plansError}
+            onRetryPlans={() => setPlansReloadKey((key) => key + 1)}
             mode="checkout"
             checkoutBusyPlan={billingPlanLoading}
             checkoutDisabled={checkoutDisabled}

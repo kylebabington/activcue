@@ -139,7 +139,7 @@ function SoftGate({ activity, variant = "remember" }) {
   );
 }
 
-function MomentStep({ momentId, onSelect }) {
+function MomentStep({ momentId, onSelect, onContinue }) {
   return (
     <section className="demo-step" aria-labelledby="demo-moment-title">
       <p className="demo-screen-kicker">Parent</p>
@@ -172,6 +172,17 @@ function MomentStep({ momentId, onSelect }) {
           );
         })}
       </div>
+      {onContinue && momentId ? (
+        <div className="demo-step-actions">
+          <button
+            type="button"
+            className="landing-btn landing-btn--primary"
+            onClick={onContinue}
+          >
+            Continue
+          </button>
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -590,6 +601,10 @@ function DemoPage() {
     [momentId]
   );
 
+  // Recording-only: keep moment selected on-screen so the movie can hold the
+  // completed parent setup. Interactive /demo still auto-advances.
+  const isDemoRecord = searchParams.get("record") === "1";
+
   function resetDemo() {
     setStage("moment");
     setMomentId(null);
@@ -608,7 +623,9 @@ function DemoPage() {
   function handleSelectMoment(id) {
     setMomentId(id);
     trackProductEvent("demo_page_moment_selected", { momentId: id });
-    setStage("ages");
+    if (!isDemoRecord) {
+      setStage("ages");
+    }
   }
 
   function softRankByEnergy(result) {
@@ -651,6 +668,14 @@ function DemoPage() {
       setStage("results");
       setShowSaveGate(false);
       trackProductEvent("demo_activity_generated", {
+        momentId,
+        ages,
+        style: activityStyle,
+        energy,
+        count: result.results.length,
+        source: "demo_page",
+      });
+      trackProductEvent("demo_completed", {
         momentId,
         ages,
         style: activityStyle,
@@ -732,7 +757,13 @@ function DemoPage() {
 
       <main className="demo-page-main demo-page-main--product">
         {stage === "moment" ? (
-          <MomentStep momentId={momentId} onSelect={handleSelectMoment} />
+          <MomentStep
+            momentId={momentId}
+            onSelect={handleSelectMoment}
+            onContinue={
+              isDemoRecord ? () => setStage("ages") : undefined
+            }
+          />
         ) : null}
 
         {stage === "ages" ? (

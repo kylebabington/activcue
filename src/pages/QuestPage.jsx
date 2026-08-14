@@ -200,6 +200,9 @@ function QuestPage() {
         activities,
         scoredActivities,
         isLoading,
+        generationFailed,
+        generationErrorMessage,
+        retryLastGeneration,
         handleStartActivity,
         saveFavoriteActivity,
         entitlement,
@@ -308,23 +311,47 @@ function QuestPage() {
                 )}
 
             {!activeActivity && !lastCompletedQuest && activities.length === 0 && !isLoading && (
-                <section className="panel">
-                    <h2>Waiting for Kid</h2>
+                generationFailed ? (
+                    <section className="panel" role="alert">
+                        <h2>Couldn’t load ideas</h2>
+                        <p>
+                            {generationErrorMessage ||
+                                "Something went wrong while generating ideas. You can try again."}
+                        </p>
+                        <div className="activity-empty-actions">
+                            <button
+                                type="button"
+                                className="generate-button"
+                                onClick={() => {
+                                    void retryLastGeneration?.();
+                                }}
+                            >
+                                Try again
+                            </button>
+                            <Link className="secondary-action" to="/kid">
+                                Back to Kid
+                            </Link>
+                        </div>
+                    </section>
+                ) : (
+                    <section className="panel">
+                        <h2>Waiting for Kid</h2>
 
-                    <p>
-                        Set a parent moment, then open Kid and tap I&apos;m Bored
-                        (or Quick ideas) to fill this board.
-                    </p>
+                        <p>
+                            Set a parent moment, then open Kid and tap I&apos;m Bored
+                            (or Quick ideas) to fill this board.
+                        </p>
 
-                    <div className="activity-empty-actions">
-                        <Link className="primary-link-button" to="/kid">
-                            Go to Kid
-                        </Link>
-                        <Link className="secondary-action" to="/parent">
-                            Set a moment
-                        </Link>
-                    </div>
-                </section>
+                        <div className="activity-empty-actions">
+                            <Link className="primary-link-button" to="/kid">
+                                Go to Kid
+                            </Link>
+                            <Link className="secondary-action" to="/parent">
+                                Set a moment
+                            </Link>
+                        </div>
+                    </section>
+                )
             )}
             </div>
 

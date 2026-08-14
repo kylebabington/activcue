@@ -6,6 +6,9 @@ import {
 
 describe("product event allowlist", () => {
   it("includes the core launch funnel events", () => {
+    expect(PRODUCT_EVENT_NAME_SET.has("landing_page_viewed")).toBe(true);
+    expect(PRODUCT_EVENT_NAME_SET.has("demo_completed")).toBe(true);
+    expect(PRODUCT_EVENT_NAME_SET.has("first_activity_generated")).toBe(true);
     expect(PRODUCT_EVENT_NAME_SET.has("activity_generated")).toBe(true);
     expect(PRODUCT_EVENT_NAME_SET.has("plus_checkout_succeeded")).toBe(true);
     expect(PRODUCT_EVENT_NAME_SET.has("not_a_real_event")).toBe(false);

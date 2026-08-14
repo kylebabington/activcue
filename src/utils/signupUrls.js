@@ -126,3 +126,43 @@ export function parseSignupCheckoutIntent(search) {
     plan: VALID_CHECKOUT_PLANS.has(plan) ? plan : "monthly",
   };
 }
+
+const BLOCKED_REDIRECT_PATHS = new Set([
+  "/signup",
+  "/login",
+  "/complete-signup",
+  "/forgot-password",
+  "/reset-password",
+]);
+
+/**
+ * Safe post-signup in-app redirect from ?redirect=.
+ * Only same-origin relative paths are allowed.
+ */
+export function parseSafeAppRedirect(raw) {
+  if (typeof raw !== "string" || !raw.trim()) {
+    return null;
+  }
+
+  let value = raw.trim();
+  try {
+    value = decodeURIComponent(value);
+  } catch {
+    // Keep the raw value if it was not encoded.
+  }
+
+  if (!value.startsWith("/") || value.startsWith("//")) {
+    return null;
+  }
+
+  if (value.includes("://") || value.includes("\\")) {
+    return null;
+  }
+
+  const pathOnly = value.split("?")[0].split("#")[0] || "/";
+  if (BLOCKED_REDIRECT_PATHS.has(pathOnly)) {
+    return null;
+  }
+
+  return value;
+}

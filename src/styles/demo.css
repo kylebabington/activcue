@@ -99,9 +99,26 @@
 }
 
 /*
- * The recorded final screen should land on Step 1, not visually dump the
- * entire activity. The activity object still contains every step and the
- * normal Steps summary still reports the real total.
+ * Recording-only zoom: Playwright toggles body classes so the capture fits
+ * 1280×720 without animating zoom mid-shot. Interactive /demo stays 1×.
+ */
+body.demo-recording-fit-results .demo-step--results {
+  transform: scale(0.72);
+  transform-origin: top center;
+  width: min(1120px, 100%);
+  margin-bottom: -18vh;
+}
+
+body.demo-recording-fit-activity .demo-step--activity {
+  transform: scale(0.84);
+  transform-origin: top center;
+  width: min(920px, 100%);
+  margin-bottom: -10vh;
+}
+
+/*
+ * Legacy helpers kept for optional first-step framing experiments.
+ * Not applied by DemoPage today; activity recording scrolls full playbook.
  */
 .demo-first-step-only .quest-collapsible-section:not(#quest-section-steps) {
   display: none;
@@ -124,6 +141,23 @@
 
   .demo-topbar-label {
     display: none;
+  }
+
+  .demo-sticky-banner {
+    gap: 0.65rem;
+    padding: 0.7rem 0.85rem;
+    align-items: flex-start;
+  }
+
+  .demo-sticky-banner-actions {
+    width: 100%;
+  }
+
+  .demo-sticky-banner-actions > * {
+    flex: 1 1 auto;
+    min-height: 2.75rem;
+    justify-content: center;
+    text-align: center;
   }
 }
 

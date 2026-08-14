@@ -76,3 +76,19 @@ test("checkbox controls do not consume the settings row on phones", async ({
   expect(metrics.copyWidth).toBeGreaterThan(250);
   expect(metrics.rowWidth).toBeLessThanOrEqual(360);
 });
+
+test("signup page does not overflow on phones", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/signup");
+
+  await expect(
+    page.getByRole("heading", { name: /account|Create/i })
+  ).toBeVisible({ timeout: 30000 });
+
+  const horizontalOverflow = await page.evaluate(() => {
+    const root = document.documentElement;
+    return root.scrollWidth - root.clientWidth;
+  });
+
+  expect(horizontalOverflow).toBeLessThanOrEqual(1);
+});

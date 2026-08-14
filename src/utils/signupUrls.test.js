@@ -3,6 +3,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildSignupUrl,
+  parseSafeAppRedirect,
   parseSignupCheckoutIntent,
 } from "./signupUrls.js";
 
@@ -38,5 +39,21 @@ describe("parseSignupCheckoutIntent", () => {
       shouldCheckout: false,
       plan: "monthly",
     });
+  });
+});
+
+describe("parseSafeAppRedirect", () => {
+  it("allows internal app paths", () => {
+    expect(parseSafeAppRedirect("/parent")).toBe("/parent");
+    expect(parseSafeAppRedirect("%2Fsettings%3Ftab%3Dbilling")).toBe(
+      "/settings?tab=billing"
+    );
+  });
+
+  it("rejects open redirects and auth loops", () => {
+    expect(parseSafeAppRedirect("https://evil.example")).toBeNull();
+    expect(parseSafeAppRedirect("//evil.example")).toBeNull();
+    expect(parseSafeAppRedirect("/signup")).toBeNull();
+    expect(parseSafeAppRedirect("")).toBeNull();
   });
 });

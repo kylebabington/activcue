@@ -30,7 +30,7 @@ import { markSuggestionsShownAt, getTimeToStartTiming } from "../../utils/timeTo
 import { resolveChildAge } from "../../utils/childAge";
 import { playModeFlavorFromActivityStyle } from "../../constants/activityPreferences";
 import { createRecommendationBatch } from "../../api/recommendationTelemetryApi";
-import { trackProductEvent } from "../../utils/analytics";
+import { trackFirstActivityGeneratedOnce, trackProductEvent } from "../../utils/analytics";
 
 async function recordLocalBatch(activities, { source, momentId, mode = "normal" }) {
   if (!Array.isArray(activities) || activities.length === 0) {
@@ -106,17 +106,25 @@ function resolveOldestChildAgeYears(deps) {
 export function useActivityGeneration(deps = {}) {
   const [isLoading, setIsLoading] = useState(false);
   const [loadingIntent, setLoadingIntent] = useState(null);
+  const [generationFailed, setGenerationFailed] = useState(false);
+  const [generationErrorMessage, setGenerationErrorMessage] = useState("");
   const [presetRotationIndex, setPresetRotationIndex] = useState({
     simple: 0,
     imaginative: 0,
   });
   const generateActivitiesRef = useRef(null);
+  const lastGenerationArgsRef = useRef({
+    customFeedbackContext: "",
+    options: {},
+  });
   const depsRef = useRef(deps);
   depsRef.current = deps;
 
   const beginGeneration = useCallback((intent = "generate") => {
     setIsLoading(true);
     setLoadingIntent(intent);
+    setGenerationFailed(false);
+    setGenerationErrorMessage("");
   }, []);
 
   const endGeneration = useCallback(() => {
@@ -127,14 +135,19 @@ export function useActivityGeneration(deps = {}) {
   const handleGenerateActivities = useCallback(
     async (customFeedbackContext = "", options = {}) => {
       const {
-        allowOfflineFallback = false,
         preferSimpleTemplates = false,
         generationIntent = null,
         excludeCandidateIds = [],
       } = options;
       const d = depsRef.current;
 
+      lastGenerationArgsRef.current = {
+        customFeedbackContext,
+        options,
+      };
       setIsLoading(true);
+      setGenerationFailed(false);
+      setGenerationErrorMessage("");
       d.showStatus?.("");
       d.setActivities?.([]);
       d.setActiveActivity?.(null);
@@ -258,6 +271,14 @@ export function useActivityGeneration(deps = {}) {
         );
         d.setActivities?.(normalized);
         markBoardShown(normalized, { recommendationBatchId, momentId });
+        if (normalized.length > 0) {
+          trackFirstActivityGeneratedOnce({
+            momentId,
+            recommendationBatchId,
+            candidateCount: normalized.length,
+            source: meta.source || null,
+          });
+        }
         return normalized;
       }
 
@@ -324,11 +345,12 @@ export function useActivityGeneration(deps = {}) {
         console.error(error);
 
         if (error instanceof AuthenticationError) {
-          d.showStatus?.(
+          const message =
             error.message ||
-              "Your secure session could not be verified. Refresh and try again.",
-            "error"
-          );
+            "Your secure session could not be verified. Refresh and try again.";
+          setGenerationFailed(true);
+          setGenerationErrorMessage(message);
+          d.showStatus?.(message, "error");
           return null;
         }
 
@@ -344,32 +366,40 @@ export function useActivityGeneration(deps = {}) {
         }
 
         if (error instanceof ApiRequestError && error.status === 422) {
-          d.showStatus?.(
+          const message =
             error.message ||
-              "Could not generate age-appropriate activities. Try regenerating.",
-            "info"
-          );
+            "Could not generate age-appropriate activities. Try regenerating.";
+          setGenerationFailed(true);
+          setGenerationErrorMessage(message);
+          d.showStatus?.(message, "info");
           return [];
         }
 
-        if (allowOfflineFallback || d.kidActivityStyle === "simple") {
-          const templateActivities = buildSimpleActivitiesFromTemplates({
-            inventory: d.inventory,
-            currentMoment: d.currentMoment,
-            count: 3,
-            oldestChildAgeYears: resolveOldestChildAgeYears(d),
-          });
+        trackProductEvent("AI_error", {
+          status: error instanceof ApiRequestError ? error.status : null,
+          code: error instanceof ApiRequestError ? error.code : null,
+          activityStyle: d.kidActivityStyle || null,
+        });
 
-          if (templateActivities.length > 0) {
-            d.showStatus?.(
-              "Couldn’t reach the idea server — showing quick simple ideas from your supplies.",
-              "info"
-            );
-            return finalizeActivities(templateActivities, { source: "templates" });
-          }
+        const templateActivities = buildSimpleActivitiesFromTemplates({
+          inventory: d.inventory,
+          currentMoment: d.currentMoment,
+          count: 3,
+          oldestChildAgeYears: resolveOldestChildAgeYears(d),
+        });
+
+        if (templateActivities.length > 0) {
+          d.showStatus?.(
+            "Couldn’t reach the idea server — showing quick simple ideas from your supplies.",
+            "info"
+          );
+          return finalizeActivities(templateActivities, { source: "templates" });
         }
 
-        d.showStatus?.("Something went wrong while generating ideas.", "error");
+        const message = "Something went wrong while generating ideas.";
+        setGenerationFailed(true);
+        setGenerationErrorMessage(message);
+        d.showStatus?.(message, "error");
         return [];
       } finally {
         setIsLoading(false);
@@ -378,6 +408,15 @@ export function useActivityGeneration(deps = {}) {
     },
     []
   );
+
+  const retryLastGeneration = useCallback(async () => {
+    const { customFeedbackContext, options } = lastGenerationArgsRef.current;
+    const generate = generateActivitiesRef.current;
+    if (typeof generate !== "function") {
+      return [];
+    }
+    return generate(customFeedbackContext, options);
+  }, []);
 
   generateActivitiesRef.current = handleGenerateActivities;
 
@@ -905,12 +944,15 @@ export function useActivityGeneration(deps = {}) {
   return {
     isLoading,
     loadingIntent,
+    generationFailed,
+    generationErrorMessage,
     setIsLoading,
     setLoadingIntent,
     beginGeneration,
     endGeneration,
     generateActivitiesRef,
     handleGenerateActivities,
+    retryLastGeneration,
     handleGenerateKidActivities,
     handleStartSomethingForMe,
     startPresetActivity,
