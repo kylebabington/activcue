@@ -9,12 +9,14 @@
 
 ## Story (`demo:record`)
 
-1. Parent screen — select **Cooking**
-2. Ages screen — continue with default age
-3. Kid screen — energy (**Bouncy**), **Imaginative**
-4. Exactly three imaginative activity recommendations
+1. Parent screen — select **Cooking**, hold completed selection (~4s)
+2. Ages / Who's playing — brief hold (~1.2s), continue
+3. Kid screen — energy (**Bouncy**), **Imaginative** (~1.2s)
+4. Exactly three imaginative activity recommendations — zoomed out, still (~5.5s)
 5. **Start the story** from the card
-6. End on Story Path / Scene 1 of the playbook
+6. Open playbook at top (~1.75s), continuous scroll to bottom (~11s), brief end hold
+
+Do not include Simple mode, Plan B, Rescue, completion, or extra help in this movie.
 
 Do not include Simple mode, Plan B, Rescue, completion, or extra help in this movie.
 
