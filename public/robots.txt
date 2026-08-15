@@ -1,0 +1,12 @@
+# robots.txt for ActivCue
+# Allow all crawlers full access
+
+User-agent: *
+Allow: /
+
+# Explicitly allow Pinterest's crawler
+User-agent: Pinterestbot
+Allow: /
+
+# Sitemap location
+Sitemap: https://activcue.fun/sitemap.xml
