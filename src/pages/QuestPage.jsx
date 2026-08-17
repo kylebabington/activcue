@@ -245,7 +245,7 @@ function QuestPage() {
                 ) : null}
             </section>
 
-            <div className="kid-center-column">
+            <div className={activeActivity ? "kid-center-column kid-center-column--play" : "kid-center-column"}>
                 <MomentStatusBanner currentMoment={currentMoment} kidFacing />
 
             {activeActivity ? (

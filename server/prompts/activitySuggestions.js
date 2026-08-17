@@ -36,7 +36,8 @@ function buildSimpleStyleRules() {
 STYLE RULES (simple — only):
 - Set activityStyle to "simple".
 - Give plain, real-life activities.
-- Use 2 to 4 stepDetails with short practical titles and instructions (≤2 sentences each).
+- Use 2 to 4 stepDetails with practical titles and self-contained instructions.
+- Each instruction must say what to do, how to do it, what to try if it is not working, and how to know the step is finished.
 - Each step should include 1 to 2 practical starterIdeas (concrete tips the child can try now).
 - Activity-level starterIdeas: 0 to 2 practical “how to begin” directions.
 - ifStuck should offer a simpler practical fallback that is NOT the same as a starter idea.
@@ -85,7 +86,7 @@ TEEN (13+) FRAMING:
 - roleGuide.goal: crisp creative brief (goal + constraints + what done looks like). Max ~2 sentences.
 - Prefer categories: puzzle, creative, science, building, music, reading, nature, social-game. Avoid "pretend" unless interests demand it.
 - Activity-level starterIdeas: 3–5 thinking prompts (approaches, constraints, variations) — not "pretend you are…".
-- Include 3 to 5 stepDetails. Each needs 1–2 step-specific starterIdeas, doneWhen as a tangible ready-to-continue cue, ifStuck as a simpler strategy.
+- Include 3 to 5 stepDetails. Each needs 1–2 step-specific starterIdeas, a self-contained instruction, doneWhen as a tangible ready-to-continue cue, ifStuck as a simpler strategy.
 - visualTheme: prefer building, science, art, detective, mystery, expedition, neighborhood — avoid fantasy unless interests demand it.
 - Language should sound like a cool challenge for a teen, never like preschool play.
 `.trim();
@@ -99,7 +100,7 @@ TWEEN (10–12) FRAMING:
 - roleGuide.goal: short challenge brief (1–2 sentences), not a long lore dump.
 - Avoid forced make-believe dialogue and costume play.
 - Activity-level starterIdeas: at least 4 with mixed kinds.
-- Include 3 to 5 stepDetails. Each needs 2 step-specific starterIdeas, transition-style doneWhen, and ifStuck rescue.
+- Include 3 to 5 stepDetails. Each needs 2 step-specific starterIdeas, a self-contained instruction, transition-style doneWhen, and ifStuck rescue.
 `.trim();
   }
 
@@ -108,7 +109,7 @@ TWEEN (10–12) FRAMING:
 UNDER-10 FRAMING:
 - Vivid theme framing and a clear pretend role are OK when a natural role exists.
 - roleGuide.goal may be a rich setup (world, problem/invitation, who they are, first direction) — keep ≤4 sentences.
-- Prefer story-beat step titles and natural transition cues for doneWhen / ifStuck.
+- Prefer story-beat step titles, then a full instruction that a child can follow without guessing.
 - Activity-level starterIdeas: at least 4 with mixed kinds (how the story begins).
 - Include 4 to 5 stepDetails. Each needs 2 step-specific starterIdeas.
 - For ages under ~10, put the action INSIDE the story instead of presenting a worksheet.
@@ -218,8 +219,16 @@ PROSE CAPS (hard):
 - summary: max 2 sentences.
 - whyItFits: max 2 sentences.
 - roleGuide.description / goal / firstAction: short; goal max ~2–3 sentences (under-10 imaginative may use up to 4).
-- step instruction: max 2–3 sentences.
-- Prefer fewer, denser steps over long prose.
+
+STEP WRITING RULES (hard — every stepDetail):
+- The child should not have to reverse-engineer what you meant.
+- instruction is the full scene/step for everyone. It must answer: (1) What am I doing? (2) How do I do it? (3) What should I do if something isn't working? (4) How do I know I'm finished?
+- Write 4–7 sentences of concrete, observable action. Do not stop at a short label.
+- Ban vague instructions such as: "Test the map", "Add details", "Connect the routes", "Continue the story", "Set everything up", "Do the next part", "Make it better".
+- title is a short beat name, never a substitute for the instruction.
+- doneWhen is an observable ready-to-continue cue ("Every zone has a name you can point to.") — never "the objective is complete" or "something in the story has changed".
+- ifStuck is one simpler rescue that is NOT a reused starterIdea.
+- roleInstructions are OPTIONAL supplements. They must NOT contain information required to understand the main instruction. The scene must still work if roleInstructions are ignored.
 
 CURRENT MOMENT RULES:
 - Treat the current family moment as the source of truth.
@@ -256,9 +265,10 @@ CATEGORY AND TRAIT RULES:
 
 QUALITY BAR (imaginative under-10 example shape):
 - roleGuide.name: "Sea Signal Finder" (activity-specific)
-- step instruction = invitation + clear action
+- step instruction = what to do + how to do it + what to try if stuck + what done looks like
 - doneWhen = natural transition cue ("Your first station has a marker.") — never "Something in the story has changed…"
 - ifStuck = one decisive nudge, not a reused starter
+- roleInstructions add a child's job; they never replace the scene instruction
 `.trim();
 }
 
@@ -360,6 +370,6 @@ extensionIdeas[], uses[], energy, mess, adultHelp, estimatedMinutes, whyItFits,
 categories[], traits{setupEffort,structure,socialMode,creativity,movement}.
 
 Do NOT include legacy mirrors (kidRole, mission, starterPrompts, firstMoves, steps, roles).
-Keep prose short per PROSE CAPS.
+Keep summary/whyItFits short. Step instructions must be self-contained per STEP WRITING RULES.
 `.trim();
 }

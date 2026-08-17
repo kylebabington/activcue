@@ -24,24 +24,43 @@ describe("buildNarrationText", () => {
     expect(text).toContain("Robot trouble");
   });
 
-  it("builds a single step script with doneWhen and starter ideas", () => {
+  it("builds a single scene script with the full instruction and a move-on cue", () => {
     const text = buildNarrationText(completeActivityV2Fixture, "step", {
       stepIndex: 0,
+      selectedRoleName: "Lead Communications Designer",
     });
+    expect(text).toContain("Scene 1");
     expect(text).toContain("Build your station");
     expect(text).toContain("Make a communications desk");
+    expect(text).toContain("Your part");
+    expect(text).toContain("Label each station zone");
     expect(text).toContain("You could try");
     expect(text).toContain("Stack a radio");
-    expect(text).toContain("Ready for the next part when");
+    expect(text).toContain("Ready to move on when");
+    expect(text.indexOf("Make a communications desk")).toBeLessThan(
+      text.indexOf("Label each station zone")
+    );
   });
 
-  it("builds next step from completed indexes", () => {
+  it("builds next scene from completed indexes", () => {
     const activity = {
       ...completeActivityV2Fixture,
       completedStepIndexes: [0],
     };
     const text = buildNarrationText(activity, "next");
+    expect(text).toContain("Scene 2");
     expect(text).toContain("Write Earth's message");
+    expect(text).toContain("Write or draw one message to Earth");
+  });
+
+  it("still reads simple step titles and doneWhen cues", () => {
+    const activity = {
+      ...completeActivityV2Fixture,
+      activityStyle: "simple",
+    };
+    const text = buildNarrationText(activity, "step", { stepIndex: 0 });
+    expect(text).toContain("Build your station");
+    expect(text).toContain("You're done when");
   });
 
   it("builds stuck help from ifStuck prompts", () => {

@@ -134,7 +134,7 @@ test("record ActivCue real product walkthrough", async ({ page }, testInfo) => {
     timeout: 15000,
   });
   await expect(
-    page.getByRole("heading", { name: /^Story Path$/i })
+    page.getByRole("heading", { name: /^The Story$/i })
   ).toBeVisible();
   await expect(page.locator("#quest-step-0")).toBeVisible();
   await expect(page.locator("#quest-step-0")).toContainText(/Scene\s*1/i);

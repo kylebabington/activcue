@@ -21,24 +21,32 @@ export function launchTrialLimit(launchTrial) {
     : DEFAULT_LAUNCH_TRIAL_LIMIT;
 }
 
+export function launchTrialRemaining(launchTrial) {
+  const limit = launchTrialLimit(launchTrial);
+  const remaining = Number(launchTrial?.remaining);
+  if (!Number.isFinite(remaining) || remaining < 0) {
+    return limit;
+  }
+  return Math.min(remaining, limit);
+}
+
+export function launchTrialSpotsLeft(launchTrial) {
+  const remaining = launchTrialRemaining(launchTrial);
+  const limit = launchTrialLimit(launchTrial);
+  return `${remaining} of ${limit} families left`;
+}
+
 export function launchTrialOfferNote(launchTrial) {
   const days = launchTrialDays(launchTrial);
-  const limit = launchTrialLimit(launchTrial);
-  return `Launch offer: ${days} days free for the first ${limit} families. Card required — $0 today.`;
+  return `Launch offer: ${days} days free. ${launchTrialSpotsLeft(launchTrial)}. Card required — $0 today.`;
 }
 
 export function launchTrialHeroKicker(launchTrial) {
   const days = launchTrialDays(launchTrial);
-  const limit = launchTrialLimit(launchTrial);
-  return `Launch offer: ${days} days free for the first ${limit} families`;
+  return `Launch offer: ${days} days free — ${launchTrialSpotsLeft(launchTrial)}`;
 }
 
-export function launchTrialCtaLabel(launchTrial, plan = "monthly") {
+export function launchTrialCtaLabel(launchTrial) {
   const days = launchTrialDays(launchTrial);
-  const limit = launchTrialLimit(launchTrial);
-  const suffix = ` — first ${limit} families`;
-  if (plan === "annual") {
-    return `Start ${days}-day free trial (annual)${suffix}`;
-  }
-  return `Start ${days}-day free trial${suffix}`;
+  return `Start ${days}-day free trial`;
 }

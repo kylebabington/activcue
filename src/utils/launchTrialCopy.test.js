@@ -6,7 +6,7 @@ import {
   launchTrialOfferNote,
 } from "./launchTrialCopy";
 
-const offer = { available: true, days: 7, limit: 20 };
+const offer = { available: true, days: 7, limit: 20, remaining: 17 };
 
 describe("launch trial copy", () => {
   it("is only active when the offer is available", () => {
@@ -17,23 +17,24 @@ describe("launch trial copy", () => {
     expect(isLaunchTrialOfferActive(null)).toBe(false);
   });
 
-  it("includes trial length and family cap in every public string", () => {
-    expect(launchTrialOfferNote(offer)).toBe(
-      "Launch offer: 7 days free for the first 20 families. Card required — $0 today."
-    );
-    expect(launchTrialHeroKicker(offer)).toBe(
-      "Launch offer: 7 days free for the first 20 families"
-    );
-    expect(launchTrialCtaLabel(offer, "monthly")).toBe(
-      "Start 7-day free trial — first 20 families"
-    );
+  it("keeps family counts off the price buttons", () => {
+    expect(launchTrialCtaLabel(offer)).toBe("Start 7-day free trial");
     expect(launchTrialCtaLabel(offer, "annual")).toBe(
-      "Start 7-day free trial (annual) — first 20 families"
+      "Start 7-day free trial"
     );
   });
 
-  it("falls back to 7 days and 20 families", () => {
+  it("counts down remaining families in the public offer copy", () => {
+    expect(launchTrialOfferNote(offer)).toBe(
+      "Launch offer: 7 days free. 17 of 20 families left. Card required — $0 today."
+    );
+    expect(launchTrialHeroKicker(offer)).toBe(
+      "Launch offer: 7 days free — 17 of 20 families left"
+    );
+  });
+
+  it("falls back to 7 days and a full 20-family cap", () => {
     expect(launchTrialOfferNote({})).toContain("7 days free");
-    expect(launchTrialOfferNote({})).toContain("first 20 families");
+    expect(launchTrialOfferNote({})).toContain("20 of 20 families left");
   });
 });

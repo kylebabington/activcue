@@ -20,7 +20,12 @@ import {
   getVisualThemeMeta,
 } from "../../utils/activityVisualTheme";
 import { buildNarrationText } from "../../utils/buildNarrationText";
+import {
+  getSceneInstruction,
+  getStepRoleParts,
+} from "../../utils/questStepCopy";
 import SpeakButton from "../SpeakButton";
+import ActiveQuestLayout from "./ActiveQuestLayout";
 import CollapsibleQuestSection from "./CollapsibleQuestSection";
 import { getDefaultOpenSections } from "./questSectionDefaults";
 
@@ -32,6 +37,7 @@ function QuestStepCard({
   isCompact,
   isHighlighted,
   instruction,
+  roleParts = [],
   isImaginative = false,
   themeKey = "fantasy",
   themeAccent,
@@ -56,8 +62,8 @@ function QuestStepCard({
     onImStuck?.(index, nextIndex);
   }
 
-  const stepTitle = step?.title || `Step ${index + 1}`;
   const sceneLabel = isImaginative ? "SCENE" : "STEP";
+  const stepTitle = step?.title || `${isImaginative ? "Scene" : "Step"} ${index + 1}`;
   const canSelectStarters =
     mode === "active" && typeof onSelectStepStarter === "function";
 
@@ -182,17 +188,36 @@ function QuestStepCard({
             </div>
           ) : null}
 
+          {roleParts.length > 0 ? (
+            <div className="quest-scene-block">
+              <p className="quest-play-card-kicker">Your part</p>
+              <ul className="step-role-instructions">
+                {roleParts.map((entry) => (
+                  <li
+                    key={`${entry.childName}-${entry.roleName}-${entry.instruction}`}
+                  >
+                    <strong>
+                      {entry.childName
+                        ? `${entry.childName}: `
+                        : `${entry.roleName}: `}
+                    </strong>
+                    {entry.instruction}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
           {step?.doneWhen ? (
             <p className="step-done-when">
-              {isImaginative
-                ? "Ready for the next part when: "
-                : "Done when: "}
+              {isImaginative ? "Ready to move on when: " : "Done when: "}
               {step.doneWhen}
             </p>
           ) : null}
 
           {Array.isArray(step?.roleInstructions) &&
-          step.roleInstructions.length > 0 ? (
+          step.roleInstructions.length > 0 &&
+          roleParts.length === 0 ? (
             <ul className="step-role-instructions">
               {step.roleInstructions.map((entry) => (
                 <li key={`${entry.roleName}-${entry.instruction}`}>
@@ -225,25 +250,6 @@ function QuestStepCard({
       ) : null}
     </article>
   );
-}
-
-function resolveStepInstruction(step, selectedRoleName, roleAssignments) {
-  if (!step) return "";
-  const roleInstructions = Array.isArray(step.roleInstructions)
-    ? step.roleInstructions
-    : [];
-  const assignedRoles = Object.values(roleAssignments || {}).filter(Boolean);
-  const preferredRoles = [selectedRoleName, ...assignedRoles].filter(Boolean);
-
-  for (const roleName of preferredRoles) {
-    const match = roleInstructions.find(
-      (entry) =>
-        entry?.roleName &&
-        entry.roleName.toLowerCase() === String(roleName).toLowerCase()
-    );
-    if (match?.instruction) return match.instruction;
-  }
-  return step.instruction || "";
 }
 
 /**
@@ -317,6 +323,49 @@ export default function QuestContent({
   const resolvedSpeechRate =
     Number(activity?.readingMode?.speechRate) || speechRate;
 
+  if (mode === "active") {
+    return (
+      <ActiveQuestLayout
+        activity={activity}
+        isImaginativeActivity={isImaginativeActivity}
+        theme={theme}
+        mission={mission}
+        roleName={roleName}
+        roleGuide={roleGuide}
+        childRoles={childRoles}
+        steps={steps}
+        uses={uses}
+        starterIdeas={starterIdeas}
+        extensions={extensions}
+        completedStepIndexes={completedStepIndexes}
+        checkedStarterIndexes={checkedStarterIndexes}
+        selectedStepStarterByIndex={selectedStepStarterByIndex}
+        onToggleStep={onToggleStep}
+        onToggleStarter={onToggleStarter}
+        onSelectStepStarter={onSelectStepStarter}
+        onImStuck={onImStuck}
+        highlightedStuckStepIndex={highlightedStuckStepIndex}
+        focusStepIndex={focusStepIndex}
+        playingChildren={playingChildren}
+        roleAssignments={roleAssignments}
+        onAssignRole={onAssignRole}
+        selectedRoleName={selectedRoleName}
+        roles={roles}
+        multiChild={multiChild}
+        onFinish={onFinish}
+        timerSecondsRemaining={timerSecondsRemaining}
+        formatTimer={formatTimer}
+        timerDone={timerDone}
+        onTimerFinished={onTimerFinished}
+        onTimerNotFinished={onTimerNotFinished}
+        onTimerNeedAnotherIdea={onTimerNeedAnotherIdea}
+        onTimerMoreLikeThis={onTimerMoreLikeThis}
+        resolvedSpeechRate={resolvedSpeechRate}
+        missionNarration={missionNarration}
+      />
+    );
+  }
+
   function sectionProps(key, title, summary, defaultOpen) {
     const controlled = Boolean(onSectionOpenChange);
     return {
@@ -332,15 +381,8 @@ export default function QuestContent({
   }
 
   return (
-    <div
-      className={
-        mode === "active"
-          ? "quest-content quest-content--active"
-          : "quest-content quest-content--preview"
-      }
-    >
-      {mode === "preview" ? (
-        <div className="quest-card-topline">
+    <div className="quest-content quest-content--preview" data-quest-layout="preview">
+      <div className="quest-card-topline">
           <span
             className={
               isSimpleActivity
@@ -356,17 +398,12 @@ export default function QuestContent({
             </span>
           ) : null}
         </div>
-      ) : (
-        <p className="simple-active-eyebrow">
-          {theme.icon} {theme.label}
-        </p>
-      )}
 
-      {mode === "preview" && !isSimpleActivity && activity.theme ? (
+      {!isSimpleActivity && activity.theme ? (
         <p className="activity-theme">{activity.theme}</p>
       ) : null}
 
-      {mode === "preview" && activity.summary ? (
+      {activity.summary ? (
         <p className="quest-short-summary">{activity.summary}</p>
       ) : null}
 
@@ -498,30 +535,7 @@ export default function QuestContent({
           </>
         )}
 
-        {mode === "active" && multiChild ? (
-          <div className="quest-v2-role-picker">
-            <h3>Pick roles for everyone</h3>
-            {playingChildren.map((child) => (
-              <label key={child.id} className="quest-v2-role-row">
-                <span>{child.name || "Player"}</span>
-                <select
-                  value={roleAssignments?.[child.id] || roles[0] || ""}
-                  onChange={(event) =>
-                    onAssignRole?.(child.id, event.target.value)
-                  }
-                >
-                  {roles.map((role) => (
-                    <option key={role} value={role}>
-                      {role}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            ))}
-          </div>
-        ) : null}
-
-        {mode === "preview" && roles.length > 1 ? (
+        {roles.length > 1 ? (
           <ul>
             {roles.map((role) => (
               <li key={role}>{role}</li>
@@ -551,45 +565,17 @@ export default function QuestContent({
             </div>
           ) : null}
           <div className="quest-v2-starter-doors">
-            {starterIdeas.map((idea, index) => {
-              const checked = checkedStarterIndexes.includes(index);
-              if (mode === "active") {
-                return (
-                  <button
-                    key={`${idea.title}-${index}`}
-                    type="button"
-                    className={
-                      checked
-                        ? "quest-v2-starter-door is-open"
-                        : "quest-v2-starter-door"
-                    }
-                    onClick={() => onToggleStarter?.(index)}
-                  >
-                    <span className="quest-v2-starter-title">{idea.title}</span>
-                    {idea.example ? (
-                      <span className="quest-v2-starter-example">
-                        {idea.example}
-                      </span>
-                    ) : null}
-                    {idea.kind ? (
-                      <span className="quest-v2-starter-kind">{idea.kind}</span>
-                    ) : null}
-                  </button>
-                );
-              }
-
-              return (
-                <div key={`${idea.title}-${index}`} className="quest-v2-starter-door">
-                  <span className="quest-v2-starter-title">{idea.title}</span>
-                  {idea.example ? (
-                    <span className="quest-v2-starter-example">{idea.example}</span>
-                  ) : null}
-                  {idea.kind ? (
-                    <span className="quest-v2-starter-kind">{idea.kind}</span>
-                  ) : null}
-                </div>
-              );
-            })}
+            {starterIdeas.map((idea, index) => (
+              <div key={`${idea.title}-${index}`} className="quest-v2-starter-door">
+                <span className="quest-v2-starter-title">{idea.title}</span>
+                {idea.example ? (
+                  <span className="quest-v2-starter-example">{idea.example}</span>
+                ) : null}
+                {idea.kind ? (
+                  <span className="quest-v2-starter-kind">{idea.kind}</span>
+                ) : null}
+              </div>
+            ))}
           </div>
         </CollapsibleQuestSection>
       ) : null}
@@ -627,15 +613,6 @@ export default function QuestContent({
           <div className="quest-steps-list">
             {steps.map((step, index) => {
               const isComplete = completedStepIndexes.includes(index);
-              const isFocus =
-                focusStepIndex === index ||
-                (focusStepIndex == null &&
-                  mode === "active" &&
-                  !isComplete &&
-                  completedStepIndexes.every((done) => done < index) &&
-                  !completedStepIndexes.includes(index) &&
-                  index ===
-                    steps.findIndex((_, i) => !completedStepIndexes.includes(i)));
               return (
                 <QuestStepCard
                   key={`${step.title}-${index}`}
@@ -643,13 +620,15 @@ export default function QuestContent({
                   index={index}
                   mode={mode}
                   isComplete={isComplete}
-                  isCompact={mode === "active" && isComplete && !isFocus}
+                  isCompact={false}
                   isHighlighted={highlightedStuckStepIndex === index}
-                  instruction={resolveStepInstruction(
-                    step,
-                    selectedRoleName || roleName,
-                    roleAssignments
-                  )}
+                  instruction={getSceneInstruction(step)}
+                  roleParts={getStepRoleParts(step, {
+                    playingChildren,
+                    roleAssignments,
+                    childRoles,
+                    selectedRoleName: selectedRoleName || roleName,
+                  })}
                   isImaginative={isImaginativeActivity}
                   themeKey={theme.key}
                   themeAccent={theme.accent}
@@ -659,9 +638,6 @@ export default function QuestContent({
                     selectedStepStarterByIndex?.[index] ??
                     null
                   }
-                  onSelectStepStarter={onSelectStepStarter}
-                  onToggleStep={onToggleStep}
-                  onImStuck={onImStuck}
                   speechRate={resolvedSpeechRate}
                   stepNarration={buildNarrationText(activity, "step", {
                     stepIndex: index,
@@ -698,7 +674,7 @@ export default function QuestContent({
           </>
         ) : null}
 
-        {mode === "preview" && activity.whyItFits ? (
+        {activity.whyItFits ? (
           <div className="why-it-fits-box">
             <h3>Why this might fit</h3>
             {typeof score === "number" ? (
@@ -708,58 +684,6 @@ export default function QuestContent({
             ) : null}
             <p>{activity.whyItFits}</p>
           </div>
-        ) : null}
-
-        {mode === "active" ? (
-          <>
-            {typeof timerSecondsRemaining === "number" && formatTimer ? (
-              <div
-                className={timerDone ? "timer-badge done" : "timer-badge"}
-                aria-live="polite"
-              >
-                <span className="timer-label">
-                  {timerDone ? "Timer" : "Time left"}
-                </span>
-                <span className="timer-value">
-                  {timerDone ? "Done!" : formatTimer(timerSecondsRemaining)}
-                </span>
-              </div>
-            ) : null}
-
-            <div className="quest-finish-actions">
-              <button type="button" onClick={onFinish}>
-                {isImaginativeActivity ? "Finish the story" : "Mark complete"}
-              </button>
-              {timerDone ? (
-                <>
-                  <button type="button" onClick={onTimerFinished || onFinish}>
-                    Yes, finished
-                  </button>
-                  <button
-                    type="button"
-                    className="secondary-action"
-                    onClick={onTimerNotFinished}
-                  >
-                    Not really
-                  </button>
-                  <button
-                    type="button"
-                    className="secondary-action"
-                    onClick={onTimerNeedAnotherIdea}
-                  >
-                    Need another idea
-                  </button>
-                  <button
-                    type="button"
-                    className="secondary-action"
-                    onClick={onTimerMoreLikeThis}
-                  >
-                    More like this
-                  </button>
-                </>
-              ) : null}
-            </div>
-          </>
         ) : null}
       </CollapsibleQuestSection>
     </div>
