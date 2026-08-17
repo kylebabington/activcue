@@ -65,6 +65,7 @@ function LandingPage() {
   const [checkoutBusy, setCheckoutBusy] = useState(null);
   const [checkoutError, setCheckoutError] = useState("");
   const [plansById, setPlansById] = useState({});
+  const [launchTrial, setLaunchTrial] = useState(null);
   const [plansLoading, setPlansLoading] = useState(true);
   const [plansError, setPlansError] = useState("");
   const [plansReloadKey, setPlansReloadKey] = useState(0);
@@ -148,10 +149,12 @@ function LandingPage() {
         const result = await getBillingPlans();
         if (!cancelled) {
           setPlansById(result.byPlan || {});
+          setLaunchTrial(result.launchTrial || null);
         }
       } catch (error) {
         if (!cancelled) {
           setPlansById({});
+          setLaunchTrial(null);
           setPlansError(
             error?.message ||
               "Could not load subscription prices. Try again shortly."
@@ -433,6 +436,7 @@ function LandingPage() {
             checkoutBusyPlan={checkoutBusy}
             onCheckout={handleCheckout}
             onRetryPlans={() => setPlansReloadKey((key) => key + 1)}
+            launchTrial={launchTrial}
           />
         </div>
       </section>
