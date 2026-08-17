@@ -161,6 +161,7 @@ describe("GET /billing/plans launch trial", () => {
     getLaunchTrialOfferStatusMock.mockResolvedValue({
       available: true,
       days: 7,
+      limit: 20,
     });
   });
 
@@ -172,7 +173,7 @@ describe("GET /billing/plans launch trial", () => {
 
     expect(res.body).toEqual({
       plans: [{ plan: "monthly", priceId: "price_m", unitAmount: 900 }],
-      launchTrial: { available: true, days: 7 },
+      launchTrial: { available: true, days: 7, limit: 20 },
     });
   });
 });

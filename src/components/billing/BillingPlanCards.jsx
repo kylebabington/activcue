@@ -6,6 +6,11 @@ import {
   formatStripeAmount,
   intervalLabelForPlan,
 } from "../../utils/money";
+import {
+  isLaunchTrialOfferActive,
+  launchTrialCtaLabel,
+  launchTrialOfferNote,
+} from "../../utils/launchTrialCopy";
 import { buildSignupUrl } from "../../utils/signupUrls";
 
 function PlanPrice({ plan, loading }) {
@@ -35,12 +40,6 @@ function PlanPrice({ plan, loading }) {
   );
 }
 
-function launchTrialCtaLabel(plan) {
-  return plan === "annual"
-    ? "Start free trial (annual)"
-    : "Start free trial";
-}
-
 function defaultPaidCtaLabel(plan) {
   return plan === "annual" ? "Choose annual" : "Start with Plus";
 }
@@ -65,15 +64,11 @@ export default function BillingPlanCards({
 }) {
   const plansReady = !plansLoading && !plansError && monthlyPlan && annualPlan;
   const actionsDisabled = checkoutDisabled || !plansReady;
-  const trialOfferActive = launchTrial?.available === true;
-  const trialDays =
-    Number.isFinite(Number(launchTrial?.days)) && Number(launchTrial.days) > 0
-      ? Number(launchTrial.days)
-      : 7;
+  const trialOfferActive = isLaunchTrialOfferActive(launchTrial);
 
   function paidAction(plan) {
     const idleLabel = trialOfferActive
-      ? launchTrialCtaLabel(plan)
+      ? launchTrialCtaLabel(launchTrial, plan)
       : defaultPaidCtaLabel(plan);
 
     if (mode === "signup") {
@@ -118,8 +113,7 @@ export default function BillingPlanCards({
 
       {trialOfferActive ? (
         <p className="billing-launch-trial-note">
-          Launch offer: {trialDays} days free for the first 20 families. Card
-          required — $0 today.
+          {launchTrialOfferNote(launchTrial)}
         </p>
       ) : null}
 

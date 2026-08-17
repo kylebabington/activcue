@@ -129,7 +129,7 @@ export async function redeemLaunchTrialClaim(userId, sessionId = null) {
 }
 
 /**
- * Public offer flag for pricing UI. Does not expose remaining count.
+ * Public offer flag for pricing UI. Exposes the cap size, not remaining spots.
  */
 export async function getLaunchTrialOfferStatus() {
   const days = getLaunchTrialDays();
@@ -163,12 +163,14 @@ export async function getLaunchTrialOfferStatus() {
     return {
       available: validCount < limit,
       days,
+      limit,
     };
   } catch (error) {
     console.error("Could not load launch trial offer status:", error);
     return {
       available: false,
       days,
+      limit,
     };
   }
 }
