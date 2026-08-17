@@ -12,6 +12,37 @@ function formatRatio(value) {
   return `${Math.round(value * 1000) / 10}%`;
 }
 
+function LaunchTrialPanel({ launchTrial }) {
+  if (launchTrial == null) {
+    return (
+      <section className="panel admin-growth-panel">
+        <h2>Launch trial</h2>
+        <p>Could not load launch trial counts.</p>
+      </section>
+    );
+  }
+
+  const claimed = launchTrial.claimed ?? 0;
+  const limit = launchTrial.limit ?? 20;
+  const inCheckout = launchTrial.inCheckout ?? 0;
+  const remaining = launchTrial.remaining ?? 0;
+  const convertedToPaid = launchTrial.convertedToPaid ?? 0;
+
+  return (
+    <section className="panel admin-growth-panel">
+      <h2>Launch trial</h2>
+      <ul className="admin-growth-launch-trial">
+        <li>
+          {claimed} / {limit} claimed
+        </li>
+        <li>{inCheckout} currently in checkout</li>
+        <li>{remaining} remaining</li>
+        <li>{convertedToPaid} converted to paid</li>
+      </ul>
+    </section>
+  );
+}
+
 function FunnelTable({ title, metrics }) {
   if (!metrics) {
     return null;
@@ -79,7 +110,7 @@ function FunnelTable({ title, metrics }) {
               <td>{metrics.checkoutStarted ?? 0}</td>
             </tr>
             <tr>
-              <td>Subscription purchased</td>
+              <td>Subscription started</td>
               <td>{metrics.paidSubscribers ?? 0}</td>
             </tr>
           </tbody>
@@ -97,7 +128,8 @@ function FunnelTable({ title, metrics }) {
           {formatRatio(metrics.conversions?.firstActivityConversion)}
         </li>
         <li>
-          Signup → paid: {formatRatio(metrics.conversions?.paidConversion)}
+          Signup → subscription started:{" "}
+          {formatRatio(metrics.conversions?.paidConversion)}
         </li>
         <li>Returning users: {metrics.returningUsers ?? 0}</li>
       </ul>
@@ -157,7 +189,7 @@ export default function AdminGrowthPage() {
         <h1>Growth funnel</h1>
         <p className="lede">
           Ad conversion path: landing → demo → signup → first activity →
-          checkout → purchase — with UTM source breakdown.
+          checkout → subscription started — with UTM source breakdown.
         </p>
       </header>
 
@@ -189,6 +221,7 @@ export default function AdminGrowthPage() {
 
       {!loading && !error && data ? (
         <>
+          <LaunchTrialPanel launchTrial={data.launchTrial} />
           <FunnelTable title="Selected range" metrics={data.metrics} />
           <FunnelTable title="Yesterday (UTC)" metrics={data.yesterday} />
 
@@ -206,7 +239,7 @@ export default function AdminGrowthPage() {
                     <th scope="col">Signup</th>
                     <th scope="col">First activity</th>
                     <th scope="col">Checkout</th>
-                    <th scope="col">Purchased</th>
+                    <th scope="col">Started</th>
                   </tr>
                 </thead>
                 <tbody>
