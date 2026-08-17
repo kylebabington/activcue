@@ -45,6 +45,7 @@ export default function SettingsPlusSection({
   } = billing;
 
   const [plansById, setPlansById] = useState({});
+  const [launchTrial, setLaunchTrial] = useState(null);
   const [plansLoading, setPlansLoading] = useState(true);
   const [plansError, setPlansError] = useState("");
   const [plansReloadKey, setPlansReloadKey] = useState(0);
@@ -63,10 +64,12 @@ export default function SettingsPlusSection({
         const result = await getBillingPlans();
         if (!cancelled) {
           setPlansById(result.byPlan || {});
+          setLaunchTrial(result.launchTrial || null);
         }
       } catch (error) {
         if (!cancelled) {
           setPlansById({});
+          setLaunchTrial(null);
           setPlansError(
             error?.message ||
               "Could not load subscription prices. Try again shortly."
@@ -252,6 +255,7 @@ export default function SettingsPlusSection({
             onCheckout={handleStartCheckout}
             freeCtaTo="/app"
             freeCtaLabel="Continue with Free"
+            launchTrial={launchTrial}
           />
 
           <button
