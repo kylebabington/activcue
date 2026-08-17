@@ -104,6 +104,7 @@ export default function AdminFeedbackPage() {
           </select>
         </label>
         <Link to="/admin/growth">Growth funnel</Link>
+        <Link to="/admin/ai-usage">AI spend</Link>
       </div>
 
       {loading ? <p>Loading feedback…</p> : null}

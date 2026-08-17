@@ -3070,6 +3070,15 @@ button.quest-step-starter-card:focus-visible {
   color: var(--color-text-muted, #5a5a5a);
 }
 
+.admin-growth-launch-trial {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.admin-growth-launch-trial li + li {
+  margin-top: 0.35rem;
+}
+
 /* Admin feedback + in-app feedback modal */
 .admin-feedback-page {
   max-width: 52rem;

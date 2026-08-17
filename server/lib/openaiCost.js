@@ -73,10 +73,20 @@ export function classifyAiFailureType(error) {
     return "unknown";
   }
 
+  const nested = error.error && typeof error.error === "object" ? error.error : {};
   const status = Number(error.status) || 0;
-  const code = String(error.code || "").toLowerCase();
-  const type = String(error.type || "").toLowerCase();
-  const message = String(error.message || "").toLowerCase();
+  const code = String(error.code || nested.code || "").toLowerCase();
+  const type = String(error.type || nested.type || "").toLowerCase();
+  const message = String(error.message || nested.message || "").toLowerCase();
+
+  if (
+    code === "insufficient_quota" ||
+    type.includes("insufficient_quota") ||
+    message.includes("insufficient_quota") ||
+    message.includes("exceeded your current quota")
+  ) {
+    return "quota";
+  }
 
   if (
     status === 429 ||

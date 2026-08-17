@@ -2,6 +2,7 @@
 
 import { Router } from "express";
 import { getSupabaseAdminClient } from "../lib/supabaseAdminClient.js";
+import { getLaunchTrialAdminSummary } from "../lib/launchTrial.js";
 import { requireAuthenticatedUser } from "../middleware/requireAuthenticatedUser.js";
 import { ensureUserProfile } from "../middleware/ensureUserProfile.js";
 import { requireAdmin } from "../middleware/requireAdmin.js";
@@ -63,7 +64,7 @@ export const GROWTH_FUNNEL_STEPS = Object.freeze([
   },
   {
     id: "subscription_purchased",
-    label: "Subscription purchased",
+    label: "Subscription started",
     eventName: "subscription_started",
     distinct: "user",
   },
@@ -344,13 +345,24 @@ router.get(
       }
 
       const supabase = getSupabaseAdminClient();
-      const { data, error } = await supabase
-        .from("product_events")
-        .select("id, user_id, event_name, properties, session_id, created_at")
-        .gte("created_at", window.from)
-        .lte("created_at", window.to)
-        .order("created_at", { ascending: true })
-        .limit(20000);
+      const [eventsResult, launchTrial] = await Promise.all([
+        supabase
+          .from("product_events")
+          .select("id, user_id, event_name, properties, session_id, created_at")
+          .gte("created_at", window.from)
+          .lte("created_at", window.to)
+          .order("created_at", { ascending: true })
+          .limit(20000),
+        getLaunchTrialAdminSummary().catch((launchTrialError) => {
+          console.error(
+            "Could not load launch trial admin summary:",
+            launchTrialError
+          );
+          return null;
+        }),
+      ]);
+
+      const { data, error } = eventsResult;
 
       if (error) {
         console.error("Could not load growth events:", error);
@@ -391,6 +403,7 @@ router.get(
         },
         bySource,
         eventCount: rows.length,
+        launchTrial,
       });
     } catch (error) {
       console.error("Unexpected growth metrics failure:", error);

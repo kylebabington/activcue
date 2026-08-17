@@ -54,4 +54,20 @@ describe("classifyAiFailureType", () => {
     expect(classifyAiFailureType({ status: 500 })).toBe("server_error");
     expect(classifyAiFailureType(null)).toBe("unknown");
   });
+
+  it("classifies insufficient_quota before generic 429 rate limits", () => {
+    expect(
+      classifyAiFailureType({
+        status: 429,
+        code: "insufficient_quota",
+        message: "You exceeded your current quota, please check your plan and billing details.",
+      })
+    ).toBe("quota");
+    expect(
+      classifyAiFailureType({
+        status: 429,
+        error: { code: "insufficient_quota", type: "insufficient_quota" },
+      })
+    ).toBe("quota");
+  });
 });

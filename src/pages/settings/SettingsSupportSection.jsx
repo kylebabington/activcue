@@ -33,6 +33,9 @@ export default function SettingsSupportSection({ isAdmin = false } = {}) {
           <p>
             <Link to="/admin/feedback">User feedback</Link>
           </p>
+          <p>
+            <Link to="/admin/ai-usage">AI spend</Link>
+          </p>
         </>
       ) : null}
       <p className="account-legal-links">

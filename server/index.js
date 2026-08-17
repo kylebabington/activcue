@@ -21,6 +21,7 @@ import familyMemoryRouter from "./routes/familyMemory.js";
 import familyInsightsRouter from "./routes/familyInsights.js";
 import productEventsRouter from "./routes/productEvents.js";
 import adminGrowthRouter from "./routes/adminGrowth.js";
+import adminAiUsageRouter from "./routes/adminAiUsage.js";
 import sharedActivitiesRouter from "./routes/sharedActivities.js";
 import recommendationTelemetryRouter from "./routes/recommendationTelemetry.js";
 import aiUsageReportRouter from "./routes/aiUsageReport.js";
@@ -274,6 +275,11 @@ app.use("/api", productEventsRouter);
  * Admin growth funnel metrics (requireAdmin).
  */
 app.use("/api", adminGrowthRouter);
+
+/*
+ * Admin OpenAI spend snapshot (requireAdmin).
+ */
+app.use("/api", adminAiUsageRouter);
 
 /*
  * Shared activity library — Plan B / Rescue without OpenAI.

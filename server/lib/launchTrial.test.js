@@ -32,6 +32,7 @@ vi.mock("./supabaseAdminClient.js", () => ({
 
 import {
   attachCheckoutSessionToClaim,
+  getLaunchTrialAdminSummary,
   getLaunchTrialOfferStatus,
   redeemLaunchTrialClaim,
   releaseLaunchTrialReservation,
@@ -270,5 +271,109 @@ describe("getLaunchTrialOfferStatus", () => {
     });
 
     consoleError.mockRestore();
+  });
+});
+
+describe("getLaunchTrialAdminSummary", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    delete process.env.LAUNCH_TRIAL_LIMIT;
+  });
+
+  afterEach(() => {
+    delete process.env.LAUNCH_TRIAL_LIMIT;
+  });
+
+  function mockAdminSummaryQueries({
+    redeemedUserIds = [],
+    reserved = 0,
+    converted = 0,
+  } = {}) {
+    fromMock.mockImplementation((table) => {
+      if (table === "subscriptions") {
+        const query = {
+          select: vi.fn(() => query),
+          in: vi.fn((column) => {
+            if (column === "status") {
+              return Promise.resolve({ count: converted, error: null });
+            }
+            return query;
+          }),
+        };
+        return query;
+      }
+
+      const query = {
+        select: vi.fn(() => query),
+        eq: vi.fn((_column, value) => {
+          if (value === "redeemed") {
+            return Promise.resolve({
+              data: redeemedUserIds.map((user_id) => ({ user_id })),
+              error: null,
+            });
+          }
+          return query;
+        }),
+        gt: vi.fn(async () => ({ count: reserved, error: null })),
+      };
+      return query;
+    });
+  }
+
+  it("computes remaining as limit minus claimed minus in-checkout", async () => {
+    mockAdminSummaryQueries({
+      redeemedUserIds: ["user-1", "user-2", "user-3"],
+      reserved: 2,
+      converted: 1,
+    });
+
+    await expect(getLaunchTrialAdminSummary()).resolves.toEqual({
+      limit: 20,
+      claimed: 3,
+      inCheckout: 2,
+      remaining: 15,
+      convertedToPaid: 1,
+    });
+  });
+
+  it("skips the subscriptions query when nothing is claimed", async () => {
+    mockAdminSummaryQueries({ reserved: 1, converted: 99 });
+
+    await expect(getLaunchTrialAdminSummary()).resolves.toEqual({
+      limit: 20,
+      claimed: 0,
+      inCheckout: 1,
+      remaining: 19,
+      convertedToPaid: 0,
+    });
+
+    expect(fromMock).not.toHaveBeenCalledWith("subscriptions");
+  });
+
+  it("honors LAUNCH_TRIAL_LIMIT and clamps remaining at zero", async () => {
+    process.env.LAUNCH_TRIAL_LIMIT = "5";
+    mockAdminSummaryQueries({
+      redeemedUserIds: ["user-1", "user-2", "user-3", "user-4"],
+      reserved: 3,
+      converted: 2,
+    });
+
+    await expect(getLaunchTrialAdminSummary()).resolves.toEqual({
+      limit: 5,
+      claimed: 4,
+      inCheckout: 3,
+      remaining: 0,
+      convertedToPaid: 2,
+    });
+  });
+
+  it("throws when the claims query errors", async () => {
+    fromMock.mockReturnValue({
+      select: () => ({
+        eq: async () => ({ data: null, error: new Error("boom") }),
+      }),
+    });
+
+    await expect(getLaunchTrialAdminSummary()).rejects.toThrow("boom");
   });
 });

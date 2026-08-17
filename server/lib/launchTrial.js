@@ -172,3 +172,62 @@ export async function getLaunchTrialOfferStatus() {
     };
   }
 }
+
+/**
+ * Live 20-cap snapshot for Admin Growth. Throws on query failure so the
+ * dashboard can fail this panel without taking down the funnel.
+ */
+export async function getLaunchTrialAdminSummary() {
+  const limit = getLaunchTrialLimit();
+  const supabase = getSupabaseAdminClient();
+  const nowIso = new Date().toISOString();
+
+  const { data: redeemedRows, error: redeemedError } = await supabase
+    .from("launch_trial_claims")
+    .select("user_id")
+    .eq("status", "redeemed");
+
+  if (redeemedError) {
+    throw redeemedError;
+  }
+
+  const { count: reservedCount, error: reservedError } = await supabase
+    .from("launch_trial_claims")
+    .select("user_id", { count: "exact", head: true })
+    .eq("status", "reserved")
+    .gt("expires_at", nowIso);
+
+  if (reservedError) {
+    throw reservedError;
+  }
+
+  const userIds = (redeemedRows || [])
+    .map((row) => row.user_id)
+    .filter(Boolean);
+  const claimed = userIds.length;
+  const inCheckout = reservedCount || 0;
+  const remaining = Math.max(0, limit - claimed - inCheckout);
+
+  let convertedToPaid = 0;
+  if (userIds.length > 0) {
+    const { count: convertedCount, error: convertedError } = await supabase
+      .from("subscriptions")
+      .select("user_id", { count: "exact", head: true })
+      .in("user_id", userIds)
+      .in("status", ["active", "past_due"]);
+
+    if (convertedError) {
+      throw convertedError;
+    }
+
+    convertedToPaid = convertedCount || 0;
+  }
+
+  return {
+    limit,
+    claimed,
+    inCheckout,
+    remaining,
+    convertedToPaid,
+  };
+}
