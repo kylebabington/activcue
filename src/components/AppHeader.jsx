@@ -124,6 +124,13 @@ function NavLinks({ parentAreasLocked, isAdmin, onNavigate, linkClassName = "" }
           >
             Feedback
           </PrefetchNavLink>
+          <PrefetchNavLink
+            to="/admin/ai-usage"
+            className={classFor()}
+            onNavigate={onNavigate}
+          >
+            AI spend
+          </PrefetchNavLink>
         </>
       ) : null}
     </>

@@ -205,6 +205,7 @@ export default function AdminGrowthPage() {
           <option value="30d">Last 30 days</option>
         </select>
         <Link to="/admin/feedback">User feedback</Link>
+        <Link to="/admin/ai-usage">AI spend</Link>
       </div>
 
       {loading ? (

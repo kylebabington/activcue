@@ -27,6 +27,7 @@ describe("shouldRejectSpaFallback", () => {
     ["/settings"],
     ["/admin/growth"],
     ["/admin/feedback"],
+    ["/admin/ai-usage"],
     ["/reset-password"],
     ["/forgot-password"],
     ["/onboarding"],
