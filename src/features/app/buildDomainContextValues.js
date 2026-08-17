@@ -29,6 +29,7 @@ export function buildFamilyContextValue(input) {
     setNewInventoryCategory: input.setNewInventoryCategory,
     addInventoryItem: input.addInventoryItem,
     addInventoryItemFromScan: input.addInventoryItemFromScan,
+    updateInventoryItem: input.updateInventoryItem,
     removeInventoryItem: input.removeInventoryItem,
     childProfiles: input.childProfiles,
     activeChildId: input.activeChildId,

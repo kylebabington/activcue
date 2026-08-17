@@ -2404,10 +2404,21 @@ button.quest-step-starter-card:focus-visible {
   font-weight: var(--font-weight-semibold);
 }
 
-.inventory-custom-add {
-  margin-top: var(--space-2);
-  padding-top: 0;
-  border-top: 0;
+.inventory-custom-group .inventory-custom-hint {
+  margin: 0 0 var(--space-1);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.inventory-custom-chip {
+  max-width: min(100%, 22rem);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inventory-edit-remove {
+  margin-right: auto;
 }
 
 .inventory-scan-row {
@@ -2531,6 +2542,12 @@ button.quest-step-starter-card:focus-visible {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: var(--space-1);
+}
+
+.inventory-custom-add {
+  margin-top: var(--space-2);
+  padding-top: 0;
+  border-top: 0;
 }
 
 .inventory-custom-add summary {
