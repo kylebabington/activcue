@@ -19,6 +19,7 @@ export default function SettingsWhatWeHaveSection({
   setNewInventoryCategory,
   addInventoryItem,
   addInventoryItemFromScan,
+  updateInventoryItem,
   removeInventoryItem,
   assumeHouseholdBasics,
   setAssumeHouseholdBasics,
@@ -35,6 +36,10 @@ export default function SettingsWhatWeHaveSection({
   const [confirmCategory, setConfirmCategory] = useState("Other");
   const [confirmFound, setConfirmFound] = useState(false);
   const [confirmNote, setConfirmNote] = useState("");
+  const [lookupTitle, setLookupTitle] = useState("");
+  const [editingItem, setEditingItem] = useState(null);
+  const [editName, setEditName] = useState("");
+  const [editCategory, setEditCategory] = useState("Other");
 
   const normalizedSearch = inventorySearch.trim().toLowerCase();
 
@@ -60,6 +65,7 @@ export default function SettingsWhatWeHaveSection({
     setConfirmCategory("Other");
     setConfirmFound(false);
     setConfirmNote("");
+    setLookupTitle("");
     setConfirmOpen(true);
 
     try {
@@ -67,11 +73,12 @@ export default function SettingsWhatWeHaveSection({
       setConfirmFound(Boolean(result.found));
       setConfirmName(result.name || "");
       setConfirmCategory(result.categoryHint || "Other");
+      setLookupTitle(result.found ? result.name || "" : "");
       setConfirmNote(
         result.found
           ? result.brand
-            ? `Matched ${result.brand}. Edit the name if needed, then add.`
-            : "Product found. Edit the name if needed, then add."
+            ? `Matched ${result.brand}. Edit the display name if needed, then add.`
+            : "Product found. Edit the display name if needed, then add."
           : "No product match found. Enter a name, then add."
       );
     } catch (error) {
@@ -93,7 +100,51 @@ export default function SettingsWhatWeHaveSection({
     setConfirmCategory("Other");
     setConfirmFound(false);
     setConfirmNote("");
+    setLookupTitle("");
     setLookupLoading(false);
+  }
+
+  function openEditItem(item) {
+    setEditingItem(item);
+    setEditName(item.name || "");
+    setEditCategory(item.category || "Other");
+  }
+
+  function closeEditItem() {
+    setEditingItem(null);
+    setEditName("");
+    setEditCategory("Other");
+  }
+
+  function handleSaveEdit() {
+    if (!editingItem) {
+      return;
+    }
+
+    const saved = updateInventoryItem(editingItem.id, {
+      name: editName,
+      category: editCategory,
+    });
+
+    if (saved) {
+      closeEditItem();
+    }
+  }
+
+  function handleRemoveEditingItem() {
+    if (!editingItem) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Remove "${editingItem.name}" from your inventory?`
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    removeInventoryItem(editingItem.id);
+    closeEditItem();
   }
 
   function handleConfirmAdd() {
@@ -101,6 +152,7 @@ export default function SettingsWhatWeHaveSection({
       name: confirmName,
       category: confirmCategory,
       barcode: confirmCode,
+      lookupTitle,
     });
 
     if (added) {
@@ -199,16 +251,21 @@ export default function SettingsWhatWeHaveSection({
       {customInventoryItems.length > 0 && (
         <section className="inventory-category-group inventory-custom-group">
           <h3>Custom items</h3>
+          <p className="inventory-custom-hint">
+            Tap an item to change how its name is shown. Catalog titles from
+            barcode scans stay on file.
+          </p>
 
           <div className="chip-list">
             {customInventoryItems.map((item) => (
               <button
                 key={item.id}
                 type="button"
-                className="chip inventory-preset-chip selected"
-                onClick={() => removeInventoryItem(item.id)}
+                className="chip inventory-preset-chip selected inventory-custom-chip"
+                onClick={() => openEditItem(item)}
+                aria-label={`Edit ${item.name}`}
               >
-                {item.name} ×
+                {item.name}
               </button>
             ))}
           </div>
@@ -305,7 +362,7 @@ export default function SettingsWhatWeHaveSection({
             </>
           )}
 
-          <label htmlFor="inventory-scan-name">Name</label>
+          <label htmlFor="inventory-scan-name">Display name</label>
           <input
             id="inventory-scan-name"
             value={confirmName}
@@ -321,6 +378,72 @@ export default function SettingsWhatWeHaveSection({
             value={confirmCategory}
             onChange={(event) => setConfirmCategory(event.target.value)}
             disabled={lookupLoading}
+          >
+            {inventoryCategories.map((category) => (
+              <option key={category} value={category}>
+                {category}
+              </option>
+            ))}
+          </select>
+        </div>
+      </Modal>
+
+      <Modal
+        title="Edit supply"
+        isOpen={Boolean(editingItem)}
+        onClose={closeEditItem}
+        footer={
+          <>
+            <button
+              type="button"
+              className="danger-button inventory-edit-remove"
+              onClick={handleRemoveEditingItem}
+            >
+              Remove
+            </button>
+            <button
+              type="button"
+              className="secondary-action"
+              onClick={closeEditItem}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleSaveEdit}
+              disabled={!editName.trim()}
+            >
+              Save
+            </button>
+          </>
+        }
+      >
+        <div className="inventory-barcode-confirm">
+          {editingItem?.lookupTitle ? (
+            <p className="inventory-barcode-code">
+              Catalog title: {editingItem.lookupTitle}
+            </p>
+          ) : null}
+          {editingItem?.barcode ? (
+            <p className="inventory-barcode-code">
+              Barcode: <code>{editingItem.barcode}</code>
+            </p>
+          ) : null}
+
+          <label htmlFor="inventory-edit-name">Display name</label>
+          <input
+            id="inventory-edit-name"
+            value={editName}
+            onChange={(event) => setEditName(event.target.value)}
+            placeholder="How this should appear"
+            autoFocus
+          />
+
+          <label htmlFor="inventory-edit-category">Category</label>
+          <select
+            id="inventory-edit-category"
+            value={editCategory}
+            onChange={(event) => setEditCategory(event.target.value)}
           >
             {inventoryCategories.map((category) => (
               <option key={category} value={category}>

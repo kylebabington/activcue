@@ -197,6 +197,7 @@ function SettingsPage() {
               setNewInventoryCategory={ctx.setNewInventoryCategory}
               addInventoryItem={ctx.addInventoryItem}
               addInventoryItemFromScan={ctx.addInventoryItemFromScan}
+              updateInventoryItem={ctx.updateInventoryItem}
               removeInventoryItem={ctx.removeInventoryItem}
               assumeHouseholdBasics={ctx.assumeHouseholdBasics}
               setAssumeHouseholdBasics={ctx.setAssumeHouseholdBasics}
