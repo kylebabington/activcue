@@ -332,6 +332,23 @@
   }
 }
 
+.landing-hero-offer {
+  display: inline-block;
+  margin: 0 0 0.85rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-primary) 12%, white);
+  color: var(--color-primary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.35;
+  text-decoration: none;
+}
+
+.landing-hero-offer:hover {
+  background: color-mix(in srgb, var(--color-primary) 18%, white);
+}
+
 .landing-hero-brand {
   margin: 0 0 0.55rem;
   font-family: var(--font-heading);
@@ -393,6 +410,9 @@
   font-size: var(--font-size-base);
   font-weight: var(--font-weight-bold);
   text-decoration: none;
+  text-align: center;
+  line-height: 1.3;
+  white-space: normal;
   transition:
     transform 180ms ease,
     background 180ms ease,

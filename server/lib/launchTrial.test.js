@@ -242,6 +242,7 @@ describe("getLaunchTrialOfferStatus", () => {
     await expect(getLaunchTrialOfferStatus()).resolves.toEqual({
       available: true,
       days: 7,
+      limit: 20,
     });
   });
 
@@ -251,6 +252,7 @@ describe("getLaunchTrialOfferStatus", () => {
     await expect(getLaunchTrialOfferStatus()).resolves.toEqual({
       available: false,
       days: 7,
+      limit: 20,
     });
   });
 
@@ -268,6 +270,7 @@ describe("getLaunchTrialOfferStatus", () => {
     await expect(getLaunchTrialOfferStatus()).resolves.toEqual({
       available: false,
       days: 7,
+      limit: 20,
     });
 
     consoleError.mockRestore();

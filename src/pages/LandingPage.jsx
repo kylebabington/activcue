@@ -20,6 +20,7 @@ import {
   trackProductEvent,
 } from "../utils/analytics";
 import { buildSignupUrl } from "../utils/signupUrls";
+import { isLaunchTrialOfferActive, launchTrialHeroKicker, launchTrialOfferNote } from "../utils/launchTrialCopy";
 import "../styles/landing.css";
 
 const WHY_ITEMS = [
@@ -217,6 +218,8 @@ function LandingPage() {
     trackProductEvent("demo_started", { source });
   }
 
+  const trialOfferActive = isLaunchTrialOfferActive(launchTrial);
+
   return (
     <div className="landing">
       <header className="landing-topbar">
@@ -325,6 +328,11 @@ function LandingPage() {
         <div className="landing-hero-wash" aria-hidden="true" />
         <div className="landing-hero-inner">
           <div className="landing-hero-copy landing-hero-copy--centered">
+            {trialOfferActive ? (
+              <a className="landing-hero-offer" href="#plus">
+                {launchTrialHeroKicker(launchTrial)}
+              </a>
+            ) : null}
             <p className="landing-hero-brand">{BRAND.name}</p>
             <h1 id="landing-hero-title" className="landing-hero-title">
               {BRAND.tagline}
@@ -357,7 +365,9 @@ function LandingPage() {
               </Link>
             </div>
             <p className="landing-hero-note">
-              No account required for the demo.
+              {trialOfferActive
+                ? "Card required — $0 today. No account required for the demo."
+                : "No account required for the demo."}
             </p>
           </div>
         </div>
@@ -419,8 +429,9 @@ function LandingPage() {
         <div className="landing-section-inner">
           <h2 id="plus-title">Simple pricing</h2>
           <p className="landing-section-lead">
-            Start free. Upgrade when you want unlimited activities personalized
-            to your family.
+            {trialOfferActive
+              ? launchTrialOfferNote(launchTrial)
+              : "Start free. Upgrade when you want unlimited activities personalized to your family."}
           </p>
           {checkoutError ? (
             <p className="landing-plus-note" role="alert">
@@ -481,7 +492,9 @@ function LandingPage() {
           <h2 id="final-cta-title">Stop searching. Find something that fits.</h2>
           <p>
             Try {BRAND.name} with your current situation — no account required.
-            Create a free account when you want {BRAND.name} to remember your kids.
+            Create a free account when you want {BRAND.name} to remember your
+            kids.
+            {trialOfferActive ? ` ${launchTrialOfferNote(launchTrial)}` : ""}
           </p>
           <div className="landing-hero-actions">
             <Link

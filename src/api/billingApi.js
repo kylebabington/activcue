@@ -53,6 +53,11 @@ export async function getBillingPlans() {
         Number(payload.launchTrial.days) > 0
           ? Number(payload.launchTrial.days)
           : 7,
+      limit:
+        Number.isFinite(Number(payload?.launchTrial?.limit)) &&
+        Number(payload.launchTrial.limit) > 0
+          ? Number(payload.launchTrial.limit)
+          : 20,
     },
   };
 }

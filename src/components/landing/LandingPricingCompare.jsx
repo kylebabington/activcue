@@ -6,6 +6,11 @@ import {
   formatStripeAmount,
   intervalLabelForPlan,
 } from "../../utils/money";
+import {
+  isLaunchTrialOfferActive,
+  launchTrialCtaLabel,
+  launchTrialOfferNote,
+} from "../../utils/launchTrialCopy";
 import { buildSignupUrl } from "../../utils/signupUrls";
 
 function annualSavingsPercent(monthlyPlan, annualPlan) {
@@ -66,16 +71,12 @@ export default function LandingPricingCompare({
   const savePercent = annualSavingsPercent(monthlyPlan, annualPlan);
   const plansReady =
     !plansLoading && !plansError && monthlyPlan && annualPlan;
-  const trialOfferActive = launchTrial?.available === true;
-  const trialDays =
-    Number.isFinite(Number(launchTrial?.days)) && Number(launchTrial.days) > 0
-      ? Number(launchTrial.days)
-      : 7;
+  const trialOfferActive = isLaunchTrialOfferActive(launchTrial);
   const monthlyCta = trialOfferActive
-    ? "Start free trial"
+    ? launchTrialCtaLabel(launchTrial, "monthly")
     : "Get Plus monthly";
   const annualCta = trialOfferActive
-    ? "Start free trial (annual)"
+    ? launchTrialCtaLabel(launchTrial, "annual")
     : "Get Plus annual";
 
   function handlePlusClick(plan) {
@@ -110,8 +111,7 @@ export default function LandingPricingCompare({
 
       {trialOfferActive ? (
         <p className="landing-launch-trial-note">
-          Launch offer: {trialDays} days free for the first 20 families. Card
-          required — $0 today.
+          {launchTrialOfferNote(launchTrial)}
         </p>
       ) : null}
 
