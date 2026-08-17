@@ -46,6 +46,14 @@ export async function getBillingPlans() {
         .filter((plan) => plan && typeof plan.plan === "string")
         .map((plan) => [plan.plan, plan])
     ),
+    launchTrial: {
+      available: payload?.launchTrial?.available === true,
+      days:
+        Number.isFinite(Number(payload?.launchTrial?.days)) &&
+        Number(payload.launchTrial.days) > 0
+          ? Number(payload.launchTrial.days)
+          : 7,
+    },
   };
 }
 

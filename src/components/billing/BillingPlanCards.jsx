@@ -35,6 +35,16 @@ function PlanPrice({ plan, loading }) {
   );
 }
 
+function launchTrialCtaLabel(plan) {
+  return plan === "annual"
+    ? "Start free trial (annual)"
+    : "Start free trial";
+}
+
+function defaultPaidCtaLabel(plan) {
+  return plan === "annual" ? "Choose annual" : "Start with Plus";
+}
+
 /**
  * Shared Free / Monthly / Annual pricing cards (Settings + Landing).
  */
@@ -51,18 +61,28 @@ export default function BillingPlanCards({
   freeCtaTo = "/signup",
   freeCtaLabel = "Create free account",
   showFreePerks = false,
+  launchTrial = null,
 }) {
   const plansReady = !plansLoading && !plansError && monthlyPlan && annualPlan;
   const actionsDisabled = checkoutDisabled || !plansReady;
+  const trialOfferActive = launchTrial?.available === true;
+  const trialDays =
+    Number.isFinite(Number(launchTrial?.days)) && Number(launchTrial.days) > 0
+      ? Number(launchTrial.days)
+      : 7;
 
   function paidAction(plan) {
+    const idleLabel = trialOfferActive
+      ? launchTrialCtaLabel(plan)
+      : defaultPaidCtaLabel(plan);
+
     if (mode === "signup") {
       return (
         <Link
           className="billing-plan-action"
           to={buildSignupUrl({ next: "checkout", plan })}
         >
-          {plan === "annual" ? "Choose annual" : "Start with Plus"}
+          {idleLabel}
         </Link>
       );
     }
@@ -74,11 +94,7 @@ export default function BillingPlanCards({
         disabled={actionsDisabled}
         onClick={() => onCheckout?.(plan)}
       >
-        {checkoutBusyPlan === plan
-          ? "Opening Checkout…"
-          : plan === "annual"
-            ? "Choose annual"
-            : "Start with Plus"}
+        {checkoutBusyPlan === plan ? "Opening Checkout…" : idleLabel}
       </button>
     );
   }
@@ -98,6 +114,13 @@ export default function BillingPlanCards({
             </button>
           ) : null}
         </div>
+      ) : null}
+
+      {trialOfferActive ? (
+        <p className="billing-launch-trial-note">
+          Launch offer: {trialDays} days free for the first 20 families. Card
+          required — $0 today.
+        </p>
       ) : null}
 
       <article className="billing-plan-card">

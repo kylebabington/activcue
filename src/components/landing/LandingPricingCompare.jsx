@@ -61,10 +61,22 @@ export default function LandingPricingCompare({
   checkoutBusyPlan = null,
   onCheckout,
   onRetryPlans,
+  launchTrial = null,
 }) {
   const savePercent = annualSavingsPercent(monthlyPlan, annualPlan);
   const plansReady =
     !plansLoading && !plansError && monthlyPlan && annualPlan;
+  const trialOfferActive = launchTrial?.available === true;
+  const trialDays =
+    Number.isFinite(Number(launchTrial?.days)) && Number(launchTrial.days) > 0
+      ? Number(launchTrial.days)
+      : 7;
+  const monthlyCta = trialOfferActive
+    ? "Start free trial"
+    : "Get Plus monthly";
+  const annualCta = trialOfferActive
+    ? "Start free trial (annual)"
+    : "Get Plus annual";
 
   function handlePlusClick(plan) {
     if (mode === "checkout") {
@@ -94,6 +106,13 @@ export default function LandingPricingCompare({
             </button>
           ) : null}
         </div>
+      ) : null}
+
+      {trialOfferActive ? (
+        <p className="landing-launch-trial-note">
+          Launch offer: {trialDays} days free for the first 20 families. Card
+          required — $0 today.
+        </p>
       ) : null}
 
       <div className="landing-pricing-compare landing-pricing-compare--three">
@@ -132,7 +151,7 @@ export default function LandingPricingCompare({
               className="landing-btn landing-btn--primary"
               to={buildSignupUrl({ next: "checkout", plan: "monthly" })}
             >
-              Get Plus monthly
+              {monthlyCta}
             </Link>
           ) : (
             <button
@@ -143,7 +162,7 @@ export default function LandingPricingCompare({
             >
               {checkoutBusyPlan === "monthly"
                 ? "Opening Checkout…"
-                : "Get Plus monthly"}
+                : monthlyCta}
             </button>
           )}
         </div>
@@ -169,7 +188,7 @@ export default function LandingPricingCompare({
               className="landing-btn landing-btn--primary"
               to={buildSignupUrl({ next: "checkout", plan: "annual" })}
             >
-              Get Plus annual
+              {annualCta}
             </Link>
           ) : (
             <button
@@ -180,7 +199,7 @@ export default function LandingPricingCompare({
             >
               {checkoutBusyPlan === "annual"
                 ? "Opening Checkout…"
-                : "Get Plus annual"}
+                : annualCta}
             </button>
           )}
         </div>

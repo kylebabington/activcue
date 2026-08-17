@@ -24,6 +24,15 @@ import {
   isValidBillingPlan,
 } from "../lib/billingHelpers.js";
 import { getBillingPlans } from "../lib/billingPlans.js";
+import {
+  attachCheckoutSessionToClaim,
+  getLaunchTrialDays,
+  getLaunchTrialOfferStatus,
+  redeemLaunchTrialClaim,
+  releaseLaunchTrialReservation,
+  reserveLaunchTrial,
+  shouldApplyLaunchTrial,
+} from "../lib/launchTrial.js";
 import { requireAuthenticatedUser } from "../middleware/requireAuthenticatedUser.js";
 import { ensureUserProfile } from "../middleware/ensureUserProfile.js";
 import { billingRateLimiter } from "../middleware/rateLimits.js";
@@ -55,8 +64,11 @@ router.get("/billing/plans", billingRateLimiter, async (_req, res) => {
   }
 
   try {
-    const plans = await getBillingPlans();
-    return res.json({ plans });
+    const [plans, launchTrial] = await Promise.all([
+      getBillingPlans(),
+      getLaunchTrialOfferStatus(),
+    ]);
+    return res.json({ plans, launchTrial });
   } catch (error) {
     if (error?.code === "STRIPE_NOT_CONFIGURED") {
       return billingNotConfiguredResponse(res);
@@ -396,6 +408,11 @@ router.post(
           });
       }
 
+      const launchTrialReservation =
+        await reserveLaunchTrial(userId);
+      const applyLaunchTrial =
+        shouldApplyLaunchTrial(launchTrialReservation);
+
       const sessionParams = {
         mode: "subscription",
 
@@ -455,6 +472,15 @@ router.post(
         },
       };
 
+      if (applyLaunchTrial) {
+        const trialDays = getLaunchTrialDays();
+        sessionParams.subscription_data.trial_period_days =
+          trialDays;
+        sessionParams.metadata.launch_trial = "true";
+        sessionParams.subscription_data.metadata.launch_trial =
+          "true";
+      }
+
       if (existingCustomerId) {
         sessionParams.customer =
           existingCustomerId;
@@ -463,19 +489,60 @@ router.post(
           customerEmail;
       }
 
-      const session =
-        await stripe.checkout.sessions.create(
-          sessionParams,
-          managedPaymentsRequestOptions
-        );
+      let session;
+
+      try {
+        session =
+          await stripe.checkout.sessions.create(
+            sessionParams,
+            managedPaymentsRequestOptions
+          );
+      } catch (stripeError) {
+        if (applyLaunchTrial) {
+          try {
+            await releaseLaunchTrialReservation(userId);
+          } catch (releaseError) {
+            console.error(
+              "Could not release launch trial reservation after Checkout failure:",
+              releaseError
+            );
+          }
+        }
+        throw stripeError;
+      }
 
       if (!session.url) {
+        if (applyLaunchTrial) {
+          try {
+            await releaseLaunchTrialReservation(userId);
+          } catch (releaseError) {
+            console.error(
+              "Could not release launch trial reservation after missing Checkout URL:",
+              releaseError
+            );
+          }
+        }
+
         return res.status(502).json({
           error:
             "Stripe did not return a Checkout URL.",
           code:
             "CHECKOUT_URL_MISSING",
         });
+      }
+
+      if (applyLaunchTrial) {
+        try {
+          await attachCheckoutSessionToClaim(
+            userId,
+            session.id
+          );
+        } catch (attachError) {
+          console.error(
+            "Could not attach Checkout Session to launch trial claim:",
+            attachError
+          );
+        }
       }
 
       return res.status(201).json({
@@ -777,6 +844,14 @@ async function handleCheckoutSessionEvent(
     subscription,
   });
 
+  const launchTrialFlag =
+    session.metadata?.launch_trial === "true" ||
+    subscription.metadata?.launch_trial === "true";
+
+  if (launchTrialFlag) {
+    await redeemLaunchTrialClaim(userId, session.id);
+  }
+
   const status =
     typeof subscription?.status === "string" ? subscription.status : "";
   if (status === "active" || status === "trialing") {
@@ -784,9 +859,11 @@ async function handleCheckoutSessionEvent(
       source: "checkout_session",
       stripeStatus: status,
       plan:
-        typeof session.metadata?.plan === "string"
-          ? session.metadata.plan
-          : null,
+        typeof session.metadata?.activcue_plan === "string"
+          ? session.metadata.activcue_plan
+          : typeof session.metadata?.plan === "string"
+            ? session.metadata.plan
+            : null,
     });
   }
 }
