@@ -8,6 +8,7 @@ import {
   getStepStarterIdeas,
   getStepStuckPrompts,
 } from "./activityVisualTheme";
+import { getSceneInstruction, getStepRoleParts } from "./questStepCopy";
 
 function joinSentences(parts) {
   return parts
@@ -15,25 +16,6 @@ function joinSentences(parts) {
     .filter(Boolean)
     .map((part) => (/[.!?]$/.test(part) ? part : `${part}.`))
     .join(" ");
-}
-
-function resolveStepInstruction(step, selectedRoleName, roleAssignments) {
-  if (!step) return "";
-  const roleInstructions = Array.isArray(step.roleInstructions)
-    ? step.roleInstructions
-    : [];
-  const assignedRoles = Object.values(roleAssignments || {}).filter(Boolean);
-  const preferredRoles = [selectedRoleName, ...assignedRoles].filter(Boolean);
-
-  for (const roleName of preferredRoles) {
-    const match = roleInstructions.find(
-      (entry) =>
-        entry?.roleName &&
-        entry.roleName.toLowerCase() === String(roleName).toLowerCase()
-    );
-    if (match?.instruction) return match.instruction;
-  }
-  return step.instruction || "";
 }
 
 /**
@@ -132,15 +114,28 @@ export function buildNarrationText(activity, section, options = {}) {
     const step = steps[stepIndex];
     if (!step) return "";
 
-    const instruction = resolveStepInstruction(
-      step,
+    const instruction = getSceneInstruction(step);
+    const isImaginative = activity?.activityStyle === "imaginative";
+    const sceneLabel = isImaginative ? "Scene" : "Step";
+    const heading = step.title
+      ? `${sceneLabel} ${stepIndex + 1}. ${step.title}`
+      : `${sceneLabel} ${stepIndex + 1}`;
+    const parts = [heading, instruction];
+
+    const roleParts = getStepRoleParts(step, {
       selectedRoleName,
-      roleAssignments
-    );
-    const parts = [
-      step.title ? `${step.title}` : `Step ${stepIndex + 1}`,
-      instruction,
-    ];
+      roleAssignments,
+      childRoles: Array.isArray(activity?.roleGuide?.childRoles)
+        ? activity.roleGuide.childRoles
+        : [],
+    });
+    if (roleParts.length > 0) {
+      const roleLines = roleParts.map((entry) => {
+        const who = entry.childName || entry.roleName;
+        return `${who}: ${entry.instruction}`;
+      });
+      parts.push(`Your part. ${roleLines.join(" ")}`);
+    }
 
     const stepStarters = getStepStarterIdeas(step);
     if (stepStarters.length > 0) {
@@ -163,9 +158,8 @@ export function buildNarrationText(activity, section, options = {}) {
     }
 
     if (options.includeDoneWhen !== false && step.doneWhen) {
-      const isImaginative = activity?.activityStyle === "imaginative";
       const doneWhenLabel = isImaginative
-        ? "Ready for the next part when"
+        ? "Ready to move on when"
         : "You're done when";
       parts.push(`${doneWhenLabel}: ${step.doneWhen}`);
     }

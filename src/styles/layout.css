@@ -351,6 +351,16 @@
   margin: 0 auto;
 }
 
+.kid-center-column--play {
+  width: min(var(--kid-play-column-max-width), 100%);
+}
+
+@media (max-width: 1023px) /* below Large */ {
+  .kid-center-column--play {
+    width: min(48rem, 100%);
+  }
+}
+
 .activity-board-column {
   width: 100%;
 }

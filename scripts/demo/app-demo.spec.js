@@ -259,12 +259,8 @@ test("record ActivCue real-app demo", async ({ page }, testInfo) => {
   }
 
   // 8. Complete at least one step
-  const stepsDetails = page.locator("#quest-section-steps");
-  await stepsDetails.scrollIntoViewIfNeeded();
-  if (!(await stepsDetails.evaluate((el) => el.open))) {
-    await stepsDetails.locator("summary").click();
-    await pause(page, 800);
-  }
+  const currentScene = page.locator("#quest-step-0");
+  await currentScene.scrollIntoViewIfNeeded();
   const doneToggle = page.locator(".quest-step-complete-toggle").first();
   await expect(doneToggle).toBeVisible({ timeout: 15000 });
   await doneToggle.scrollIntoViewIfNeeded();
