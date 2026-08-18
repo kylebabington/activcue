@@ -1,6 +1,7 @@
 // src/components/landing/LandingPricingCompare.jsx
 
 import { Link } from "react-router-dom";
+import LegalConsentNote from "../LegalConsentNote.jsx";
 import { BRAND } from "../../config/brand.js";
 import {
   formatStripeAmount,
@@ -204,6 +205,8 @@ export default function LandingPricingCompare({
           )}
         </div>
       </div>
+
+      <LegalConsentNote action="subscribing" />
     </div>
   );
 }

@@ -24,6 +24,28 @@ body {
   min-width: 0;
 }
 
+.site-legal-fallback {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem 1rem;
+  padding: 1rem 1.25rem calc(1rem + env(safe-area-inset-bottom));
+  background: var(--color-surface, #fff);
+  border-top: 1px solid var(--color-border, #ddd);
+  font-family: var(--font-body, system-ui, sans-serif);
+  font-size: 0.9rem;
+}
+
+.site-legal-fallback a {
+  color: var(--color-primary, #1f6f8b);
+  font-weight: 600;
+  text-decoration: none;
+}
+
 button,
 input,
 select,

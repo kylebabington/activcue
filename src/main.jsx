@@ -20,6 +20,7 @@ import PrivacyPolicyPage from "./pages/PrivacyPolicyPage.jsx";
 import ResetPasswordPage from "./pages/ResetPasswordPage.jsx";
 import SignupPage from "./pages/SignupPage.jsx";
 import TermsPage from "./pages/TermsPage.jsx";
+import ContactPage from "./pages/ContactPage.jsx";
 
 import "./index.css";
 
@@ -90,6 +91,7 @@ ReactDOM.createRoot(
 
         <Route path="/privacy" element={<PrivacyPolicyPage />} />
         <Route path="/terms" element={<TermsPage />} />
+        <Route path="/contact" element={<ContactPage />} />
 
         {/*
          * Existing users log in directly.

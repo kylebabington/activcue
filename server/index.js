@@ -3,7 +3,6 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import helmet from "helmet";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -32,6 +31,7 @@ import createActivitySuggestionsRouter from "./routes/activitySuggestions.js";
 import createQuestStepHintRouter from "./routes/questStepHint.js";
 import barcodeLookupRouter from "./routes/barcodeLookup.js";
 import { requestContextMiddleware } from "./middleware/requestContext.js";
+import { applySecurityHeaders } from "./lib/securityHeaders.js";
 
 /*
  * ES modules do not automatically provide __filename and __dirname.
@@ -75,41 +75,9 @@ app.set("trust proxy", 1);
 /*
  * Add standard HTTP security headers, including a CSP tuned for ActivCue's
  * Supabase auth, Stripe Checkout, Google Fonts, and same-origin assets.
+ * Also sets frame protection, Referrer-Policy, and Permissions-Policy.
  */
-app.use(
-  helmet({
-    contentSecurityPolicy: {
-      useDefaults: true,
-      directives: {
-        "default-src": ["'self'"],
-        "base-uri": ["'self'"],
-        "object-src": ["'none'"],
-        "frame-ancestors": ["'none'"],
-        "script-src": ["'self'", "https://js.stripe.com"],
-        "style-src": [
-          "'self'",
-          "'unsafe-inline'",
-          "https://fonts.googleapis.com",
-        ],
-        "font-src": ["'self'", "https://fonts.gstatic.com", "data:"],
-        "img-src": ["'self'", "data:", "blob:", "https://*.stripe.com"],
-        "media-src": ["'self'", "blob:"],
-        "connect-src": [
-          "'self'",
-          "https://*.supabase.co",
-          "wss://*.supabase.co",
-          "https://api.stripe.com",
-        ],
-        "frame-src": [
-          "'self'",
-          "https://js.stripe.com",
-          "https://hooks.stripe.com",
-        ],
-        "form-action": ["'self'", "https://checkout.stripe.com"],
-      },
-    },
-  })
-);
+applySecurityHeaders(app);
 
 /*
  * During local development:

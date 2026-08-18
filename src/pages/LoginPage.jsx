@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { BRAND } from "../config/brand.js";
 import { supabase } from "../lib/supabaseClient";
+import LegalConsentNote from "../components/LegalConsentNote.jsx";
+import SiteFooter from "../components/SiteFooter.jsx";
 import "../styles/landing.css";
 
 function LoginPage() {
@@ -99,6 +101,8 @@ function LoginPage() {
               </p>
             ) : null}
 
+            <LegalConsentNote action="logging in" />
+
             <button
               className="landing-btn landing-btn--primary"
               type="submit"
@@ -117,6 +121,7 @@ function LoginPage() {
           </p>
         </div>
       </section>
+      <SiteFooter />
     </div>
   );
 }

@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { BRAND } from "../config/brand.js";
 import { supabase } from "../lib/supabaseClient";
+import LegalConsentNote from "../components/LegalConsentNote.jsx";
+import SiteFooter from "../components/SiteFooter.jsx";
 import "../styles/landing.css";
 
 function ResetPasswordPage() {
@@ -157,6 +159,8 @@ function ResetPasswordPage() {
               </p>
             ) : null}
 
+            <LegalConsentNote action="updating your password" />
+
             <button
               className="landing-btn landing-btn--primary"
               type="submit"
@@ -171,6 +175,7 @@ function ResetPasswordPage() {
           </p>
         </div>
       </section>
+      <SiteFooter />
     </div>
   );
 }

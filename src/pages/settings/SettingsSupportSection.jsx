@@ -2,6 +2,7 @@
 
 import { Link } from "react-router-dom";
 import { BRAND } from "../../config/brand.js";
+import { LEGAL_PATHS } from "../../config/legal.js";
 
 const SUPPORT_EMAIL =
   import.meta.env.VITE_SUPPORT_EMAIL || BRAND.supportEmail;
@@ -39,9 +40,11 @@ export default function SettingsSupportSection({ isAdmin = false } = {}) {
         </>
       ) : null}
       <p className="account-legal-links">
-        <Link to="/privacy">Privacy Policy</Link>
+        <Link to={LEGAL_PATHS.privacy}>Privacy Policy</Link>
         {" · "}
-        <Link to="/terms">Terms of Use</Link>
+        <Link to={LEGAL_PATHS.terms}>Terms of Use</Link>
+        {" · "}
+        <Link to={LEGAL_PATHS.contact}>Contact</Link>
       </p>
     </section>
   );

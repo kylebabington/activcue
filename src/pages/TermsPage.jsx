@@ -1,7 +1,9 @@
 // src/pages/TermsPage.jsx
 
 import { Link } from "react-router-dom";
+import SiteFooter from "../components/SiteFooter.jsx";
 import { BRAND } from "../config/brand";
+import { LEGAL_PATHS } from "../config/legal.js";
 import "../styles/landing.css";
 
 function TermsPage() {
@@ -72,12 +74,16 @@ function TermsPage() {
           </div>
 
           <p className="landing-auth-footer">
-            <Link to="/privacy">Privacy Policy</Link>
+            <Link to={LEGAL_PATHS.privacy}>Privacy Policy</Link>
+            {" · "}
+            <Link to={LEGAL_PATHS.contact}>Contact</Link>
             {" · "}
             <Link to="/">Back home</Link>
           </p>
         </div>
       </section>
+
+      <SiteFooter />
     </div>
   );
 }

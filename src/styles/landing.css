@@ -505,6 +505,7 @@ button.landing-btn:disabled {
   width: min(1040px, 100%);
   margin: 0 auto;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
   color: var(--color-text-muted);
@@ -543,6 +544,27 @@ button.landing-btn:disabled {
 .legal-doc-body h2 {
   margin: 1.25rem 0 0.4rem;
   font-size: var(--font-size-md);
+}
+
+.legal-consent-note {
+  margin: 0.75rem 0 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  line-height: 1.45;
+}
+
+.legal-consent-note a {
+  color: var(--color-primary);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+}
+
+.legal-consent-note a:hover {
+  text-decoration: underline;
+}
+
+.landing-auth-form .legal-consent-note {
+  margin: 0;
 }
 
 .legal-doc-body p {
