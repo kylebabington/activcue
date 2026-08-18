@@ -243,6 +243,7 @@ describe("getLaunchTrialOfferStatus", () => {
       available: true,
       days: 7,
       limit: 20,
+      remaining: 15,
     });
   });
 
@@ -253,6 +254,7 @@ describe("getLaunchTrialOfferStatus", () => {
       available: false,
       days: 7,
       limit: 20,
+      remaining: 0,
     });
   });
 
@@ -271,6 +273,7 @@ describe("getLaunchTrialOfferStatus", () => {
       available: false,
       days: 7,
       limit: 20,
+      remaining: 0,
     });
 
     consoleError.mockRestore();

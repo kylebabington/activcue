@@ -46,7 +46,10 @@ export function launchTrialHeroKicker(launchTrial) {
   return `Launch offer: ${days} days free — ${launchTrialSpotsLeft(launchTrial)}`;
 }
 
-export function launchTrialCtaLabel(launchTrial) {
+export function launchTrialCtaLabel(launchTrial, plan = "monthly") {
   const days = launchTrialDays(launchTrial);
+  if (plan === "annual") {
+    return `Start ${days}-day free trial (annual)`;
+  }
   return `Start ${days}-day free trial`;
 }

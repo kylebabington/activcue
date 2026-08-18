@@ -39,27 +39,37 @@ export async function getBillingPlans() {
     );
   }
 
-  return {
-    plans,
-    byPlan: Object.fromEntries(
-      plans
-        .filter((plan) => plan && typeof plan.plan === "string")
-        .map((plan) => [plan.plan, plan])
-    ),
-    launchTrial: {
-      available: payload?.launchTrial?.available === true,
-      days:
-        Number.isFinite(Number(payload?.launchTrial?.days)) &&
-        Number(payload.launchTrial.days) > 0
-          ? Number(payload.launchTrial.days)
-          : 7,
-      limit:
-        Number.isFinite(Number(payload?.launchTrial?.limit)) &&
-        Number(payload.launchTrial.limit) > 0
-          ? Number(payload.launchTrial.limit)
-          : 20,
-    },
-  };
+    const launchTrialPayload = payload?.launchTrial || {};
+    const days =
+      Number.isFinite(Number(launchTrialPayload.days)) &&
+      Number(launchTrialPayload.days) > 0
+        ? Number(launchTrialPayload.days)
+        : 7;
+    const limit =
+      Number.isFinite(Number(launchTrialPayload.limit)) &&
+      Number(launchTrialPayload.limit) > 0
+        ? Number(launchTrialPayload.limit)
+        : 20;
+    const remaining =
+      Number.isFinite(Number(launchTrialPayload.remaining)) &&
+      Number(launchTrialPayload.remaining) >= 0
+        ? Number(launchTrialPayload.remaining)
+        : limit;
+
+    return {
+      plans,
+      byPlan: Object.fromEntries(
+        plans
+          .filter((plan) => plan && typeof plan.plan === "string")
+          .map((plan) => [plan.plan, plan])
+      ),
+      launchTrial: {
+        available: launchTrialPayload.available === true,
+        days,
+        limit,
+        remaining,
+      },
+    };
 }
 
 /*

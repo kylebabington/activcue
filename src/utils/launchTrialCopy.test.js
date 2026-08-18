@@ -18,9 +18,11 @@ describe("launch trial copy", () => {
   });
 
   it("keeps family counts off the price buttons", () => {
-    expect(launchTrialCtaLabel(offer)).toBe("Start 7-day free trial");
-    expect(launchTrialCtaLabel(offer, "annual")).toBe(
+    expect(launchTrialCtaLabel(offer, "monthly")).toBe(
       "Start 7-day free trial"
+    );
+    expect(launchTrialCtaLabel(offer, "annual")).toBe(
+      "Start 7-day free trial (annual)"
     );
   });
 
