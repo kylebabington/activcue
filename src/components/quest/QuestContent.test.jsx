@@ -1,9 +1,14 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { completeActivityV2Fixture } from "../../fixtures/completeActivityV2Fixture";
+
+vi.mock("../SpeakButton.jsx", () => ({
+  default: () => null,
+}));
+
 import QuestContent from "./QuestContent.jsx";
 
 const cssDir = join(dirname(fileURLToPath(import.meta.url)), "../../styles");
