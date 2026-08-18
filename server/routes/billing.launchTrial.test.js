@@ -162,6 +162,7 @@ describe("GET /billing/plans launch trial", () => {
       available: true,
       days: 7,
       limit: 20,
+      remaining: 20,
     });
   });
 
@@ -173,7 +174,7 @@ describe("GET /billing/plans launch trial", () => {
 
     expect(res.body).toEqual({
       plans: [{ plan: "monthly", priceId: "price_m", unitAmount: 900 }],
-      launchTrial: { available: true, days: 7, limit: 20 },
+      launchTrial: { available: true, days: 7, limit: 20, remaining: 20 },
     });
   });
 });

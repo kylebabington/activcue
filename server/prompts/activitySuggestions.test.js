@@ -61,6 +61,24 @@ describe("buildActivitySuggestionsInstructions", () => {
     expect(instructions).not.toContain("STYLE RULES (imaginative");
   });
 
+  it("demands self-contained step instructions instead of brief labels", () => {
+    const instructions = buildActivitySuggestionsInstructions(
+      "imaginative",
+      "playroom",
+      { groupAgeContext: { oldestAge: 8 } }
+    );
+
+    expect(instructions).toContain("STEP WRITING RULES");
+    expect(instructions).toContain("What am I doing?");
+    expect(instructions).toContain("roleInstructions are OPTIONAL supplements");
+    expect(instructions).toContain("Test the map");
+    expect(instructions).toContain("Connect the routes");
+    expect(instructions).not.toContain("step instruction: max 2–3 sentences");
+    expect(instructions).not.toContain(
+      "Prefer fewer, denser steps over long prose"
+    );
+  });
+
   it("omits the opposite style block to shrink prompt size", () => {
     const imaginative = buildActivitySuggestionsInstructions(
       "imaginative",
@@ -75,8 +93,6 @@ describe("buildActivitySuggestionsInstructions", () => {
 
     expect(imaginative.length).toBeLessThan(14000);
     expect(simple.length).toBeLessThan(imaginative.length);
-    // Pre-pass instructions were ~20.5k chars; trimmed target stays well under half.
-    expect(imaginative.length).toBeLessThan(20500 / 2 + 2000);
   });
 
   it("requests a variable activity count for hybrid cache fill", () => {

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import SpeakButton from "../SpeakButton";
 import { useSpeechSynthesis } from "../../hooks/useSpeechSynthesis";
 import { buildNarrationText } from "../../utils/buildNarrationText";
+import { getSceneInstruction, getStepRoleParts } from "../../utils/questStepCopy";
 import { trackProductEvent } from "../../utils/analytics";
 import {
   getActivityRoleLabel,
@@ -15,25 +16,6 @@ import {
   getVisualThemeMeta,
 } from "../../utils/activityVisualTheme";
 import { formatTimer } from "../../utils/activityFormatters";
-
-function resolveStepInstruction(step, selectedRoleName, roleAssignments) {
-  if (!step) return "";
-  const roleInstructions = Array.isArray(step.roleInstructions)
-    ? step.roleInstructions
-    : [];
-  const assignedRoles = Object.values(roleAssignments || {}).filter(Boolean);
-  const preferredRoles = [selectedRoleName, ...assignedRoles].filter(Boolean);
-
-  for (const roleName of preferredRoles) {
-    const match = roleInstructions.find(
-      (entry) =>
-        entry?.roleName &&
-        entry.roleName.toLowerCase() === String(roleName).toLowerCase()
-    );
-    if (match?.instruction) return match.instruction;
-  }
-  return step.instruction || "";
-}
 
 export default function ListeningModePanel({
   activity,
@@ -84,11 +66,15 @@ export default function ListeningModePanel({
     : "";
 
   const currentStep = steps[currentStepIndex];
-  const stepInstruction = resolveStepInstruction(
-    currentStep,
+  const stepInstruction = getSceneInstruction(currentStep);
+  const roleParts = getStepRoleParts(currentStep, {
+    playingChildren,
+    roleAssignments,
+    childRoles: Array.isArray(activity?.roleGuide?.childRoles)
+      ? activity.roleGuide.childRoles
+      : [],
     selectedRoleName,
-    roleAssignments
-  );
+  });
   const stepStarters = getStepStarterIdeas(currentStep);
   const stepStarterLabel = getStepStarterSectionLabel(activity);
   const selectedStepStarterByIndex =
@@ -279,9 +265,29 @@ export default function ListeningModePanel({
             {steps.length}
           </p>
           <h2 className="listening-mode-title">
-            {currentStep.title || `Step ${currentStepIndex + 1}`}
+            {currentStep.title ||
+              `${isImaginative ? "Scene" : "Step"} ${currentStepIndex + 1}`}
           </h2>
           <p className="listening-mode-instruction">{stepInstruction}</p>
+          {roleParts.length > 0 ? (
+            <div className="listening-mode-role-parts">
+              <p className="quest-play-card-kicker">Your part</p>
+              <ul className="step-role-instructions">
+                {roleParts.map((entry) => (
+                  <li
+                    key={`${entry.childName}-${entry.roleName}-${entry.instruction}`}
+                  >
+                    <strong>
+                      {entry.childName
+                        ? `${entry.childName}: `
+                        : `${entry.roleName}: `}
+                    </strong>
+                    {entry.instruction}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
           {stepStarters.length > 0 ? (
             <div className="listening-mode-starters">
               <p className="quest-step-starters-label">{stepStarterLabel}</p>
@@ -311,7 +317,7 @@ export default function ListeningModePanel({
           {currentStep.doneWhen ? (
             <p className="listening-mode-done-when">
               {isImaginative
-                ? "Ready for the next part when: "
+                ? "Ready to move on when: "
                 : "Done when: "}
               {currentStep.doneWhen}
             </p>

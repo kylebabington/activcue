@@ -118,54 +118,70 @@ export default function BillingPlanCards({
       ) : null}
 
       <article className="billing-plan-card">
+        <div className="billing-plan-badge-slot" />
         <p className="billing-plan-name">Free</p>
         <p className="billing-plan-price">
           <strong>$0</strong>
           <span>forever</span>
         </p>
-        {showFreePerks ? (
-          <ul className="billing-plan-perks">
-            <li>Personalized family setup</li>
-            <li>Child profiles</li>
-            <li>Favorites and history</li>
-            <li>Core {BRAND.name} experience</li>
-            <li>Limited personalized activity generation</li>
-          </ul>
-        ) : (
-          <p>
-            Try {BRAND.name} and keep your family&apos;s settings. Upgrade for
-            AI-powered ideas anytime.
-          </p>
-        )}
+        <div className="billing-plan-body">
+          {showFreePerks ? (
+            <ul className="billing-plan-perks">
+              <li>Personalized family setup</li>
+              <li>Child profiles</li>
+              <li>Favorites and history</li>
+              <li>Core {BRAND.name} experience</li>
+              <li>Limited personalized activity generation</li>
+            </ul>
+          ) : (
+            <p>
+              Try {BRAND.name} and keep your family&apos;s settings. Upgrade for
+              AI-powered ideas anytime.
+            </p>
+          )}
+        </div>
         <Link className="billing-plan-action" to={freeCtaTo}>
           {freeCtaLabel}
         </Link>
       </article>
 
       <article className="billing-plan-card">
+        <div className="billing-plan-badge-slot" />
         <p className="billing-plan-name">Plus Monthly</p>
         <PlanPrice plan={monthlyPlan} loading={plansLoading} />
-        {showFreePerks ? (
-          <ul className="billing-plan-perks">
-            <li>Unlimited personalized activities</li>
-            <li>Unlimited imaginative activities</li>
-            <li>AI Rescue hints</li>
-            <li>Everything in Free</li>
-          </ul>
-        ) : null}
+        <div className="billing-plan-body">
+          {showFreePerks ? (
+            <ul className="billing-plan-perks">
+              <li>Unlimited personalized activities</li>
+              <li>Unlimited imaginative activities</li>
+              <li>AI Rescue hints</li>
+              <li>Everything in Free</li>
+            </ul>
+          ) : (
+            <p>
+              Unlimited personalized activities, Plan B, Rescue, and AI hints.
+            </p>
+          )}
+        </div>
         {paidAction("monthly")}
       </article>
 
       <article className="billing-plan-card billing-plan-card--featured">
-        <p className="billing-plan-badge">Best value</p>
+        <div className="billing-plan-badge-slot">
+          <p className="billing-plan-badge">Best value</p>
+        </div>
         <p className="billing-plan-name">Plus Annual</p>
         <PlanPrice plan={annualPlan} loading={plansLoading} />
-        {showFreePerks ? (
-          <ul className="billing-plan-perks">
-            <li>Everything in Plus</li>
-            <li>Lower effective monthly price</li>
-          </ul>
-        ) : null}
+        <div className="billing-plan-body">
+          {showFreePerks ? (
+            <ul className="billing-plan-perks">
+              <li>Everything in Plus</li>
+              <li>Lower effective monthly price</li>
+            </ul>
+          ) : (
+            <p>Everything in Plus, billed once a year at a lower monthly rate.</p>
+          )}
+        </div>
         {paidAction("annual")}
       </article>
     </div>

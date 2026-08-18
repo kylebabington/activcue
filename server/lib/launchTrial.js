@@ -129,7 +129,8 @@ export async function redeemLaunchTrialClaim(userId, sessionId = null) {
 }
 
 /**
- * Public offer flag for pricing UI. Exposes the cap size, not remaining spots.
+ * Public offer flag for pricing UI. Exposes remaining spots so landing copy
+ * can count down, not a live reservation list.
  */
 export async function getLaunchTrialOfferStatus() {
   const days = getLaunchTrialDays();
@@ -159,11 +160,13 @@ export async function getLaunchTrialOfferStatus() {
     }
 
     const validCount = (redeemedCount || 0) + (reservedCount || 0);
+    const remaining = Math.max(0, limit - validCount);
 
     return {
-      available: validCount < limit,
+      available: remaining > 0,
       days,
       limit,
+      remaining,
     };
   } catch (error) {
     console.error("Could not load launch trial offer status:", error);
@@ -171,6 +174,7 @@ export async function getLaunchTrialOfferStatus() {
       available: false,
       days,
       limit,
+      remaining: 0,
     };
   }
 }

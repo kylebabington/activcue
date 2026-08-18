@@ -928,6 +928,227 @@
   margin: var(--space-2) 0;
 }
 
+.quest-content--active {
+  gap: 1rem;
+}
+
+.quest-active-meta {
+  margin: 0;
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.quest-play-card {
+  display: grid;
+  gap: 0.7rem;
+  padding: 0.95rem 1rem;
+  border: 1px solid
+    color-mix(in srgb, var(--activity-theme-accent, var(--color-primary)) 18%, var(--color-border, #d8d0c4));
+  border-radius: var(--radius-medium);
+  background: color-mix(in srgb, var(--color-surface, #fff) 94%, var(--color-bg, #f7f4ef));
+}
+
+.quest-play-card h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.quest-play-card-kicker {
+  margin: 0;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: var(--font-weight-semibold, 600);
+  color: var(--color-text-muted);
+}
+
+.quest-play-card p,
+.quest-play-card ul {
+  margin: 0;
+}
+
+.quest-play-role-list {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.quest-play-role-list li {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.quest-play-role-list strong {
+  font-size: 1rem;
+}
+
+.quest-play-role-list span,
+.quest-play-role-solo p {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.quest-play-role-name {
+  margin: 0;
+  font-weight: var(--font-weight-semibold, 600);
+  color: var(--color-text) !important;
+}
+
+.quest-active-left,
+.quest-active-center,
+.quest-active-right {
+  display: grid;
+  gap: 1rem;
+  align-content: start;
+}
+
+.quest-current-scene {
+  padding: 1.15rem 1.1rem 1.2rem;
+}
+
+.quest-current-scene .quest-step-card-header h3 {
+  font-size: 1.2rem;
+}
+
+.quest-scene-block {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.quest-scene-block--done {
+  padding: 0.7rem 0.8rem;
+  border-radius: var(--radius-medium);
+  background: color-mix(
+    in srgb,
+    var(--activity-theme-accent, var(--color-primary)) 10%,
+    white
+  );
+}
+
+.quest-current-scene-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-top: 0.35rem;
+}
+
+.quest-current-scene-actions .quest-step-complete-toggle {
+  min-height: var(--control-height);
+  padding: 0.4rem 0.9rem;
+  border: 1px solid var(--activity-theme-accent, var(--color-primary));
+  border-radius: var(--radius-medium);
+  background: var(--activity-theme-accent, var(--color-primary));
+  color: #fff;
+  font-weight: var(--font-weight-semibold, 600);
+  cursor: pointer;
+}
+
+.quest-current-scene-actions .quest-step-complete-toggle[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--activity-theme-accent, var(--color-primary)) 18%, white);
+  color: var(--color-text);
+}
+
+.quest-other-scene-list {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.quest-other-scene {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.55rem 0.15rem;
+}
+
+.quest-other-scene.is-complete {
+  opacity: 0.72;
+}
+
+.quest-other-scene .quest-step-complete-toggle {
+  min-height: 2rem;
+  padding: 0.2rem 0.65rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-chip);
+  background: white;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold, 600);
+  cursor: pointer;
+}
+
+@media (max-width: 1023px) /* below Large / tablet and down */ {
+  .quest-content--active .quest-active-left,
+  .quest-content--active .quest-active-center,
+  .quest-content--active .quest-active-right {
+    display: contents;
+  }
+
+  .quest-content--active .quest-active-story {
+    order: 1;
+  }
+
+  .quest-content--active .quest-active-stage {
+    order: 2;
+  }
+
+  .quest-content--active [data-quest-area="roles"] {
+    order: 3;
+  }
+
+  .quest-content--active [data-quest-area="supplies"] {
+    order: 4;
+  }
+
+  .quest-content--active [data-quest-area="starters"] {
+    order: 5;
+  }
+
+  .quest-content--active [data-quest-area="finish"] {
+    order: 6;
+  }
+
+  .quest-content--active .quest-active-other-scenes {
+    order: 7;
+  }
+}
+
+@media (min-width: 1024px) /* Large: three-column play board */ {
+  .quest-content--active {
+    grid-template-columns: minmax(13rem, 1fr) minmax(0, 2fr) minmax(13rem, 1fr);
+    grid-template-areas:
+      "meta meta meta"
+      "story story story"
+      "left stage right";
+    align-items: start;
+  }
+
+  .quest-content--active .quest-active-meta {
+    grid-area: meta;
+  }
+
+  .quest-content--active .quest-active-story {
+    grid-area: story;
+  }
+
+  .quest-content--active .quest-active-left {
+    grid-area: left;
+  }
+
+  .quest-content--active .quest-active-center {
+    grid-area: stage;
+  }
+
+  .quest-content--active .quest-active-right {
+    grid-area: right;
+  }
+}
+
 .quest-collapsible-section {
   border: 1px solid color-mix(in srgb, var(--color-border, #d8d0c4) 80%, transparent);
   border-radius: var(--radius-medium);
@@ -2031,8 +2252,10 @@ button.quest-step-starter-card:focus-visible {
 .billing-plan-card {
   position: relative;
   display: grid;
+  grid-template-rows: 1.7rem auto auto 1fr auto;
   gap: var(--space-2);
-  align-content: start;
+  align-content: stretch;
+  min-height: 100%;
   padding: var(--space-3);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-medium);
@@ -2046,6 +2269,12 @@ button.quest-step-starter-card:focus-visible {
       var(--color-border));
   box-shadow:
     inset 0 3px 0 var(--color-primary);
+}
+
+.billing-plan-badge-slot {
+  min-height: 1.5rem;
+  display: flex;
+  align-items: center;
 }
 
 .billing-plan-badge {
@@ -2090,6 +2319,11 @@ button.quest-step-starter-card:focus-visible {
   font-size: var(--font-size-sm);
 }
 
+.billing-plan-body {
+  min-height: 3.2rem;
+}
+
+.billing-plan-body > p,
 .billing-plan-card>p:not(.billing-plan-name,
   .billing-plan-price,
   .billing-plan-badge) {
@@ -2100,12 +2334,14 @@ button.quest-step-starter-card:focus-visible {
 }
 
 .billing-plan-action {
-  align-self: end;
-  min-height: var(--control-height);
+  align-self: stretch;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 2.75rem;
   margin-top: auto;
   border: 0;
   border-radius: var(--radius-small);
-  padding: 0.55rem 1rem;
+  padding: 0.55rem 0.85rem;
   background: var(--color-primary);
   color: var(--color-text-on-accent);
   font-weight: var(--font-weight-semibold);
@@ -2116,7 +2352,7 @@ button.quest-step-starter-card:focus-visible {
   justify-content: center;
   text-align: center;
   line-height: 1.3;
-  white-space: normal;
+  white-space: nowrap;
 }
 
 .billing-plan-action:disabled {
