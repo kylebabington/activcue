@@ -12,7 +12,7 @@ export default function SettingsKidModeSection({
 }) {
   const useAgeDefaults = readingModePreference == null;
   const enabled = useAgeDefaults
-    ? true
+    ? false
     : Boolean(readingModePreference?.enabled);
   const autoAdvance = useAgeDefaults
     ? true
@@ -107,8 +107,9 @@ export default function SettingsKidModeSection({
           <span>
             Use age-based defaults
             <small>
-              On by default for kids 9 and under. Older kids can turn Listening
-              Mode on during an activity.
+              The full activity board is the starting screen. Listening Mode
+              stays available during an activity if a child wants one
+              instruction at a time.
             </small>
           </span>
         </label>

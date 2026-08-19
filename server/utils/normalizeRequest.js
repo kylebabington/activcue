@@ -10,7 +10,7 @@ import {
   STARTER_IDEA_KINDS,
   VISUAL_THEMES,
 } from "../schemas/activitySuggestionsSchema.js";
-import { resolveDoneWhen } from "../../src/utils/questStepCopy.js";
+import { resolveDoneWhen, resolveIfStuck } from "../../src/utils/questStepCopy.js";
 
 const CATEGORY_SET = new Set(ACTIVITY_CATEGORIES);
 const VISUAL_THEME_SET = new Set(VISUAL_THEMES);
@@ -297,15 +297,13 @@ export function normalizeStepDetails(stepDetails, steps = []) {
         starterIdeas,
         examples,
         doneWhen: asString(raw.doneWhen),
-        ifStuck: asString(
-          raw.ifStuck,
-          "Skip the fancy version and do the simplest version of this move."
-        ),
+        ifStuck: asString(raw.ifStuck),
         roleInstructions,
       };
       details.push({
         ...normalizedStep,
         doneWhen: resolveDoneWhen(normalizedStep),
+        ifStuck: resolveIfStuck(normalizedStep),
       });
     }
   }
@@ -319,12 +317,12 @@ export function normalizeStepDetails(stepDetails, steps = []) {
         instruction: text,
         starterIdeas: [],
         examples: [],
-        ifStuck: "Do a simpler version of this move and keep going.",
         roleInstructions: [],
       };
       details.push({
         ...legacyStep,
         doneWhen: resolveDoneWhen(legacyStep),
+        ifStuck: resolveIfStuck(legacyStep),
       });
     }
   }

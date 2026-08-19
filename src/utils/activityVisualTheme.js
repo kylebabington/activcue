@@ -1,6 +1,6 @@
 /** Deterministic visual themes for imaginative activity cards (no AI art). */
 
-import { resolveDoneWhen } from "./questStepCopy";
+import { resolveDoneWhen, resolveIfStuck } from "./questStepCopy";
 
 export const VISUAL_THEME_META = {
   space: { label: "Space", icon: "🌙", accent: "#3b6ea5" },
@@ -143,6 +143,14 @@ export function getStepStuckPrompts(step) {
   const seen = new Set();
   return candidates
     .map((value) => (typeof value === "string" ? value.trim() : ""))
+    .filter(Boolean)
+    .map((value) =>
+      resolveIfStuck({
+        instruction: step.instruction,
+        title: step.title,
+        ifStuck: value,
+      })
+    )
     .filter((value) => {
       if (!value) return false;
       const key = value.toLowerCase();
@@ -158,6 +166,7 @@ export function getStepDetails(activity) {
     return activity.stepDetails.map((step) => ({
       ...step,
       doneWhen: resolveDoneWhen(step),
+      ifStuck: resolveIfStuck(step),
     }));
   }
   if (Array.isArray(activity?.steps)) {
@@ -169,7 +178,7 @@ export function getStepDetails(activity) {
         starterIdeas: [],
         examples: [],
         doneWhen: resolveDoneWhen({ instruction, title: instruction }),
-        ifStuck: "Do a simpler version of this move and keep going.",
+        ifStuck: resolveIfStuck({ instruction, title: instruction }),
         roleInstructions: [],
       };
     });

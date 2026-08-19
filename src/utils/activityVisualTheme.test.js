@@ -42,6 +42,17 @@ describe("getStepStuckPrompts", () => {
 
     expect(getStepStuckPrompts(null)).toEqual([]);
   });
+
+  it("rewrites generic ifStuck copy from the step action", () => {
+    expect(
+      getStepStuckPrompts({
+        instruction: "Create your circus name and costume.",
+        ifStuck: "Do a simpler version of this step and move on.",
+      })
+    ).toEqual([
+      "Try the easiest piece first: Create your circus name and costume.",
+    ]);
+  });
 });
 
 describe("getStepStarterIdeas", () => {

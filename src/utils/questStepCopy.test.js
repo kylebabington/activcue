@@ -5,6 +5,7 @@ import {
   getSceneInstruction,
   getStepRoleParts,
   resolveDoneWhen,
+  resolveIfStuck,
 } from "./questStepCopy";
 
 describe("resolveDoneWhen", () => {
@@ -27,12 +28,13 @@ describe("resolveDoneWhen", () => {
     ).toBe("You have drawn 3–5 zones on the paper.");
   });
 
-  it("synthesizes a cue from a legacy instruction with no doneWhen", () => {
+  it("rewrites generic ifStuck copy from the step action", () => {
     expect(
-      resolveDoneWhen({
-        instruction: "Get paper and something to draw with.",
+      resolveIfStuck({
+        instruction: "Create your circus name and costume.",
+        ifStuck: "Do a simpler version of this step and move on.",
       })
-    ).toBe("You have paper and something to draw with.");
+    ).toBe("Try the easiest piece first: Create your circus name and costume.");
   });
 });
 

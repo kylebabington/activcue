@@ -6,7 +6,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { completeActivityV2Fixture } from "../../fixtures/completeActivityV2Fixture";
 
 vi.mock("../SpeakButton.jsx", () => ({
-  default: () => null,
+  default: ({ label }) => <button type="button">{label}</button>,
 }));
 
 import QuestContent from "./QuestContent.jsx";
@@ -33,6 +33,7 @@ describe("QuestContent active layout", () => {
     expect(html).toContain("Current scene");
     expect(html).toContain("Make a communications desk.");
     expect(html).toContain("Ready to move on when");
+    expect(html).toContain("I’m stuck");
     expect(html).not.toContain("quest-collapsible-section");
   });
 
@@ -52,6 +53,10 @@ describe("QuestContent active layout", () => {
     expect(html).toContain("The Big Finish");
     expect(html).toContain("paper");
     expect(html).toContain("Message from Earth");
+    expect(html).toMatch(/Your Roles[\s\S]*Read/);
+    expect(html).toMatch(/Props &amp; Supplies[\s\S]*Read/);
+    expect(html).toMatch(/Starting Ideas[\s\S]*Read/);
+    expect(html).toMatch(/The Big Finish[\s\S]*Read/);
   });
 });
 

@@ -121,6 +121,36 @@ export function resolveDoneWhen(step) {
   return "You can point to one finished result from what you just did.";
 }
 
+const GENERIC_IF_STUCK_PATTERNS = [
+  /simpler version of this (step|scene|part|move)/i,
+  /simplest version of this (step|scene|part|move)/i,
+  /skip the fancy version/i,
+  /do a simpler version of this step and move on/i,
+];
+
+export function isGenericIfStuck(value) {
+  const text = String(value || "").trim();
+  if (!text) return true;
+  return GENERIC_IF_STUCK_PATTERNS.some((pattern) => pattern.test(text));
+}
+
+export function resolveIfStuck(step) {
+  const existing = String(step?.ifStuck || "").trim();
+  if (existing && !isGenericIfStuck(existing)) {
+    return ensurePeriod(existing);
+  }
+
+  const action =
+    firstSentence(step?.instruction) || firstSentence(step?.title);
+  if (action && !isGenericIfStuck(action)) {
+    return ensurePeriod(
+      `Try the easiest piece first: ${action.replace(/[.!?]+$/, "")}`
+    );
+  }
+
+  return "Try the easiest piece of what you see and start there.";
+}
+
 function normalizeName(value) {
   return String(value || "")
     .trim()

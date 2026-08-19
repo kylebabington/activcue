@@ -1,5 +1,5 @@
 import { normalizeTextValue } from "./activityScoring";
-import { resolveDoneWhen } from "./questStepCopy";
+import { resolveDoneWhen, resolveIfStuck } from "./questStepCopy";
 
 const TEMPLATE_LIBRARY = [
   {
@@ -315,7 +315,7 @@ export function buildSimpleActivitiesFromTemplates({
       starterIdeas: [],
       examples: [],
       doneWhen: resolveDoneWhen({ instruction, title: instruction }),
-      ifStuck: "Do the simplest version of this move and keep going.",
+      ifStuck: resolveIfStuck({ instruction, title: instruction }),
       roleInstructions: [],
     }));
 
