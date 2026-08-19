@@ -11,6 +11,7 @@ import {
   getActivityMissionText,
   getActivityRoleLabel,
   getActivityStarterSectionLabel,
+  getStarterIdeaText,
   getStarterIdeas,
   getStarterKindIcon,
   getStepDetails,
@@ -149,20 +150,15 @@ function QuestStepCard({
                         >
                           {selected ? "✓" : getStarterKindIcon(idea.kind)}
                         </span>
-                        {idea.title}
+                        {getStarterIdeaText(idea)}
                       </span>
-                      {idea.example ? (
-                        <span className="quest-step-starter-card-example">
-                          {idea.example}
-                        </span>
-                      ) : null}
                     </>
                   );
 
                   if (canSelectStarters) {
                     return (
                       <button
-                        key={`${idea.title}-${starterIndex}`}
+                        key={`step-starter-${starterIndex}`}
                         type="button"
                         className={className}
                         aria-pressed={selected}
@@ -177,7 +173,7 @@ function QuestStepCard({
 
                   return (
                     <div
-                      key={`${idea.title}-${starterIndex}`}
+                      key={`step-starter-${starterIndex}`}
                       className={className}
                     >
                       {content}
@@ -574,11 +570,10 @@ export default function QuestContent({
           ) : null}
           <div className="quest-v2-starter-doors">
             {starterIdeas.map((idea, index) => (
-              <div key={`${idea.title}-${index}`} className="quest-v2-starter-door">
-                <span className="quest-v2-starter-title">{idea.title}</span>
-                {idea.example ? (
-                  <span className="quest-v2-starter-example">{idea.example}</span>
-                ) : null}
+              <div key={`starter-${index}`} className="quest-v2-starter-door">
+                <span className="quest-v2-starter-example">
+                  {getStarterIdeaText(idea)}
+                </span>
                 {idea.kind ? (
                   <span className="quest-v2-starter-kind">{idea.kind}</span>
                 ) : null}

@@ -15,6 +15,7 @@ import {
   getStepDetails,
   getStepStarterIdeas,
   getStepStarterSectionLabel,
+  getStarterIdeaText,
   getStarterKindIcon,
   getVisualThemeMeta,
 } from "../../utils/activityVisualTheme";
@@ -335,7 +336,7 @@ export default function ListeningModePanel({
                   const selected = selectedStarterIndex === index;
                   return (
                     <li
-                      key={`${idea.title}-${index}`}
+                      key={`step-starter-${index}`}
                       className={
                         selected
                           ? "listening-mode-starter is-selected"
@@ -345,8 +346,7 @@ export default function ListeningModePanel({
                       <span aria-hidden="true">
                         {selected ? "✓" : getStarterKindIcon(idea.kind)}
                       </span>{" "}
-                      <strong>{idea.title}</strong>
-                      {idea.example ? ` — ${idea.example}` : ""}
+                      {getStarterIdeaText(idea)}
                     </li>
                   );
                 })}
