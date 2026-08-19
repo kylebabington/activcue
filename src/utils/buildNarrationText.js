@@ -3,6 +3,7 @@
 import {
   getActivityMissionText,
   getActivityRoleLabel,
+  getStarterIdeaText,
   getStarterIdeas,
   getStepDetails,
   getStepStarterIdeas,
@@ -81,11 +82,9 @@ export function buildNarrationText(activity, section, options = {}) {
       starters.length === 1
         ? "Here is a starter idea"
         : `Here are ${starters.length} starter ideas`;
-    const ideaLines = starters.map((idea, index) => {
-      const title = idea?.title || `Idea ${index + 1}`;
-      const example = idea?.example ? ` For example: ${idea.example}` : "";
-      return `${title}.${example}`;
-    });
+    const ideaLines = starters
+      .map((idea) => getStarterIdeaText(idea))
+      .filter(Boolean);
     return joinSentences([intro, ...ideaLines]);
   }
 
@@ -94,8 +93,7 @@ export function buildNarrationText(activity, section, options = {}) {
     const idea = starters[index];
     if (!idea) return "";
     return joinSentences([
-      idea.title || `Idea ${index + 1}`,
-      idea.example ? `For example: ${idea.example}` : "",
+      getStarterIdeaText(idea) || `Idea ${index + 1}`,
     ]);
   }
 
@@ -149,11 +147,9 @@ export function buildNarrationText(activity, section, options = {}) {
         const [selected] = ordered.splice(selectedIndex, 1);
         ordered.unshift(selected);
       }
-      const starterLines = ordered.map((idea) => {
-        const title = idea?.title || "Try this";
-        const example = idea?.example ? `: ${idea.example}` : "";
-        return `${title}${example}`;
-      });
+      const starterLines = ordered
+        .map((idea) => getStarterIdeaText(idea))
+        .filter(Boolean);
       parts.push(`You could try: ${starterLines.join(". ")}`);
     }
 

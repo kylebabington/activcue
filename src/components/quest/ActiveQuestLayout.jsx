@@ -5,6 +5,7 @@ import {
   formatActivityStyleLabel,
 } from "../../utils/activityFormatters";
 import {
+  getStarterIdeaText,
   getStarterKindIcon,
   getStepStarterIdeas,
 } from "../../utils/activityVisualTheme";
@@ -22,10 +23,7 @@ import {
 } from "../../utils/questStuckHelp";
 
 function ideaNarration(idea, index) {
-  const title = String(idea?.title || `Idea ${index + 1}`).trim();
-  const example = String(idea?.example || "").trim();
-  if (!example) return title;
-  return `${title}. For example: ${example}`;
+  return getStarterIdeaText(idea) || `Idea ${index + 1}`;
 }
 
 function QuestPlayCard({
@@ -150,16 +148,15 @@ function StarterList({
           .join(" ");
         const body = (
           <>
-            <span className="quest-v2-starter-title">{idea.title}</span>
-            {idea.example ? (
-              <span className="quest-v2-starter-example">{idea.example}</span>
-            ) : null}
+            <span className="quest-v2-starter-example">
+              {getStarterIdeaText(idea)}
+            </span>
           </>
         );
 
         if (mode === "active") {
           return (
-            <div key={`${idea.title}-${index}`} className={className}>
+            <div key={`starter-${index}`} className={className}>
               <button
                 type="button"
                 className="quest-v2-starter-door-body"
@@ -179,7 +176,7 @@ function StarterList({
         }
 
         return (
-          <div key={`${idea.title}-${index}`} className="quest-v2-starter-door">
+          <div key={`starter-${index}`} className="quest-v2-starter-door">
             {body}
           </div>
         );
@@ -327,13 +324,8 @@ function CurrentSceneCard({
                     >
                       {selected ? "✓" : getStarterKindIcon(idea.kind)}
                     </span>
-                    {idea.title}
+                    {getStarterIdeaText(idea)}
                   </span>
-                  {idea.example ? (
-                    <span className="quest-step-starter-card-example">
-                      {idea.example}
-                    </span>
-                  ) : null}
                 </>
               );
 
@@ -350,7 +342,7 @@ function CurrentSceneCard({
               if (canSelectStarters) {
                 return (
                   <div
-                    key={`${idea.title}-${starterIndex}`}
+                    key={`step-starter-${starterIndex}`}
                     className={className}
                   >
                     <button
@@ -369,7 +361,7 @@ function CurrentSceneCard({
               }
 
               return (
-                <div key={`${idea.title}-${starterIndex}`} className={className}>
+                <div key={`step-starter-${starterIndex}`} className={className}>
                   {content}
                   {speakButton}
                 </div>
