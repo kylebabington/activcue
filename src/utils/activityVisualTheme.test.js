@@ -149,6 +149,26 @@ describe("getStepDetails", () => {
     expect(steps[0].doneWhen).not.toMatch(/finished this step/i);
   });
 
+  it("expands thin cached imaginative instructions using supplies and examples", () => {
+    const steps = getStepDetails({
+      activityStyle: "imaginative",
+      uses: ["towel or placemat", "paper", "pencil"],
+      roleGuide: { firstAction: "Set a towel as the embassy desk." },
+      stepDetails: [
+        {
+          title: "Open the embassy",
+          instruction: "Set the greeting desk.",
+          examples: ["Towel desk + Open sign."],
+          ifStuck: "Use a chair seat as the desk.",
+        },
+      ],
+    });
+
+    expect(steps[0].instruction).toMatch(/towel/i);
+    expect(steps[0].instruction).toMatch(/paper/i);
+    expect(steps[0].instruction).not.toBe("Set the greeting desk.");
+  });
+
   it("synthesizes doneWhen for legacy steps arrays", () => {
     const steps = getStepDetails({
       steps: ["Get paper and something to draw with."],

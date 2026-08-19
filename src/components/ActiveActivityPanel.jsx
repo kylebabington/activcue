@@ -74,7 +74,10 @@ function ActiveActivityPanel({
   void toggleBuiltInHelp;
 
   useEffect(() => {
-    if (listeningEnabled || didScrollOnMount.current) return;
+    if (listeningEnabled) return;
+    const panel = document.getElementById("active-activity-panel");
+    panel?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+    if (didScrollOnMount.current) return;
     didScrollOnMount.current = true;
     if (focusStepIndex < 0) return;
     const node = document.getElementById(`quest-step-${focusStepIndex}`);

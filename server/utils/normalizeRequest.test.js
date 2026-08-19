@@ -70,7 +70,7 @@ describe("Activity Content V2 normalization", () => {
       "Add speech bubbles.",
     ]);
     expect(details).toHaveLength(2);
-    expect(details[0].instruction).toBe("Draw a comic panel.");
+    expect(details[0].instruction).toContain("Draw a comic panel.");
     expect(details[0].ifStuck).toBeTruthy();
     expect(details[0].starterIdeas).toEqual([]);
     expect(details[0].doneWhen).toBe("You have drawn a comic panel.");
@@ -96,6 +96,30 @@ describe("Activity Content V2 normalization", () => {
       example: "Use books as radio.",
       kind: "imagination",
     });
+  });
+
+  it("expands thin imaginative step labels while keeping specific doneWhen", () => {
+    const details = normalizeStepDetails(
+      [
+        {
+          title: "Open the embassy",
+          instruction: "Set the greeting desk.",
+          examples: ["Towel desk + Open sign."],
+          doneWhen: "Desk and sign are ready.",
+          ifStuck: "Use a chair seat as the desk.",
+        },
+      ],
+      [],
+      {
+        activityStyle: "imaginative",
+        uses: ["towel or placemat", "paper", "pencil"],
+        roleGuide: { firstAction: "Set a towel as the embassy desk." },
+      }
+    );
+
+    expect(details[0].instruction).toMatch(/towel/i);
+    expect(details[0].instruction).not.toBe("Set the greeting desk.");
+    expect(details[0].doneWhen).toBe("Desk and sign are ready.");
   });
 
   it("upgrades legacy starterPrompts into starterIdeas", () => {

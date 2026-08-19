@@ -236,17 +236,21 @@ function QuestPage() {
 
     return (
         <section className="page-layout page-layout--kid">
-            <section className="page-intro page-intro--kid page-intro--minimal">
-                <h1>What should happen next?</h1>
-                {gettingBetterCopy ? (
-                    <p className="kid-getting-better" role="status">
-                        {gettingBetterCopy}
-                    </p>
-                ) : null}
-            </section>
+            {!activeActivity ? (
+                <section className="page-intro page-intro--kid page-intro--minimal">
+                    <h1>What should happen next?</h1>
+                    {gettingBetterCopy ? (
+                        <p className="kid-getting-better" role="status">
+                            {gettingBetterCopy}
+                        </p>
+                    ) : null}
+                </section>
+            ) : null}
 
             <div className={activeActivity ? "kid-center-column kid-center-column--play" : "kid-center-column"}>
-                <MomentStatusBanner currentMoment={currentMoment} kidFacing />
+                {!activeActivity ? (
+                    <MomentStatusBanner currentMoment={currentMoment} kidFacing />
+                ) : null}
 
             {activeActivity ? (
                 <ActiveActivityPanel

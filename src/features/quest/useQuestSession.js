@@ -171,10 +171,15 @@ export function useQuestSession({
           ? [activeChildProfile]
           : [];
 
-    const readingMode = resolveReadingMode({
-      preference: readingModePreference,
-      youngestAgeYears: getYoungestPlayingAgeYears(playingChildren),
-    });
+    const readingMode = {
+      ...resolveReadingMode({
+        preference: readingModePreference,
+        youngestAgeYears: getYoungestPlayingAgeYears(playingChildren),
+      }),
+      // Start always lands on the full play board. Listening Mode is a
+      // toggle after the activity is already open.
+      enabled: false,
+    };
 
     const activityToStart = {
       id: crypto.randomUUID(),

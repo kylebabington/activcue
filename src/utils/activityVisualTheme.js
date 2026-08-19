@@ -1,6 +1,10 @@
 /** Deterministic visual themes for imaginative activity cards (no AI art). */
 
-import { resolveDoneWhen, resolveIfStuck } from "./questStepCopy";
+import {
+  resolveDoneWhen,
+  resolveIfStuck,
+  resolveSceneInstruction,
+} from "./questStepCopy";
 
 export const VISUAL_THEME_META = {
   space: { label: "Space", icon: "🌙", accent: "#3b6ea5" },
@@ -163,22 +167,31 @@ export function getStepStuckPrompts(step) {
 
 export function getStepDetails(activity) {
   if (Array.isArray(activity?.stepDetails) && activity.stepDetails.length > 0) {
-    return activity.stepDetails.map((step) => ({
-      ...step,
-      doneWhen: resolveDoneWhen(step),
-      ifStuck: resolveIfStuck(step),
-    }));
+    return activity.stepDetails.map((step, index) => {
+      const instruction = resolveSceneInstruction(step, activity, index);
+      return {
+        ...step,
+        instruction,
+        doneWhen: resolveDoneWhen(step),
+        ifStuck: resolveIfStuck(step),
+      };
+    });
   }
   if (Array.isArray(activity?.steps)) {
     return activity.steps.filter(Boolean).map((step, index) => {
-      const instruction = String(step).trim();
+      const raw = String(step).trim();
+      const instruction = resolveSceneInstruction(
+        { instruction: raw, title: raw },
+        activity,
+        index
+      );
       return {
         title: `Step ${index + 1}`,
         instruction,
         starterIdeas: [],
         examples: [],
-        doneWhen: resolveDoneWhen({ instruction, title: instruction }),
-        ifStuck: resolveIfStuck({ instruction, title: instruction }),
+        doneWhen: resolveDoneWhen({ instruction: raw, title: raw }),
+        ifStuck: resolveIfStuck({ instruction: raw, title: raw }),
         roleInstructions: [],
       };
     });

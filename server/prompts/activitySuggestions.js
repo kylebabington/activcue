@@ -222,9 +222,11 @@ PROSE CAPS (hard):
 
 STEP WRITING RULES (hard — every stepDetail):
 - The child should not have to reverse-engineer what you meant.
-- instruction is the full scene/step for everyone. It must answer: (1) What am I doing? (2) How do I do it? (3) What should I do if something isn't working? (4) How do I know I'm finished?
+- An 8-year-old must be able to do this scene without asking an adult what you meant.
+- instruction is the full scene/step for everyone. It must answer: (1) What am I doing? (2) How do I do it, naming objects to pick up and where they go? (3) What should I do if something isn't working? (4) How do I know I'm finished?
 - Write 4–7 sentences of concrete, observable action. Do not stop at a short label.
-- Ban vague instructions such as: "Test the map", "Add details", "Connect the routes", "Continue the story", "Set everything up", "Do the next part", "Make it better".
+- BAD: "Set the greeting desk." GOOD: "Find a towel, placemat, or chair and turn it into the embassy greeting desk. Put paper and a pencil on it so guests can check in. Make an Open sign, or write OPEN on scrap paper. If you do not have a table, use a chair seat or the floor. You are ready when you can point to the desk and the Open sign."
+- Ban vague instructions such as: "Test the map", "Add details", "Connect the routes", "Continue the story", "Set everything up", "Do the next part", "Make it better", "Set the greeting desk", "Greet each guest kindly".
 - title is a short beat name, never a substitute for the instruction.
 - doneWhen is an observable ready-to-continue cue for THIS step only ("Every zone has a name you can point to.", "You have drawn a path between at least two zones.").
 - NEVER write generic doneWhen such as "You finished this step", "You finished this part of the activity", "when you finish this step", "this step is done", or "the objective is complete".
@@ -267,7 +269,7 @@ CATEGORY AND TRAIT RULES:
 
 QUALITY BAR (imaginative under-10 example shape):
 - roleGuide.name: "Sea Signal Finder" (activity-specific)
-- step instruction = what to do + how to do it + what to try if stuck + what done looks like
+- step instruction = what to do + which objects to use + where they go + what to try if stuck + what done looks like. Never a 3–6 word label.
 - doneWhen = natural transition cue ("Your first station has a marker.") — never "You finished this step" or "Something in the story has changed…"
 - ifStuck = one decisive nudge, not a reused starter
 - roleInstructions add a child's job; they never replace the scene instruction

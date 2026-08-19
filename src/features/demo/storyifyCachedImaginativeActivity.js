@@ -1,4 +1,4 @@
-import { resolveDoneWhen } from "../../utils/questStepCopy";
+import { resolveDoneWhen, resolveSceneInstruction } from "../../utils/questStepCopy";
 
 const SCENE_TITLES = {
   space: [
@@ -370,10 +370,18 @@ export function storyifyCachedImaginativeActivity(activity) {
     : legacyStepDetails(activity);
 
   const stepDetails = sourceSteps.map((step, index) => {
-    const action = step?.instruction || step?.title || "Choose one small move that pushes the story forward.";
+    const originalAction =
+      step?.instruction ||
+      step?.title ||
+      "Choose one small move that pushes the story forward.";
+    const action = resolveSceneInstruction(
+      { ...step, instruction: originalAction },
+      activity,
+      index
+    );
     const doneWhen = resolveDoneWhen({
       ...step,
-      instruction: action,
+      instruction: originalAction,
       title: step?.title,
     });
     const ifStuck = step?.ifStuck

@@ -30,6 +30,7 @@ describe("storyifyCachedImaginativeActivity", () => {
     expect(result.stepDetails[0].title).toBe("Mission Control Wakes Up");
     expect(result.stepDetails[0].instruction).toMatch(/crackle runs through Mission Control/i);
     expect(result.stepDetails[0].instruction).toContain("Make a quiet message desk.");
+    expect(result.stepDetails[0].instruction).toMatch(/books as radio towers/i);
     expect(result.stepDetails[0].doneWhen).toMatch(/writing spot|marker|ready/i);
     expect(result.stepDetails[0].starterIdeas.length).toBeGreaterThanOrEqual(2);
     expect(result.starterIdeas).toHaveLength(5);

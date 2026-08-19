@@ -32,6 +32,7 @@ describe("QuestContent active layout", () => {
     expect(html).toContain("moon base radios have gone almost silent");
     expect(html).toContain("Current scene");
     expect(html).toContain("Make a communications desk.");
+    expect(html).toMatch(/chair|books|radio/i);
     expect(html).toContain("Ready to move on when");
     expect(html).toContain("I’m stuck");
     expect(html).not.toContain("quest-collapsible-section");

@@ -10,7 +10,11 @@ import {
   STARTER_IDEA_KINDS,
   VISUAL_THEMES,
 } from "../schemas/activitySuggestionsSchema.js";
-import { resolveDoneWhen, resolveIfStuck } from "../../src/utils/questStepCopy.js";
+import {
+  resolveDoneWhen,
+  resolveIfStuck,
+  resolveSceneInstruction,
+} from "../../src/utils/questStepCopy.js";
 
 const CATEGORY_SET = new Set(ACTIVITY_CATEGORIES);
 const VISUAL_THEME_SET = new Set(VISUAL_THEMES);
@@ -265,7 +269,7 @@ function synthesizeStarterIdeasFromExamples(examples) {
   }));
 }
 
-export function normalizeStepDetails(stepDetails, steps = []) {
+export function normalizeStepDetails(stepDetails, steps = [], activity = {}) {
   const details = [];
 
   if (Array.isArray(stepDetails)) {
@@ -300,8 +304,14 @@ export function normalizeStepDetails(stepDetails, steps = []) {
         ifStuck: asString(raw.ifStuck),
         roleInstructions,
       };
+      const expandedInstruction = resolveSceneInstruction(
+        normalizedStep,
+        activity,
+        details.length
+      );
       details.push({
         ...normalizedStep,
+        instruction: expandedInstruction,
         doneWhen: resolveDoneWhen(normalizedStep),
         ifStuck: resolveIfStuck(normalizedStep),
       });
@@ -319,8 +329,14 @@ export function normalizeStepDetails(stepDetails, steps = []) {
         examples: [],
         roleInstructions: [],
       };
+      const expandedInstruction = resolveSceneInstruction(
+        legacyStep,
+        activity,
+        details.length
+      );
       details.push({
         ...legacyStep,
+        instruction: expandedInstruction,
         doneWhen: resolveDoneWhen(legacyStep),
         ifStuck: resolveIfStuck(legacyStep),
       });
@@ -340,7 +356,11 @@ export function deriveV1FieldsFromV2(activity, fallbackAges = []) {
     activity.starterIdeas,
     activity.starterPrompts
   );
-  const stepDetails = normalizeStepDetails(activity.stepDetails, activity.steps);
+  const stepDetails = normalizeStepDetails(
+    activity.stepDetails,
+    activity.steps,
+    activity
+  );
 
   const stepsFromDetails = stepDetails.map((step) =>
     step.title && step.instruction && step.title !== step.instruction
