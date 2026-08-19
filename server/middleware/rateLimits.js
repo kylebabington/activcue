@@ -5,7 +5,7 @@ import rateLimit, { ipKeyGenerator } from "express-rate-limit";
 export const AUTH_RATE_LIMIT = { windowMs: 15 * 60 * 1000, max: 60 };
 export const EMAIL_CHECK_RATE_LIMIT = { windowMs: 15 * 60 * 1000, max: 20 };
 export const AI_SUGGESTIONS_RATE_LIMIT = { windowMs: 60 * 60 * 1000, max: 30 };
-export const AI_HINTS_RATE_LIMIT = { windowMs: 60 * 60 * 1000, max: 50 };
+export const AI_HINTS_RATE_LIMIT = { windowMs: 60 * 60 * 1000, max: 20 };
 export const BILLING_RATE_LIMIT = { windowMs: 15 * 60 * 1000, max: 30 };
 export const FAMILY_DATA_RATE_LIMIT = { windowMs: 15 * 60 * 1000, max: 120 };
 export const PARENT_PIN_RATE_LIMIT = { windowMs: 15 * 60 * 1000, max: 20 };

@@ -119,6 +119,7 @@ export function buildQuestContextValue(input) {
     markRescueModeUsed: input.markRescueModeUsed,
     stepHint: input.stepHint,
     isHintLoading: input.isHintLoading,
+    hintLoadingStepIndex: input.hintLoadingStepIndex,
     handleNeedStepHint: input.handleNeedStepHint,
     completeListeningIntro: input.completeListeningIntro,
     setActivityReadingModeEnabled: input.setActivityReadingModeEnabled,
