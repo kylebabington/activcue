@@ -198,6 +198,8 @@ function QuestPage() {
         handleNeedStepHint,
         completeListeningIntro,
         setActivityReadingModeEnabled,
+        completeSetup,
+        toggleSetupCollapsed,
         activities,
         scoredActivities,
         isLoading,
@@ -281,6 +283,8 @@ function QuestPage() {
                     playingChildren={playingChildren}
                     completeListeningIntro={completeListeningIntro}
                     setActivityReadingModeEnabled={setActivityReadingModeEnabled}
+                    completeSetup={completeSetup}
+                    toggleSetupCollapsed={toggleSetupCollapsed}
                 />
             ) : null}
 

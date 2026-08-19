@@ -123,6 +123,8 @@ export function buildQuestContextValue(input) {
     handleNeedStepHint: input.handleNeedStepHint,
     completeListeningIntro: input.completeListeningIntro,
     setActivityReadingModeEnabled: input.setActivityReadingModeEnabled,
+    completeSetup: input.completeSetup,
+    toggleSetupCollapsed: input.toggleSetupCollapsed,
     activities: input.activities,
     scoredActivities: input.scoredActivities,
     activitySessions: input.activitySessions,

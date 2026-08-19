@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import QuestContent from "./quest/QuestContent";
+import QuestSetupScreen from "./quest/QuestSetupScreen";
 import ListeningModePanel from "./quest/ListeningModePanel";
 import SpeakButton from "./SpeakButton";
 import { getDefaultOpenSections } from "./quest/questSectionDefaults";
@@ -9,6 +10,7 @@ import { formatTimer } from "../utils/activityFormatters";
 import { buildNarrationText } from "../utils/buildNarrationText";
 import {
   getActivityRoleLabel,
+  activityNeedsSetup,
   getStepDetails,
   getVisualThemeMeta,
 } from "../utils/activityVisualTheme";
@@ -19,6 +21,8 @@ function ActiveActivityPanel({
   activeActivity,
   currentMoment,
   finishActiveActivity,
+  completeSetup,
+  toggleSetupCollapsed,
   cancelActiveActivity,
   handleTimerNotFinished,
   handleTimerNeedAnotherIdea,
@@ -61,7 +65,10 @@ function ActiveActivityPanel({
       : {};
   const openSections =
     activeActivity.openSections || getDefaultOpenSections({ finish: false });
-  const timerDone = timerSecondsRemaining <= 0;
+  const timerDone =
+    Boolean(activeActivity?.startedAt) && timerSecondsRemaining <= 0;
+  const timerWaiting =
+    !activeActivity?.startedAt && activityNeedsSetup(activeActivity);
   const firstIncompleteIndex = steps.findIndex(
     (_, index) => !completedStepIndexes.includes(index)
   );
@@ -119,6 +126,11 @@ function ActiveActivityPanel({
   );
 
   function handleImStuck(stepIndex) {
+    trackProductEvent("activity_stuck_clicked", {
+      title: activeActivity.title,
+      stepIndex,
+      activityFormatVersion: activeActivity.activityFormatVersion || 2,
+    });
     trackProductEvent("built_in_help_opened", {
       title: activeActivity.title,
       stepIndex,
@@ -170,7 +182,14 @@ function ActiveActivityPanel({
         ) : null}
       </div>
 
-      {listeningEnabled ? (
+      {activeActivity.questPhase === "setup" && !activeActivity.setupComplete ? (
+        <QuestSetupScreen
+          activity={activeActivity}
+          onCompleteSetup={completeSetup}
+          onCancel={cancelActiveActivity}
+          speechRate={speechRate}
+        />
+      ) : listeningEnabled ? (
         <ListeningModePanel
           activity={activeActivity}
           playingChildren={playingChildren}
@@ -216,6 +235,8 @@ function ActiveActivityPanel({
           hintLoadingStepIndex={hintLoadingStepIndex}
           canUseAiHints={canUseAiHints}
           focusStepIndex={focusStepIndex}
+          onToggleSetupCollapsed={toggleSetupCollapsed}
+          setupCollapsed={Boolean(activeActivity.setupCollapsed)}
           playingChildren={playingChildren}
           roleAssignments={activeActivity.roleAssignments}
           onAssignRole={assignRole}
@@ -225,6 +246,7 @@ function ActiveActivityPanel({
           timerSecondsRemaining={timerSecondsRemaining}
           formatTimer={formatTimer}
           timerDone={timerDone}
+          timerWaiting={timerWaiting}
           onTimerFinished={finishActiveActivity}
           onTimerNotFinished={handleTimerNotFinished}
           onTimerNeedAnotherIdea={handleTimerNeedAnotherIdea}
