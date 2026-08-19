@@ -61,4 +61,14 @@ describe("storyifyCachedImaginativeActivity", () => {
     const simple = { title: "Draw a Picture", activityStyle: "simple" };
     expect(storyifyCachedImaginativeActivity(simple)).toBe(simple);
   });
+
+  it("passes V3 activities through without synthetic story layers", () => {
+    const v3 = {
+      activityFormatVersion: 3,
+      activityStyle: "imaginative",
+      story: "Three clues wait at pillow stations.",
+      stepDetails: [{ title: "Scene One", actions: ["Walk to Station 1."] }],
+    };
+    expect(storyifyCachedImaginativeActivity(v3)).toBe(v3);
+  });
 });

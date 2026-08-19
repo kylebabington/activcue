@@ -44,17 +44,105 @@ export function getActivityRoleLabel(activity) {
 }
 
 export function getActivityMissionText(activity) {
+  if (Number(activity?.activityFormatVersion) >= 3) {
+    return activity?.story || activity?.summary || "";
+  }
   return activity?.mission || activity?.roleGuide?.goal || activity?.summary || "";
+}
+
+export function isActivityFormatV3(activity) {
+  return Number(activity?.activityFormatVersion) >= 3;
+}
+
+export function getActivityStoryText(activity) {
+  if (isActivityFormatV3(activity)) {
+    return String(activity?.story || activity?.theme || activity?.summary || "").trim();
+  }
+  return String(activity?.mission || activity?.theme || activity?.summary || "").trim();
+}
+
+export function getSetupGuide(activity) {
+  if (!isActivityFormatV3(activity)) return null;
+  const guide = activity?.setupGuide;
+  if (!guide || typeof guide !== "object") return null;
+  return {
+    needed: Array.isArray(guide.needed) ? guide.needed.filter(Boolean) : [],
+    steps: Array.isArray(guide.steps) ? guide.steps.filter(Boolean) : [],
+    readyWhen: String(guide.readyWhen || "").trim(),
+  };
+}
+
+export function activityNeedsSetup(activity) {
+  const guide = getSetupGuide(activity);
+  if (!guide) return false;
+  return guide.steps.length > 0 || guide.needed.length > 0;
+}
+
+export function getFinishGuide(activity) {
+  if (isActivityFormatV3(activity) && activity?.finishGuide) {
+    const guide = activity.finishGuide;
+    return {
+      action: String(guide.action || "").trim(),
+      example: String(guide.example || "").trim(),
+      doneWhen: String(guide.doneWhen || "").trim(),
+      extensions: Array.isArray(guide.extensions)
+        ? guide.extensions.filter(Boolean)
+        : [],
+    };
+  }
+  const extensions = Array.isArray(activity?.extensionIdeas)
+    ? activity.extensionIdeas.filter(Boolean)
+    : [];
+  return {
+    action: "",
+    example: "",
+    doneWhen: "",
+    extensions,
+  };
+}
+
+export function getStepActions(step) {
+  if (!step || typeof step !== "object") return [];
+  if (Array.isArray(step.actions) && step.actions.length > 0) {
+    return step.actions.map((action) => String(action || "").trim()).filter(Boolean);
+  }
+  const instruction = String(step.instruction || "").trim();
+  return instruction ? [instruction] : [];
+}
+
+export function getStarterIdeaText(idea) {
+  if (!idea || typeof idea !== "object") return "";
+  const example = String(idea.example || "").trim();
+  const title = String(idea.title || "").trim();
+  if (example && title && example.toLowerCase() === title.toLowerCase()) {
+    return example;
+  }
+  return example || title;
+}
+
+function normalizeStarterIdea(idea, index = 0) {
+  const text = getStarterIdeaText(idea);
+  if (!text) return null;
+  const title = String(idea?.title || "").trim();
+  const example = String(idea?.example || "").trim();
+  return {
+    title:
+      title && example && title.toLowerCase() !== example.toLowerCase()
+        ? title
+        : "",
+    example: text,
+    kind: idea?.kind || "imagination",
+  };
 }
 
 export function getStarterIdeas(activity) {
   if (Array.isArray(activity?.starterIdeas) && activity.starterIdeas.length > 0) {
     return activity.starterIdeas
-      .map(normalizeStarterIdea)
+      .map((idea, index) => normalizeStarterIdea(idea, index))
       .filter(Boolean);
   }
   if (Array.isArray(activity?.starterPrompts)) {
-    return activity.starterPrompts.filter(Boolean).map((prompt) => ({
+    return activity.starterPrompts.filter(Boolean).map((prompt, index) => ({
       title: "",
       example: String(prompt).trim(),
       kind: "imagination",
@@ -104,24 +192,6 @@ export function getStarterKindIcon(kind) {
   return STARTER_KIND_ICONS[kind] || STARTER_KIND_ICONS.imagination;
 }
 
-/** Kid-facing starter copy — one line only, never a separate title + example. */
-export function getStarterIdeaText(idea) {
-  if (!idea || typeof idea !== "object") return "";
-  const example = String(idea.example || "").trim();
-  const title = String(idea.title || "").trim();
-  return example || title;
-}
-
-function normalizeStarterIdea(idea) {
-  const text = getStarterIdeaText(idea);
-  if (!text) return null;
-  return {
-    title: "",
-    example: text,
-    kind: idea?.kind || "imagination",
-  };
-}
-
 /**
  * Prefer structured step starterIdeas; fall back to legacy examples[].
  */
@@ -130,7 +200,7 @@ export function getStepStarterIdeas(step) {
 
   if (Array.isArray(step.starterIdeas) && step.starterIdeas.length > 0) {
     return step.starterIdeas
-      .map(normalizeStarterIdea)
+      .map((idea, index) => normalizeStarterIdea(idea, index))
       .filter(Boolean)
       .slice(0, 3);
   }
@@ -180,16 +250,19 @@ export function getStepStuckPrompts(step) {
 }
 
 export function getStepDetails(activity) {
+  const isV3 = isActivityFormatV3(activity);
+
   if (Array.isArray(activity?.stepDetails) && activity.stepDetails.length > 0) {
     return activity.stepDetails.map((step, index) => {
-      const instruction = resolveSceneInstruction(step, activity, index);
-      const title = resolveSceneTitle(
-        { ...step, instruction },
-        activity,
-        index
-      );
+      const actions = getStepActions(step);
+      const instruction = isV3
+        ? actions.join(" ")
+        : resolveSceneInstruction(step, activity, index);
+      const title = String(step.title || `Step ${index + 1}`).trim();
+
       return {
         ...step,
+        actions,
         title,
         instruction,
         doneWhen: resolveDoneWhen(step),

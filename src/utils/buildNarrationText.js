@@ -3,10 +3,15 @@
 import {
   getActivityMissionText,
   getActivityRoleLabel,
+  getFinishGuide,
+  getSetupGuide,
+  getStarterIdeaText,
   getStarterIdeas,
+  getStepActions,
   getStepDetails,
   getStepStarterIdeas,
   getStepStuckPrompts,
+  isActivityFormatV3,
 } from "./activityVisualTheme";
 import { getSceneInstruction, getStepRoleParts } from "./questStepCopy";
 
@@ -21,7 +26,7 @@ function joinSentences(parts) {
 /**
  * Compose spoken scripts from Activity Format V2 fields.
  * @param {object} activity
- * @param {"mission"|"role"|"starters"|"starter"|"step"|"next"|"stuck"|"materials"|"finish"} section
+ * @param {"mission"|"role"|"starters"|"starter"|"step"|"next"|"stuck"|"materials"|"finish"|"setup"|"story"} section
  * @param {{ stepIndex?: number, starterIndex?: number, stuckPromptIndex?: number, selectedRoleName?: string, roleAssignments?: object, includeDoneWhen?: boolean }} [options]
  */
 export function buildNarrationText(activity, section, options = {}) {
@@ -35,10 +40,31 @@ export function buildNarrationText(activity, section, options = {}) {
   const selectedRoleName = options.selectedRoleName || roleName;
   const roleAssignments = options.roleAssignments || {};
 
-  if (section === "mission") {
+  if (section === "story" || section === "mission") {
     return joinSentences([
-      mission || activity?.summary || activity?.theme || "",
+      mission || activity?.summary || activity?.theme || activity?.story || "",
     ]);
+  }
+
+  if (section === "setup") {
+    const setup = getSetupGuide(activity);
+    if (!setup) return "";
+    const parts = ["First, set up."];
+    if (setup.needed.length > 0) {
+      parts.push(
+        setup.needed.length === 1
+          ? `Get ${setup.needed[0]}`
+          : `Get ${setup.needed.join(", ")}`
+      );
+    }
+    setup.steps.forEach((step, index) => {
+      const prefix = index === 0 ? "First" : index === setup.steps.length - 1 ? "Last" : "Next";
+      parts.push(`${prefix}, ${step}`);
+    });
+    if (setup.readyWhen) {
+      parts.push(`You are ready when ${setup.readyWhen}`);
+    }
+    return joinSentences(parts);
   }
 
   if (section === "role") {
@@ -53,10 +79,10 @@ export function buildNarrationText(activity, section, options = {}) {
     if (roleGuide?.description) {
       roleParts.push(roleGuide.description);
     }
-    if (roleGuide?.goal) {
+    if (!isActivityFormatV3(activity) && roleGuide?.goal) {
       roleParts.push(roleGuide.goal);
     }
-    if (roleGuide?.firstAction) {
+    if (!isActivityFormatV3(activity) && roleGuide?.firstAction) {
       roleParts.push(`Start by: ${roleGuide.firstAction}`);
     }
 
@@ -81,11 +107,9 @@ export function buildNarrationText(activity, section, options = {}) {
       starters.length === 1
         ? "Here is a starter idea"
         : `Here are ${starters.length} starter ideas`;
-    const ideaLines = starters.map((idea, index) => {
-      const title = idea?.title || `Idea ${index + 1}`;
-      const example = idea?.example ? ` For example: ${idea.example}` : "";
-      return `${title}.${example}`;
-    });
+    const ideaLines = starters
+      .map((idea) => getStarterIdeaText(idea))
+      .filter(Boolean);
     return joinSentences([intro, ...ideaLines]);
   }
 
@@ -93,10 +117,7 @@ export function buildNarrationText(activity, section, options = {}) {
     const index = Number(options.starterIndex) || 0;
     const idea = starters[index];
     if (!idea) return "";
-    return joinSentences([
-      idea.title || `Idea ${index + 1}`,
-      idea.example ? `For example: ${idea.example}` : "",
-    ]);
+    return joinSentences([getStarterIdeaText(idea) || `Idea ${index + 1}`]);
   }
 
   if (section === "step" || section === "next") {
@@ -115,12 +136,27 @@ export function buildNarrationText(activity, section, options = {}) {
     if (!step) return "";
 
     const instruction = getSceneInstruction(step);
+    const actions = getStepActions(step);
     const isImaginative = activity?.activityStyle === "imaginative";
     const sceneLabel = isImaginative ? "Scene" : "Step";
     const heading = step.title
       ? `${sceneLabel} ${stepIndex + 1}. ${step.title}`
       : `${sceneLabel} ${stepIndex + 1}`;
-    const parts = [heading, instruction];
+    const parts = [heading];
+
+    if (actions.length > 1) {
+      actions.forEach((action, actionIndex) => {
+        const prefix =
+          actionIndex === 0
+            ? "First"
+            : actionIndex === actions.length - 1
+              ? "Last"
+              : "Next";
+        parts.push(`${prefix}, ${action}`);
+      });
+    } else {
+      parts.push(instruction);
+    }
 
     const roleParts = getStepRoleParts(step, {
       selectedRoleName,
@@ -149,11 +185,9 @@ export function buildNarrationText(activity, section, options = {}) {
         const [selected] = ordered.splice(selectedIndex, 1);
         ordered.unshift(selected);
       }
-      const starterLines = ordered.map((idea) => {
-        const title = idea?.title || "Try this";
-        const example = idea?.example ? `: ${idea.example}` : "";
-        return `${title}${example}`;
-      });
+      const starterLines = ordered
+        .map((idea) => getStarterIdeaText(idea))
+        .filter(Boolean);
       parts.push(`You could try: ${starterLines.join(". ")}`);
     }
 
@@ -196,9 +230,15 @@ export function buildNarrationText(activity, section, options = {}) {
   }
 
   if (section === "finish") {
-    const extensions = Array.isArray(activity.extensionIdeas)
-      ? activity.extensionIdeas.filter(Boolean)
-      : [];
+    const finishGuide = getFinishGuide(activity);
+    if (finishGuide.action) {
+      const parts = [finishGuide.action];
+      if (finishGuide.example) parts.push(`For example: ${finishGuide.example}`);
+      if (finishGuide.doneWhen) parts.push(`Done when ${finishGuide.doneWhen}`);
+      return joinSentences(parts);
+    }
+
+    const extensions = finishGuide.extensions;
     if (extensions.length === 0) {
       return joinSentences([
         activity.activityStyle === "imaginative"

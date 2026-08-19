@@ -275,6 +275,7 @@ function buildStarterIdeas(activity, stepDetails, olderVoice) {
 
 export function storyifyCachedImaginativeActivity(activity) {
   if (!activity || activity.activityStyle !== "imaginative") return activity;
+  if (Number(activity?.activityFormatVersion) >= 3) return activity;
   if (Number(activity.storyVoiceVersion) >= 1) return activity;
 
   const theme = inferTheme(activity);
