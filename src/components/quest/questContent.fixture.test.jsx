@@ -10,13 +10,40 @@ import {
   getStepActions,
 } from "../../utils/activityVisualTheme";
 import { buildNarrationText } from "../../utils/buildNarrationText";
-import { normalizeActivityV3 } from "../../../server/utils/normalizeActivityV3.js";
 
 vi.mock("../SpeakButton.jsx", () => ({
   default: ({ label }) => <button type="button">{label}</button>,
 }));
 
 import QuestContent from "./QuestContent.jsx";
+
+/** Minimal V3 normalization sufficient for frontend rendering tests.
+ *  The full normalizeActivityV3 lives in the server and is tested in PR #136. */
+function minimalNormalizeV3(activity) {
+  const stepDetails = (activity.stepDetails || []).map((step) => ({
+    ...step,
+    instruction: Array.isArray(step.actions) ? step.actions.join(" ") : (step.instruction || ""),
+    doneWhen: step.doneWhen || "",
+    ifStuck: step.ifStuck || "",
+    starterIdeas: step.starterIdeas || [],
+    roleInstructions: step.roleInstructions || [],
+  }));
+  return {
+    ...activity,
+    stepDetails,
+    uses: (activity.setupGuide?.needed || []),
+    extensionIdeas: activity.finishGuide?.extensions || [],
+    steps: stepDetails.map((s) => s.instruction),
+    kidRole: activity.roleGuide?.name || "",
+    mission: activity.story || activity.summary || "",
+    theme: activity.story || "",
+    roles: [],
+    starterPrompts: [],
+    firstMoves: [],
+  };
+}
+
+const normalizedV3 = minimalNormalizeV3(lostShellSignalV3Fixture);
 
 describe("completeActivityV2Fixture", () => {
   it("includes every Activity V2 field both quest surfaces should render", () => {
@@ -45,7 +72,7 @@ describe("completeActivityV2Fixture", () => {
 });
 
 describe("lostShellSignalV3Fixture", () => {
-  const normalized = normalizeActivityV3(lostShellSignalV3Fixture, "imaginative", [8]);
+  const normalized = normalizedV3;
 
   it("exposes setup, actions, and finish guide fields", () => {
     expect(normalized.activityFormatVersion).toBe(3);
