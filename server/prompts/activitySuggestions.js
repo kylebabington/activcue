@@ -226,7 +226,9 @@ STEP WRITING RULES (hard — every stepDetail):
 - Write 4–7 sentences of concrete, observable action. Do not stop at a short label.
 - Ban vague instructions such as: "Test the map", "Add details", "Connect the routes", "Continue the story", "Set everything up", "Do the next part", "Make it better".
 - title is a short beat name, never a substitute for the instruction.
-- doneWhen is an observable ready-to-continue cue ("Every zone has a name you can point to.") — never "the objective is complete" or "something in the story has changed".
+- doneWhen is an observable ready-to-continue cue for THIS step only ("Every zone has a name you can point to.", "You have drawn a path between at least two zones.").
+- NEVER write generic doneWhen such as "You finished this step", "You finished this part of the activity", "when you finish this step", "this step is done", or "the objective is complete".
+- doneWhen must name a visible result from this step's action, not the mere fact that the step happened.
 - ifStuck is one simpler rescue that is NOT a reused starterIdea.
 - roleInstructions are OPTIONAL supplements. They must NOT contain information required to understand the main instruction. The scene must still work if roleInstructions are ignored.
 
@@ -266,7 +268,7 @@ CATEGORY AND TRAIT RULES:
 QUALITY BAR (imaginative under-10 example shape):
 - roleGuide.name: "Sea Signal Finder" (activity-specific)
 - step instruction = what to do + how to do it + what to try if stuck + what done looks like
-- doneWhen = natural transition cue ("Your first station has a marker.") — never "Something in the story has changed…"
+- doneWhen = natural transition cue ("Your first station has a marker.") — never "You finished this step" or "Something in the story has changed…"
 - ifStuck = one decisive nudge, not a reused starter
 - roleInstructions add a child's job; they never replace the scene instruction
 `.trim();

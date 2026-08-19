@@ -30,6 +30,13 @@ describe("buildSimpleActivitiesFromTemplates age gate", () => {
     });
     const titles = activities.map((activity) => activity.title);
     expect(titles).toContain("Build a cozy fort");
+    expect(
+      activities.every((activity) =>
+        (activity.stepDetails || []).every(
+          (step) => !/finished this step/i.test(step.doneWhen || "")
+        )
+      )
+    ).toBe(true);
   });
 
   it("excludes cozy fort and stuffed animal picnic for teens", () => {

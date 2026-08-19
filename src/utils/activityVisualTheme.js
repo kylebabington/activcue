@@ -1,5 +1,7 @@
 /** Deterministic visual themes for imaginative activity cards (no AI art). */
 
+import { resolveDoneWhen } from "./questStepCopy";
+
 export const VISUAL_THEME_META = {
   space: { label: "Space", icon: "🌙", accent: "#3b6ea5" },
   jungle: { label: "Nature", icon: "🌿", accent: "#2f7a4b" },
@@ -153,18 +155,24 @@ export function getStepStuckPrompts(step) {
 
 export function getStepDetails(activity) {
   if (Array.isArray(activity?.stepDetails) && activity.stepDetails.length > 0) {
-    return activity.stepDetails;
+    return activity.stepDetails.map((step) => ({
+      ...step,
+      doneWhen: resolveDoneWhen(step),
+    }));
   }
   if (Array.isArray(activity?.steps)) {
-    return activity.steps.filter(Boolean).map((step, index) => ({
-      title: `Step ${index + 1}`,
-      instruction: step,
-      starterIdeas: [],
-      examples: [],
-      doneWhen: "You finished this step.",
-      ifStuck: "Do a simpler version of this step and move on.",
-      roleInstructions: [],
-    }));
+    return activity.steps.filter(Boolean).map((step, index) => {
+      const instruction = String(step).trim();
+      return {
+        title: `Step ${index + 1}`,
+        instruction,
+        starterIdeas: [],
+        examples: [],
+        doneWhen: resolveDoneWhen({ instruction, title: instruction }),
+        ifStuck: "Do a simpler version of this move and keep going.",
+        roleInstructions: [],
+      };
+    });
   }
   return [];
 }

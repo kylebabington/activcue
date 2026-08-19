@@ -1,3 +1,5 @@
+import { resolveDoneWhen } from "../../utils/questStepCopy";
+
 const SCENE_TITLES = {
   space: [
     "Mission Control Wakes Up",
@@ -231,15 +233,18 @@ function sceneIntro(theme, index, olderVoice) {
 }
 
 function legacyStepDetails(activity) {
-  return safeArray(activity?.steps).map((instruction) => ({
-    title: "",
-    instruction,
-    starterIdeas: [],
-    examples: [],
-    doneWhen: "",
-    ifStuck: "",
-    roleInstructions: [],
-  }));
+  return safeArray(activity?.steps).map((instruction) => {
+    const text = String(instruction || "").trim();
+    return {
+      title: "",
+      instruction: text,
+      starterIdeas: [],
+      examples: [],
+      doneWhen: resolveDoneWhen({ instruction: text, title: text }),
+      ifStuck: "",
+      roleInstructions: [],
+    };
+  });
 }
 
 function synthesizeStepStarters(step, olderVoice) {
@@ -366,11 +371,11 @@ export function storyifyCachedImaginativeActivity(activity) {
 
   const stepDetails = sourceSteps.map((step, index) => {
     const action = step?.instruction || step?.title || "Choose one small move that pushes the story forward.";
-    const doneWhen = step?.doneWhen
-      ? String(step.doneWhen).trim()
-      : olderVoice
-        ? "You've made one clear move and know what comes next."
-        : "You've left a clear marker and you're ready to keep going.";
+    const doneWhen = resolveDoneWhen({
+      ...step,
+      instruction: action,
+      title: step?.title,
+    });
     const ifStuck = step?.ifStuck
       ? `${olderVoice ? "Quick reset" : "Can't decide"}: ${step.ifStuck}`
       : olderVoice

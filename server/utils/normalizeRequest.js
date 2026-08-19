@@ -10,6 +10,7 @@ import {
   STARTER_IDEA_KINDS,
   VISUAL_THEMES,
 } from "../schemas/activitySuggestionsSchema.js";
+import { resolveDoneWhen } from "../../src/utils/questStepCopy.js";
 
 const CATEGORY_SET = new Set(ACTIVITY_CATEGORIES);
 const VISUAL_THEME_SET = new Set(VISUAL_THEMES);
@@ -290,20 +291,21 @@ export function normalizeStepDetails(stepDetails, steps = []) {
         starterIdeas = synthesizeStarterIdeasFromExamples(examples);
       }
 
-      details.push({
+      const normalizedStep = {
         title: title || `Step ${details.length + 1}`,
         instruction: instruction || title,
         starterIdeas,
         examples,
-        doneWhen: asString(
-          raw.doneWhen,
-          "You finished this part of the activity."
-        ),
+        doneWhen: asString(raw.doneWhen),
         ifStuck: asString(
           raw.ifStuck,
-          "Skip the fancy version and do the simplest version of this step."
+          "Skip the fancy version and do the simplest version of this move."
         ),
         roleInstructions,
+      };
+      details.push({
+        ...normalizedStep,
+        doneWhen: resolveDoneWhen(normalizedStep),
       });
     }
   }
@@ -312,14 +314,17 @@ export function normalizeStepDetails(stepDetails, steps = []) {
     for (const step of steps) {
       const text = asString(step);
       if (!text) continue;
-      details.push({
+      const legacyStep = {
         title: text.length > 56 ? `${text.slice(0, 53)}…` : text,
         instruction: text,
         starterIdeas: [],
         examples: [],
-        doneWhen: "You finished this step.",
-        ifStuck: "Do a simpler version of this step and move on.",
+        ifStuck: "Do a simpler version of this move and keep going.",
         roleInstructions: [],
+      };
+      details.push({
+        ...legacyStep,
+        doneWhen: resolveDoneWhen(legacyStep),
       });
     }
   }
