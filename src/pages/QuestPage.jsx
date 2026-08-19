@@ -194,6 +194,7 @@ function QuestPage() {
         markRescueModeUsed,
         stepHint,
         isHintLoading,
+        hintLoadingStepIndex,
         handleNeedStepHint,
         completeListeningIntro,
         setActivityReadingModeEnabled,
@@ -270,6 +271,7 @@ function QuestPage() {
                     markRescueModeUsed={markRescueModeUsed}
                     stepHint={stepHint}
                     isHintLoading={isHintLoading}
+                    hintLoadingStepIndex={hintLoadingStepIndex}
                     handleNeedStepHint={handleNeedStepHint}
                     canUseAiHints={Boolean(entitlement?.canUseAiHints)}
                     playingChildren={playingChildren}

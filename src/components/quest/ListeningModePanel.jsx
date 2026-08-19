@@ -5,13 +5,16 @@ import SpeakButton from "../SpeakButton";
 import { useSpeechSynthesis } from "../../hooks/useSpeechSynthesis";
 import { buildNarrationText } from "../../utils/buildNarrationText";
 import { getSceneInstruction, getStepRoleParts } from "../../utils/questStepCopy";
+import {
+  getLocalStuckSuggestions,
+  nextStuckSuggestion,
+} from "../../utils/questStuckHelp";
 import { trackProductEvent } from "../../utils/analytics";
 import {
   getActivityRoleLabel,
   getStepDetails,
   getStepStarterIdeas,
   getStepStarterSectionLabel,
-  getStepStuckPrompts,
   getStarterKindIcon,
   getVisualThemeMeta,
 } from "../../utils/activityVisualTheme";
@@ -33,9 +36,12 @@ export default function ListeningModePanel({
   onTimerNeedAnotherIdea,
   onTimerMoreLikeThis,
   onImStuck,
+  stuckSuggestion = "",
+  isHintLoading = false,
+  canUseAiHints = false,
 }) {
   const { speak, supported } = useSpeechSynthesis();
-  const [stuckPromptIndex, setStuckPromptIndex] = useState(-1);
+  const [localStuckCursor, setLocalStuckCursor] = useState(-1);
   const autoAdvancePendingRef = useRef(false);
   const previousStepIndexRef = useRef(null);
 
@@ -94,13 +100,41 @@ export default function ListeningModePanel({
         selectedStarterIndex,
       })
     : "";
-  const stuckPrompts = getStepStuckPrompts(currentStep);
+  const localStuckSuggestions = getLocalStuckSuggestions(currentStep);
+  const parentStuckSuggestion =
+    stuckSuggestion ||
+    activity?.stuckSuggestionByStepIndex?.[String(currentStepIndex)] ||
+    "";
   const visibleStuckPrompt =
-    stuckPromptIndex >= 0 ? stuckPrompts[stuckPromptIndex] : "";
+    parentStuckSuggestion ||
+    (localStuckCursor >= 0 ? localStuckSuggestions[localStuckCursor] : "");
 
   useEffect(() => {
-    setStuckPromptIndex(-1);
+    setLocalStuckCursor(-1);
   }, [currentStepIndex]);
+
+  const wasHintLoadingRef = useRef(false);
+  useEffect(() => {
+    if (isHintLoading) {
+      wasHintLoadingRef.current = true;
+      return;
+    }
+    if (!wasHintLoadingRef.current) return;
+    wasHintLoadingRef.current = false;
+    if (!supported || !parentStuckSuggestion) return;
+    trackProductEvent("speech_read_requested", { section: "stuck" });
+    speak(parentStuckSuggestion, {
+      rate: speechRate,
+      key: `listening-stuck-${currentStepIndex}`,
+    });
+  }, [
+    currentStepIndex,
+    isHintLoading,
+    parentStuckSuggestion,
+    speak,
+    speechRate,
+    supported,
+  ]);
 
   useEffect(() => {
     if (!autoAdvancePendingRef.current) {
@@ -166,21 +200,26 @@ export default function ListeningModePanel({
   }
 
   function handleNeedHelp() {
-    if (stuckPrompts.length === 0) return;
-    const nextIndex = (stuckPromptIndex + 1) % stuckPrompts.length;
-    setStuckPromptIndex(nextIndex);
-    onImStuck?.(currentStepIndex, nextIndex);
-
-    const stuckText = buildNarrationText(activity, "stuck", {
-      stepIndex: currentStepIndex,
-      stuckPromptIndex: nextIndex,
-    });
-    trackProductEvent("speech_read_requested", { section: "stuck" });
-    if (supported && stuckText) {
-      speak(stuckText, {
-        rate: speechRate,
-        key: `listening-stuck-${currentStepIndex}-${nextIndex}`,
-      });
+    if (isHintLoading) return;
+    onImStuck?.(currentStepIndex);
+    if (typeof onImStuck !== "function") {
+      const next = nextStuckSuggestion(
+        localStuckSuggestions.length > 0
+          ? localStuckSuggestions
+          : getSceneInstruction(currentStep)
+            ? [`Try this part next: ${getSceneInstruction(currentStep)}`]
+            : [],
+        localStuckCursor
+      );
+      setLocalStuckCursor(next.cursor);
+      const stuckText = next.suggestion;
+      if (supported && stuckText) {
+        trackProductEvent("speech_read_requested", { section: "stuck" });
+        speak(stuckText, {
+          rate: speechRate,
+          key: `listening-stuck-${currentStepIndex}-${next.cursor}`,
+        });
+      }
     }
   }
 
@@ -341,15 +380,19 @@ export default function ListeningModePanel({
             >
               I did it
             </button>
-            {stuckPrompts.length > 0 ? (
-              <button
-                type="button"
-                className="secondary-action"
-                onClick={handleNeedHelp}
-              >
-                Need help?
-              </button>
-            ) : null}
+            <button
+              type="button"
+              className="secondary-action"
+              onClick={handleNeedHelp}
+              disabled={isHintLoading}
+              title={
+                canUseAiHints
+                  ? "Get a specific idea for this scene"
+                  : "Get another idea for this scene"
+              }
+            >
+              {isHintLoading ? "Thinking…" : "Need help?"}
+            </button>
             {currentStepIndex > 0 ? (
               <button
                 type="button"
@@ -361,12 +404,16 @@ export default function ListeningModePanel({
             ) : null}
           </div>
 
-          {visibleStuckPrompt ? (
+          {isHintLoading || visibleStuckPrompt ? (
             <div className="quest-v2-if-stuck" aria-live="polite">
-              <p className="quest-step-stuck-counter">
-                Idea {stuckPromptIndex + 1} of {stuckPrompts.length}
+              <p className="quest-play-card-kicker">
+                {isHintLoading ? "One idea for this scene" : "Try this"}
               </p>
-              <p>{visibleStuckPrompt}</p>
+              <p>
+                {isHintLoading
+                  ? "Thinking of a specific idea for this scene…"
+                  : visibleStuckPrompt}
+              </p>
             </div>
           ) : null}
         </div>
