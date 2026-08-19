@@ -62,7 +62,7 @@ export default function LandingProductShowcase({
       <div className="landing-section-inner landing-section-inner--wide">
         <h2 id="product-title">See {BRAND.name}</h2>
         <p className="landing-section-lead">
-          Watch the loop before you create an account.
+          Watch a 30-second loop after you&apos;ve seen what an activity looks like.
         </p>
 
         {hasVideo ? (
@@ -125,7 +125,7 @@ export default function LandingProductShowcase({
               trackProductEvent("demo_started", { source: "product" })
             }
           >
-            Try the demo
+            Try {BRAND.name}
           </Link>
         </div>
       </div>

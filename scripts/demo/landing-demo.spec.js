@@ -116,7 +116,7 @@ test("record ActivCue real product walkthrough", async ({ page }, testInfo) => {
     timeout: 15000,
   });
   await expect(page.locator("#demo-results-title")).toHaveText(
-    /Pick something to do/i
+    /three things that fit/i
   );
   const imaginativeCards = page.locator(".activity-card--imaginative");
   await expect(imaginativeCards).toHaveCount(3);
