@@ -71,6 +71,7 @@ describe("Activity Content V2 normalization", () => {
     ]);
     expect(details).toHaveLength(2);
     expect(details[0].instruction).toContain("Draw a comic panel.");
+    expect(details[0].title).toBe("Step 1");
     expect(details[0].ifStuck).toBeTruthy();
     expect(details[0].starterIdeas).toEqual([]);
     expect(details[0].doneWhen).toBe("You have drawn a comic panel.");

@@ -27,7 +27,7 @@ describe("storyifyCachedImaginativeActivity", () => {
     });
 
     expect(result.storyVoiceVersion).toBe(1);
-    expect(result.stepDetails[0].title).toBe("Mission Control Wakes Up");
+    expect(result.stepDetails[0].title).toBe("Build Mission Control");
     expect(result.stepDetails[0].instruction).toMatch(/crackle runs through Mission Control/i);
     expect(result.stepDetails[0].instruction).toContain("Make a quiet message desk.");
     expect(result.stepDetails[0].instruction).toMatch(/books as radio towers/i);

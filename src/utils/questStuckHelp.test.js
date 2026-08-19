@@ -27,9 +27,9 @@ describe("getLocalStuckSuggestions", () => {
     const suggestions = getLocalStuckSuggestions(
       completeActivityV2Fixture.stepDetails[0]
     );
-    expect(suggestions.some((item) => item.includes("Stack a radio"))).toBe(
-      true
-    );
+    expect(
+      suggestions.some((item) => item.includes("Stack books as a radio"))
+    ).toBe(true);
     expect(
       suggestions.some((item) => /simpler version of this step/i.test(item))
     ).toBe(false);

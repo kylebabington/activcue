@@ -1,71 +1,4 @@
-import { resolveDoneWhen, resolveSceneInstruction } from "../../utils/questStepCopy";
-
-const SCENE_TITLES = {
-  space: [
-    "Mission Control Wakes Up",
-    "A Signal Breaks Through",
-    "The Mission Changes",
-    "The Launch Window Opens",
-    "One More Transmission",
-    "Final Transmission",
-  ],
-  mystery: [
-    "The Case Opens",
-    "A Clue Changes Everything",
-    "Follow the Trail",
-    "A New Theory Appears",
-    "One Last Detail",
-    "The Big Reveal",
-  ],
-  rescue: [
-    "The Call Comes In",
-    "Rescue in Motion",
-    "The Situation Changes",
-    "A New Patient Arrives",
-    "Everyone Pulls Together",
-    "Everyone Makes It Home",
-  ],
-  expedition: [
-    "Base Camp Opens",
-    "The Trail Changes",
-    "A Discovery!",
-    "The Map Gets Interesting",
-    "One Last Stretch",
-    "Back to Base",
-  ],
-  science: [
-    "The Lab Lights Up",
-    "A Curious Result Appears",
-    "Try Your Best Theory",
-    "Something Unexpected Happens",
-    "Final Test",
-    "The Big Reveal",
-  ],
-  neighborhood: [
-    "Doors Open",
-    "The First Request Arrives",
-    "Something Needs Your Idea",
-    "A Surprise Joins In",
-    "Almost Ready",
-    "Grand Opening",
-  ],
-  fantasy: [
-    "The World Wakes Up",
-    "A Twist Appears",
-    "Your Choice Changes Things",
-    "The Story Turns",
-    "One Last Surprise",
-    "The Ending Is Yours",
-  ],
-  animals: [
-    "The Animals Need You",
-    "A New Visitor Arrives",
-    "The Habitat Changes",
-    "A Surprise Needs Solving",
-    "Almost Home",
-    "Happy Ending",
-  ],
-};
+import { resolveDoneWhen, resolveSceneInstruction, resolveSceneTitle } from "../../utils/questStepCopy";
 
 const YOUNGER_INTROS = {
   space: [
@@ -169,14 +102,6 @@ const OLDER_INTROS = {
   ],
 };
 
-const STARTER_TITLES = [
-  "First Spark",
-  "Unexpected Clue",
-  "Your Twist",
-  "Secret Detail",
-  "Wild Card",
-];
-
 function safeArray(value) {
   return Array.isArray(value) ? value : [];
 }
@@ -200,18 +125,6 @@ function inferTheme(activity) {
   if (/(dragon|kingdom|apothecary|treasure|colony|dream|embassy)/.test(text)) return "fantasy";
   if (/(animal|zoo|habitat)/.test(text)) return "animals";
   return "neighborhood";
-}
-
-function sceneTitle(theme, index) {
-  const titles = SCENE_TITLES[theme] || [
-    "The Story Begins",
-    "Something Changes",
-    "Your Next Move",
-    "A New Twist",
-    "Almost There",
-    "The Big Finish",
-  ];
-  return titles[Math.min(index, titles.length - 1)];
 }
 
 function sceneIntro(theme, index, olderVoice) {
@@ -251,8 +164,8 @@ function synthesizeStepStarters(step, olderVoice) {
   const existing = safeArray(step?.starterIdeas)
     .filter((idea) => idea && (idea.title || idea.example))
     .map((idea) => ({
-      title: idea.title || idea.example,
-      example: idea.example || idea.title,
+      title: "",
+      example: String(idea.example || idea.title || "").trim(),
       kind: normalizeKind(idea.kind),
     }));
   if (existing.length >= 2) return existing.slice(0, 3);
@@ -261,7 +174,7 @@ function synthesizeStepStarters(step, olderVoice) {
     .filter(Boolean)
     .slice(0, 3)
     .map((example) => ({
-      title: String(example).length > 48 ? `${String(example).slice(0, 45)}…` : String(example),
+      title: "",
       example: String(example),
       kind: "imagination",
     }));
@@ -269,34 +182,34 @@ function synthesizeStepStarters(step, olderVoice) {
   const fillers = olderVoice
     ? [
         {
-          title: "Try the easy version",
+          title: "",
           example: "Do the simplest version of this move first.",
           kind: "choice",
         },
         {
-          title: "Add one constraint",
+          title: "",
           example: "Give yourself one rule that makes it more interesting.",
           kind: "imagination",
         },
         {
-          title: "Sketch it first",
+          title: "",
           example: "Draw a tiny plan before you commit.",
           kind: "drawing",
         },
       ]
     : [
         {
-          title: "Use something nearby",
+          title: "",
           example: "Turn the closest object into part of the scene.",
           kind: "choice",
         },
         {
-          title: "Make something weird",
+          title: "",
           example: "Add one silly detail nobody expects.",
           kind: "imagination",
         },
         {
-          title: "Draw a clue",
+          title: "",
           example: "Make a quick symbol on scrap paper.",
           kind: "drawing",
         },
@@ -312,15 +225,18 @@ function synthesizeStepStarters(step, olderVoice) {
 
 function buildStarterIdeas(activity, stepDetails, olderVoice) {
   const starters = safeArray(activity?.starterIdeas).map((idea) => ({
-    title: idea?.title || "Story Spark",
-    example: idea?.example || "Choose the version that sounds most interesting to you.",
+    title: "",
+    example:
+      idea?.example ||
+      idea?.title ||
+      "Choose the version that sounds most interesting to you.",
     kind: normalizeKind(idea?.kind),
   }));
 
   safeArray(activity?.starterPrompts).forEach((prompt) => {
     if (starters.length >= 5) return;
     starters.push({
-      title: STARTER_TITLES[starters.length],
+      title: "",
       example: prompt,
       kind: starters.length % 2 === 0 ? "imagination" : "choice",
     });
@@ -329,7 +245,7 @@ function buildStarterIdeas(activity, stepDetails, olderVoice) {
   safeArray(activity?.firstMoves).forEach((move) => {
     if (starters.length >= 5) return;
     starters.push({
-      title: STARTER_TITLES[starters.length],
+      title: "",
       example: move,
       kind: "choice",
     });
@@ -338,7 +254,7 @@ function buildStarterIdeas(activity, stepDetails, olderVoice) {
   stepDetails.forEach((step) => {
     if (starters.length >= 5) return;
     starters.push({
-      title: STARTER_TITLES[starters.length],
+      title: "",
       example: step.instruction,
       kind: "choice",
     });
@@ -346,7 +262,7 @@ function buildStarterIdeas(activity, stepDetails, olderVoice) {
 
   while (starters.length < 5) {
     starters.push({
-      title: STARTER_TITLES[starters.length],
+      title: "",
       example: olderVoice
         ? "Add one detail, constraint, joke, or twist that makes this feel like your version."
         : "Add one silly, surprising, mysterious, or wonderful detail that makes this story feel like yours.",
@@ -392,7 +308,11 @@ export function storyifyCachedImaginativeActivity(activity) {
 
     return {
       ...step,
-      title: sceneTitle(theme, index),
+      title: resolveSceneTitle(
+        { ...step, instruction: action },
+        { ...activity, visualTheme: theme },
+        index
+      ),
       instruction: `${sceneIntro(theme, index, olderVoice)} ${action}`,
       starterIdeas: synthesizeStepStarters(step, olderVoice),
       examples: safeArray(step?.examples),

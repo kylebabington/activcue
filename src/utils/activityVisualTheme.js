@@ -4,6 +4,7 @@ import {
   resolveDoneWhen,
   resolveIfStuck,
   resolveSceneInstruction,
+  resolveSceneTitle,
 } from "./questStepCopy";
 
 export const VISUAL_THEME_META = {
@@ -48,12 +49,14 @@ export function getActivityMissionText(activity) {
 
 export function getStarterIdeas(activity) {
   if (Array.isArray(activity?.starterIdeas) && activity.starterIdeas.length > 0) {
-    return activity.starterIdeas;
+    return activity.starterIdeas
+      .map(normalizeStarterIdea)
+      .filter(Boolean);
   }
   if (Array.isArray(activity?.starterPrompts)) {
     return activity.starterPrompts.filter(Boolean).map((prompt) => ({
-      title: prompt,
-      example: prompt,
+      title: "",
+      example: String(prompt).trim(),
       kind: "imagination",
     }));
   }
@@ -101,6 +104,24 @@ export function getStarterKindIcon(kind) {
   return STARTER_KIND_ICONS[kind] || STARTER_KIND_ICONS.imagination;
 }
 
+/** Kid-facing starter copy — one line only, never a separate title + example. */
+export function getStarterIdeaText(idea) {
+  if (!idea || typeof idea !== "object") return "";
+  const example = String(idea.example || "").trim();
+  const title = String(idea.title || "").trim();
+  return example || title;
+}
+
+function normalizeStarterIdea(idea) {
+  const text = getStarterIdeaText(idea);
+  if (!text) return null;
+  return {
+    title: "",
+    example: text,
+    kind: idea?.kind || "imagination",
+  };
+}
+
 /**
  * Prefer structured step starterIdeas; fall back to legacy examples[].
  */
@@ -109,12 +130,8 @@ export function getStepStarterIdeas(step) {
 
   if (Array.isArray(step.starterIdeas) && step.starterIdeas.length > 0) {
     return step.starterIdeas
-      .filter((idea) => idea && (idea.title || idea.example))
-      .map((idea) => ({
-        title: idea.title || idea.example,
-        example: idea.example || idea.title,
-        kind: idea.kind || "imagination",
-      }))
+      .map(normalizeStarterIdea)
+      .filter(Boolean)
       .slice(0, 3);
   }
 
@@ -122,14 +139,11 @@ export function getStepStarterIdeas(step) {
   return examples
     .filter((example) => typeof example === "string" && example.trim())
     .slice(0, 3)
-    .map((example) => {
-      const text = example.trim();
-      return {
-        title: text.length > 48 ? `${text.slice(0, 45)}…` : text,
-        example: text,
-        kind: "imagination",
-      };
-    });
+    .map((example) => ({
+      title: "",
+      example: example.trim(),
+      kind: "imagination",
+    }));
 }
 
 /**
@@ -169,8 +183,14 @@ export function getStepDetails(activity) {
   if (Array.isArray(activity?.stepDetails) && activity.stepDetails.length > 0) {
     return activity.stepDetails.map((step, index) => {
       const instruction = resolveSceneInstruction(step, activity, index);
+      const title = resolveSceneTitle(
+        { ...step, instruction },
+        activity,
+        index
+      );
       return {
         ...step,
+        title,
         instruction,
         doneWhen: resolveDoneWhen(step),
         ifStuck: resolveIfStuck(step),
@@ -185,8 +205,13 @@ export function getStepDetails(activity) {
         activity,
         index
       );
+      const title = resolveSceneTitle(
+        { instruction, title: raw },
+        activity,
+        index
+      );
       return {
-        title: `Step ${index + 1}`,
+        title,
         instruction,
         starterIdeas: [],
         examples: [],

@@ -14,6 +14,7 @@ import {
   resolveDoneWhen,
   resolveIfStuck,
   resolveSceneInstruction,
+  resolveSceneTitle,
 } from "../../src/utils/questStepCopy.js";
 
 const CATEGORY_SET = new Set(ACTIVITY_CATEGORIES);
@@ -239,7 +240,7 @@ export function normalizeStarterIdeas(starterIdeas, starterPrompts = []) {
       const example = asString(raw.example);
       if (!title && !example) continue;
       ideas.push({
-        title: title || "Try this",
+        title: "",
         example: example || title,
         kind: pickEnum(raw.kind, STARTER_IDEA_KINDS, "imagination"),
       });
@@ -251,7 +252,7 @@ export function normalizeStarterIdeas(starterIdeas, starterPrompts = []) {
       const text = asString(prompt);
       if (!text) continue;
       ideas.push({
-        title: text.length > 48 ? `${text.slice(0, 45)}…` : text,
+        title: "",
         example: text,
         kind: "imagination",
       });
@@ -263,7 +264,7 @@ export function normalizeStarterIdeas(starterIdeas, starterPrompts = []) {
 
 function synthesizeStarterIdeasFromExamples(examples) {
   return examples.slice(0, 3).map((example) => ({
-    title: example.length > 48 ? `${example.slice(0, 45)}…` : example,
+    title: "",
     example,
     kind: "imagination",
   }));
@@ -311,6 +312,11 @@ export function normalizeStepDetails(stepDetails, steps = [], activity = {}) {
       );
       details.push({
         ...normalizedStep,
+        title: resolveSceneTitle(
+          { ...normalizedStep, instruction: expandedInstruction },
+          activity,
+          details.length
+        ),
         instruction: expandedInstruction,
         doneWhen: resolveDoneWhen(normalizedStep),
         ifStuck: resolveIfStuck(normalizedStep),
@@ -323,7 +329,7 @@ export function normalizeStepDetails(stepDetails, steps = [], activity = {}) {
       const text = asString(step);
       if (!text) continue;
       const legacyStep = {
-        title: text.length > 56 ? `${text.slice(0, 53)}…` : text,
+        title: "",
         instruction: text,
         starterIdeas: [],
         examples: [],
@@ -336,6 +342,11 @@ export function normalizeStepDetails(stepDetails, steps = [], activity = {}) {
       );
       details.push({
         ...legacyStep,
+        title: resolveSceneTitle(
+          { ...legacyStep, instruction: expandedInstruction },
+          activity,
+          details.length
+        ),
         instruction: expandedInstruction,
         doneWhen: resolveDoneWhen(legacyStep),
         ifStuck: resolveIfStuck(legacyStep),
@@ -375,7 +386,7 @@ export function deriveV1FieldsFromV2(activity, fallbackAges = []) {
   const firstMoves =
     asStringArray(activity.firstMoves).length > 0
       ? asStringArray(activity.firstMoves)
-      : starterIdeas.slice(0, 4).map((idea) => idea.title);
+      : starterIdeas.slice(0, 4).map((idea) => idea.example || idea.title);
 
   const rolesFromChildRoles = roleGuide.childRoles.map(
     (role) => role.roleTitle || role.childName
