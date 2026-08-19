@@ -6,7 +6,7 @@ import { Link } from "react-router-dom";
 import { getBillingPlans, redirectToCheckout } from "../api/billingApi";
 import { ApiRequestError } from "../api/apiClient";
 import Modal from "../components/Modal";
-import SiteFooter from "../components/SiteFooter.jsx";
+import LandingActivityPreview from "../components/landing/LandingActivityPreview";
 import LandingPricingCompare from "../components/landing/LandingPricingCompare";
 import LandingProductShowcase from "../components/landing/LandingProductShowcase";
 import LandingSituations from "../components/landing/LandingSituations";
@@ -26,8 +26,13 @@ import "../styles/landing.css";
 
 const WHY_ITEMS = [
   {
+    id: "independent",
+    title: "Kids can start without you",
+    body: `You don't need another activity list. You need them to actually do one. ${BRAND.name} writes the mission, the first move, and what done looks like — so you can cook, work, take a call, or help another child.`,
+  },
+  {
     id: "moment",
-    title: "Fits the moment",
+    title: "Fits the next 20 minutes",
     body: `You're making dinner. One kid is restless. Another is tired. You have 20 minutes, low patience, and whatever supplies are already in the house. ${BRAND.name} matches activities to time, supervision, mess, energy, and the situation you're actually in — not a generic rainy-day list.`,
   },
   {
@@ -36,29 +41,24 @@ const WHY_ITEMS = [
     body: `An activity that works for a 6-year-old shouldn't just get handed to a 13-year-old with different wording. ${BRAND.name} considers age, independence, complexity, and who is playing.`,
   },
   {
-    id: "plan-b",
-    title: "Has a Plan B",
-    body: "Didn't land? Try the next already-matched option without regenerating from scratch. When the house needs a reset, Rescue Mode gives a calm fallback so you can keep moving.",
-  },
-  {
     id: "learns",
     title: "Learns what works",
-    body: `Finished activities feed What Works for Us — so over time ${BRAND.name} leans toward the kinds of play that actually succeed for your family, not just what looks good on a list.`,
+    body: `Finished activities feed What Works for Us — so over time ${BRAND.name} leans toward the kinds of play that actually succeed for your family.`,
   },
 ];
 
 const HOW_STEPS = [
   {
     title: "Tell us the moment",
-    text: "Time, mess, inside or outside, and how independent kids need to be.",
+    text: "How much time you have, and how much chaos you can handle.",
   },
   {
     title: "Tell us who's playing",
-    text: `Ages of the kids in the mix. ${BRAND.name} adapts roles and challenge.`,
+    text: "One tap for age. That's enough to get a first match.",
   },
   {
-    title: `${BRAND.name} finds the best fit`,
-    text: "One strong activity for right now — with Plan B if you need it.",
+    title: `${BRAND.name} gets them started`,
+    text: "A mission, a first move, and a finish they can do without you running it.",
   },
 ];
 
@@ -260,13 +260,6 @@ function LandingPage() {
             </a>
             <Link
               className="landing-topbar-link"
-              to="/privacy"
-              onClick={() => setNavOpen(false)}
-            >
-              Privacy
-            </Link>
-            <Link
-              className="landing-topbar-link"
               to="/login"
               onClick={() => setNavOpen(false)}
             >
@@ -295,7 +288,7 @@ function LandingPage() {
                 trackTryFree("topbar");
               }}
             >
-              Try free
+              Try {BRAND.name}
             </Link>
           </div>
         </div>
@@ -324,13 +317,6 @@ function LandingPage() {
           </a>
           <Link
             className="landing-topbar-link"
-            to="/privacy"
-            onClick={() => setNavOpen(false)}
-          >
-            Privacy
-          </Link>
-          <Link
-            className="landing-topbar-link"
             to="/login"
             onClick={() => setNavOpen(false)}
           >
@@ -354,9 +340,9 @@ function LandingPage() {
             </h1>
             <p className="landing-hero-secondary">{BRAND.secondaryHeadline}</p>
             <p className="landing-hero-support">
-              Tell {BRAND.name} how much time you have, who&apos;s playing,
-              what you have available, and how much chaos you&apos;re willing
-              to tolerate.
+              Tell {BRAND.name} how much time you have, who&apos;s playing, and
+              what kind of chaos you can handle. Get something that fits right
+              now.
             </p>
 
             <div className="landing-hero-actions">
@@ -367,43 +353,28 @@ function LandingPage() {
               >
                 Try {BRAND.name}
               </Link>
-              <Link
-                className="landing-btn landing-btn--ghost"
-                to="/signup"
-                onClick={() =>
-                  trackProductEvent("landing_signup_cta_clicked", {
-                    source: "hero",
-                  })
-                }
-              >
-                Create your family
-              </Link>
             </div>
             <p className="landing-hero-note">
-              {trialOfferActive
-                ? "Card required — $0 today. No account required for the demo."
-                : "No account required for the demo."}
+              No account required. Takes about 30 seconds.
             </p>
           </div>
         </div>
       </section>
 
-      <LandingSituations />
+      <LandingActivityPreview />
 
-      <LandingProductShowcase
-        hasVideo={hasVideo}
-        onOpenVideo={() => setVideoOpen(true)}
-      />
+      <LandingSituations />
 
       <section
         className="landing-section"
         id="why"
         aria-labelledby="why-title"
       >
-        <div className="landing-section-inner">
-          <h2 id="why-title">Why {BRAND.name} gets better results</h2>
+        <div className="landing-section-inner landing-section-inner--wide">
+          <h2 id="why-title">Pinterest gives you an idea. {BRAND.name} gets the kid started.</h2>
           <p className="landing-section-lead">
-            Built for the next twenty minutes — not another rainy-day list.
+            Built for the next twenty minutes — and for kids who shouldn&apos;t
+            need you to run the activity.
           </p>
           <div className="landing-why">
             {WHY_ITEMS.map((item) => (
@@ -419,18 +390,7 @@ function LandingPage() {
               to="/demo"
               onClick={() => trackTryFree("why")}
             >
-              Find something to do
-            </Link>
-            <Link
-              className="landing-btn landing-btn--ghost"
-              to="/signup"
-              onClick={() =>
-                trackProductEvent("landing_signup_cta_clicked", {
-                  source: "why",
-                })
-              }
-            >
-              Create your family
+              Try {BRAND.name}
             </Link>
           </div>
         </div>
@@ -446,7 +406,7 @@ function LandingPage() {
           <p className="landing-section-lead">
             {trialOfferActive
               ? launchTrialOfferNote(launchTrial)
-              : "Start free. Upgrade when you want unlimited activities personalized to your family."}
+              : "Start by trying it. Upgrade when you want unlimited activities that remember your family."}
           </p>
           {checkoutError ? (
             <p className="landing-plus-note" role="alert">
@@ -493,23 +453,25 @@ function LandingPage() {
               to="/demo"
               onClick={() => trackTryFree("how")}
             >
-              Try the demo
+              Try {BRAND.name}
             </Link>
           </div>
         </div>
       </section>
+
+      <LandingProductShowcase
+        hasVideo={hasVideo}
+        onOpenVideo={() => setVideoOpen(true)}
+      />
 
       <section
         className="landing-section landing-section--tint"
         aria-labelledby="final-cta-title"
       >
         <div className="landing-section-inner landing-final-cta">
-          <h2 id="final-cta-title">Stop searching. Find something that fits.</h2>
+          <h2 id="final-cta-title">{BRAND.name} gives parents their next 20 minutes back.</h2>
           <p>
-            Try {BRAND.name} with your current situation — no account required.
-            Create a free account when you want {BRAND.name} to remember your
-            kids.
-            {trialOfferActive ? ` ${launchTrialOfferNote(launchTrial)}` : ""}
+            Try it with your current situation — no account required.
           </p>
           <div className="landing-hero-actions">
             <Link
@@ -519,17 +481,6 @@ function LandingPage() {
             >
               Try {BRAND.name}
             </Link>
-            <Link
-              className="landing-btn landing-btn--ghost"
-              to="/signup"
-              onClick={() =>
-                trackProductEvent("landing_signup_cta_clicked", {
-                  source: "final",
-                })
-              }
-            >
-              Create your family
-            </Link>
           </div>
           <p className="landing-final-login">
             Already have an account?{" "}
@@ -538,7 +489,18 @@ function LandingPage() {
         </div>
       </section>
 
-      <SiteFooter />
+      <footer className="landing-footer">
+        <div className="landing-footer-inner">
+          <img src="/logo.svg" alt="" width="24" height="24" />
+          <span>{BRAND.name}</span>
+          <span className="landing-footer-sep" aria-hidden="true">
+            ·
+          </span>
+          <Link to="/privacy">Privacy</Link>
+          <Link to="/terms">Terms</Link>
+          <a href={`mailto:${BRAND.supportEmail}`}>Support</a>
+        </div>
+      </footer>
 
       <Modal
         title={`${BRAND.name} walkthrough`}

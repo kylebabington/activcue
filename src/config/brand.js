@@ -4,6 +4,7 @@ export const BRAND = {
   domain: "activcue.fun",
   url: "https://activcue.fun",
   supportEmail: "support@activcue.fun",
-  tagline: "The right activity for right now.",
-  secondaryHeadline: "Activities that fit your family right now.",
+  tagline: "Need 20 minutes?",
+  secondaryHeadline:
+    "Get an activity your kid can actually start without you.",
 };

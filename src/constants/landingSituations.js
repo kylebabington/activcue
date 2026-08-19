@@ -76,9 +76,6 @@ export function buildDemoUrl(situation) {
   const params = new URLSearchParams();
   if (situation.id) params.set("situation", situation.id);
   if (situation.momentId) params.set("moment", situation.momentId);
-  if (Array.isArray(situation.ages) && situation.ages.length > 0) {
-    params.set("ages", situation.ages.join(","));
-  }
   if (situation.timeMinutes != null) {
     params.set("time", String(situation.timeMinutes));
   }
