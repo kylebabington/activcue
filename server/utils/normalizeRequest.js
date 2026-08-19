@@ -265,7 +265,7 @@ export function normalizeStarterIdeas(starterIdeas, starterPrompts = []) {
 }
 
 function synthesizeStarterIdeasFromExamples(examples) {
-  return examples.slice(0, 3).map((example, index) => ({
+  return examples.slice(0, 3).map((example) => ({
     title: "",
     example,
     kind: "imagination",

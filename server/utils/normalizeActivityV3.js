@@ -18,10 +18,6 @@ function asStringArray(value) {
     .filter(Boolean);
 }
 
-function pickEnum(value, allowed, fallback) {
-  return allowed.includes(value) ? value : fallback;
-}
-
 function dedupeActions(actions) {
   const seen = new Set();
   const result = [];
@@ -130,7 +126,7 @@ function normalizeRoleGuideV3(roleGuide, fallbacks = {}) {
   };
 }
 
-function normalizeStepDetailsV3(stepDetails, activity = {}) {
+function normalizeStepDetailsV3(stepDetails) {
   if (!Array.isArray(stepDetails)) return [];
 
   return stepDetails

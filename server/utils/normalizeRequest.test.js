@@ -5,7 +5,6 @@ import {
   normalizeStarterIdeas,
   normalizeStepDetails,
 } from "./normalizeRequest.js";
-import { normalizeActivityV3 } from "./normalizeActivityV3.js";
 import { lostShellSignalV3Fixture } from "../../src/fixtures/lostShellSignalV3Fixture.js";
 
 describe("Activity Content V2 normalization", () => {
