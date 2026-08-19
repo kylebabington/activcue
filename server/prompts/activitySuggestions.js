@@ -197,14 +197,33 @@ ${playModeFlavor}
 Requested activity style: ${style}
 Age voice band for this batch: ${ageBand}
 
-ACTIVITY FORMAT V2 (required — do NOT emit legacy mirrors like kidRole, mission, starterPrompts, firstMoves, steps, roles):
-- Set activityFormatVersion to 2.
-- Fill roleGuide: { name, description, goal, firstAction, childRoles[] }. name may be "" when no natural role exists.
-- childRoles may be [] for single-child. For family/mixed-age, include one entry per participating child.
-- Fill ageFit: { minAge, maxAge, targetAges[], maturityLevel, independenceLevel, ageFitReason }.
-- Fill starterIdeas: array of { title, example, kind } (kind: imagination | choice | dialogue | drawing | building).
-- Fill stepDetails: array of { title, instruction, starterIdeas[], doneWhen, ifStuck, roleInstructions[] }.
+ACTIVITY FORMAT V3 (required — do NOT emit legacy mirrors like kidRole, mission, starterPrompts, firstMoves, steps, roles, instruction, theme, extensionIdeas):
+- Set activityFormatVersion to 3.
+- story: WHY this imaginary situation exists. Narrative only. No setup. No step directions. Do not repeat roleGuide.
+- summary: max 2 sentences — what the child will do.
+- roleGuide: { name, description, childRoles[] }. WHO the child is. Max 1–2 short sentences in description. No setup. No step directions.
+- setupGuide: { needed[], steps[], readyWhen }. EVERYTHING that must exist before Scene 1. Explain what to get, where to put it, and what each invented location means (station, base camp, lab, etc.).
+- stepDetails: { title, actions[], starterIdeas[], doneWhen, ifStuck, roleInstructions[] }. Do NOT include instruction — the server derives it from actions.
+- finishGuide: { action, example, doneWhen, extensions[] }. Exactly ONE ending. Extensions are optional afterward only.
+- starterIdeas: concrete examples the child may copy. title and example must differ. Never title === example.
 - Set visualTheme to one of: space, jungle, detective, animals, fantasy, building, science, art, expedition, neighborhood, rescue, mystery.
+
+SECTION OWNERSHIP IS A HARD REQUIREMENT — every field has exactly one job:
+- story → narrative why only
+- roleGuide → who + overall job only
+- setupGuide → physical prep before play only
+- stepDetails.actions → in-scene actions only
+- finishGuide → ending only
+- starterIdeas → optional inspiration, not required steps
+
+ACTION WRITING RULES (hard — every actions[] item):
+- Each action is one independently executable sentence starting with a concrete verb: Get, Put, Place, Walk, Stand, Sit, Pick up, Turn, Draw, Write, Say, Count, Choose, Move, Build, Fold, Line up, Point, Look.
+- Imaginative activities: 3–7 actions per scene. Simple activities: 2–6 actions per scene.
+- BAN vague standalone actions: Explore the station, Continue the story, Investigate the clue, Prepare the lab, Set everything up, Make it better, Create your signal, Figure out what happens, Use your imagination.
+- If you need investigation language, follow it immediately with literal steps.
+- doneWhen must be observable ("Three clues are lined up beside your stuffed animal") — never "You finished this step" or "Move on when ready."
+- ifStuck is one simpler rescue, not a reused starterIdea.
+- For adultHelp "none": never say Ask a grown-up, Have someone hide, Have your parent, Ask someone to prepare.
 
 ${buildAgeAppropriatenessRules(ageBand)}
 
@@ -220,7 +239,7 @@ PROSE CAPS (hard):
 - whyItFits: max 2 sentences.
 - roleGuide.description / goal / firstAction: short; goal max ~2–3 sentences (under-10 imaginative may use up to 4).
 
-STEP WRITING RULES (hard — every stepDetail):
+STEP WRITING RULES (hard — every stepDetail.actions[]):
 - The child should not have to reverse-engineer what you meant.
 - An 8-year-old must be able to do THIS scene without asking an adult what you meant.
 - instruction is the full scene/step for everyone. It must answer: (1) What am I doing? (2) How do I do it, naming THIS activity's objects and where they go? (3) What should I do if something isn't working? (4) How do I know I'm finished?
@@ -369,15 +388,17 @@ ${
   - Max activity minutes: ${safeSafetySettings.maxActivityMinutes}
   - Adult help allowed: ${safeSafetySettings.adultHelpAllowed}
 
-Return exactly ${requestedCount} V2 activities. Required fields per activity:
-activityFormatVersion, title, activityStyle, visualTheme, theme, summary,
-roleGuide{name,description,goal,firstAction,childRoles[]},
+Return exactly ${requestedCount} V3 activities. Required fields per activity:
+activityFormatVersion, title, activityStyle, visualTheme, story, summary,
+roleGuide{name,description,childRoles[]},
 ageFit{minAge,maxAge,targetAges,maturityLevel,independenceLevel,ageFitReason},
-starterIdeas[{title,example,kind}], stepDetails[{title,instruction,starterIdeas,doneWhen,ifStuck,roleInstructions}],
-extensionIdeas[], uses[], energy, mess, adultHelp, estimatedMinutes, whyItFits,
+setupGuide{needed,steps,readyWhen},
+starterIdeas[{title,example,kind}], stepDetails[{title,actions,starterIdeas,doneWhen,ifStuck,roleInstructions}],
+finishGuide{action,example,doneWhen,extensions},
+uses[], energy, mess, adultHelp, estimatedMinutes, whyItFits,
 categories[], traits{setupEffort,structure,socialMode,creativity,movement}.
 
-Do NOT include legacy mirrors (kidRole, mission, starterPrompts, firstMoves, steps, roles).
-Keep summary/whyItFits short. Step instructions must be self-contained per STEP WRITING RULES.
+Do NOT include instruction, theme, extensionIdeas, or legacy mirrors.
+Keep summary/whyItFits short. actions[] must follow ACTION WRITING RULES.
 `.trim();
 }

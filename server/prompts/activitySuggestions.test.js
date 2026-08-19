@@ -61,22 +61,21 @@ describe("buildActivitySuggestionsInstructions", () => {
     expect(instructions).not.toContain("STYLE RULES (imaginative");
   });
 
-  it("demands self-contained step instructions instead of brief labels", () => {
+  it("demands concrete scene actions instead of brief labels", () => {
     const instructions = buildActivitySuggestionsInstructions(
       "imaginative",
       "playroom",
       { groupAgeContext: { oldestAge: 8 } }
     );
 
-    expect(instructions).toContain("STEP WRITING RULES");
-    expect(instructions).toContain("What am I doing?");
+    expect(instructions).toContain("ACTION WRITING RULES");
+    expect(instructions).toContain("SECTION OWNERSHIP");
+    expect(instructions).toContain("activityFormatVersion");
     expect(instructions).toContain("Do not copy objects, settings, or jobs from the examples");
     expect(instructions).toContain("8-year-old");
-    expect(instructions).toContain("roleInstructions are OPTIONAL supplements");
-    expect(instructions).toContain("Test the map");
-    expect(instructions).toContain("Connect the routes");
-    expect(instructions).toContain("You finished this step");
-    expect(instructions).toContain("visible result from this step's action");
+    expect(instructions).toContain("setupGuide");
+    expect(instructions).toContain("finishGuide");
+    expect(instructions).toContain("actions[]");
     expect(instructions).not.toContain("step instruction: max 2–3 sentences");
     expect(instructions).not.toContain(
       "Prefer fewer, denser steps over long prose"

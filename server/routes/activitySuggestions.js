@@ -10,7 +10,8 @@ import {
   buildActivitySuggestionsInput,
   buildActivitySuggestionsInstructions,
 } from "../prompts/activitySuggestions.js";
-import { activitySuggestionsSchema } from "../schemas/activitySuggestionsSchema.js";
+import { activitySuggestionsSchemaV3 } from "../schemas/activitySuggestionsSchemaV3.js";
+import { validateActivityClarity } from "../utils/activityClarityValidation.js";
 import {
   buildSafeCurrentMoment,
   buildSafeSafetySettings,
@@ -268,7 +269,7 @@ export default function createActivitySuggestionsRouter(client) {
             instructions,
             input,
             schemaName: "activity_suggestions",
-            schema: activitySuggestionsSchema,
+            schema: activitySuggestionsSchemaV3,
             verbosity: "low",
             maxOutputTokens: maxTokensForCount(aiSlots),
           });
@@ -300,8 +301,23 @@ export default function createActivitySuggestionsRouter(client) {
             normalizeActivity(activity, safeActivityStyle, childAges)
           );
 
+          const clarityPassed = normalizedActivities.filter((activity) => {
+            const result = validateActivityClarity(activity);
+            if (!result.valid && isDebugLogging) {
+              console.warn("Activity clarity validation failed:", {
+                title: activity?.title,
+                errors: result.errors,
+                warnings: result.warnings,
+              });
+            }
+            return result.valid;
+          });
+
+          const activitiesForAgeFit =
+            clarityPassed.length > 0 ? clarityPassed : normalizedActivities;
+
           let ageFiltered = filterActivitiesByAgeFit(
-            normalizedActivities,
+            activitiesForAgeFit,
             childrenContext
           );
           totalAgeFitRejected += ageFiltered.rejectedCount;
@@ -367,7 +383,7 @@ export default function createActivitySuggestionsRouter(client) {
                   instructions,
                   input: retryInput,
                   schemaName: "activity_suggestions",
-                  schema: activitySuggestionsSchema,
+                  schema: activitySuggestionsSchemaV3,
                   verbosity: "low",
                   maxOutputTokens: maxTokensForCount(aiSlots),
                 }
