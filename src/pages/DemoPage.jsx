@@ -11,6 +11,7 @@ import {
   DEMO_MOMENT_LIST,
   getDemoMoment,
 } from "../constants/demoMoments";
+import { getLandingSituation } from "../constants/landingSituations";
 import {
   MAX_DEMO_AGE,
   MIN_DEMO_AGE,
@@ -22,11 +23,11 @@ import {
   buildSignupUrl,
 } from "../utils/signupUrls";
 import { captureAttribution, trackProductEvent } from "../utils/analytics";
-import LegalConsentNote from "../components/LegalConsentNote.jsx";
-import SiteFooter from "../components/SiteFooter.jsx";
 import "../App.css";
 import "../styles/landing.css";
 import "../styles/demo.css";
+
+const DEMO_EXPRESS_AGES = [6, 7, 8, 9, 10, 11, 12, 13];
 
 const PLUS_SIGNUP_URL = buildSignupUrl({
   next: "checkout",
@@ -44,19 +45,6 @@ const STYLE_OPTIONS = [
   { id: "imaginative", label: "Imaginative", hint: "Pretend / creative" },
 ];
 
-function parseAgesParam(raw) {
-  if (!raw) return null;
-  const ages = String(raw)
-    .split(",")
-    .map((part) => Math.round(Number(part.trim())))
-    .filter(
-      (age) =>
-        Number.isFinite(age) && age >= MIN_DEMO_AGE && age <= MAX_DEMO_AGE
-    )
-    .slice(0, 2);
-  return ages.length > 0 ? ages : null;
-}
-
 function mapEnergyToActivityEnergy(energy) {
   if (energy === "quiet") return "low";
   if (energy === "energetic") return "high";
@@ -70,14 +58,16 @@ function DemoBanner({ sawAha, onReset }) {
         <strong>You&apos;re trying {BRAND.name}</strong>
         <p>
           {sawAha
-            ? `Liked it? Create a free account so ${BRAND.name} can remember your kids and what works.`
-            : "Same flow as the app — parent moment, kid vibe, pick something. No account needed yet."}
+            ? `Want ${BRAND.name} to remember your kids? Create your free family.`
+            : "No account needed. One question, then three things that fit."}
         </p>
       </div>
       <div className="demo-sticky-banner-actions">
-        <Link className="landing-btn landing-btn--primary" to="/signup">
-          Create free account
-        </Link>
+        {sawAha ? (
+          <Link className="landing-btn landing-btn--primary" to="/signup">
+            Create your free family
+          </Link>
+        ) : null}
         {typeof onReset === "function" ? (
           <button
             type="button"
@@ -118,16 +108,15 @@ function SoftGate({ activity, variant = "remember" }) {
             Get Plus
           </Link>
         </div>
-        <LegalConsentNote />
       </div>
     );
   }
 
   return (
     <div className="demo-soft-gate" role="region" aria-label="Create account">
-      <h2>Want activities that remember your kids?</h2>
+      <h2>Want {BRAND.name} to remember your kids?</h2>
       <p>
-        Preferences and what works for your family stay with your free account.
+        Create your free family so preferences and what works stay with you.
       </p>
       <div className="demo-step-actions">
         <button
@@ -135,10 +124,9 @@ function SoftGate({ activity, variant = "remember" }) {
           className="landing-btn landing-btn--primary"
           onClick={() => goSignup("soft_gate_remember")}
         >
-          Create free account
+          Create your free family
         </button>
       </div>
-      <LegalConsentNote />
     </div>
   );
 }
@@ -184,6 +172,61 @@ function MomentStep({ momentId, onSelect, onContinue }) {
             onClick={onContinue}
           >
             Continue
+          </button>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+function AgePickStep({
+  ages,
+  situationQuote,
+  isMatching,
+  onPickAge,
+  onBack,
+}) {
+  const selected = Number(ages?.[0]);
+
+  return (
+    <section className="demo-step" aria-labelledby="demo-age-pick-title">
+      <p className="demo-screen-kicker">Got it. One quick question:</p>
+      <h1 id="demo-age-pick-title">How old are they?</h1>
+      <p className="demo-step-lead">
+        {situationQuote
+          ? `Then you'll see three things that fit “${situationQuote}”`
+          : "Then you'll see three things that fit right now."}
+      </p>
+      <div className="demo-age-chip-row" role="group" aria-label="Child age">
+        {DEMO_EXPRESS_AGES.map((age) => (
+          <button
+            key={age}
+            type="button"
+            className={
+              selected === age
+                ? "demo-age-chip is-selected"
+                : "demo-age-chip"
+            }
+            aria-pressed={selected === age}
+            disabled={isMatching}
+            onClick={() => onPickAge(age)}
+          >
+            {age}
+          </button>
+        ))}
+      </div>
+      <p className="demo-step-lead">
+        {isMatching ? "Finding three things that fit…" : "Tap an age to see ideas."}
+      </p>
+      {typeof onBack === "function" ? (
+        <div className="demo-step-actions">
+          <button
+            type="button"
+            className="landing-btn landing-btn--ghost"
+            onClick={onBack}
+            disabled={isMatching}
+          >
+            Back
           </button>
         </div>
       ) : null}
@@ -407,11 +450,11 @@ function ResultsStep({
       className="demo-step demo-step--results"
       aria-labelledby="demo-results-title"
     >
-      <p className="demo-screen-kicker">Quest</p>
-      <h1 id="demo-results-title">Pick something to do</h1>
+      <p className="demo-screen-kicker">Matches</p>
+      <h1 id="demo-results-title">Here are three things that fit</h1>
       <p className="demo-step-lead">
-        Same choice cards as the app. Open one and Start — full steps, no
-        account required for the first activity.
+        Open one and start — kids can follow it without you running the whole
+        thing.
       </p>
 
       <ActivityResults
@@ -424,8 +467,8 @@ function ResultsStep({
         hideDetails
         hideSaveFavorite
         handleTryNextBest={onPlanB}
-        panelTitle="Pick something to do"
-        panelNote="Sample library matches for this moment and ages — Plus personalizes to your household."
+        panelTitle="Here are three things that fit"
+        panelNote="Matched for this moment and age. Open one to see the mission and first move."
       />
 
       <div className="demo-step-actions">
@@ -545,16 +588,25 @@ function ActivityStep({
 }
 
 /**
- * Public product walkthrough — mirrors Parent → Kid → Results → Start
- * using the curated demo pool (no OpenAI).
+ * Public try-it path. Interactive visitors get moment → age → results.
+ * ?record=1 keeps the longer product walkthrough for demo video.
  */
 function DemoPage() {
   const [searchParams] = useSearchParams();
   const bootstrappedRef = useRef(false);
+  const isDemoRecord = searchParams.get("record") === "1";
+  const situationId = searchParams.get("situation") || "";
+  const initialMomentParam = searchParams.get("moment");
+  const initialMomentId =
+    initialMomentParam && getDemoMoment(initialMomentParam)
+      ? initialMomentParam
+      : null;
 
-  const [stage, setStage] = useState("moment");
-  const [momentId, setMomentId] = useState(null);
-  const [ages, setAges] = useState([8]);
+  const [stage, setStage] = useState(() =>
+    !isDemoRecord && initialMomentId ? "age-pick" : "moment"
+  );
+  const [momentId, setMomentId] = useState(initialMomentId);
+  const [ages, setAges] = useState(isDemoRecord ? [8] : []);
   const [energy, setEnergy] = useState("neutral");
   const [activityStyle, setActivityStyle] = useState("imaginative");
   const [matchResult, setMatchResult] = useState(null);
@@ -574,29 +626,14 @@ function DemoPage() {
     bootstrappedRef.current = true;
 
     const momentParam = searchParams.get("moment");
-    const agesParam = parseAgesParam(searchParams.get("ages"));
-    const situationId = searchParams.get("situation");
+    const situation = searchParams.get("situation");
 
-    let seeded = false;
-
-    if (momentParam && getDemoMoment(momentParam)) {
-      setMomentId(momentParam);
-      seeded = true;
-    }
-    if (agesParam) {
-      setAges(agesParam);
-      seeded = true;
-    }
-
-    if (seeded || situationId) {
+    if (momentParam || situation) {
       trackProductEvent("demo_started", {
-        source: "landing_situation",
-        situationId: situationId || null,
+        source: situation ? "landing_situation" : "landing_link",
+        situationId: situation || null,
         momentId: momentParam || null,
       });
-      if (momentParam && getDemoMoment(momentParam)) {
-        setStage("ages");
-      }
     }
   }, [searchParams]);
 
@@ -604,15 +641,12 @@ function DemoPage() {
     () => DEMO_MOMENT_LIST.find((moment) => moment.id === momentId) || null,
     [momentId]
   );
-
-  // Recording-only: keep moment selected on-screen so the movie can hold the
-  // completed parent setup. Interactive /demo still auto-advances.
-  const isDemoRecord = searchParams.get("record") === "1";
+  const situationQuote = getLandingSituation(situationId)?.quote || "";
 
   function resetDemo() {
     setStage("moment");
     setMomentId(null);
-    setAges([8]);
+    setAges(isDemoRecord ? [8] : []);
     setEnergy("neutral");
     setActivityStyle("imaginative");
     setMatchResult(null);
@@ -628,7 +662,7 @@ function DemoPage() {
     setMomentId(id);
     trackProductEvent("demo_page_moment_selected", { momentId: id });
     if (!isDemoRecord) {
-      setStage("ages");
+      setStage("age-pick");
     }
   }
 
@@ -650,10 +684,10 @@ function DemoPage() {
     };
   }
 
-  function runMatch(offset = 0) {
+  function runMatch({ offset = 0, childAges = ages } = {}) {
     const base = matchDemoActivities({
       momentId,
-      childAges: ages,
+      childAges,
       pool: DEMO_ACTIVITY_POOL,
       limit: 3,
       offset,
@@ -662,36 +696,49 @@ function DemoPage() {
     return softRankByEnergy(base);
   }
 
+  function showResults(result, childAges) {
+    setMatchResult(result);
+    setIsMatching(false);
+    setStage("results");
+    setShowSaveGate(false);
+    trackProductEvent("demo_activity_generated", {
+      momentId,
+      ages: childAges,
+      style: activityStyle,
+      energy,
+      count: result.results.length,
+      source: "demo_page",
+    });
+    trackProductEvent("demo_completed", {
+      momentId,
+      ages: childAges,
+      style: activityStyle,
+      energy,
+      count: result.results.length,
+      source: "demo_page",
+    });
+    trackProductEvent("demo_page_results_viewed", {
+      momentId,
+      count: result.results.length,
+    });
+  }
+
   function handleImBored() {
     if (!momentId) return;
     setIsMatching(true);
     window.setTimeout(() => {
-      const result = runMatch(0);
-      setMatchResult(result);
-      setIsMatching(false);
-      setStage("results");
-      setShowSaveGate(false);
-      trackProductEvent("demo_activity_generated", {
-        momentId,
-        ages,
-        style: activityStyle,
-        energy,
-        count: result.results.length,
-        source: "demo_page",
-      });
-      trackProductEvent("demo_completed", {
-        momentId,
-        ages,
-        style: activityStyle,
-        energy,
-        count: result.results.length,
-        source: "demo_page",
-      });
-      trackProductEvent("demo_page_results_viewed", {
-        momentId,
-        count: result.results.length,
-      });
-    }, 400);
+      showResults(runMatch({ childAges: ages }), ages);
+    }, 80);
+  }
+
+  function handlePickAge(age) {
+    if (!momentId) return;
+    const nextAges = [age];
+    setAges(nextAges);
+    setIsMatching(true);
+    window.setTimeout(() => {
+      showResults(runMatch({ childAges: nextAges }), nextAges);
+    }, 80);
   }
 
   function handlePlanB() {
@@ -750,9 +797,11 @@ function DemoPage() {
             <Link className="landing-topbar-link" to="/login">
               Log in
             </Link>
-            <Link className="landing-btn landing-btn--primary" to="/signup">
-              Create free account
-            </Link>
+            {sawAha ? (
+              <Link className="landing-btn landing-btn--primary" to="/signup">
+                Create your free family
+              </Link>
+            ) : null}
           </div>
         </div>
       </header>
@@ -767,6 +816,16 @@ function DemoPage() {
             onContinue={
               isDemoRecord ? () => setStage("ages") : undefined
             }
+          />
+        ) : null}
+
+        {stage === "age-pick" ? (
+          <AgePickStep
+            ages={ages}
+            situationQuote={situationQuote}
+            isMatching={isMatching}
+            onPickAge={handlePickAge}
+            onBack={() => setStage("moment")}
           />
         ) : null}
 
@@ -804,7 +863,7 @@ function DemoPage() {
             matchResult={matchResult}
             onStartActivity={handleStartActivity}
             onPlanB={handlePlanB}
-            onBack={() => setStage("kid")}
+            onBack={() => setStage(isDemoRecord ? "kid" : "age-pick")}
             showSaveGate={showSaveGate}
             gateActivity={
               activeActivity || matchResult.results?.[0]?.activity || null
@@ -819,7 +878,7 @@ function DemoPage() {
               matchResult?.moment || selectedMoment?.moment || null
             }
             completed={activityCompleted}
-            showRememberGate={activityCompleted || sawAha}
+            showRememberGate={activityCompleted}
             onFinished={() => {
               setActivityCompleted(true);
               trackProductEvent("demo_page_activity_finished", {
@@ -836,7 +895,7 @@ function DemoPage() {
         {momentId && stage !== "moment" ? (
           <p className="demo-moment-footnote">
             Current moment: {selectedMoment?.label}
-            {ages.length ? ` · ages ${ages.join(" & ")}` : ""}
+            {ages.length ? ` · age ${ages.join(" & ")}` : ""}
             {" · "}
             <button
               type="button"
@@ -848,7 +907,6 @@ function DemoPage() {
           </p>
         ) : null}
       </main>
-      <SiteFooter />
     </div>
   );
 }

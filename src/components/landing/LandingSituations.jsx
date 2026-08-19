@@ -21,7 +21,8 @@ export default function LandingSituations() {
       <div className="landing-section-inner landing-section-inner--wide">
         <h2 id="moments-title">What kind of moment are you in?</h2>
         <p className="landing-section-lead">
-          Pick a real situation — {BRAND.name} will match something that fits.
+          Tap a real situation. {BRAND.name} will ask one question, then show
+          three things that fit.
         </p>
         <div className="landing-situations-grid" role="list">
           {LANDING_SITUATIONS.map((situation) => (

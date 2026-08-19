@@ -121,11 +121,11 @@ test.describe("ActivCue golden paths", () => {
     await expect(
       page.getByRole("heading", {
         level: 1,
-        name: /The right activity for right now/i,
+        name: /Need 20 minutes/i,
       })
     ).toBeVisible();
     await expect(
-      page.getByText(/Activities that fit your family right now/i)
+      page.getByText(/actually start without you/i)
     ).toBeVisible();
 
     const demoCta = page.getByRole("link", { name: /^Try ActivCue$/i }).first();
@@ -146,7 +146,7 @@ test.describe("ActivCue golden paths", () => {
     await page.getByRole("link", { name: /cook dinner/i }).first().click();
     await expect(page).toHaveURL(/\/demo/, { timeout: 15000 });
     await expect(
-      page.getByRole("heading", { name: /Ages only|What sounds good|happening right now/i })
+      page.getByRole("heading", { name: /How old are they/i })
     ).toBeVisible({ timeout: 15000 });
   });
 
@@ -180,7 +180,7 @@ test.describe("ActivCue golden paths", () => {
     await expect(
       page.getByRole("heading", {
         level: 1,
-        name: /The right activity for right now/i,
+        name: /Need 20 minutes/i,
       })
     ).toBeVisible();
 
