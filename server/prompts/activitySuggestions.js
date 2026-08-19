@@ -222,11 +222,14 @@ PROSE CAPS (hard):
 
 STEP WRITING RULES (hard — every stepDetail):
 - The child should not have to reverse-engineer what you meant.
-- An 8-year-old must be able to do this scene without asking an adult what you meant.
-- instruction is the full scene/step for everyone. It must answer: (1) What am I doing? (2) How do I do it, naming objects to pick up and where they go? (3) What should I do if something isn't working? (4) How do I know I'm finished?
+- An 8-year-old must be able to do THIS scene without asking an adult what you meant.
+- instruction is the full scene/step for everyone. It must answer: (1) What am I doing? (2) How do I do it, naming THIS activity's objects and where they go? (3) What should I do if something isn't working? (4) How do I know I'm finished?
 - Write 4–7 sentences of concrete, observable action. Do not stop at a short label.
-- BAD: "Set the greeting desk." GOOD: "Find a towel, placemat, or chair and turn it into the embassy greeting desk. Put paper and a pencil on it so guests can check in. Make an Open sign, or write OPEN on scrap paper. If you do not have a table, use a chair seat or the floor. You are ready when you can point to the desk and the Open sign."
-- Ban vague instructions such as: "Test the map", "Add details", "Connect the routes", "Continue the story", "Set everything up", "Do the next part", "Make it better", "Set the greeting desk", "Greet each guest kindly".
+- Write the how-to for THIS activity and THIS scene only. Do not copy objects, settings, or jobs from the examples.
+- BAD: "Draw the map." GOOD: "Put paper on the floor. Draw three room landmarks you can see — a chair, a door, and a lamp — then draw a path between them. If the map is messy, mark just two spots first. You are ready when you can follow the path with your finger."
+- BAD: "Send a signal." GOOD: "Stack two books as a radio. Write one short message and park it on the stack. If you do not have books, use a chair seat. You are ready when the message is sitting on the radio."
+- NEVER reuse greeting desks, Open signs, diplomats, radios, or trail maps unless those things belong to this activity.
+- Ban vague instructions such as: "Test the map", "Add details", "Connect the routes", "Continue the story", "Set everything up", "Do the next part", "Make it better".
 - title is a short beat name, never a substitute for the instruction.
 - doneWhen is an observable ready-to-continue cue for THIS step only ("Every zone has a name you can point to.", "You have drawn a path between at least two zones.").
 - NEVER write generic doneWhen such as "You finished this step", "You finished this part of the activity", "when you finish this step", "this step is done", or "the objective is complete".

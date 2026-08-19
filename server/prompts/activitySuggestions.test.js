@@ -70,7 +70,7 @@ describe("buildActivitySuggestionsInstructions", () => {
 
     expect(instructions).toContain("STEP WRITING RULES");
     expect(instructions).toContain("What am I doing?");
-    expect(instructions).toContain("Set the greeting desk.");
+    expect(instructions).toContain("Do not copy objects, settings, or jobs from the examples");
     expect(instructions).toContain("8-year-old");
     expect(instructions).toContain("roleInstructions are OPTIONAL supplements");
     expect(instructions).toContain("Test the map");
