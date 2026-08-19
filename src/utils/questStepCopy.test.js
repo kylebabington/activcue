@@ -4,7 +4,37 @@ import {
   ACTIVE_QUEST_STACK_ORDER,
   getSceneInstruction,
   getStepRoleParts,
+  resolveDoneWhen,
 } from "./questStepCopy";
+
+describe("resolveDoneWhen", () => {
+  it("keeps a specific completion cue", () => {
+    expect(
+      resolveDoneWhen({
+        instruction: "Draw 3–5 zones.",
+        doneWhen: "Every zone has a name you can point to.",
+      })
+    ).toBe("Every zone has a name you can point to.");
+  });
+
+  it("replaces generic finish-this-step copy with the actual action", () => {
+    expect(
+      resolveDoneWhen({
+        title: "Draw the zones",
+        instruction: "Draw 3–5 zones on the paper and name each one.",
+        doneWhen: "You finished this step.",
+      })
+    ).toBe("You have drawn 3–5 zones on the paper.");
+  });
+
+  it("synthesizes a cue from a legacy instruction with no doneWhen", () => {
+    expect(
+      resolveDoneWhen({
+        instruction: "Get paper and something to draw with.",
+      })
+    ).toBe("You have paper and something to draw with.");
+  });
+});
 
 const step = completeActivityV2Fixture.stepDetails[0];
 

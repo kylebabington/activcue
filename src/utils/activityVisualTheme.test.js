@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   getActivityCopyAgeBand,
   getActivityStarterSectionLabel,
+  getStepDetails,
   getStepStarterIdeas,
   getStepStarterSectionLabel,
   getStepStuckPrompts,
@@ -118,5 +119,31 @@ describe("age-aware starter labels", () => {
     );
     expect(getStepStarterSectionLabel(tween)).toBe("A few ways in");
     expect(getStepStarterSectionLabel(teen)).toBe("Try this");
+  });
+});
+
+describe("getStepDetails", () => {
+  it("rewrites cached generic doneWhen using the step action", () => {
+    const steps = getStepDetails({
+      stepDetails: [
+        {
+          title: "Connect the routes",
+          instruction: "Draw paths between the zones.",
+          doneWhen: "You finished this step.",
+        },
+      ],
+    });
+
+    expect(steps[0].doneWhen).toBe("You have drawn paths between the zones.");
+    expect(steps[0].doneWhen).not.toMatch(/finished this step/i);
+  });
+
+  it("synthesizes doneWhen for legacy steps arrays", () => {
+    const steps = getStepDetails({
+      steps: ["Get paper and something to draw with."],
+    });
+    expect(steps[0].doneWhen).toBe(
+      "You have paper and something to draw with."
+    );
   });
 });

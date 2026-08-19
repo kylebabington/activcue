@@ -73,6 +73,8 @@ describe("buildActivitySuggestionsInstructions", () => {
     expect(instructions).toContain("roleInstructions are OPTIONAL supplements");
     expect(instructions).toContain("Test the map");
     expect(instructions).toContain("Connect the routes");
+    expect(instructions).toContain("You finished this step");
+    expect(instructions).toContain("visible result from this step's action");
     expect(instructions).not.toContain("step instruction: max 2–3 sentences");
     expect(instructions).not.toContain(
       "Prefer fewer, denser steps over long prose"

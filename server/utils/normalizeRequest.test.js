@@ -73,6 +73,8 @@ describe("Activity Content V2 normalization", () => {
     expect(details[0].instruction).toBe("Draw a comic panel.");
     expect(details[0].ifStuck).toBeTruthy();
     expect(details[0].starterIdeas).toEqual([]);
+    expect(details[0].doneWhen).toBe("You have drawn a comic panel.");
+    expect(details[0].doneWhen).not.toMatch(/finished this step/i);
   });
 
   it("synthesizes step starterIdeas from legacy examples", () => {

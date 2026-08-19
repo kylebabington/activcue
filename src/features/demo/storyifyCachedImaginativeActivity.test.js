@@ -50,6 +50,10 @@ describe("storyifyCachedImaginativeActivity", () => {
     expect(result.stepDetails[0].ifStuck).toMatch(/^Quick reset:/);
     expect(result.roleGuide.description).toMatch(/control the choices/i);
     expect(result.stepDetails[0].instruction).not.toMatch(/Psst|Ooooh|nice timing/i);
+    expect(result.stepDetails[0].doneWhen).toBe(
+      "You have made a recording corner."
+    );
+    expect(result.stepDetails[0].doneWhen).not.toMatch(/finished this step/i);
   });
 
   it("leaves simple activities alone", () => {
