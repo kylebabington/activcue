@@ -7,13 +7,26 @@ import {
 import {
   getStarterKindIcon,
   getStepStarterIdeas,
-  getStepStuckPrompts,
 } from "../../utils/activityVisualTheme";
 import { buildNarrationText } from "../../utils/buildNarrationText";
 import {
   getSceneInstruction,
   getStepRoleParts,
+  resolveDoneWhen,
+  resolveIfStuck,
 } from "../../utils/questStepCopy";
+import {
+  getLocalStuckSuggestions,
+  isSynthesizedIfStuck,
+  nextStuckSuggestion,
+} from "../../utils/questStuckHelp";
+
+function ideaNarration(idea, index) {
+  const title = String(idea?.title || `Idea ${index + 1}`).trim();
+  const example = String(idea?.example || "").trim();
+  if (!example) return title;
+  return `${title}. For example: ${example}`;
+}
 
 function QuestPlayCard({
   area,
@@ -21,6 +34,10 @@ function QuestPlayCard({
   title,
   children,
   className = "",
+  narration = "",
+  speechKey,
+  speechRate = 0.9,
+  speechSection = "step",
 }) {
   return (
     <section
@@ -28,7 +45,20 @@ function QuestPlayCard({
       data-quest-area={area}
     >
       {kicker ? <p className="quest-play-card-kicker">{kicker}</p> : null}
-      {title ? <h2>{title}</h2> : null}
+      {title ? (
+        <div className="quest-play-card-header">
+          <h2>{title}</h2>
+          {narration ? (
+            <SpeakButton
+              text={narration}
+              label="Read"
+              speechKey={speechKey}
+              rate={speechRate}
+              section={speechSection}
+            />
+          ) : null}
+        </div>
+      ) : null}
       {children}
     </section>
   );
@@ -102,6 +132,7 @@ function StarterList({
   mode,
   checkedStarterIndexes,
   onToggleStarter,
+  speechRate,
 }) {
   if (ideas.length === 0) {
     return <p>Use whatever feels fun to start.</p>;
@@ -111,32 +142,45 @@ function StarterList({
     <div className="quest-v2-starter-doors">
       {ideas.map((idea, index) => {
         const checked = checkedStarterIndexes.includes(index);
+        const className = [
+          "quest-v2-starter-door",
+          checked ? "is-open" : "",
+        ]
+          .filter(Boolean)
+          .join(" ");
+        const body = (
+          <>
+            <span className="quest-v2-starter-title">{idea.title}</span>
+            {idea.example ? (
+              <span className="quest-v2-starter-example">{idea.example}</span>
+            ) : null}
+          </>
+        );
+
         if (mode === "active") {
           return (
-            <button
-              key={`${idea.title}-${index}`}
-              type="button"
-              className={
-                checked
-                  ? "quest-v2-starter-door is-open"
-                  : "quest-v2-starter-door"
-              }
-              onClick={() => onToggleStarter?.(index)}
-            >
-              <span className="quest-v2-starter-title">{idea.title}</span>
-              {idea.example ? (
-                <span className="quest-v2-starter-example">{idea.example}</span>
-              ) : null}
-            </button>
+            <div key={`${idea.title}-${index}`} className={className}>
+              <button
+                type="button"
+                className="quest-v2-starter-door-body"
+                onClick={() => onToggleStarter?.(index)}
+              >
+                {body}
+              </button>
+              <SpeakButton
+                text={ideaNarration(idea, index)}
+                label="Read"
+                speechKey={`quest-starter-${index}`}
+                rate={speechRate}
+                section="starter"
+              />
+            </div>
           );
         }
 
         return (
           <div key={`${idea.title}-${index}`} className="quest-v2-starter-door">
-            <span className="quest-v2-starter-title">{idea.title}</span>
-            {idea.example ? (
-              <span className="quest-v2-starter-example">{idea.example}</span>
-            ) : null}
+            {body}
           </div>
         );
       })}
@@ -161,16 +205,20 @@ function CurrentSceneCard({
   speechRate,
   stepNarration,
   roleParts,
+  stuckSuggestion = "",
+  isHintLoading = false,
+  canUseAiHints = false,
 }) {
   const instruction = getSceneInstruction(step);
+  const doneWhen = resolveDoneWhen(step);
+  const ifStuck = resolveIfStuck(step);
+  const showFixIdea = Boolean(ifStuck) && !isSynthesizedIfStuck(ifStuck);
   const starterIdeas = getStepStarterIdeas(step);
-  const stuckPrompts = getStepStuckPrompts(step);
-  const [stuckPromptIndex, setStuckPromptIndex] = useState(-1);
-  const extraStuckPrompts = stuckPrompts.filter(
-    (prompt) => prompt !== String(step?.ifStuck || "").trim()
-  );
-  const visibleStuckPrompt =
-    stuckPromptIndex >= 0 ? extraStuckPrompts[stuckPromptIndex] : "";
+  const localSuggestions = getLocalStuckSuggestions(step);
+  const [localCursor, setLocalCursor] = useState(-1);
+  const localStuckSuggestion =
+    localCursor >= 0 ? localSuggestions[localCursor] : "";
+  const visibleStuckSuggestion = stuckSuggestion || localStuckSuggestion;
   const sceneLabel = isImaginative ? "Scene" : "Step";
   const heading = step?.title
     ? `${sceneLabel} ${index + 1} — ${step.title}`
@@ -181,13 +229,20 @@ function CurrentSceneCard({
     : "Done when";
 
   function handleStuckClick() {
-    if (extraStuckPrompts.length > 0) {
-      const nextIndex = (stuckPromptIndex + 1) % extraStuckPrompts.length;
-      setStuckPromptIndex(nextIndex);
-      onImStuck?.(index, nextIndex);
-      return;
+    if (isHintLoading) return;
+    onImStuck?.(index);
+    if (typeof onImStuck === "function") return;
+    const next = nextStuckSuggestion(
+      localSuggestions.length > 0
+        ? localSuggestions
+        : instruction
+          ? [`Try this part next: ${instruction}`]
+          : [],
+      localCursor
+    );
+    if (next.suggestion) {
+      setLocalCursor(next.cursor);
     }
-    onImStuck?.(index, 0);
   }
 
   return (
@@ -282,23 +337,41 @@ function CurrentSceneCard({
                 </>
               );
 
+              const speakButton = (
+                <SpeakButton
+                  text={ideaNarration(idea, starterIndex)}
+                  label="Read"
+                  speechKey={`quest-step-${index}-starter-${starterIndex}`}
+                  rate={speechRate}
+                  section="starter"
+                />
+              );
+
               if (canSelectStarters) {
                 return (
-                  <button
+                  <div
                     key={`${idea.title}-${starterIndex}`}
-                    type="button"
                     className={className}
-                    aria-pressed={selected}
-                    onClick={() => onSelectStepStarter?.(index, starterIndex)}
                   >
-                    {content}
-                  </button>
+                    <button
+                      type="button"
+                      className="quest-step-starter-card-body"
+                      aria-pressed={selected}
+                      onClick={() =>
+                        onSelectStepStarter?.(index, starterIndex)
+                      }
+                    >
+                      {content}
+                    </button>
+                    {speakButton}
+                  </div>
                 );
               }
 
               return (
                 <div key={`${idea.title}-${starterIndex}`} className={className}>
                   {content}
+                  {speakButton}
                 </div>
               );
             })}
@@ -306,39 +379,52 @@ function CurrentSceneCard({
         </div>
       ) : null}
 
-      {step?.ifStuck ? (
+      {showFixIdea ? (
         <div className="quest-scene-block">
           <p className="quest-play-card-kicker">Fix idea</p>
-          <p>{step.ifStuck}</p>
+          <p>{ifStuck}</p>
         </div>
       ) : null}
 
-      {step?.doneWhen ? (
+      {doneWhen ? (
         <div className="quest-scene-block quest-scene-block--done">
           <p className="quest-play-card-kicker">{doneWhenLabel}</p>
-          <p>{step.doneWhen}</p>
+          <p>{doneWhen}</p>
         </div>
       ) : null}
 
-      {visibleStuckPrompt ? (
+      {isHintLoading || visibleStuckSuggestion ? (
         <div className="quest-v2-if-stuck" aria-live="polite">
-          <p className="quest-step-stuck-counter">
-            Extra idea {stuckPromptIndex + 1} of {extraStuckPrompts.length}
+          <p className="quest-play-card-kicker">
+            {isHintLoading ? "One idea for this scene" : "Try this"}
           </p>
-          <p>{visibleStuckPrompt}</p>
+          <p>{isHintLoading ? "Thinking of a specific idea for this scene…" : visibleStuckSuggestion}</p>
+          {!isHintLoading && visibleStuckSuggestion ? (
+            <SpeakButton
+              text={visibleStuckSuggestion}
+              label="Read"
+              speechKey={`quest-stuck-${index}`}
+              rate={speechRate}
+              section="stuck"
+            />
+          ) : null}
         </div>
       ) : null}
 
       <div className="quest-current-scene-actions">
-        {stuckPrompts.length > 0 ? (
-          <button
-            type="button"
-            className="secondary-action"
-            onClick={handleStuckClick}
-          >
-            I’m stuck
-          </button>
-        ) : null}
+        <button
+          type="button"
+          className="secondary-action"
+          onClick={handleStuckClick}
+          disabled={isHintLoading}
+          title={
+            canUseAiHints
+              ? "Get a specific idea for this scene"
+              : "Get another idea for this scene"
+          }
+        >
+          {isHintLoading ? "Thinking…" : "I’m stuck"}
+        </button>
         <button
           type="button"
           className="quest-step-complete-toggle"
@@ -375,6 +461,10 @@ export default function ActiveQuestLayout({
   onToggleStarter,
   onSelectStepStarter,
   onImStuck,
+  stuckSuggestionByStepIndex = {},
+  isHintLoading = false,
+  hintLoadingStepIndex = null,
+  canUseAiHints = false,
   highlightedStuckStepIndex,
   focusStepIndex,
   playingChildren,
@@ -410,6 +500,13 @@ export default function ActiveQuestLayout({
     minutes,
     formatActivityStyleLabel(activity.activityStyle),
   ].filter(Boolean);
+  const roleNarration = buildNarrationText(activity, "role", {
+    selectedRoleName: selectedRoleName || roleName,
+    roleAssignments,
+  });
+  const startersNarration = buildNarrationText(activity, "starters");
+  const materialsNarration = buildNarrationText(activity, "materials");
+  const finishNarration = buildNarrationText(activity, "finish");
 
   return (
     <div
@@ -424,23 +521,23 @@ export default function ActiveQuestLayout({
         area="story"
         className="quest-active-story"
         title={isImaginativeActivity ? "The Story" : "Overview"}
+        narration={missionNarration}
+        speechKey="quest-mission"
+        speechRate={resolvedSpeechRate}
+        speechSection="mission"
       >
-        {missionNarration ? (
-          <div className="quest-section-speak-row">
-            <SpeakButton
-              text={missionNarration}
-              label="Read"
-              speechKey="quest-mission"
-              rate={resolvedSpeechRate}
-              section="mission"
-            />
-          </div>
-        ) : null}
         <p>{mission || activity.summary || activity.theme}</p>
       </QuestPlayCard>
 
       <aside className="quest-active-left">
-        <QuestPlayCard area="roles" title="Your Roles">
+        <QuestPlayCard
+          area="roles"
+          title="Your Roles"
+          narration={roleNarration}
+          speechKey="quest-role"
+          speechRate={resolvedSpeechRate}
+          speechSection="role"
+        >
           <RoleList
             childRoles={childRoles}
             roleName={roleName}
@@ -458,6 +555,10 @@ export default function ActiveQuestLayout({
         <QuestPlayCard
           area="supplies"
           title={isImaginativeActivity ? "Props & Supplies" : "What You Need"}
+          narration={materialsNarration}
+          speechKey="quest-materials"
+          speechRate={resolvedSpeechRate}
+          speechSection="mission"
         >
           {uses.length > 0 ? (
             <ul>
@@ -492,6 +593,16 @@ export default function ActiveQuestLayout({
               onSelectStepStarter={onSelectStepStarter}
               onToggleStep={onToggleStep}
               onImStuck={onImStuck}
+              stuckSuggestion={
+                stuckSuggestionByStepIndex?.[String(currentIndex)] ||
+                stuckSuggestionByStepIndex?.[currentIndex] ||
+                ""
+              }
+              isHintLoading={
+                Boolean(isHintLoading) &&
+                Number(hintLoadingStepIndex) === currentIndex
+              }
+              canUseAiHints={canUseAiHints}
               speechRate={resolvedSpeechRate}
               stepNarration={buildNarrationText(activity, "step", {
                 stepIndex: currentIndex,
@@ -558,12 +669,20 @@ export default function ActiveQuestLayout({
 
       <aside className="quest-active-right">
         {starterIdeas.length > 0 ? (
-          <QuestPlayCard area="starters" title="Starting Ideas">
+          <QuestPlayCard
+            area="starters"
+            title="Starting Ideas"
+            narration={startersNarration}
+            speechKey="quest-starters"
+            speechRate={resolvedSpeechRate}
+            speechSection="starter"
+          >
             <StarterList
               ideas={starterIdeas}
               mode="active"
               checkedStarterIndexes={checkedStarterIndexes}
               onToggleStarter={onToggleStarter}
+              speechRate={resolvedSpeechRate}
             />
           </QuestPlayCard>
         ) : null}
@@ -571,6 +690,10 @@ export default function ActiveQuestLayout({
         <QuestPlayCard
           area="finish"
           title={isImaginativeActivity ? "The Big Finish" : "Finish the Activity"}
+          narration={finishNarration}
+          speechKey="quest-finish"
+          speechRate={resolvedSpeechRate}
+          speechSection="mission"
         >
           {extensions.length > 0 ? (
             <ul>

@@ -10,6 +10,11 @@ import {
   STARTER_IDEA_KINDS,
   VISUAL_THEMES,
 } from "../schemas/activitySuggestionsSchema.js";
+import {
+  resolveDoneWhen,
+  resolveIfStuck,
+  resolveSceneInstruction,
+} from "../../src/utils/questStepCopy.js";
 
 const CATEGORY_SET = new Set(ACTIVITY_CATEGORIES);
 const VISUAL_THEME_SET = new Set(VISUAL_THEMES);
@@ -264,7 +269,7 @@ function synthesizeStarterIdeasFromExamples(examples) {
   }));
 }
 
-export function normalizeStepDetails(stepDetails, steps = []) {
+export function normalizeStepDetails(stepDetails, steps = [], activity = {}) {
   const details = [];
 
   if (Array.isArray(stepDetails)) {
@@ -290,20 +295,25 @@ export function normalizeStepDetails(stepDetails, steps = []) {
         starterIdeas = synthesizeStarterIdeasFromExamples(examples);
       }
 
-      details.push({
+      const normalizedStep = {
         title: title || `Step ${details.length + 1}`,
         instruction: instruction || title,
         starterIdeas,
         examples,
-        doneWhen: asString(
-          raw.doneWhen,
-          "You finished this part of the activity."
-        ),
-        ifStuck: asString(
-          raw.ifStuck,
-          "Skip the fancy version and do the simplest version of this step."
-        ),
+        doneWhen: asString(raw.doneWhen),
+        ifStuck: asString(raw.ifStuck),
         roleInstructions,
+      };
+      const expandedInstruction = resolveSceneInstruction(
+        normalizedStep,
+        activity,
+        details.length
+      );
+      details.push({
+        ...normalizedStep,
+        instruction: expandedInstruction,
+        doneWhen: resolveDoneWhen(normalizedStep),
+        ifStuck: resolveIfStuck(normalizedStep),
       });
     }
   }
@@ -312,14 +322,23 @@ export function normalizeStepDetails(stepDetails, steps = []) {
     for (const step of steps) {
       const text = asString(step);
       if (!text) continue;
-      details.push({
+      const legacyStep = {
         title: text.length > 56 ? `${text.slice(0, 53)}…` : text,
         instruction: text,
         starterIdeas: [],
         examples: [],
-        doneWhen: "You finished this step.",
-        ifStuck: "Do a simpler version of this step and move on.",
         roleInstructions: [],
+      };
+      const expandedInstruction = resolveSceneInstruction(
+        legacyStep,
+        activity,
+        details.length
+      );
+      details.push({
+        ...legacyStep,
+        instruction: expandedInstruction,
+        doneWhen: resolveDoneWhen(legacyStep),
+        ifStuck: resolveIfStuck(legacyStep),
       });
     }
   }
@@ -337,7 +356,11 @@ export function deriveV1FieldsFromV2(activity, fallbackAges = []) {
     activity.starterIdeas,
     activity.starterPrompts
   );
-  const stepDetails = normalizeStepDetails(activity.stepDetails, activity.steps);
+  const stepDetails = normalizeStepDetails(
+    activity.stepDetails,
+    activity.steps,
+    activity
+  );
 
   const stepsFromDetails = stepDetails.map((step) =>
     step.title && step.instruction && step.title !== step.instruction

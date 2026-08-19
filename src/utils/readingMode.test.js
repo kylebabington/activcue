@@ -8,13 +8,13 @@ import {
 } from "./readingMode";
 
 describe("resolveReadingModeDefaults", () => {
-  it("enables listening mode for ages 9 and under", () => {
+  it("starts on the full play board for ages 9 and under", () => {
     expect(resolveReadingModeDefaults(5)).toMatchObject({
-      enabled: true,
+      enabled: false,
       autoAdvance: true,
       showNextPrompt: true,
     });
-    expect(resolveReadingModeDefaults(9).enabled).toBe(true);
+    expect(resolveReadingModeDefaults(9).enabled).toBe(false);
   });
 
   it("keeps speakers available but listening off for ages 10-11", () => {
@@ -37,7 +37,7 @@ describe("resolveReadingMode", () => {
   it("uses age defaults when preference is null", () => {
     expect(
       resolveReadingMode({ preference: null, youngestAgeYears: 7 }).enabled
-    ).toBe(true);
+    ).toBe(false);
   });
 
   it("lets preference override enabled and rate", () => {

@@ -1,4 +1,5 @@
 import { normalizeTextValue } from "./activityScoring";
+import { resolveDoneWhen, resolveIfStuck } from "./questStepCopy";
 
 const TEMPLATE_LIBRARY = [
   {
@@ -307,24 +308,37 @@ export function buildSimpleActivitiesFromTemplates({
 
   const selected = candidates.slice(0, count);
 
-  return selected.map(({ template, uses }) => ({
-    title: template.title,
-    activityStyle: "simple",
-    theme: "",
-    summary: `A quick simple activity using what you already have.`,
-    kidRole: "",
-    mission: "",
-    starterPrompts: [],
-    firstMoves: template.steps.slice(0, 1),
-    steps: template.steps,
-    roles: [],
-    extensionIdeas: [],
-    uses,
-    verifiedUses: uses,
-    energy: template.energy,
-    mess: template.mess,
-    adultHelp: template.adultHelp,
-    estimatedMinutes: Math.min(targetMinutes, 20),
-    whyItFits: `Fits the current moment in ${space} with supplies you own.`,
-  }));
+  return selected.map(({ template, uses }) => {
+    const stepDetails = template.steps.map((instruction, index) => ({
+      title: `Step ${index + 1}`,
+      instruction,
+      starterIdeas: [],
+      examples: [],
+      doneWhen: resolveDoneWhen({ instruction, title: instruction }),
+      ifStuck: resolveIfStuck({ instruction, title: instruction }),
+      roleInstructions: [],
+    }));
+
+    return {
+      title: template.title,
+      activityStyle: "simple",
+      theme: "",
+      summary: `A quick simple activity using what you already have.`,
+      kidRole: "",
+      mission: "",
+      starterPrompts: [],
+      firstMoves: template.steps.slice(0, 1),
+      steps: template.steps,
+      stepDetails,
+      roles: [],
+      extensionIdeas: [],
+      uses,
+      verifiedUses: uses,
+      energy: template.energy,
+      mess: template.mess,
+      adultHelp: template.adultHelp,
+      estimatedMinutes: Math.min(targetMinutes, 20),
+      whyItFits: `Fits the current moment in ${space} with supplies you own.`,
+    };
+  });
 }

@@ -4,7 +4,87 @@ import {
   ACTIVE_QUEST_STACK_ORDER,
   getSceneInstruction,
   getStepRoleParts,
+  resolveDoneWhen,
+  resolveIfStuck,
+  resolveSceneInstruction,
 } from "./questStepCopy";
+
+describe("resolveDoneWhen", () => {
+  it("keeps a specific completion cue", () => {
+    expect(
+      resolveDoneWhen({
+        instruction: "Draw 3–5 zones.",
+        doneWhen: "Every zone has a name you can point to.",
+      })
+    ).toBe("Every zone has a name you can point to.");
+  });
+
+  it("replaces generic finish-this-step copy with the actual action", () => {
+    expect(
+      resolveDoneWhen({
+        title: "Draw the zones",
+        instruction: "Draw 3–5 zones on the paper and name each one.",
+        doneWhen: "You finished this step.",
+      })
+    ).toBe("You have drawn 3–5 zones on the paper.");
+  });
+
+  it("rewrites generic ifStuck copy from the step action", () => {
+    expect(
+      resolveIfStuck({
+        instruction: "Create your circus name and costume.",
+        ifStuck: "Do a simpler version of this step and move on.",
+      })
+    ).toBe("Try the easiest piece first: Create your circus name and costume.");
+  });
+});
+
+describe("resolveSceneInstruction", () => {
+  it("turns a thin cached scene into a how-to an 8-year-old can follow", () => {
+    const instruction = resolveSceneInstruction(
+      {
+        title: "Open the embassy",
+        instruction: "Set the greeting desk.",
+        examples: ["Towel desk + Open sign."],
+        ifStuck: "Use a chair seat as the desk.",
+      },
+      {
+        activityStyle: "imaginative",
+        uses: ["stuffed animals", "paper", "pencil", "towel or placemat"],
+        roleGuide: { firstAction: "Set a towel as the embassy desk." },
+      },
+      0
+    );
+
+    expect(instruction).toMatch(/towel/i);
+    expect(instruction).toMatch(/open sign/i);
+    expect(instruction).toMatch(/chair/i);
+    expect(instruction).not.toBe("Set the greeting desk.");
+    expect(
+      instruction.split(/[.!?]+/).filter((part) => part.trim()).length
+    ).toBeGreaterThanOrEqual(3);
+  });
+
+  it("leaves a specific multi-sentence instruction alone", () => {
+    const full =
+      "Find a towel, placemat, or chair and turn it into the embassy greeting desk. Put paper and a pencil on it so diplomats can check in. Make an Open sign, or write OPEN on scrap paper. If you do not have a table, use a chair seat or the floor.";
+    expect(
+      resolveSceneInstruction(
+        { title: "Open the embassy", instruction: full },
+        { activityStyle: "imaginative" }
+      )
+    ).toBe(full);
+  });
+
+  it("does not expand simple activities", () => {
+    expect(
+      resolveSceneInstruction(
+        { instruction: "Get paper and something to draw with." },
+        { activityStyle: "simple" }
+      )
+    ).toBe("Get paper and something to draw with.");
+  });
+});
 
 const step = completeActivityV2Fixture.stepDetails[0];
 

@@ -30,6 +30,7 @@ describe("storyifyCachedImaginativeActivity", () => {
     expect(result.stepDetails[0].title).toBe("Mission Control Wakes Up");
     expect(result.stepDetails[0].instruction).toMatch(/crackle runs through Mission Control/i);
     expect(result.stepDetails[0].instruction).toContain("Make a quiet message desk.");
+    expect(result.stepDetails[0].instruction).toMatch(/books as radio towers/i);
     expect(result.stepDetails[0].doneWhen).toMatch(/writing spot|marker|ready/i);
     expect(result.stepDetails[0].starterIdeas.length).toBeGreaterThanOrEqual(2);
     expect(result.starterIdeas).toHaveLength(5);
@@ -50,6 +51,10 @@ describe("storyifyCachedImaginativeActivity", () => {
     expect(result.stepDetails[0].ifStuck).toMatch(/^Quick reset:/);
     expect(result.roleGuide.description).toMatch(/control the choices/i);
     expect(result.stepDetails[0].instruction).not.toMatch(/Psst|Ooooh|nice timing/i);
+    expect(result.stepDetails[0].doneWhen).toBe(
+      "You have made a recording corner."
+    );
+    expect(result.stepDetails[0].doneWhen).not.toMatch(/finished this step/i);
   });
 
   it("leaves simple activities alone", () => {

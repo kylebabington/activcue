@@ -1,5 +1,11 @@
 /** Deterministic visual themes for imaginative activity cards (no AI art). */
 
+import {
+  resolveDoneWhen,
+  resolveIfStuck,
+  resolveSceneInstruction,
+} from "./questStepCopy";
+
 export const VISUAL_THEME_META = {
   space: { label: "Space", icon: "🌙", accent: "#3b6ea5" },
   jungle: { label: "Nature", icon: "🌿", accent: "#2f7a4b" },
@@ -141,6 +147,14 @@ export function getStepStuckPrompts(step) {
   const seen = new Set();
   return candidates
     .map((value) => (typeof value === "string" ? value.trim() : ""))
+    .filter(Boolean)
+    .map((value) =>
+      resolveIfStuck({
+        instruction: step.instruction,
+        title: step.title,
+        ifStuck: value,
+      })
+    )
     .filter((value) => {
       if (!value) return false;
       const key = value.toLowerCase();
@@ -153,18 +167,34 @@ export function getStepStuckPrompts(step) {
 
 export function getStepDetails(activity) {
   if (Array.isArray(activity?.stepDetails) && activity.stepDetails.length > 0) {
-    return activity.stepDetails;
+    return activity.stepDetails.map((step, index) => {
+      const instruction = resolveSceneInstruction(step, activity, index);
+      return {
+        ...step,
+        instruction,
+        doneWhen: resolveDoneWhen(step),
+        ifStuck: resolveIfStuck(step),
+      };
+    });
   }
   if (Array.isArray(activity?.steps)) {
-    return activity.steps.filter(Boolean).map((step, index) => ({
-      title: `Step ${index + 1}`,
-      instruction: step,
-      starterIdeas: [],
-      examples: [],
-      doneWhen: "You finished this step.",
-      ifStuck: "Do a simpler version of this step and move on.",
-      roleInstructions: [],
-    }));
+    return activity.steps.filter(Boolean).map((step, index) => {
+      const raw = String(step).trim();
+      const instruction = resolveSceneInstruction(
+        { instruction: raw, title: raw },
+        activity,
+        index
+      );
+      return {
+        title: `Step ${index + 1}`,
+        instruction,
+        starterIdeas: [],
+        examples: [],
+        doneWhen: resolveDoneWhen({ instruction: raw, title: raw }),
+        ifStuck: resolveIfStuck({ instruction: raw, title: raw }),
+        roleInstructions: [],
+      };
+    });
   }
   return [];
 }

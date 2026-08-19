@@ -14,7 +14,7 @@ export function resolveReadingModeDefaults(youngestAgeYears) {
 
   if (!Number.isFinite(age) || age <= 9) {
     return {
-      enabled: true,
+      enabled: false,
       autoAdvance: true,
       speechRate: 0.9,
       showNextPrompt: true,

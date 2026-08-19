@@ -2082,7 +2082,8 @@ const NEW_IMAGINATIVE = [
       stepDetails: [
         {
           title: "Open the embassy",
-          instruction: "Set the greeting desk.",
+          instruction:
+            "Find a towel, placemat, or chair and turn it into the embassy greeting desk. Put paper and a pencil on it so diplomats can check in. Make an Open sign, or write OPEN on scrap paper. If you do not have a table, use a chair seat or the floor. You are ready when you can point to the desk and the Open sign.",
           examples: ["Towel desk + Open sign."],
           doneWhen: "Desk and sign are ready.",
           ifStuck: "Use a chair seat as the desk.",
@@ -2090,7 +2091,8 @@ const NEW_IMAGINATIVE = [
         },
         {
           title: "Welcome diplomats",
-          instruction: "Greet each guest kindly.",
+          instruction:
+            "Line up three stuffed animals as diplomats waiting at the desk. Greet each one by name and give them a spot to sit or stand. If you forget what to say, shake a paw or nod, then write their name on a scrap of paper. You are ready when all three guests have been greeted.",
           examples: ["Welcome, Bear from Blanket Land."],
           doneWhen: "All three are greeted.",
           ifStuck: "Shake a paw instead of speaking much.",
@@ -2098,7 +2100,8 @@ const NEW_IMAGINATIVE = [
         },
         {
           title: "Write treaties",
-          instruction: "One kindness line per diplomat.",
+          instruction:
+            "Write or draw one kindness treaty line for each diplomat on the paper. Keep it simple, like “We share quiet corners.” If writing is hard, draw a heart next to each name. You are ready when three treaty lines exist.",
           examples: ["We share quiet corners."],
           doneWhen: "Three treaty lines exist.",
           ifStuck: "Draw a heart next to each name.",

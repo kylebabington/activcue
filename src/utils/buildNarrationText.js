@@ -21,7 +21,7 @@ function joinSentences(parts) {
 /**
  * Compose spoken scripts from Activity Format V2 fields.
  * @param {object} activity
- * @param {"mission"|"role"|"starters"|"starter"|"step"|"next"|"stuck"} section
+ * @param {"mission"|"role"|"starters"|"starter"|"step"|"next"|"stuck"|"materials"|"finish"} section
  * @param {{ stepIndex?: number, starterIndex?: number, stuckPromptIndex?: number, selectedRoleName?: string, roleAssignments?: object, includeDoneWhen?: boolean }} [options]
  */
 export function buildNarrationText(activity, section, options = {}) {
@@ -181,6 +181,35 @@ export function buildNarrationText(activity, section, options = {}) {
     const safeIndex =
       ((promptIndex % prompts.length) + prompts.length) % prompts.length;
     return joinSentences([prompts[safeIndex]]);
+  }
+
+  if (section === "materials") {
+    const uses = Array.isArray(activity.uses) ? activity.uses.filter(Boolean) : [];
+    if (uses.length === 0) {
+      return joinSentences(["Use whatever you already have nearby."]);
+    }
+    return joinSentences([
+      uses.length === 1
+        ? `You need ${uses[0]}`
+        : `You need ${uses.join(", ")}`,
+    ]);
+  }
+
+  if (section === "finish") {
+    const extensions = Array.isArray(activity.extensionIdeas)
+      ? activity.extensionIdeas.filter(Boolean)
+      : [];
+    if (extensions.length === 0) {
+      return joinSentences([
+        activity.activityStyle === "imaginative"
+          ? "When the last scene is done, wrap the story and celebrate"
+          : "When the last step is done, you are finished",
+      ]);
+    }
+    return joinSentences([
+      "When you are ready to wrap up, try one of these",
+      ...extensions,
+    ]);
   }
 
   return "";

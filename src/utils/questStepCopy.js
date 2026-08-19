@@ -9,6 +9,271 @@ export function getSceneInstruction(step) {
   return String(step.instruction || "").trim();
 }
 
+const GENERIC_DONE_WHEN_PATTERNS = [
+  /you finished this (step|scene|part)/i,
+  /finished this part of the activity/i,
+  /you completed this (step|scene|part)/i,
+  /this (step|scene|part) is (done|finished|complete)/i,
+  /when you finish this/i,
+  /the objective is complete/i,
+  /something in the story has changed/i,
+  /ready to (move on|continue) when you finish/i,
+  /^you finished\.?$/i,
+  /^this step is done\.?$/i,
+  /^you(?:'ve| have) finished this\.?$/i,
+];
+
+const IRREGULAR_PARTICIPLES = {
+  add: "added",
+  build: "built",
+  choose: "chosen",
+  draw: "drawn",
+  dump: "dumped",
+  find: "found",
+  get: "gotten",
+  give: "given",
+  hang: "hung",
+  leave: "left",
+  make: "made",
+  put: "put",
+  read: "read",
+  run: "run",
+  see: "seen",
+  set: "set",
+  sit: "sat",
+  write: "written",
+};
+
+const OBJECT_READY_VERBS = new Set([
+  "choose",
+  "collect",
+  "find",
+  "get",
+  "grab",
+  "pick",
+  "take",
+]);
+
+export function isGenericDoneWhen(value) {
+  const text = String(value || "").trim();
+  if (!text) return true;
+  return GENERIC_DONE_WHEN_PATTERNS.some((pattern) => pattern.test(text));
+}
+
+function firstSentence(value) {
+  const trimmed = String(value || "").trim();
+  if (!trimmed) return "";
+  const match = trimmed.match(/^[^.!?]+[.!?]?/);
+  return match ? match[0].trim() : trimmed;
+}
+
+function ensurePeriod(value) {
+  const trimmed = String(value || "").trim();
+  if (!trimmed) return "";
+  return /[.!?]$/.test(trimmed) ? trimmed : `${trimmed}.`;
+}
+
+function toPresentPerfect(imperative) {
+  const stripped = String(imperative || "")
+    .replace(/[.!?]+$/, "")
+    .trim();
+  const match = stripped.match(/^([A-Za-z']+)(.*)$/);
+  if (!match) return "";
+
+  const verb = match[1].toLowerCase();
+  const rest = match[2] || "";
+  if (OBJECT_READY_VERBS.has(verb) && rest.trim()) {
+    return ensurePeriod(`You have${rest}`);
+  }
+
+  const clauseRest = rest.split(/\s+and\s+/i)[0];
+  const participle =
+    IRREGULAR_PARTICIPLES[verb] ||
+    (verb.endsWith("e")
+      ? `${verb}d`
+      : /[^aeiou]y$/i.test(verb)
+        ? `${verb.slice(0, -1)}ied`
+        : `${verb}ed`);
+  return ensurePeriod(`You have ${participle}${clauseRest}`);
+}
+
+/**
+ * Keep specific completion cues. Replace missing/generic ones with a cue
+ * derived from this step's action so kids are never told "when you finish this step."
+ */
+export function resolveDoneWhen(step) {
+  const existing = String(step?.doneWhen || "").trim();
+  if (existing && !isGenericDoneWhen(existing)) {
+    return ensurePeriod(existing);
+  }
+
+  const action =
+    firstSentence(step?.instruction) || firstSentence(step?.title);
+  const synthesized = toPresentPerfect(action);
+  if (synthesized && !isGenericDoneWhen(synthesized)) {
+    return synthesized;
+  }
+
+  if (action && !isGenericDoneWhen(action)) {
+    return ensurePeriod(`You can show this: ${action.replace(/[.!?]+$/, "")}`);
+  }
+
+  return "You can point to one finished result from what you just did.";
+}
+
+const GENERIC_IF_STUCK_PATTERNS = [
+  /simpler version of this (step|scene|part|move)/i,
+  /simplest version of this (step|scene|part|move)/i,
+  /skip the fancy version/i,
+  /do a simpler version of this step and move on/i,
+];
+
+export function isGenericIfStuck(value) {
+  const text = String(value || "").trim();
+  if (!text) return true;
+  return GENERIC_IF_STUCK_PATTERNS.some((pattern) => pattern.test(text));
+}
+
+export function resolveIfStuck(step) {
+  const existing = String(step?.ifStuck || "").trim();
+  if (existing && !isGenericIfStuck(existing)) {
+    return ensurePeriod(existing);
+  }
+
+  const action =
+    firstSentence(step?.instruction) || firstSentence(step?.title);
+  if (action && !isGenericIfStuck(action)) {
+    return ensurePeriod(
+      `Try the easiest piece first: ${action.replace(/[.!?]+$/, "")}`
+    );
+  }
+
+  return "Try the easiest piece of what you see and start there.";
+}
+
+function countSentences(value) {
+  return String(value || "")
+    .split(/[.!?]+/)
+    .map((part) => part.trim())
+    .filter(Boolean).length;
+}
+
+function wordCount(value) {
+  return String(value || "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean).length;
+}
+
+export function isThinSceneInstruction(value) {
+  const text = String(value || "").trim();
+  if (!text) return true;
+  const sentences = countSentences(text);
+  const words = wordCount(text);
+  if (words <= 14) return true;
+  if (sentences < 3) return true;
+  return false;
+}
+
+function firstConcreteHint(step) {
+  const examples = Array.isArray(step?.examples)
+    ? step.examples.map((item) => String(item || "").trim()).filter(Boolean)
+    : [];
+  if (examples[0]) return examples[0];
+
+  const ideas = Array.isArray(step?.starterIdeas) ? step.starterIdeas : [];
+  for (const idea of ideas) {
+    const hint = String(idea?.example || idea?.title || "").trim();
+    if (hint) return hint;
+  }
+  return "";
+}
+
+function supplyHowTo(uses) {
+  const items = (Array.isArray(uses) ? uses : [])
+    .map((item) => String(item || "").trim())
+    .filter(Boolean)
+    .slice(0, 4);
+  if (items.length === 0) {
+    return "Look around the room and use the closest objects that could stand in for the real thing.";
+  }
+  if (items.length === 1) {
+    return `Use ${items[0]}, plus anything else nearby that could help.`;
+  }
+  const last = items[items.length - 1];
+  const head = items.slice(0, -1).join(", ");
+  return `Use ${head}, and ${last}. If you do not have one of those, grab the closest stand-in in the room.`;
+}
+
+function uniqueSentences(parts) {
+  const seen = new Set();
+  const out = [];
+  for (const part of parts) {
+    const text = String(part || "").trim();
+    if (!text) continue;
+    const key = text.toLowerCase().replace(/[.!?]+$/, "");
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(ensurePeriod(text));
+  }
+  return out;
+}
+
+/**
+ * Cached and generated scenes often arrive as labels ("Set the greeting desk").
+ * Expand those into a how-to an 8-year-old can follow without asking an adult.
+ * Specific 3+ sentence instructions are left alone.
+ */
+export function resolveSceneInstruction(step, activity = {}, stepIndex = 0) {
+  const existing = String(step?.instruction || "").trim();
+  if (activity?.activityStyle === "simple") {
+    return existing;
+  }
+
+  if (existing && !isThinSceneInstruction(existing)) {
+    return ensurePeriod(existing);
+  }
+
+  const title = String(step?.title || "").trim();
+  const action = existing || title || "Start this scene with one clear move";
+  const example = firstConcreteHint(step);
+  const firstAction = String(activity?.roleGuide?.firstAction || "").trim();
+  const stuck = String(step?.ifStuck || "").trim();
+
+  const parts = [];
+  parts.push(action);
+  if (title && !action.toLowerCase().includes(title.toLowerCase())) {
+    parts.push(`This scene is ${title}`);
+  }
+
+  if (
+    Number(stepIndex) === 0 &&
+    firstAction &&
+    firstAction.toLowerCase() !== action.toLowerCase()
+  ) {
+    parts.push(firstAction);
+  }
+
+  parts.push(supplyHowTo(activity?.uses));
+
+  if (example && example.toLowerCase() !== action.toLowerCase()) {
+    parts.push(`A simple version looks like this: ${example}`);
+  }
+
+  if (stuck && !isGenericIfStuck(stuck)) {
+    const stuckBody = stuck.replace(/[.!?]+$/, "");
+    parts.push(
+      `If that is hard, ${stuckBody.charAt(0).toLowerCase()}${stuckBody.slice(1)}`
+    );
+  }
+
+  parts.push(
+    "Keep going until you can point to what you just made and it looks ready."
+  );
+
+  return uniqueSentences(parts).join(" ");
+}
+
 function normalizeName(value) {
   return String(value || "")
     .trim()

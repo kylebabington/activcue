@@ -1782,9 +1782,9 @@ export const DEMO_ACTIVITY_POOL = Object.freeze([
     "summary": "Open a quiet animal embassy and welcome three stuffed diplomats without needing an adult.",
     "estimatedMinutes": 25,
     "steps": [
-      "Open the embassy: Set the greeting desk.",
-      "Welcome diplomats: Greet each guest kindly.",
-      "Write treaties: One kindness line per diplomat."
+      "Open the embassy: Find a towel, placemat, or chair and turn it into the greeting desk. Put paper and a pencil on it and make an Open sign.",
+      "Welcome diplomats: Line up three stuffed animals, greet each one by name, and give them a seat.",
+      "Write treaties: Write or draw one kindness line for each diplomat, like “We share quiet corners.”"
     ],
     "uses": [
       "stuffed animals",

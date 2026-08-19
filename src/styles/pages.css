@@ -951,6 +951,13 @@
   background: color-mix(in srgb, var(--color-surface, #fff) 94%, var(--color-bg, #f7f4ef));
 }
 
+.quest-play-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
 .quest-play-card h2 {
   margin: 0;
   font-size: 1.05rem;
@@ -1338,7 +1345,9 @@
 
 .quest-step-starter-card {
   display: grid;
-  gap: 0.35rem;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 0.35rem 0.5rem;
   text-align: left;
   min-height: 5.5rem;
   padding: 0.85rem 0.9rem;
@@ -1355,12 +1364,26 @@
   cursor: default;
 }
 
-button.quest-step-starter-card {
+.quest-step-starter-card-body {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
   cursor: pointer;
 }
 
-button.quest-step-starter-card:hover,
-button.quest-step-starter-card:focus-visible {
+.quest-step-starter-card-body:hover,
+.quest-step-starter-card-body:focus-visible {
+  outline: none;
+}
+
+.quest-step-starter-card:hover,
+.quest-step-starter-card:focus-within {
   border-color: var(--activity-theme-accent, var(--color-primary));
   outline: none;
 }
@@ -1498,12 +1521,26 @@ button.quest-step-starter-card:focus-visible {
 
 .quest-v2-starter-door {
   display: grid;
-  gap: 0.2rem;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 0.5rem 0.65rem;
   text-align: left;
   padding: 0.75rem 0.9rem;
   border: 1px solid color-mix(in srgb, var(--activity-theme-accent, var(--color-primary)) 28%, transparent);
   border-radius: var(--radius-medium);
   background: color-mix(in srgb, var(--activity-theme-accent, var(--color-primary)) 8%, white);
+}
+
+.quest-v2-starter-door-body {
+  display: grid;
+  gap: 0.2rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
   cursor: pointer;
 }
 
@@ -2209,23 +2246,6 @@ button.quest-step-starter-card:focus-visible {
 }
 
 .account-legal-links a:hover {
-  text-decoration: underline;
-}
-
-.legal-consent-note {
-  margin: 0.75rem 0 0;
-  color: var(--color-text-muted);
-  font-size: var(--font-size-sm);
-  line-height: 1.45;
-}
-
-.legal-consent-note a {
-  color: var(--color-primary);
-  font-weight: var(--font-weight-semibold);
-  text-decoration: none;
-}
-
-.legal-consent-note a:hover {
   text-decoration: underline;
 }
 .billing-panel {

@@ -17,11 +17,13 @@ describe("buildNarrationText", () => {
     expect(text).toContain("Sam is the Signal Runner");
   });
 
-  it("builds starter ideas narration", () => {
-    const text = buildNarrationText(completeActivityV2Fixture, "starters");
-    expect(text).toContain("starter ideas");
-    expect(text).toContain("Message from Earth");
-    expect(text).toContain("Robot trouble");
+  it("builds supplies and finish narration for the play board", () => {
+    expect(buildNarrationText(completeActivityV2Fixture, "materials")).toContain(
+      "paper"
+    );
+    expect(buildNarrationText(completeActivityV2Fixture, "finish")).toContain(
+      "night-crew briefing card"
+    );
   });
 
   it("builds a single scene script with the full instruction and a move-on cue", () => {
