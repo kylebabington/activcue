@@ -80,7 +80,7 @@ describe("active quest CSS", () => {
 
   it("uses a wide three-column board on desktop", () => {
     expect(pagesCss).toMatch(
-      /@media \(min-width: 1024px\)[\s\S]*minmax\(0, 2fr\)/
+      /@media \(min-width: 1024px\)[\s\S]*minmax\(12rem, 0\.48fr\)[\s\S]*minmax\(0, 1fr\)[\s\S]*minmax\(12rem, 0\.52fr\)/
     );
     expect(layoutCss).toContain("kid-center-column--play");
     expect(layoutCss).toContain("--kid-play-column-max-width");
