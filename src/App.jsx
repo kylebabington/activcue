@@ -368,6 +368,7 @@ function App() {
     clearLastCompletedQuest,
     stepHint,
     isHintLoading,
+    hintLoadingStepIndex,
     handleStartActivity,
     finishActiveActivity,
     cancelActiveActivity,
@@ -407,6 +408,7 @@ function App() {
       saveActivityFeedbackRef.current?.(...args),
     showStatus,
     readingModePreference,
+    canUseAiHints: Boolean(entitlement?.canUseAiHints),
     onNeedAnotherIdea: (previousTitle, options = {}) => {
       const intent = buildFeedbackIntent({
         feedbackIntent: "need-another-idea",
@@ -759,6 +761,7 @@ function App() {
         markRescueModeUsed,
         stepHint,
         isHintLoading,
+        hintLoadingStepIndex,
         handleNeedStepHint,
         completeListeningIntro,
         setActivityReadingModeEnabled,
@@ -814,6 +817,7 @@ function App() {
       markRescueModeUsed,
       stepHint,
       isHintLoading,
+      hintLoadingStepIndex,
       handleNeedStepHint,
       completeListeningIntro,
       setActivityReadingModeEnabled,

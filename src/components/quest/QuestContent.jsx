@@ -269,6 +269,10 @@ export default function QuestContent({
   onToggleStarter,
   onSelectStepStarter,
   onImStuck,
+  stuckSuggestionByStepIndex = {},
+  isHintLoading = false,
+  hintLoadingStepIndex = null,
+  canUseAiHints = false,
   highlightedStuckStepIndex = null,
   focusStepIndex = null,
   playingChildren = [],
@@ -344,6 +348,10 @@ export default function QuestContent({
         onToggleStarter={onToggleStarter}
         onSelectStepStarter={onSelectStepStarter}
         onImStuck={onImStuck}
+        stuckSuggestionByStepIndex={stuckSuggestionByStepIndex}
+        isHintLoading={isHintLoading}
+        hintLoadingStepIndex={hintLoadingStepIndex}
+        canUseAiHints={canUseAiHints}
         highlightedStuckStepIndex={highlightedStuckStepIndex}
         focusStepIndex={focusStepIndex}
         playingChildren={playingChildren}
