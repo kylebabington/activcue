@@ -10,6 +10,7 @@ import {
 import { useLocalStorage } from "../../hooks/useLocalStorage";
 import { normalizeActivityStyle } from "../../utils/activityStyle";
 import {
+  activityNeedsSetup,
   getStepDetails,
   getStepStarterIdeas,
 } from "../../utils/activityVisualTheme";
@@ -194,6 +195,8 @@ export function useQuestSession({
       enabled: false,
     };
 
+    const needsSetup = activityNeedsSetup(activity);
+
     const activityToStart = {
       id: crypto.randomUUID(),
       title: activity.title,
@@ -201,7 +204,16 @@ export function useQuestSession({
       activityFormatVersion: activity.activityFormatVersion || 2,
       visualTheme: activity.visualTheme || "",
       theme: activity.theme || "",
+      story: activity.story || "",
       summary: activity.summary || "",
+      setupGuide:
+        activity.setupGuide && typeof activity.setupGuide === "object"
+          ? activity.setupGuide
+          : null,
+      finishGuide:
+        activity.finishGuide && typeof activity.finishGuide === "object"
+          ? activity.finishGuide
+          : null,
       kidRole: activity.kidRole || "",
       mission: activity.mission || "",
       roleGuide:
@@ -250,7 +262,9 @@ export function useQuestSession({
         null,
       presentedAt: activity.presentedAt || activity.presented_at || null,
       selectedAt: new Date().toISOString(),
-      questPhase: "playing",
+      questPhase: needsSetup ? "setup" : "playing",
+      setupComplete: !needsSetup,
+      setupCollapsed: false,
       checkedStarterIndexes: [],
       selectedStepStarterByIndex: {},
       selectedRoleName:
@@ -294,7 +308,7 @@ export function useQuestSession({
       }),
       usedRescueMode: false,
       highlightedStuckStepIndex: null,
-      startedAt: Date.now(),
+      startedAt: needsSetup ? null : Date.now(),
       durationMinutes,
       activitySessionId: null,
     };
@@ -310,7 +324,9 @@ export function useQuestSession({
     setLastCompletedQuest(null);
     setActiveActivity(activityToStart);
     markActivitySelectedAt(activityToStart.selectedAt, timingIds);
-    markActivityStartedAt(undefined, timingIds);
+    if (!needsSetup) {
+      markActivityStartedAt(undefined, timingIds);
+    }
     saveActivityFeedback?.(activity, "started");
     if (activityToStart.candidateId) {
       void recordSharedActivityOutcome({
@@ -320,7 +336,25 @@ export function useQuestSession({
         console.warn("Could not record shared candidate start:", error);
       });
     }
-    showStatus?.(`Started: "${activity.title}". Timer is running.`, "success");
+    showStatus?.(
+      needsSetup
+        ? `Started: "${activity.title}". Set up first, then press Ready.`
+        : `Started: "${activity.title}". Timer is running.`,
+      "success"
+    );
+
+    if (needsSetup) {
+      trackProductEvent("activity_setup_viewed", {
+        title: activityToStart.title,
+        activityFormatVersion: activityToStart.activityFormatVersion,
+      });
+    } else {
+      trackProductEvent("activity_scene_started", {
+        title: activityToStart.title,
+        stepIndex: 0,
+        activityFormatVersion: activityToStart.activityFormatVersion,
+      });
+    }
 
     const playingChildIds = (
       activityMode === "family"
@@ -368,6 +402,50 @@ export function useQuestSession({
     sessionExitPromiseRef.current = null;
   }
 
+  function completeSetup() {
+    if (!activeActivity || activeActivity.setupComplete) {
+      return;
+    }
+
+    trackProductEvent("activity_setup_completed", {
+      title: activeActivity.title,
+      activityFormatVersion: activeActivity.activityFormatVersion || 2,
+    });
+
+    setActiveActivity({
+      ...activeActivity,
+      questPhase: "playing",
+      setupComplete: true,
+      setupCollapsed: true,
+      startedAt: Date.now(),
+    });
+
+    const timingIds = {
+      candidateId: activeActivity.candidateId,
+      recommendationBatchId: activeActivity.recommendationBatchId,
+      momentId: activeActivity.momentId,
+    };
+    markActivityStartedAt(undefined, timingIds);
+    trackProductEvent("activity_scene_started", {
+      title: activeActivity.title,
+      stepIndex: 0,
+      activityFormatVersion: activeActivity.activityFormatVersion || 2,
+    });
+    trackProductEvent("first_step_started", {
+      title: activeActivity.title,
+      activityFormatVersion: activeActivity.activityFormatVersion || 2,
+    });
+    showStatus?.(`Ready! Timer is running for "${activeActivity.title}".`, "success");
+  }
+
+  function toggleSetupCollapsed() {
+    if (!activeActivity) return;
+    setActiveActivity({
+      ...activeActivity,
+      setupCollapsed: !activeActivity.setupCollapsed,
+    });
+  }
+
   function finishActiveActivity() {
     if (!activeActivity) {
       return;
@@ -407,11 +485,13 @@ export function useQuestSession({
     showStatus?.(`Finished: "${finishedActivity.title}". Nice work.`, "success");
     trackProductEvent("activity_finished", {
       title: finishedActivity.title,
+      activityFormatVersion: finishedActivity.activityFormatVersion || 2,
       candidateId: finishedActivity.candidateId || null,
       recommendationBatchId: finishedActivity.recommendationBatchId || null,
       momentId: finishedActivity.momentId || null,
     });
     trackProductEvent("activity_completed", {
+      activityFormatVersion: finishedActivity.activityFormatVersion || 2,
       candidateId: finishedActivity.candidateId || null,
       recommendationBatchId: finishedActivity.recommendationBatchId || null,
       momentId: finishedActivity.momentId || null,
@@ -658,6 +738,18 @@ export function useQuestSession({
         ? completedStepIndexes.filter((index) => index !== stepIndexToToggle)
         : [...completedStepIndexes, stepIndexToToggle],
     });
+    if (!stepIsAlreadyComplete) {
+      trackProductEvent("step_completed", {
+        title: activeActivity.title,
+        stepIndex: stepIndexToToggle,
+        activityFormatVersion: activeActivity.activityFormatVersion || 2,
+      });
+      trackProductEvent("activity_scene_completed", {
+        title: activeActivity.title,
+        stepIndex: stepIndexToToggle,
+        activityFormatVersion: activeActivity.activityFormatVersion || 2,
+      });
+    }
   }
 
   function toggleShowAllQuestSteps() {
@@ -1010,6 +1102,8 @@ export function useQuestSession({
     isHintLoading,
     hintLoadingStepIndex,
     handleStartActivity,
+    completeSetup,
+    toggleSetupCollapsed,
     finishActiveActivity,
     cancelActiveActivity,
     handleTimerNotFinished,
