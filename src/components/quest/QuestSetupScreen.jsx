@@ -1,7 +1,7 @@
 import SpeakButton from "../SpeakButton";
-import QuestSetupGuide from "./quest/QuestSetupGuide";
-import { buildNarrationText } from "../utils/buildNarrationText";
-import { getActivityStoryText } from "../utils/activityVisualTheme";
+import QuestSetupGuide from "./QuestSetupGuide";
+import { buildNarrationText } from "../../utils/buildNarrationText";
+import { getActivityStoryText } from "../../utils/activityVisualTheme";
 
 /** Full-screen setup step before the timer starts (Activity Format V3). */
 
