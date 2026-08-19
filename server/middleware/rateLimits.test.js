@@ -12,8 +12,8 @@ describe("rate limit middleware configuration", () => {
     expect(AI_SUGGESTIONS_RATE_LIMIT.windowMs).toBe(60 * 60 * 1000);
   });
 
-  it("limits AI hints to 50 per hour", () => {
-    expect(AI_HINTS_RATE_LIMIT.max).toBe(50);
+  it("limits AI hints to 20 per hour", () => {
+    expect(AI_HINTS_RATE_LIMIT.max).toBe(20);
     expect(AI_HINTS_RATE_LIMIT.windowMs).toBe(60 * 60 * 1000);
   });
 

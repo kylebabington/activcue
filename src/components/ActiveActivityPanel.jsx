@@ -35,6 +35,11 @@ function ActiveActivityPanel({
   completeListeningIntro,
   setActivityReadingModeEnabled,
   playingChildren = [],
+  stepHint = "",
+  isHintLoading = false,
+  hintLoadingStepIndex = null,
+  handleNeedStepHint,
+  canUseAiHints = false,
 }) {
   const timerSecondsRemaining = useActivityTimer(activeActivity);
   const { speak, supported: speechSupported } = useSpeechSynthesis();
@@ -113,15 +118,16 @@ function ActiveActivityPanel({
     [activeActivity, focusStepIndex, roleName, selectedStepStarterByIndex]
   );
 
-  function handleImStuck(stepIndex, promptIndex) {
+  function handleImStuck(stepIndex) {
     trackProductEvent("built_in_help_opened", {
       title: activeActivity.title,
       stepIndex,
-      promptIndex,
+      promptIndex: 0,
       candidateId: activeActivity.candidateId || null,
       recommendationBatchId: activeActivity.recommendationBatchId || null,
       momentId: activeActivity.momentId || null,
     });
+    void handleNeedStepHint?.(stepIndex);
   }
 
   function handleWhatDoIDoNext() {
@@ -181,6 +187,13 @@ function ActiveActivityPanel({
           onTimerNeedAnotherIdea={handleTimerNeedAnotherIdea}
           onTimerMoreLikeThis={handleTimerMoreLikeThis}
           onImStuck={handleImStuck}
+          stuckSuggestion={
+            activeActivity.stuckSuggestionByStepIndex?.[
+              String(activeActivity.currentStepIndex || 0)
+            ] || stepHint
+          }
+          isHintLoading={isHintLoading}
+          canUseAiHints={canUseAiHints}
         />
       ) : (
         <QuestContent
@@ -196,6 +209,12 @@ function ActiveActivityPanel({
           onToggleStarter={toggleStarterIdea}
           onSelectStepStarter={selectStepStarter}
           onImStuck={handleImStuck}
+          stuckSuggestionByStepIndex={
+            activeActivity.stuckSuggestionByStepIndex || {}
+          }
+          isHintLoading={isHintLoading}
+          hintLoadingStepIndex={hintLoadingStepIndex}
+          canUseAiHints={canUseAiHints}
           focusStepIndex={focusStepIndex}
           playingChildren={playingChildren}
           roleAssignments={activeActivity.roleAssignments}

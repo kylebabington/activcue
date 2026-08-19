@@ -9,7 +9,18 @@ import {
 } from "../../api/familyMemoryApi";
 import { useLocalStorage } from "../../hooks/useLocalStorage";
 import { normalizeActivityStyle } from "../../utils/activityStyle";
+import {
+  getStepDetails,
+  getStepStarterIdeas,
+} from "../../utils/activityVisualTheme";
 import { trackProductEvent } from "../../utils/analytics";
+import { getSceneInstruction } from "../../utils/questStepCopy";
+import {
+  canRequestAiHint,
+  getAiHintsForStep,
+  getLocalStuckSuggestions,
+  nextStuckSuggestion,
+} from "../../utils/questStuckHelp";
 import {
   markActivitySelectedAt,
   markActivityStartedAt,
@@ -52,6 +63,7 @@ export function useQuestSession({
   showStatus,
   onNeedAnotherIdea,
   readingModePreference = null,
+  canUseAiHints = false,
 } = {}) {
   const [activeActivity, setActiveActivity] = useLocalStorage(
     "activeActivity",
@@ -70,6 +82,7 @@ export function useQuestSession({
 
   const [stepHint, setStepHint] = useState("");
   const [isHintLoading, setIsHintLoading] = useState(false);
+  const [hintLoadingStepIndex, setHintLoadingStepIndex] = useState(null);
 
   function rememberSessionInList(session) {
     if (!session?.id) {
@@ -293,6 +306,7 @@ export function useQuestSession({
     };
 
     setStepHint("");
+    setHintLoadingStepIndex(null);
     setLastCompletedQuest(null);
     setActiveActivity(activityToStart);
     markActivitySelectedAt(activityToStart.selectedAt, timingIds);
@@ -389,6 +403,7 @@ export function useQuestSession({
     setLastCompletedQuest(completedQuestSummary);
     setActiveActivity(null);
     setStepHint("");
+    setHintLoadingStepIndex(null);
     showStatus?.(`Finished: "${finishedActivity.title}". Nice work.`, "success");
     trackProductEvent("activity_finished", {
       title: finishedActivity.title,
@@ -479,6 +494,7 @@ export function useQuestSession({
     setLastCompletedQuest(null);
     setActiveActivity(null);
     setStepHint("");
+    setHintLoadingStepIndex(null);
     showStatus?.(`Canceled: "${canceledActivity.title}".`, "info");
     trackProductEvent("activity_abandoned", {
       reason: "canceled",
@@ -598,6 +614,7 @@ export function useQuestSession({
       : [...completedStepIndexes, currentStepIndex];
 
     setStepHint("");
+    setHintLoadingStepIndex(null);
     setActiveActivity({
       ...activeActivity,
       currentStepIndex: nextStepIndex,
@@ -617,6 +634,7 @@ export function useQuestSession({
     }
     const currentStepIndex = Number(activeActivity.currentStepIndex) || 0;
     setStepHint("");
+    setHintLoadingStepIndex(null);
     setActiveActivity({
       ...activeActivity,
       currentStepIndex: Math.max(currentStepIndex - 1, 0),
@@ -692,6 +710,7 @@ export function useQuestSession({
       showAiHintPanel: false,
     });
     setStepHint("");
+    setHintLoadingStepIndex(null);
     if (questPhase === "playing") {
       trackProductEvent("first_step_started", {
         title: activeActivity.title,
@@ -835,62 +854,150 @@ export function useQuestSession({
     });
   }
 
-  async function handleNeedStepHint() {
-    if (!activeActivity) {
+  async function handleNeedStepHint(stepIndex) {
+    if (!activeActivity || isHintLoading) {
       return;
     }
 
-    const stepDetails = Array.isArray(activeActivity.stepDetails)
-      ? activeActivity.stepDetails
+    const steps = getStepDetails(activeActivity);
+    const completed = Array.isArray(activeActivity.completedStepIndexes)
+      ? activeActivity.completedStepIndexes
       : [];
-    const steps = Array.isArray(activeActivity.steps) ? activeActivity.steps : [];
-    const currentStepIndex = Number(activeActivity.currentStepIndex) || 0;
-    const detail = stepDetails[currentStepIndex];
-    const currentStep =
-      detail?.instruction ||
-      detail?.title ||
-      steps[currentStepIndex];
-    if (!currentStep) {
+    const firstIncomplete = steps.findIndex(
+      (_, index) => !completed.includes(index)
+    );
+    const resolvedIndex = Number.isInteger(stepIndex)
+      ? stepIndex
+      : Number.isInteger(Number(activeActivity.currentStepIndex))
+        ? Number(activeActivity.currentStepIndex)
+        : firstIncomplete >= 0
+          ? firstIncomplete
+          : 0;
+    const step = steps[resolvedIndex];
+    const instruction =
+      getSceneInstruction(step) ||
+      String(step?.title || "").trim() ||
+      String(
+        Array.isArray(activeActivity.steps)
+          ? activeActivity.steps[resolvedIndex]
+          : ""
+      ).trim();
+    if (!step && !instruction) {
       return;
     }
 
-    setActiveActivity({
-      ...activeActivity,
-      showAiHintPanel: true,
-    });
-    setIsHintLoading(true);
-    setStepHint("");
-    trackProductEvent("ai_hint_requested", {
-      title: activeActivity.title,
-      stepIndex: currentStepIndex,
-    });
+    const stepKey = String(resolvedIndex);
+    const aiHintsByStepIndex =
+      activeActivity.aiHintsByStepIndex &&
+      typeof activeActivity.aiHintsByStepIndex === "object"
+        ? activeActivity.aiHintsByStepIndex
+        : {};
+    const existingAi = getAiHintsForStep(aiHintsByStepIndex, resolvedIndex);
+    const wantAi =
+      Boolean(canUseAiHints) &&
+      canRequestAiHint(aiHintsByStepIndex, resolvedIndex);
 
-    try {
-      const hint = await getQuestStepHint({
-        activeActivity: {
-          title: activeActivity.title,
-          theme: activeActivity.theme || "",
-          mission: activeActivity.mission || "",
-          uses: activeActivity.uses || [],
-          kidRole: activeActivity.kidRole || "",
-          activityStyle: normalizeActivityStyle(activeActivity),
-        },
-        currentStep,
-        currentStepNumber: currentStepIndex + 1,
-        totalSteps: stepDetails.length || steps.length,
-        currentMoment,
-        activeChildProfile,
+    function applyCycledSuggestion() {
+      const local = getLocalStuckSuggestions(step);
+      const pool = [...existingAi, ...local];
+      const fallback = instruction
+        ? `Try this part next: ${instruction}`
+        : "Look at this scene and do one small part you can see.";
+      const storedCursor = Number(
+        activeActivity.stuckCursorByStepIndex?.[stepKey]
+      );
+      const next = nextStuckSuggestion(
+        pool.length > 0 ? pool : [fallback],
+        Number.isInteger(storedCursor) ? storedCursor : -1
+      );
+      setStepHint(next.suggestion);
+      setActiveActivity((previous) => {
+        if (!previous) return previous;
+        return {
+          ...previous,
+          showAiHintPanel: true,
+          stuckCursorByStepIndex: {
+            ...(previous.stuckCursorByStepIndex || {}),
+            [stepKey]: next.cursor,
+          },
+          stuckSuggestionByStepIndex: {
+            ...(previous.stuckSuggestionByStepIndex || {}),
+            [stepKey]: next.suggestion,
+          },
+        };
       });
-      setStepHint(hint?.hint || hint?.message || String(hint || ""));
-    } catch (error) {
-      if (error instanceof ApiRequestError) {
-        showStatus?.(error.message, "error");
-      } else {
-        showStatus?.("Could not get a hint right now.", "error");
-      }
-    } finally {
-      setIsHintLoading(false);
     }
+
+    if (wantAi) {
+      setActiveActivity((previous) =>
+        previous ? { ...previous, showAiHintPanel: true } : previous
+      );
+      setIsHintLoading(true);
+      setHintLoadingStepIndex(resolvedIndex);
+      trackProductEvent("ai_hint_requested", {
+        title: activeActivity.title,
+        stepIndex: resolvedIndex,
+      });
+
+      try {
+        const hint = await getQuestStepHint({
+          activeActivity: {
+            title: activeActivity.title,
+            theme: activeActivity.theme || "",
+            mission: activeActivity.mission || "",
+            uses: activeActivity.uses || [],
+            kidRole: activeActivity.kidRole || "",
+            activityStyle: normalizeActivityStyle(activeActivity),
+          },
+          currentStep: instruction,
+          currentStepTitle: step?.title || "",
+          currentStepInstruction: instruction,
+          currentStepNumber: resolvedIndex + 1,
+          totalSteps: steps.length,
+          starterIdeas: getStepStarterIdeas(step),
+          previousHints: existingAi,
+          currentMoment,
+          activeChildProfile,
+        });
+        const text = String(hint?.hint || hint?.message || hint || "").trim();
+        if (text) {
+          setStepHint(text);
+          setActiveActivity((previous) => {
+            if (!previous) return previous;
+            const prevHints =
+              previous.aiHintsByStepIndex &&
+              typeof previous.aiHintsByStepIndex === "object"
+                ? previous.aiHintsByStepIndex
+                : {};
+            const prevForStep = getAiHintsForStep(prevHints, resolvedIndex);
+            return {
+              ...previous,
+              showAiHintPanel: true,
+              aiHintsByStepIndex: {
+                ...prevHints,
+                [stepKey]: [...prevForStep, text],
+              },
+              stuckSuggestionByStepIndex: {
+                ...(previous.stuckSuggestionByStepIndex || {}),
+                [stepKey]: text,
+              },
+            };
+          });
+          return;
+        }
+      } catch (error) {
+        if (error instanceof ApiRequestError) {
+          showStatus?.(error.message, "error");
+        } else {
+          showStatus?.("Could not get a hint right now.", "error");
+        }
+      } finally {
+        setIsHintLoading(false);
+        setHintLoadingStepIndex(null);
+      }
+    }
+
+    applyCycledSuggestion();
   }
 
   return {
@@ -901,6 +1008,7 @@ export function useQuestSession({
     clearLastCompletedQuest,
     stepHint,
     isHintLoading,
+    hintLoadingStepIndex,
     handleStartActivity,
     finishActiveActivity,
     cancelActiveActivity,
