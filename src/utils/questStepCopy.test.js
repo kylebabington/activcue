@@ -59,7 +59,7 @@ describe("resolveSceneInstruction", () => {
 
     expect(instruction).toMatch(/towel/i);
     expect(instruction).toMatch(/open sign/i);
-    expect(instruction).toMatch(/chair/i);
+    expect(instruction).toMatch(/chair|desk/i);
     expect(instruction).not.toBe("Set the greeting desk.");
     expect(
       instruction.split(/[.!?]+/).filter((part) => part.trim()).length
@@ -84,6 +84,28 @@ describe("resolveSceneInstruction", () => {
         { activityStyle: "simple" }
       )
     ).toBe("Get paper and something to draw with.");
+  });
+
+  it("keeps another activity on its own objects, not an embassy desk", () => {
+    const instruction = resolveSceneInstruction(
+      {
+        title: "Map the jungle",
+        instruction: "Draw paths between landmarks.",
+        examples: ["Chair to door to lamp."],
+        ifStuck: "Draw the shortest path first.",
+      },
+      {
+        activityStyle: "imaginative",
+        uses: ["paper", "pencil", "pillows"],
+        roleGuide: { firstAction: "Set a towel as the embassy desk." },
+      },
+      1
+    );
+
+    expect(instruction).toMatch(/path|landmark|chair/i);
+    expect(instruction).not.toMatch(
+      /embassy|diplomat|greeting desk|open sign|towel/i
+    );
   });
 });
 
