@@ -7,6 +7,10 @@ vi.mock("../utils/analytics", () => ({
   trackProductEvent: () => {},
 }));
 
+vi.mock("../components/SpeakButton.jsx", () => ({
+  default: () => null,
+}));
+
 import DemoPage from "./DemoPage";
 
 describe("DemoPage express path", () => {

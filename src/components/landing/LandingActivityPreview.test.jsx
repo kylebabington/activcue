@@ -1,6 +1,12 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";
+
+vi.mock("../../utils/analytics", () => ({
+  captureAttribution: () => {},
+  trackProductEvent: () => {},
+}));
+
 import LandingActivityPreview from "./LandingActivityPreview";
 
 describe("LandingActivityPreview", () => {
