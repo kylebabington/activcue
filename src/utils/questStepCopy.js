@@ -1,4 +1,4 @@
-import { getSceneBeatTitle } from "./sceneBeatTitles";
+import { getSceneBeatTitle } from "./sceneBeatTitles.js";
 
 /**
  * Kid-facing step copy helpers.

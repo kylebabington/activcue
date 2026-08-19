@@ -120,7 +120,7 @@ export function getStarterIdeaText(idea) {
   return example || title;
 }
 
-function normalizeStarterIdea(idea, index = 0) {
+function normalizeStarterIdea(idea) {
   const text = getStarterIdeaText(idea);
   if (!text) return null;
   const title = String(idea?.title || "").trim();
@@ -138,11 +138,11 @@ function normalizeStarterIdea(idea, index = 0) {
 export function getStarterIdeas(activity) {
   if (Array.isArray(activity?.starterIdeas) && activity.starterIdeas.length > 0) {
     return activity.starterIdeas
-      .map((idea, index) => normalizeStarterIdea(idea, index))
+      .map((idea) => normalizeStarterIdea(idea))
       .filter(Boolean);
   }
   if (Array.isArray(activity?.starterPrompts)) {
-    return activity.starterPrompts.filter(Boolean).map((prompt, index) => ({
+    return activity.starterPrompts.filter(Boolean).map((prompt) => ({
       title: "",
       example: String(prompt).trim(),
       kind: "imagination",
@@ -200,7 +200,7 @@ export function getStepStarterIdeas(step) {
 
   if (Array.isArray(step.starterIdeas) && step.starterIdeas.length > 0) {
     return step.starterIdeas
-      .map((idea, index) => normalizeStarterIdea(idea, index))
+      .map((idea) => normalizeStarterIdea(idea))
       .filter(Boolean)
       .slice(0, 3);
   }

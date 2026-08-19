@@ -482,7 +482,6 @@ export default function ActiveQuestLayout({
   onTimerNeedAnotherIdea,
   onTimerMoreLikeThis,
   resolvedSpeechRate,
-  missionNarration,
   setupCollapsed = false,
   onToggleSetupCollapsed,
 }) {
