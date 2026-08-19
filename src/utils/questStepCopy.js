@@ -237,6 +237,48 @@ export function isThinSceneInstruction(value) {
   return false;
 }
 
+const STOP_WORDS = new Set([
+  "the",
+  "a",
+  "an",
+  "and",
+  "or",
+  "to",
+  "of",
+  "your",
+  "this",
+  "that",
+  "with",
+  "from",
+  "for",
+  "on",
+  "in",
+  "as",
+  "is",
+  "are",
+  "it",
+  "into",
+  "then",
+  "each",
+  "one",
+  "you",
+]);
+
+function significantWords(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .split(/\s+/)
+    .filter((word) => word.length > 2 && !STOP_WORDS.has(word));
+}
+
+function sharesStepLanguage(candidate, stepText) {
+  const stepWords = new Set(significantWords(stepText));
+  if (stepWords.size === 0) return false;
+  const hits = significantWords(candidate).filter((word) => stepWords.has(word));
+  return hits.length >= 2;
+}
+
 function firstConcreteHint(step) {
   const examples = Array.isArray(step?.examples)
     ? step.examples.map((item) => String(item || "").trim()).filter(Boolean)
@@ -251,20 +293,26 @@ function firstConcreteHint(step) {
   return "";
 }
 
-function supplyHowTo(uses) {
+function suppliesForThisScene(uses, stepText) {
   const items = (Array.isArray(uses) ? uses : [])
     .map((item) => String(item || "").trim())
-    .filter(Boolean)
-    .slice(0, 4);
-  if (items.length === 0) {
-    return "Look around the room and use the closest objects that could stand in for the real thing.";
-  }
+    .filter(Boolean);
+  const stepWords = new Set(significantWords(stepText));
+  return items
+    .filter((item) =>
+      significantWords(item).some((word) => stepWords.has(word))
+    )
+    .slice(0, 3);
+}
+
+function supplySentence(items) {
+  if (items.length === 0) return "";
   if (items.length === 1) {
-    return `Use ${items[0]}, plus anything else nearby that could help.`;
+    return `Use ${items[0]} for this part`;
   }
   const last = items[items.length - 1];
   const head = items.slice(0, -1).join(", ");
-  return `Use ${head}, and ${last}. If you do not have one of those, grab the closest stand-in in the room.`;
+  return `Use ${head} and ${last} for this part`;
 }
 
 function uniqueSentences(parts) {
@@ -282,9 +330,9 @@ function uniqueSentences(parts) {
 }
 
 /**
- * Cached and generated scenes often arrive as labels ("Set the greeting desk").
- * Expand those into a how-to an 8-year-old can follow without asking an adult.
- * Specific 3+ sentence instructions are left alone.
+ * Cached and generated scenes often arrive as labels.
+ * Expand those using THIS scene's action, examples, and matching supplies.
+ * Never borrow objects or jobs from a different activity.
  */
 export function resolveSceneInstruction(step, activity = {}, stepIndex = 0) {
   const existing = String(step?.instruction || "").trim();
@@ -299,27 +347,30 @@ export function resolveSceneInstruction(step, activity = {}, stepIndex = 0) {
   const title = String(step?.title || "").trim();
   const action = existing || title || "Start this scene with one clear move";
   const example = firstConcreteHint(step);
+  const stepText = [title, action, example].filter(Boolean).join(" ");
   const firstAction = String(activity?.roleGuide?.firstAction || "").trim();
   const stuck = String(step?.ifStuck || "").trim();
+  const supplies = suppliesForThisScene(activity?.uses, stepText);
 
   const parts = [];
   parts.push(action);
-  if (title && !action.toLowerCase().includes(title.toLowerCase())) {
-    parts.push(`This scene is ${title}`);
-  }
 
   if (
     Number(stepIndex) === 0 &&
     firstAction &&
-    firstAction.toLowerCase() !== action.toLowerCase()
+    firstAction.toLowerCase() !== action.toLowerCase() &&
+    sharesStepLanguage(firstAction, stepText)
   ) {
     parts.push(firstAction);
   }
 
-  parts.push(supplyHowTo(activity?.uses));
-
   if (example && example.toLowerCase() !== action.toLowerCase()) {
-    parts.push(`A simple version looks like this: ${example}`);
+    parts.push(`Do it like this: ${example}`);
+  }
+
+  const supplyLine = supplySentence(supplies);
+  if (supplyLine) {
+    parts.push(supplyLine);
   }
 
   if (stuck && !isGenericIfStuck(stuck)) {
@@ -329,9 +380,12 @@ export function resolveSceneInstruction(step, activity = {}, stepIndex = 0) {
     );
   }
 
-  parts.push(
-    "Keep going until you can point to what you just made and it looks ready."
-  );
+  if (countSentences(uniqueSentences(parts).join(" ")) < 3) {
+    const bare = action.replace(/[.!?]+$/, "");
+    parts.push(
+      `Start with one piece of this: ${bare}, then add the next piece you can see`
+    );
+  }
 
   return uniqueSentences(parts).join(" ");
 }

@@ -181,8 +181,29 @@ describe("getStepDetails", () => {
     });
 
     expect(steps[0].instruction).toMatch(/towel/i);
-    expect(steps[0].instruction).toMatch(/paper/i);
+    expect(steps[0].instruction).toMatch(/desk|open sign/i);
     expect(steps[0].instruction).not.toBe("Set the greeting desk.");
+  });
+
+  it("does not paste embassy desk copy onto a different cached activity", () => {
+    const steps = getStepDetails({
+      activityStyle: "imaginative",
+      uses: ["paper", "pencil", "pillows"],
+      roleGuide: { firstAction: "Set a towel as the embassy desk." },
+      stepDetails: [
+        {
+          title: "Map the jungle",
+          instruction: "Draw paths between landmarks.",
+          examples: ["Chair to door to lamp."],
+          ifStuck: "Draw the shortest path first.",
+        },
+      ],
+    });
+
+    expect(steps[0].instruction).toMatch(/path|landmark|chair/i);
+    expect(steps[0].instruction).not.toMatch(
+      /embassy|diplomat|greeting desk|open sign|towel/i
+    );
   });
 
   it("synthesizes doneWhen for legacy steps arrays", () => {
