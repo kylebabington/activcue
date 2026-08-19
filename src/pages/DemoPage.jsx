@@ -22,6 +22,8 @@ import {
   buildSignupUrl,
 } from "../utils/signupUrls";
 import { captureAttribution, trackProductEvent } from "../utils/analytics";
+import LegalConsentNote from "../components/LegalConsentNote.jsx";
+import SiteFooter from "../components/SiteFooter.jsx";
 import "../App.css";
 import "../styles/landing.css";
 import "../styles/demo.css";
@@ -116,6 +118,7 @@ function SoftGate({ activity, variant = "remember" }) {
             Get Plus
           </Link>
         </div>
+        <LegalConsentNote />
       </div>
     );
   }
@@ -135,6 +138,7 @@ function SoftGate({ activity, variant = "remember" }) {
           Create free account
         </button>
       </div>
+      <LegalConsentNote />
     </div>
   );
 }
@@ -844,6 +848,7 @@ function DemoPage() {
           </p>
         ) : null}
       </main>
+      <SiteFooter />
     </div>
   );
 }

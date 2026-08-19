@@ -6,6 +6,7 @@ import { Link } from "react-router-dom";
 import { getBillingPlans, redirectToCheckout } from "../api/billingApi";
 import { ApiRequestError } from "../api/apiClient";
 import Modal from "../components/Modal";
+import SiteFooter from "../components/SiteFooter.jsx";
 import LandingPricingCompare from "../components/landing/LandingPricingCompare";
 import LandingProductShowcase from "../components/landing/LandingProductShowcase";
 import LandingSituations from "../components/landing/LandingSituations";
@@ -259,6 +260,13 @@ function LandingPage() {
             </a>
             <Link
               className="landing-topbar-link"
+              to="/privacy"
+              onClick={() => setNavOpen(false)}
+            >
+              Privacy
+            </Link>
+            <Link
+              className="landing-topbar-link"
               to="/login"
               onClick={() => setNavOpen(false)}
             >
@@ -314,6 +322,13 @@ function LandingPage() {
           >
             Pricing
           </a>
+          <Link
+            className="landing-topbar-link"
+            to="/privacy"
+            onClick={() => setNavOpen(false)}
+          >
+            Privacy
+          </Link>
           <Link
             className="landing-topbar-link"
             to="/login"
@@ -523,18 +538,7 @@ function LandingPage() {
         </div>
       </section>
 
-      <footer className="landing-footer">
-        <div className="landing-footer-inner">
-          <img src="/logo.svg" alt="" width="24" height="24" />
-          <span>{BRAND.name}</span>
-          <span className="landing-footer-sep" aria-hidden="true">
-            ·
-          </span>
-          <Link to="/privacy">Privacy</Link>
-          <Link to="/terms">Terms</Link>
-          <a href={`mailto:${BRAND.supportEmail}`}>Support</a>
-        </div>
-      </footer>
+      <SiteFooter />
 
       <Modal
         title={`${BRAND.name} walkthrough`}

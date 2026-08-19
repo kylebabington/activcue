@@ -9,6 +9,8 @@ import { redirectToCheckout } from "../api/billingApi";
 import { claimDemoFreeUnlock } from "../api/demoApi";
 import { useAuth } from "../hooks/useAuth";
 import { supabase } from "../lib/supabaseClient";
+import LegalConsentNote from "../components/LegalConsentNote.jsx";
+import SiteFooter from "../components/SiteFooter.jsx";
 import {
   clearDemoUnlockIntent,
   parseSafeAppRedirect,
@@ -298,6 +300,7 @@ function SignupPage() {
             </Link>
           </div>
         </section>
+        <SiteFooter />
       </div>
     );
   }
@@ -347,6 +350,8 @@ function SignupPage() {
               </p>
             ) : null}
 
+            <LegalConsentNote action="continuing to checkout" />
+
             <button
               className="landing-btn landing-btn--primary"
               type="button"
@@ -357,6 +362,7 @@ function SignupPage() {
             </button>
           </div>
         </section>
+        <SiteFooter />
       </div>
     );
   }
@@ -466,6 +472,8 @@ function SignupPage() {
               </p>
             ) : null}
 
+            <LegalConsentNote />
+
             <button
               className="landing-btn landing-btn--primary"
               type="submit"
@@ -489,6 +497,7 @@ function SignupPage() {
           </p>
         </div>
       </section>
+      <SiteFooter />
     </div>
   );
 }

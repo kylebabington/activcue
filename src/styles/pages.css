@@ -2211,6 +2211,23 @@ button.quest-step-starter-card:focus-visible {
 .account-legal-links a:hover {
   text-decoration: underline;
 }
+
+.legal-consent-note {
+  margin: 0.75rem 0 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  line-height: 1.45;
+}
+
+.legal-consent-note a {
+  color: var(--color-primary);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+}
+
+.legal-consent-note a:hover {
+  text-decoration: underline;
+}
 .billing-panel {
   display: grid;
   gap: var(--space-3);

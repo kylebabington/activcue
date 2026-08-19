@@ -7,6 +7,7 @@ import { getBillingPlans } from "../../api/billingApi";
 import { BRAND } from "../../config/brand.js";
 import { buildSignupUrl } from "../../utils/signupUrls";
 import { trackProductEvent } from "../../utils/analytics";
+import LegalConsentNote from "../../components/LegalConsentNote.jsx";
 
 function formatSubscriptionStatus(status) {
   if (typeof status !== "string" || !status) {
@@ -240,6 +241,7 @@ export default function SettingsPlusSection({
           >
             Create account to subscribe
           </Link>
+          <LegalConsentNote />
         </div>
       ) : (
         <>
@@ -257,6 +259,7 @@ export default function SettingsPlusSection({
             freeCtaLabel="Continue with Free"
             launchTrial={launchTrial}
           />
+          <LegalConsentNote action="subscribing" />
 
           <button
             type="button"

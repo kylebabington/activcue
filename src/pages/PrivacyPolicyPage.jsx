@@ -1,7 +1,9 @@
 // src/pages/PrivacyPolicyPage.jsx
 
 import { Link } from "react-router-dom";
+import SiteFooter from "../components/SiteFooter.jsx";
 import { BRAND } from "../config/brand";
+import { LEGAL_PATHS } from "../config/legal.js";
 import "../styles/landing.css";
 
 function PrivacyPolicyPage() {
@@ -75,12 +77,16 @@ function PrivacyPolicyPage() {
           </div>
 
           <p className="landing-auth-footer">
-            <Link to="/terms">Terms of Use</Link>
+            <Link to={LEGAL_PATHS.terms}>Terms of Use</Link>
+            {" · "}
+            <Link to={LEGAL_PATHS.contact}>Contact</Link>
             {" · "}
             <Link to="/">Back home</Link>
           </p>
         </div>
       </section>
+
+      <SiteFooter />
     </div>
   );
 }

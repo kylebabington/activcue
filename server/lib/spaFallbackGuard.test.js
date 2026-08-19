@@ -34,6 +34,9 @@ describe("shouldRejectSpaFallback", () => {
     ["/demo"],
     ["/login"],
     ["/signup"],
+    ["/privacy"],
+    ["/terms"],
+    ["/contact"],
   ])("allows SPA route %s", (pathname) => {
     expect(shouldRejectSpaFallback(pathname)).toBe(false);
   });
