@@ -53,7 +53,7 @@ describe("QuestContent active layout", () => {
     expect(html).toContain("Starting Ideas");
     expect(html).toContain("The Big Finish");
     expect(html).toContain("paper");
-    expect(html).toContain("Message from Earth");
+    expect(html).toContain("Earth says a supply rocket is late.");
     expect(html).toMatch(/Your Roles[\s\S]*Read/);
     expect(html).toMatch(/Props &amp; Supplies[\s\S]*Read/);
     expect(html).toMatch(/Starting Ideas[\s\S]*Read/);

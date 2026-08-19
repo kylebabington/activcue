@@ -37,7 +37,7 @@ describe("buildNarrationText", () => {
     expect(text).toContain("Your part");
     expect(text).toContain("Label each station zone");
     expect(text).toContain("You could try");
-    expect(text).toContain("Stack a radio");
+    expect(text).toContain("Stack books as a radio");
     expect(text).toContain("Ready to move on when");
     expect(text.indexOf("Make a communications desk")).toBeLessThan(
       text.indexOf("Label each station zone")
