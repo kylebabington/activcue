@@ -6,10 +6,9 @@ import {
   SOCIAL_MODE_VALUES,
   STRUCTURE_VALUES,
 } from "../schemas/activityTaxonomy.js";
-import {
-  STARTER_IDEA_KINDS,
-  VISUAL_THEMES,
-} from "../schemas/activitySuggestionsSchema.js";
+import { STARTER_IDEA_KINDS } from "../schemas/activitySuggestionsSchema.js";
+import { inferVisualThemeFromActivity } from "./normalizeShared.js";
+import { normalizeActivityV3, isActivityFormatV3 } from "./normalizeActivityV3.js";
 import {
   resolveDoneWhen,
   resolveIfStuck,
@@ -18,7 +17,6 @@ import {
 } from "../../src/utils/questStepCopy.js";
 
 const CATEGORY_SET = new Set(ACTIVITY_CATEGORIES);
-const VISUAL_THEME_SET = new Set(VISUAL_THEMES);
 
 function pickEnum(value, allowed, fallback) {
   return allowed.includes(value) ? value : fallback;
@@ -239,9 +237,13 @@ export function normalizeStarterIdeas(starterIdeas, starterPrompts = []) {
       const title = asString(raw.title);
       const example = asString(raw.example);
       if (!title && !example) continue;
+      const resolvedExample = example || title;
       ideas.push({
-        title: "",
-        example: example || title,
+        title:
+          example && title && title.toLowerCase() !== example.toLowerCase()
+            ? title
+            : "",
+        example: resolvedExample,
         kind: pickEnum(raw.kind, STARTER_IDEA_KINDS, "imagination"),
       });
     }
@@ -421,43 +423,7 @@ export function deriveV1FieldsFromV2(activity, fallbackAges = []) {
   };
 }
 
-function inferVisualTheme(activity) {
-  const raw = asString(activity.visualTheme).toLowerCase();
-  if (VISUAL_THEME_SET.has(raw)) return raw;
-
-  const haystack = [
-    activity.theme,
-    activity.title,
-    activity.summary,
-    activity.mission,
-    ...(Array.isArray(activity.categories) ? activity.categories : []),
-  ]
-    .join(" ")
-    .toLowerCase();
-
-  const guesses = [
-    ["space", /space|moon|rocket|planet|star|orbit/],
-    ["jungle", /jungle|forest|nature|tree|leaf/],
-    ["detective", /detect|clue|mystery|case|spy/],
-    ["animals", /animal|zoo|pet|creature|wildlife/],
-    ["fantasy", /magic|dragon|wizard|fairy|castle|kingdom/],
-    ["building", /build|construct|tower|block|fort/],
-    ["science", /science|lab|experiment|robot|invent/],
-    ["art", /art|draw|paint|comic|color|craft/],
-    ["expedition", /expedition|explore|map|trek|voyage/],
-    ["neighborhood", /neighbor|street|town|city|community/],
-    ["rescue", /rescue|save|help|emergency/],
-    ["mystery", /secret|hidden|strange|unknown/],
-  ];
-
-  for (const [theme, pattern] of guesses) {
-    if (pattern.test(haystack)) return theme;
-  }
-
-  return activity.activityStyle === "imaginative" ? "fantasy" : "art";
-}
-
-export function normalizeActivity(activity, safeActivityStyle, fallbackAges = []) {
+function normalizeLegacyActivity(activity, safeActivityStyle, fallbackAges = []) {
   const activityStyle =
     activity.activityStyle === "simple" ||
     activity.activityStyle === "imaginative"
@@ -476,7 +442,7 @@ export function normalizeActivity(activity, safeActivityStyle, fallbackAges = []
     ...activity,
     activityFormatVersion: 2,
     activityStyle,
-    visualTheme: inferVisualTheme({ ...activity, activityStyle }),
+    visualTheme: inferVisualThemeFromActivity({ ...activity, activityStyle }),
     theme: asString(activity.theme),
     summary: asString(activity.summary),
     ...derived,
@@ -485,4 +451,15 @@ export function normalizeActivity(activity, safeActivityStyle, fallbackAges = []
     categories: normalizeCategories(activity.categories),
     traits: normalizeTraits(activity.traits),
   };
+}
+
+export function normalizeActivity(activity, safeActivityStyle, fallbackAges = []) {
+  if (
+    isActivityFormatV3(activity) ||
+    Number(activity?.activityFormatVersion) === 3
+  ) {
+    return normalizeActivityV3(activity, safeActivityStyle, fallbackAges);
+  }
+
+  return normalizeLegacyActivity(activity, safeActivityStyle, fallbackAges);
 }

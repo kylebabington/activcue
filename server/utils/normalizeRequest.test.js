@@ -5,6 +5,7 @@ import {
   normalizeStarterIdeas,
   normalizeStepDetails,
 } from "./normalizeRequest.js";
+import { lostShellSignalV3Fixture } from "../../src/fixtures/lostShellSignalV3Fixture.js";
 
 describe("Activity Content V2 normalization", () => {
   it("derives V1 steps, prompts, and kidRole from V2 fields", () => {
@@ -240,5 +241,33 @@ describe("Activity Content V2 normalization", () => {
     expect(normalized.ageFit.maxAge).toBe(13);
     expect(normalized.roleGuide.childRoles).toHaveLength(2);
     expect(normalized.roles).toEqual(["Parts Sorter", "Lead Designer"]);
+  });
+});
+
+describe("Activity Format V3 normalization", () => {
+  it("keeps V3 and derives instruction from actions", () => {
+    const normalized = normalizeActivity(lostShellSignalV3Fixture, "imaginative", [8]);
+    expect(normalized.activityFormatVersion).toBe(3);
+    expect(normalized.stepDetails[0].instruction).toContain("Walk slowly");
+    expect(normalized.stepDetails[0].actions.length).toBe(6);
+    expect(normalized.setupGuide.steps.length).toBeGreaterThan(0);
+    expect(normalized.finishGuide.action).toBeTruthy();
+    expect(normalized.extensionIdeas).toEqual(
+      lostShellSignalV3Fixture.finishGuide.extensions
+    );
+  });
+
+  it("does not duplicate legacy starter title and example", () => {
+    const ideas = normalizeStarterIdeas(
+      [{ title: "Same", example: "Same", kind: "imagination" }],
+      ["Legacy prompt only"]
+    );
+    expect(ideas).toHaveLength(1);
+    expect(ideas[0].title).toBe("");
+    expect(ideas[0].example).toBe("Same");
+
+    const legacyOnly = normalizeStarterIdeas([], ["Legacy prompt only"]);
+    expect(legacyOnly[0].title).toBe("");
+    expect(legacyOnly[0].example).toBe("Legacy prompt only");
   });
 });
