@@ -31,6 +31,11 @@ import {
 } from "../../utils/questStuckHelp";
 
 function ideaNarration(idea, index) {
+  const title = String(idea?.title || "").trim();
+  const example = String(idea?.example || "").trim();
+  if (title && example && title.toLowerCase() !== example.toLowerCase()) {
+    return `${title}. ${example}`;
+  }
   return getStarterIdeaText(idea) || `Idea ${index + 1}`;
 }
 
@@ -331,8 +336,13 @@ function CurrentSceneCard({
                     >
                       {selected ? "✓" : getStarterKindIcon(idea.kind)}
                     </span>
-                    {getStarterIdeaText(idea)}
+                    {idea.title || idea.example}
                   </span>
+                  {idea.title && idea.example ? (
+                    <span className="quest-step-starter-card-example">
+                      {idea.example}
+                    </span>
+                  ) : null}
                 </>
               );
 

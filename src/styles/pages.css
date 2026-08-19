@@ -1059,6 +1059,35 @@
   color: var(--color-text);
 }
 
+.quest-current-scene .quest-step-starter-grid {
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 768px) /* Medium */ {
+  .quest-current-scene .quest-step-starter-grid[data-count="2"],
+  .quest-current-scene .quest-step-starter-grid[data-count="3"],
+  .quest-current-scene .quest-step-starter-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.quest-current-scene .quest-step-starter-card {
+  width: 100%;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  min-height: 0;
+}
+
+.quest-current-scene .quest-step-starter-card-title {
+  min-width: 0;
+  line-height: 1.35;
+  word-break: normal;
+  overflow-wrap: break-word;
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: var(--font-size-sm);
+}
+
 .quest-other-scene-list {
   list-style: none;
   padding: 0;
@@ -1127,7 +1156,7 @@
 
 @media (min-width: 1024px) /* Large: three-column play board */ {
   .quest-content--active {
-    grid-template-columns: minmax(13rem, 1fr) minmax(0, 2fr) minmax(13rem, 1fr);
+    grid-template-columns: minmax(12rem, 0.48fr) minmax(0, 1fr) minmax(12rem, 0.52fr);
     grid-template-areas:
       "meta meta meta"
       "story story story"
