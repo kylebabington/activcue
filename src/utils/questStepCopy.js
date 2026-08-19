@@ -1,3 +1,5 @@
+import { getSceneBeatTitle } from "./sceneBeatTitles";
+
 /**
  * Kid-facing step copy helpers.
  * The scene/step instruction always stays the main instruction.
@@ -7,6 +9,66 @@
 export function getSceneInstruction(step) {
   if (!step || typeof step !== "object") return "";
   return String(step.instruction || "").trim();
+}
+
+function normalizeTitleText(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[.!?:;]+$/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+export function isRedundantSceneTitle(title, instruction) {
+  const t = normalizeTitleText(title);
+  const i = normalizeTitleText(instruction);
+  if (!t) return true;
+  if (!i) return false;
+
+  const first = normalizeTitleText(firstSentence(instruction));
+  if (t === first || first.startsWith(`${t} `) || first.startsWith(`${t}:`)) {
+    return true;
+  }
+  if (i.startsWith(`${t} `) || i.startsWith(`${t}:`) || i === t) {
+    return true;
+  }
+
+  const titleWords = t.split(" ").filter(Boolean);
+  if (titleWords.length >= 6) return true;
+
+  const firstWords = first.split(" ").filter(Boolean);
+  if (
+    titleWords.length >= 2 &&
+    firstWords.slice(0, titleWords.length).join(" ") === t
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Scene titles are short story beats, never the first words of the how-to.
+ */
+export function resolveSceneTitle(step, activity = {}, index = 0) {
+  const instruction = String(step?.instruction || "").trim();
+  const title = String(step?.title || "").trim();
+  const isImaginative = activity?.activityStyle === "imaginative";
+
+  if (
+    title &&
+    !title.includes(".") &&
+    wordCount(title) <= 6 &&
+    !isRedundantSceneTitle(title, instruction)
+  ) {
+    return title;
+  }
+
+  if (!isImaginative) {
+    return `Step ${Number(index) + 1}`;
+  }
+
+  return getSceneBeatTitle(activity?.visualTheme, index);
 }
 
 const GENERIC_DONE_WHEN_PATTERNS = [

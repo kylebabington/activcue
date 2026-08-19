@@ -7,6 +7,7 @@ import {
   resolveDoneWhen,
   resolveIfStuck,
   resolveSceneInstruction,
+  resolveSceneTitle,
 } from "./questStepCopy";
 
 describe("resolveDoneWhen", () => {
@@ -83,6 +84,49 @@ describe("resolveSceneInstruction", () => {
         { activityStyle: "simple" }
       )
     ).toBe("Get paper and something to draw with.");
+  });
+});
+
+describe("resolveSceneTitle", () => {
+  it("keeps a short beat title when it is not the instruction", () => {
+    expect(
+      resolveSceneTitle(
+        {
+          title: "Open the embassy",
+          instruction: "Set the greeting desk.",
+        },
+        { activityStyle: "imaginative", visualTheme: "animals" },
+        0
+      )
+    ).toBe("Open the embassy");
+  });
+
+  it("replaces a title that repeats the instruction start", () => {
+    expect(
+      resolveSceneTitle(
+        {
+          title: "Find a towel and turn it into the embassy greeting desk",
+          instruction:
+            "Find a towel and turn it into the embassy greeting desk. Put paper and a pencil on it.",
+        },
+        { activityStyle: "imaginative", visualTheme: "animals" },
+        0
+      )
+    ).toBe("The Animals Need You");
+  });
+
+  it("replaces truncated legacy titles with a story beat", () => {
+    expect(
+      resolveSceneTitle(
+        {
+          title: "Open the embassy: Find a towel, placemat, or chair and…",
+          instruction:
+            "Open the embassy: Find a towel, placemat, or chair and turn it into the greeting desk.",
+        },
+        { activityStyle: "imaginative", visualTheme: "animals" },
+        0
+      )
+    ).toBe("The Animals Need You");
   });
 });
 

@@ -226,8 +226,10 @@ STEP WRITING RULES (hard — every stepDetail):
 - instruction is the full scene/step for everyone. It must answer: (1) What am I doing? (2) How do I do it, naming objects to pick up and where they go? (3) What should I do if something isn't working? (4) How do I know I'm finished?
 - Write 4–7 sentences of concrete, observable action. Do not stop at a short label.
 - BAD: "Set the greeting desk." GOOD: "Find a towel, placemat, or chair and turn it into the embassy greeting desk. Put paper and a pencil on it so guests can check in. Make an Open sign, or write OPEN on scrap paper. If you do not have a table, use a chair seat or the floor. You are ready when you can point to the desk and the Open sign."
+- title is a short story-beat name (3–6 words) that names the moment, not the how-to. Never copy the first sentence of instruction. Never use a truncated instruction as the title.
+- BAD title: "Find a towel and turn it into the embassy greeting desk." GOOD title: "The Embassy Opens"
+- BAD title: "Draw paths between landmarks." GOOD title: "The Map Takes Shape"
 - Ban vague instructions such as: "Test the map", "Add details", "Connect the routes", "Continue the story", "Set everything up", "Do the next part", "Make it better", "Set the greeting desk", "Greet each guest kindly".
-- title is a short beat name, never a substitute for the instruction.
 - doneWhen is an observable ready-to-continue cue for THIS step only ("Every zone has a name you can point to.", "You have drawn a path between at least two zones.").
 - NEVER write generic doneWhen such as "You finished this step", "You finished this part of the activity", "when you finish this step", "this step is done", or "the objective is complete".
 - doneWhen must name a visible result from this step's action, not the mere fact that the step happened.
@@ -270,6 +272,7 @@ CATEGORY AND TRAIT RULES:
 QUALITY BAR (imaginative under-10 example shape):
 - roleGuide.name: "Sea Signal Finder" (activity-specific)
 - step instruction = what to do + which objects to use + where they go + what to try if stuck + what done looks like. Never a 3–6 word label.
+- step title = a short story-beat name only. Never the first words of the instruction.
 - doneWhen = natural transition cue ("Your first station has a marker.") — never "You finished this step" or "Something in the story has changed…"
 - ifStuck = one decisive nudge, not a reused starter
 - roleInstructions add a child's job; they never replace the scene instruction

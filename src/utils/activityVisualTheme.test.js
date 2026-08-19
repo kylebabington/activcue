@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   getActivityCopyAgeBand,
   getActivityStarterSectionLabel,
+  getStarterIdeaText,
   getStepDetails,
   getStepStarterIdeas,
   getStepStarterSectionLabel,
@@ -55,6 +56,21 @@ describe("getStepStuckPrompts", () => {
   });
 });
 
+describe("getStarterIdeaText", () => {
+  it("prefers example over title for kid-facing copy", () => {
+    expect(
+      getStarterIdeaText({
+        title: "Stack a radio",
+        example: "Stack books as a radio.",
+      })
+    ).toBe("Stack books as a radio.");
+  });
+
+  it("falls back to title when example is missing", () => {
+    expect(getStarterIdeaText({ title: "Use the chair." })).toBe("Use the chair.");
+  });
+});
+
 describe("getStepStarterIdeas", () => {
   it("prefers structured starterIdeas", () => {
     expect(
@@ -70,7 +86,7 @@ describe("getStepStarterIdeas", () => {
       })
     ).toEqual([
       {
-        title: "Claim a chair",
+        title: "",
         example: "Use the nearest chair as Station One.",
         kind: "choice",
       },
@@ -84,12 +100,12 @@ describe("getStepStarterIdeas", () => {
       })
     ).toEqual([
       {
-        title: "Use the chair.",
+        title: "",
         example: "Use the chair.",
         kind: "imagination",
       },
       {
-        title: "Draw a symbol.",
+        title: "",
         example: "Draw a symbol.",
         kind: "imagination",
       },
@@ -176,5 +192,18 @@ describe("getStepDetails", () => {
     expect(steps[0].doneWhen).toBe(
       "You have paper and something to draw with."
     );
+  });
+
+  it("gives legacy imaginative steps a story-beat title instead of truncated text", () => {
+    const steps = getStepDetails({
+      activityStyle: "imaginative",
+      visualTheme: "animals",
+      steps: [
+        "Open the embassy: Find a towel, placemat, or chair and turn it into the greeting desk.",
+      ],
+    });
+
+    expect(steps[0].title).toBe("The Animals Need You");
+    expect(steps[0].title).not.toMatch(/Find a towel/i);
   });
 });

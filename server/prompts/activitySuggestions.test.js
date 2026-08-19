@@ -69,7 +69,8 @@ describe("buildActivitySuggestionsInstructions", () => {
     );
 
     expect(instructions).toContain("STEP WRITING RULES");
-    expect(instructions).toContain("What am I doing?");
+    expect(instructions).toContain("story-beat name");
+    expect(instructions).toContain("Never copy the first sentence of instruction");
     expect(instructions).toContain("Set the greeting desk.");
     expect(instructions).toContain("8-year-old");
     expect(instructions).toContain("roleInstructions are OPTIONAL supplements");
