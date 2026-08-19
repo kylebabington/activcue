@@ -1319,6 +1319,49 @@
   gap: 0.55rem;
 }
 
+.quest-action-list {
+  margin: 0.75rem 0 0;
+  padding-left: 1.35rem;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.quest-action-list li {
+  line-height: 1.45;
+}
+
+.quest-setup-guide,
+.quest-finish-guide {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.quest-setup-guide h3,
+.quest-finish-guide h3 {
+  margin: 0;
+  font-size: var(--font-size-md);
+}
+
+.quest-setup-guide ul,
+.quest-setup-guide ol {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.quest-setup-screen {
+  display: grid;
+  gap: 1rem;
+  max-width: 42rem;
+  margin: 0 auto;
+  padding: 1.25rem;
+}
+
+.quest-setup-screen-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
 .quest-step-starters-label {
   margin: 0;
   font-size: var(--font-size-sm);

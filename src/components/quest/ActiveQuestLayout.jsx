@@ -5,10 +5,19 @@ import {
   formatActivityStyleLabel,
 } from "../../utils/activityFormatters";
 import {
+  getActivityStoryText,
+  getFinishGuide,
+  getSetupGuide,
+  getStarterIdeaText,
   getStarterKindIcon,
+  getStepActions,
   getStepStarterIdeas,
+  isActivityFormatV3,
 } from "../../utils/activityVisualTheme";
 import { buildNarrationText } from "../../utils/buildNarrationText";
+import QuestActionList from "./QuestActionList";
+import QuestFinishGuide from "./QuestFinishGuide";
+import QuestSetupGuide from "./QuestSetupGuide";
 import {
   getSceneInstruction,
   getStepRoleParts,
@@ -22,10 +31,7 @@ import {
 } from "../../utils/questStuckHelp";
 
 function ideaNarration(idea, index) {
-  const title = String(idea?.title || `Idea ${index + 1}`).trim();
-  const example = String(idea?.example || "").trim();
-  if (!example) return title;
-  return `${title}. For example: ${example}`;
+  return getStarterIdeaText(idea) || `Idea ${index + 1}`;
 }
 
 function QuestPlayCard({
@@ -69,6 +75,7 @@ function RoleList({
   roleName,
   roleGuide,
   isImaginative,
+  isV3 = false,
   mode,
   multiChild,
   playingChildren,
@@ -117,7 +124,7 @@ function RoleList({
     <div className="quest-play-role-solo">
       {roleName ? <p className="quest-play-role-name">{roleName}</p> : null}
       {roleGuide?.description ? <p>{roleGuide.description}</p> : null}
-      {roleGuide?.goal ? (
+      {!isV3 && roleGuide?.goal ? (
         <p>
           <em>{isImaginative ? "Your mission:" : "Your job:"}</em>{" "}
           {roleGuide.goal}
@@ -149,12 +156,7 @@ function StarterList({
           .filter(Boolean)
           .join(" ");
         const body = (
-          <>
-            <span className="quest-v2-starter-title">{idea.title}</span>
-            {idea.example ? (
-              <span className="quest-v2-starter-example">{idea.example}</span>
-            ) : null}
-          </>
+          <span className="quest-v2-starter-example">{getStarterIdeaText(idea)}</span>
         );
 
         if (mode === "active") {
@@ -278,9 +280,11 @@ function CurrentSceneCard({
         ) : null}
       </div>
 
-      <p className={isImaginative ? "quest-step-story-prompt" : undefined}>
-        {instruction}
-      </p>
+      <QuestActionList
+        actions={getStepActions(step)}
+        instruction={instruction}
+        className={isImaginative ? "quest-step-story-prompt" : undefined}
+      />
 
       {roleParts.length > 0 ? (
         <div className="quest-scene-block">
@@ -327,13 +331,8 @@ function CurrentSceneCard({
                     >
                       {selected ? "✓" : getStarterKindIcon(idea.kind)}
                     </span>
-                    {idea.title}
+                    {getStarterIdeaText(idea)}
                   </span>
-                  {idea.example ? (
-                    <span className="quest-step-starter-card-example">
-                      {idea.example}
-                    </span>
-                  ) : null}
                 </>
               );
 
@@ -477,13 +476,19 @@ export default function ActiveQuestLayout({
   timerSecondsRemaining,
   formatTimer,
   timerDone,
+  timerWaiting = false,
   onTimerFinished,
   onTimerNotFinished,
   onTimerNeedAnotherIdea,
   onTimerMoreLikeThis,
   resolvedSpeechRate,
-  missionNarration,
+  setupCollapsed = false,
+  onToggleSetupCollapsed,
 }) {
+  const isV3 = isActivityFormatV3(activity);
+  const setupGuide = getSetupGuide(activity);
+  const finishGuide = getFinishGuide(activity);
+  const storyText = getActivityStoryText(activity);
   const currentIndex =
     Number.isFinite(Number(focusStepIndex)) && focusStepIndex >= 0
       ? focusStepIndex
@@ -521,12 +526,12 @@ export default function ActiveQuestLayout({
         area="story"
         className="quest-active-story"
         title={isImaginativeActivity ? "The Story" : "Overview"}
-        narration={missionNarration}
+        narration={buildNarrationText(activity, isV3 ? "story" : "mission")}
         speechKey="quest-mission"
         speechRate={resolvedSpeechRate}
-        speechSection="mission"
+        speechSection={isV3 ? "story" : "mission"}
       >
-        <p>{mission || activity.summary || activity.theme}</p>
+        <p>{storyText || mission || activity.summary || activity.theme}</p>
       </QuestPlayCard>
 
       <aside className="quest-active-left">
@@ -543,6 +548,7 @@ export default function ActiveQuestLayout({
             roleName={roleName}
             roleGuide={roleGuide}
             isImaginative={isImaginativeActivity}
+            isV3={isV3}
             mode="active"
             multiChild={multiChild}
             playingChildren={playingChildren}
@@ -551,6 +557,17 @@ export default function ActiveQuestLayout({
             onAssignRole={onAssignRole}
           />
         </QuestPlayCard>
+
+        {setupGuide ? (
+          <QuestSetupGuide
+            setupGuide={setupGuide}
+            collapsed={setupCollapsed}
+            onToggleCollapsed={onToggleSetupCollapsed}
+            narration={buildNarrationText(activity, "setup")}
+            speechRate={resolvedSpeechRate}
+            SpeechButton={SpeakButton}
+          />
+        ) : null}
 
         <QuestPlayCard
           area="supplies"
@@ -695,19 +712,11 @@ export default function ActiveQuestLayout({
           speechRate={resolvedSpeechRate}
           speechSection="mission"
         >
-          {extensions.length > 0 ? (
-            <ul>
-              {extensions.map((idea) => (
-                <li key={idea}>{idea}</li>
-              ))}
-            </ul>
-          ) : (
-            <p>
-              {isImaginativeActivity
-                ? "When the last scene is done, wrap the story and celebrate."
-                : "When the last step is done, you are finished."}
-            </p>
-          )}
+          <QuestFinishGuide
+            finishGuide={finishGuide}
+            extensionIdeas={extensions}
+            isImaginative={isImaginativeActivity}
+          />
 
           {typeof timerSecondsRemaining === "number" && formatTimer ? (
             <div
@@ -715,10 +724,18 @@ export default function ActiveQuestLayout({
               aria-live="polite"
             >
               <span className="timer-label">
-                {timerDone ? "Timer" : "Time left"}
+                {timerWaiting
+                  ? "Timer"
+                  : timerDone
+                    ? "Timer"
+                    : "Time left"}
               </span>
               <span className="timer-value">
-                {timerDone ? "Done!" : formatTimer(timerSecondsRemaining)}
+                {timerWaiting
+                  ? "Not started"
+                  : timerDone
+                    ? "Done!"
+                    : formatTimer(timerSecondsRemaining)}
               </span>
             </div>
           ) : null}

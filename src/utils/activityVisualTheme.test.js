@@ -86,7 +86,7 @@ describe("getStepStarterIdeas", () => {
       })
     ).toEqual([
       {
-        title: "",
+        title: "Claim a chair",
         example: "Use the nearest chair as Station One.",
         kind: "choice",
       },

@@ -284,11 +284,14 @@ export default function QuestContent({
   timerSecondsRemaining,
   formatTimer,
   timerDone = false,
+  timerWaiting = false,
   onTimerFinished,
   onTimerNotFinished,
   onTimerNeedAnotherIdea,
   onTimerMoreLikeThis,
   speechRate = 0.9,
+  setupCollapsed = false,
+  onToggleSetupCollapsed,
 }) {
   if (!activity) return null;
 
@@ -364,12 +367,15 @@ export default function QuestContent({
         timerSecondsRemaining={timerSecondsRemaining}
         formatTimer={formatTimer}
         timerDone={timerDone}
+        timerWaiting={timerWaiting}
         onTimerFinished={onTimerFinished}
         onTimerNotFinished={onTimerNotFinished}
         onTimerNeedAnotherIdea={onTimerNeedAnotherIdea}
         onTimerMoreLikeThis={onTimerMoreLikeThis}
         resolvedSpeechRate={resolvedSpeechRate}
         missionNarration={missionNarration}
+        setupCollapsed={setupCollapsed}
+        onToggleSetupCollapsed={onToggleSetupCollapsed}
       />
     );
   }
