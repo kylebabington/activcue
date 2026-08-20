@@ -6,6 +6,9 @@ import { getUserEntitlement } from "../lib/entitlements.js";
 import { requireAuthenticatedUser } from "../middleware/requireAuthenticatedUser.js";
 import { ensureUserProfile } from "../middleware/ensureUserProfile.js";
 import { enrichActivityForServe } from "../utils/enrichActivityForServe.js";
+import {
+  filterActivitiesByAgePolicy,
+} from "../utils/activityAgePolicy.js";
 
 const router = Router();
 
@@ -44,7 +47,8 @@ function activityIsUnlocked(
 function formatPresetActivity(
     activity,
     profile,
-    entitlement
+    entitlement,
+    fallbackAges = []
 ) {
     const isUnlocked = activityIsUnlocked(
         activity,
@@ -63,6 +67,11 @@ function formatPresetActivity(
         activityStyle: activity.activity_style,
         isUnlocked,
         isLocked: !isUnlocked,
+        age_min: activity.age_min,
+        age_max: activity.age_max,
+        target_ages: activity.target_ages,
+        maturity_level: activity.maturity_level,
+        age_fit_validated: activity.age_fit_validated,
     };
 
     if (!isUnlocked) {
@@ -78,9 +87,15 @@ function formatPresetActivity(
         {
             ...fullContent,
             ...safePreview,
+            ageFit: fullContent.ageFit || {
+                minAge: activity.age_min,
+                maxAge: activity.age_max,
+                targetAges: activity.target_ages,
+                maturityLevel: activity.maturity_level,
+            },
         },
         activity.activity_style || fullContent.activityStyle || "imaginative",
-        []
+        fallbackAges
     );
 
     return {
@@ -122,6 +137,8 @@ function buildEntitlementResponse(
  *
  *   /api/preset-activities?style=simple
  *   /api/preset-activities?style=imaginative
+ *   /api/preset-activities?style=imaginative&age=6
+ *   /api/preset-activities?style=imaginative&ages=6,10,13
  */
 router.get(
     "/preset-activities",
@@ -144,6 +161,18 @@ router.get(
             });
         }
 
+        const ages = [];
+        if (typeof req.query.age === "string" && req.query.age.trim()) {
+            const n = Number(req.query.age);
+            if (Number.isFinite(n)) ages.push(n);
+        }
+        if (typeof req.query.ages === "string" && req.query.ages.trim()) {
+            for (const part of req.query.ages.split(",")) {
+                const n = Number(part.trim());
+                if (Number.isFinite(n)) ages.push(n);
+            }
+        }
+
         try {
             const supabaseAdmin =
                 getSupabaseAdminClient();
@@ -164,6 +193,11 @@ router.get(
                         "activity_style",
                         "full_content",
                         "display_order",
+                        "age_min",
+                        "age_max",
+                        "target_ages",
+                        "maturity_level",
+                        "age_fit_validated",
                     ].join(",")
                 )
                 .eq("is_active", true)
@@ -187,14 +221,35 @@ router.get(
                 throw activitiesError;
             }
 
-            const formattedActivities = activities.map(
+            let formattedActivities = activities.map(
                 (activity) =>
                     formatPresetActivity(
                         activity,
                         req.profile,
-                        entitlement
+                        entitlement,
+                        ages
                     )
             );
+
+            if (ages.length > 0) {
+                const childrenContext = ages.map((ageYears, index) => ({
+                    name: `Child${index + 1}`,
+                    ageYears,
+                }));
+                const activityMode =
+                    ages.length > 1 ? "family" : "single-child";
+                const filtered = filterActivitiesByAgePolicy(
+                    formattedActivities.filter((a) => !a.isLocked),
+                    childrenContext,
+                    {
+                        activityMode,
+                        expectedStyle: requestedStyle || null,
+                    }
+                );
+                const locked = formattedActivities.filter((a) => a.isLocked);
+                // Keep locked teasers for entitlement UX; age-filter unlocked content.
+                formattedActivities = [...filtered.activities, ...locked];
+            }
 
             // Keep display_order so clients can rotate a stable curated sequence.
             return res.json({

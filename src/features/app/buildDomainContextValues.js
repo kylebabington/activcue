@@ -180,5 +180,6 @@ export function buildActivityContextValue(input) {
     freeImaginativeUnlockUsed: input.freeImaginativeUnlockUsed,
     imBoredDisabled: input.imBoredDisabled,
     isDemoMode: input.isDemoMode,
+    kidActivityStyle: input.kidActivityStyle,
   };
 }

@@ -19,6 +19,9 @@ import {
 import {
   buildChildrenAgeContext,
 } from "../utils/childAge.js";
+import {
+  filterActivitiesByAgePolicy,
+} from "../utils/activityAgePolicy.js";
 import { enrichActivitiesForServe } from "../utils/enrichActivityForServe.js";
 import { resolveActivityStyle } from "../utils/normalizeRequest.js";
 
@@ -47,6 +50,28 @@ function childAgesFromBody(body) {
   return buildChildrenAgeContext(profiles).map((child) => child.ageYears);
 }
 
+function childrenContextFromBody(body) {
+  const profiles = Array.isArray(body.selectedChildProfiles)
+    ? body.selectedChildProfiles
+    : body.activeChildProfile
+      ? [body.activeChildProfile]
+      : [];
+  if (profiles.length > 0) {
+    return buildChildrenAgeContext(profiles);
+  }
+  return childAgesFromBody(body).map((ageYears, index) => ({
+    name: `Child${index + 1}`,
+    ageYears,
+  }));
+}
+
+function resolveActivityMode(body) {
+  const mode = String(body.activityMode || body.activity_mode || "").trim();
+  if (mode) return mode;
+  const ages = childAgesFromBody(body);
+  return ages.length > 1 ? "family" : "single-child";
+}
+
 /*
  * POST /api/shared-activities/plan-b
  * Pull next-best candidates from the shared library (no OpenAI call).
@@ -59,6 +84,13 @@ router.post(
     try {
       const body = isPlainObject(req.body) ? req.body : {};
       const childAges = childAgesFromBody(body);
+      const childrenContext = childrenContextFromBody(body);
+      const activityMode = resolveActivityMode(body);
+      const activityStyle = resolveActivityStyle(
+        body.activityStyle || body.activity_style,
+        "imaginative"
+      );
+
       const candidates = await querySharedCandidatesForUser({
         userId: req.auth.userId,
         inventory: Array.isArray(body.inventory) ? body.inventory : [],
@@ -71,18 +103,22 @@ router.post(
         excludeCategories: Array.isArray(body.excludeCategories)
           ? body.excludeCategories
           : [],
+        activityStyle,
         childAges,
+        activityMode,
         limit: Math.min(Math.max(Number(body.limit) || 3, 1), 10),
       });
 
-      const activityStyle = resolveActivityStyle(
-        body.activityStyle || body.activity_style,
-        "imaginative"
-      );
       const enrichedCandidates = enrichActivitiesForServe(
         candidates,
         activityStyle,
         childAges
+      );
+
+      const policyFiltered = filterActivitiesByAgePolicy(
+        enrichedCandidates,
+        childrenContext,
+        { activityMode, expectedStyle: activityStyle }
       );
 
       let momentId =
@@ -95,13 +131,15 @@ router.post(
           userId: req.auth.userId,
           moment: body.currentMoment,
           kidMood: body.kidMood || null,
-          childIds: Array.isArray(body.childIds) ? body.childIds : [],
+          childIds: Array.isArray(body.childIds)
+            ? body.childIds
+            : childrenContext.map((c) => c.id).filter(Boolean),
           rescueMode: false,
         });
         momentId = momentSnapshot?.id || null;
       }
 
-      const withIds = attachRecommendationIds(enrichedCandidates);
+      const withIds = attachRecommendationIds(policyFiltered.activities);
       const batch = await createRecommendationBatch({
         userId: req.auth.userId,
         momentId,
@@ -109,6 +147,22 @@ router.post(
         mode: "normal",
         activities: withIds.activities,
         batchId: withIds.recommendationBatchId,
+        generationContext: {
+          participantAges: childAges,
+          ageBands: childAges.map((age) => {
+            if (age <= 5) return "young-child";
+            if (age <= 7) return "early-elementary";
+            if (age <= 9) return "elementary";
+            if (age <= 11) return "older-elementary";
+            if (age === 12) return "tween";
+            if (age <= 14) return "young-teen";
+            return "teen";
+          }),
+          activityMode,
+          activityStyle,
+          sourcePath: "plan-b",
+          agePolicyVersion: 2,
+        },
       });
 
       return res.json({
@@ -139,6 +193,13 @@ router.post(
     try {
       const body = isPlainObject(req.body) ? req.body : {};
       const minutes = Number(body.minutes) || 20;
+      const childAges = childAgesFromBody(body);
+      const childrenContext = childrenContextFromBody(body);
+      const activityMode = resolveActivityMode(body);
+      const activityStyle = resolveActivityStyle(
+        body.activityStyle || body.activity_style,
+        "imaginative"
+      );
       const currentMoment = {
         ...(isPlainObject(body.currentMoment) ? body.currentMoment : {}),
         timeNeededMinutes: minutes,
@@ -157,20 +218,25 @@ router.post(
         excludeCandidateIds: Array.isArray(body.excludeCandidateIds)
           ? body.excludeCandidateIds
           : [],
-        childAges: childAgesFromBody(body),
+        activityStyle,
+        childAges,
+        activityMode,
         limit: 4,
       });
 
-      // Fall back to curated presets when library is thin.
+      // Fall back to curated presets when library is thin — age-aware.
       if (activities.length < 2) {
         const supabase = getSupabaseAdminClient();
-        const { data: presets } = await supabase
+        let presetQuery = supabase
           .from("preset_activities")
           .select("*")
           .eq("is_active", true)
+          .eq("activity_style", activityStyle)
           .lte("estimated_minutes", minutes + 5)
           .order("display_order", { ascending: true })
-          .limit(4);
+          .limit(12);
+
+        const { data: presets } = await presetQuery;
 
         const presetActivities = (presets || []).map((row) => {
           const content =
@@ -186,22 +252,41 @@ router.post(
             activityStyle: row.activity_style,
             candidateId: row.id,
             source: "preset",
+            age_min: row.age_min,
+            age_max: row.age_max,
+            target_ages: row.target_ages,
+            maturity_level: row.maturity_level,
+            age_fit_validated: row.age_fit_validated,
+            ageFit: content.ageFit || {
+              minAge: row.age_min,
+              maxAge: row.age_max,
+              targetAges: row.target_ages,
+              maturityLevel: row.maturity_level,
+            },
           };
         });
 
-        activities = [...activities, ...presetActivities].slice(0, 4);
+        const presetFiltered = filterActivitiesByAgePolicy(
+          presetActivities,
+          childrenContext,
+          { activityMode, expectedStyle: activityStyle }
+        );
+
+        activities = [...activities, ...presetFiltered.activities].slice(0, 4);
       }
 
-      const childAges = childAgesFromBody(body);
-      const activityStyle = resolveActivityStyle(
-        body.activityStyle || body.activity_style,
-        "imaginative"
-      );
       activities = enrichActivitiesForServe(
         activities,
         activityStyle,
         childAges
       );
+
+      const finalFiltered = filterActivitiesByAgePolicy(
+        activities,
+        childrenContext,
+        { activityMode, expectedStyle: activityStyle }
+      );
+      activities = finalFiltered.activities;
 
       let momentId =
         typeof body.momentId === "string" && body.momentId.trim()
@@ -213,7 +298,9 @@ router.post(
           userId: req.auth.userId,
           moment: currentMoment,
           kidMood: body.kidMood || null,
-          childIds: Array.isArray(body.childIds) ? body.childIds : [],
+          childIds: Array.isArray(body.childIds)
+            ? body.childIds
+            : childrenContext.map((c) => c.id).filter(Boolean),
           rescueMode: true,
         });
         momentId = momentSnapshot?.id || null;
@@ -229,6 +316,22 @@ router.post(
         mode: "rescue",
         activities: withIds.activities,
         batchId: withIds.recommendationBatchId,
+        generationContext: {
+          participantAges: childAges,
+          ageBands: childAges.map((age) => {
+            if (age <= 5) return "young-child";
+            if (age <= 7) return "early-elementary";
+            if (age <= 9) return "elementary";
+            if (age <= 11) return "older-elementary";
+            if (age === 12) return "tween";
+            if (age <= 14) return "young-teen";
+            return "teen";
+          }),
+          activityMode,
+          activityStyle,
+          sourcePath: "rescue",
+          agePolicyVersion: 2,
+        },
       });
 
       return res.json({
@@ -248,9 +351,6 @@ router.post(
   }
 );
 
-/*
- * POST /api/shared-activities/outcome
- */
 router.post(
   "/shared-activities/outcome",
   requireAuthenticatedUser,
@@ -265,10 +365,10 @@ router.post(
       });
       return res.json({ ok: true });
     } catch (error) {
-      console.error("Candidate outcome failed:", error);
+      console.error("Shared activity outcome failed:", error);
       return res.status(500).json({
-        error: "Could not record candidate outcome.",
-        code: "CANDIDATE_OUTCOME_FAILED",
+        error: "Could not record activity outcome.",
+        code: "SHARED_OUTCOME_FAILED",
       });
     }
   }

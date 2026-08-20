@@ -30,10 +30,14 @@ function ParentPage({
   lastSuccessfulMoment = null,
 }) {
   const navigate = useNavigate();
-  const { setActivities, handleStartActivityFromUi } = useActivityContext();
+  const { setActivities, handleStartActivityFromUi, kidActivityStyle } =
+    useActivityContext();
   const family = useFamilyContext();
   const inventory = family?.inventory || [];
   const showStatus = family?.showStatus;
+  const selectedChildProfiles = family?.selectedChildProfiles || [];
+  const activeChildProfile = family?.activeChildProfile || null;
+  const activityMode = family?.activityMode || "single-child";
 
   const [reviewPreset, setReviewPreset] = useState(null);
   const [reviewPresetKey, setReviewPresetKey] = useState("");
@@ -109,6 +113,11 @@ function ParentPage({
         minutes,
         inventory,
         currentMoment: rescueMoment,
+        activityStyle: kidActivityStyle || "imaginative",
+        selectedChildProfiles,
+        activeChildProfile,
+        activityMode,
+        childIds: selectedChildProfiles.map((child) => child?.id).filter(Boolean),
       });
       const activities = Array.isArray(response?.activities)
         ? response.activities

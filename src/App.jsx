@@ -268,7 +268,9 @@ function App() {
       setLastCompletedQuestBridge.current?.(value);
     },
     getChildIds: () =>
-      (childProfiles || []).map((child) => child?.id).filter(Boolean),
+      (playingChildIds || [])
+        .map((id) => String(id || "").trim())
+        .filter(Boolean),
     kidMood,
   });
 
@@ -529,6 +531,10 @@ function App() {
     handleStartActivityFromUi,
     handleGenerateActivities,
     showStatus,
+    activityStyle: kidActivityStyle,
+    selectedChildProfiles,
+    activeChildProfile,
+    activityMode,
   });
 
   const { resetSavedData } = useFamilyDataReset({
@@ -885,6 +891,7 @@ function App() {
         freeImaginativeUnlockUsed,
         imBoredDisabled,
         isDemoMode,
+        kidActivityStyle,
       }),
     [
       activities,
@@ -905,6 +912,7 @@ function App() {
       freeImaginativeUnlockUsed,
       imBoredDisabled,
       isDemoMode,
+      kidActivityStyle,
     ]
   );
 

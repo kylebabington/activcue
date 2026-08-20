@@ -29,12 +29,26 @@ export async function getActivitySuggestions(activityRequest) {
  * Load curated preset activities (and entitlement metadata).
  *
  * Optional style: "simple" | "imaginative"
+ * Optional age / ages for server-side age filtering
  */
-export async function getPresetActivities({ style } = {}) {
-    const query =
-        typeof style === "string" && style.trim()
-            ? `?style=${encodeURIComponent(style.trim().toLowerCase())}`
-            : "";
+export async function getPresetActivities({ style, age, ages } = {}) {
+    const params = new URLSearchParams();
+    if (typeof style === "string" && style.trim()) {
+        params.set("style", style.trim().toLowerCase());
+    }
+    if (Number.isFinite(Number(age))) {
+        params.set("age", String(Number(age)));
+    }
+    if (Array.isArray(ages) && ages.length > 0) {
+        params.set(
+            "ages",
+            ages
+                .map((value) => Number(value))
+                .filter((value) => Number.isFinite(value))
+                .join(",")
+        );
+    }
+    const query = params.toString() ? `?${params.toString()}` : "";
 
     const response = await authenticatedRequest(
         `/api/preset-activities${query}`
