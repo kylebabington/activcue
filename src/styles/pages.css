@@ -3320,38 +3320,8 @@
   margin-top: 0.25rem;
 }
 
-.what-next-bar {
-  position: sticky;
-  bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
-  z-index: 2;
-  display: flex;
-  justify-content: center;
-  margin-top: 1rem;
-  padding: 0.35rem 0
-    calc(0.35rem + env(safe-area-inset-bottom, 0px));
-}
-
-.what-next-button,
-.what-next-speak .speak-button {
-  min-height: 3.1rem;
-  padding: 0.7rem 1.25rem;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--activity-theme-accent, var(--color-primary)) 40%, #ccc);
-  background: white;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-  font-family: var(--font-body);
-  font-size: 1rem;
-  font-weight: var(--font-weight-semibold);
-  cursor: pointer;
-}
-
-.what-next-button:hover {
-  background: color-mix(in srgb, var(--activity-theme-accent, var(--color-primary)) 8%, white);
-}
-
 .page-layout--kid-device .speak-button,
-.page-layout--kid-device .listening-mode-primary,
-.page-layout--kid-device .what-next-button {
+.page-layout--kid-device .listening-mode-primary {
   min-height: 3.4rem;
 }
 
