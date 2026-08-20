@@ -73,11 +73,87 @@ describe("candidatePassesAgeRange", () => {
   it("requires every child age to fall inside minAge/maxAge", () => {
     const row = {
       activity_data: {
-        ageFit: { minAge: 8, maxAge: 12, targetAges: [10] },
+        title: "Tween Build",
+        ageFit: {
+          minAge: 8,
+          maxAge: 12,
+          targetAges: [10],
+          maturityLevel: "tween",
+        },
+        stepDetails: [
+          { title: "Build", instruction: "Stack ten bricks into a wall." },
+        ],
       },
+      age_min: 8,
+      age_max: 12,
+      maturity_level: "tween",
+      age_fit_validated: true,
     };
     expect(candidatePassesAgeRange(row, [10])).toBe(true);
     expect(candidatePassesAgeRange(row, [13])).toBe(false);
     expect(candidatePassesAgeRange(row, [8, 13])).toBe(false);
+  });
+
+  it("rejects mixed-age maturity for a single child", () => {
+    const row = {
+      activity_data: {
+        title: "Family Hub",
+        ageFit: {
+          minAge: 5,
+          maxAge: 13,
+          targetAges: [6, 13],
+          maturityLevel: "mixed-age",
+        },
+      },
+      age_min: 5,
+      age_max: 13,
+      maturity_level: "mixed-age",
+      age_fit_validated: true,
+    };
+    expect(candidatePassesAgeRange(row, [6], { activityMode: "single-child" })).toBe(
+      false
+    );
+  });
+
+  it("rejects unvalidated metadata when required", () => {
+    const row = {
+      activity_data: {
+        title: "Legacy",
+        ageFit: {
+          minAge: 5,
+          maxAge: 9,
+          targetAges: [6],
+          maturityLevel: "child",
+        },
+      },
+      age_min: 5,
+      age_max: 9,
+      maturity_level: "child",
+      age_fit_validated: false,
+    };
+    expect(
+      candidatePassesAgeRange(row, [6], { requireValidated: true })
+    ).toBe(false);
+  });
+});
+
+describe("scoreActivityAgeMatch via policy", () => {
+  it("exact target age beats broad match", async () => {
+    const { scoreActivityAgeMatch } = await import(
+      "../utils/activityAgePolicy.js"
+    );
+    const tight = scoreActivityAgeMatch(
+      {
+        ageFit: { minAge: 6, maxAge: 8, targetAges: [6, 7] },
+      },
+      [6]
+    );
+    const broad = scoreActivityAgeMatch(
+      {
+        ageFit: { minAge: 5, maxAge: 13, targetAges: [8, 10] },
+      },
+      [6]
+    );
+    expect(tight).toBeGreaterThan(broad);
   });
 });
