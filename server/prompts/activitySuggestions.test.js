@@ -5,10 +5,12 @@ import {
 } from "./activitySuggestions.js";
 
 describe("resolvePromptAgeBand", () => {
-  it("maps oldest ages to under10 / tween / teen", () => {
-    expect(resolvePromptAgeBand({ oldestAge: 7 })).toBe("under10");
-    expect(resolvePromptAgeBand({ oldestAge: 11 })).toBe("tween");
-    expect(resolvePromptAgeBand({ oldestAge: 14 })).toBe("teen");
+  it("maps oldest ages to refined policy bands", () => {
+    expect(resolvePromptAgeBand({ oldestAge: 7 })).toBe("early-elementary");
+    expect(resolvePromptAgeBand({ oldestAge: 11 })).toBe("older-elementary");
+    expect(resolvePromptAgeBand({ oldestAge: 12 })).toBe("tween");
+    expect(resolvePromptAgeBand({ oldestAge: 14 })).toBe("young-teen");
+    expect(resolvePromptAgeBand({ oldestAge: 16 })).toBe("teen");
   });
 });
 
@@ -26,8 +28,8 @@ describe("buildActivitySuggestionsInstructions", () => {
     expect(instructions).toContain(
       "Every scene should feel like invitation → action → response"
     );
-    expect(instructions).toContain("UNDER-10 FRAMING");
-    expect(instructions).not.toContain("TEEN (13+) FRAMING");
+    expect(instructions).toContain("EARLY-ELEMENTARY (AGES 6–7) FRAMING");
+    expect(instructions).not.toContain("TEEN / YOUNG-TEEN FRAMING");
     expect(instructions).toContain("Do NOT include kidRole, mission");
   });
 
@@ -35,16 +37,17 @@ describe("buildActivitySuggestionsInstructions", () => {
     const instructions = buildActivitySuggestionsInstructions(
       "imaginative",
       "playroom",
-      { groupAgeContext: { oldestAge: 13 } }
+      { groupAgeContext: { oldestAge: 13 }, childrenContext: [{ ageYears: 13 }] }
     );
 
-    expect(instructions).toContain("TEEN (13+) FRAMING");
+    expect(instructions).toContain("TEEN / YOUNG-TEEN FRAMING");
     expect(instructions).toContain(
       "do not invent an imaginary story world unless the child's listed interests explicitly ask for roleplay/fiction"
     );
     expect(instructions).toContain("Room Redesign Lead");
     expect(instructions).toContain("NEVER use a generic one-word role");
-    expect(instructions).not.toContain("UNDER-10 FRAMING");
+    expect(instructions).not.toContain("EARLY-ELEMENTARY (AGES 6–7) FRAMING");
+    expect(instructions).toContain("TARGET CHILD AGE: EXACTLY 13");
   });
 
   it("keeps simple activities practical instead of forcing story framing", () => {
