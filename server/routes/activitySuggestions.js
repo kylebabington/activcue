@@ -22,7 +22,12 @@ import {
   buildChildrenAgeContext,
   getGroupAgeContext,
 } from "../utils/childAge.js";
-import { filterActivitiesByAgeFit } from "../utils/ageFitValidation.js";
+import {
+  filterActivitiesByAgePolicy,
+  logAgeFitBatchSummary,
+  AGE_POLICY_VERSION,
+  getPolicyAgeBand,
+} from "../utils/activityAgePolicy.js";
 import { recordAiUsageEvent } from "../lib/aiUsage.js";
 import { expandGenerationIntent } from "../lib/generationIntent.js";
 import { attachRecommendationIds } from "../lib/recommendationIds.js";
@@ -52,6 +57,57 @@ function logSuggestionTiming(payload) {
   } catch {
     // ignore
   }
+}
+
+function buildAgeFitRetrySteer({ oldestAge, childAges, rejectionTitles }) {
+  const agesLabel =
+    Array.isArray(childAges) && childAges.length > 0
+      ? childAges.join(", ")
+      : String(oldestAge ?? "unknown");
+  const lines = [
+    "AGE RETRY: The previous activity batch was rejected for age fit, maturity, or developmental complexity.",
+    `TARGET CHILD AGE(S): EXACTLY ${agesLabel}.`,
+    "ageFit.minAge/maxAge must cover every participating child. targetAges should include the exact ages.",
+  ];
+
+  if (Number.isFinite(oldestAge) && oldestAge >= 13) {
+    lines.push(
+      "This is a young teenager. The activity must feel socially appropriate for a teenager.",
+      "Do not reuse preschool pretend-play framing. Prefer autonomy, design, strategy, invention, building, investigation, photography, music, games, or creative production.",
+      "Avoid blanket forts, stuffed-animal play, fairy/princess framing, and magical castles."
+    );
+  } else if (Number.isFinite(oldestAge) && oldestAge >= 10) {
+    lines.push(
+      "This is an older-elementary / tween child. Prefer challenge-first framing with strategy and independent creation.",
+      "Avoid preschool fort/nursery framing."
+    );
+  } else if (Number.isFinite(oldestAge) && oldestAge <= 7) {
+    lines.push(
+      "This is an early-elementary child. Instructions must be concrete and literal.",
+      "Use short actions and limited choices. Maximum 4 scenes with 2–4 actions each.",
+      "The child must never infer missing setup. Provide examples they can copy immediately.",
+      "Avoid abstract planning, optimal sequences, and designing rules before beginning."
+    );
+  } else {
+    lines.push(
+      "Match maturityLevel to the child's age band. Keep directions concrete with modest planning."
+    );
+  }
+
+  lines.push(
+    "roleGuide.name must be activity-specific, never a generic one-word role.",
+    "Write like a warm teacher: invitation → action → response."
+  );
+
+  if (rejectionTitles?.length > 0) {
+    lines.push(
+      `Rejected titles to avoid repeating: ${rejectionTitles
+        .map((title) => `"${title}"`)
+        .join(", ")}.`
+    );
+  }
+
+  return lines.join("\n");
 }
 
 function preserveLibraryIds(activity) {
@@ -188,8 +244,6 @@ export default function createActivitySuggestionsRouter(client) {
 
         const oldestAge =
           childAges.length > 0 ? Math.max(...childAges) : null;
-        const enforceTeenAgeFit =
-          Number.isFinite(oldestAge) && oldestAge >= 12;
 
         // Cache-first pool: keep good library fits, fill remaining slots with AI.
         const cacheLookupStarted = Date.now();
@@ -217,9 +271,10 @@ export default function createActivitySuggestionsRouter(client) {
         ).map((activity) =>
           enrichActivityForServe(activity, safeActivityStyle, childAges)
         );
-        const cacheAgeFiltered = filterActivitiesByAgeFit(
+        const cacheAgeFiltered = filterActivitiesByAgePolicy(
           normalizedCached,
-          childrenContext
+          childrenContext,
+          { activityMode, expectedStyle: safeActivityStyle }
         );
         let totalAgeFitRejected = cacheAgeFiltered.rejectedCount;
         const cachedKept = cacheAgeFiltered.activities
@@ -301,157 +356,215 @@ export default function createActivitySuggestionsRouter(client) {
             enrichActivityForServe(activity, safeActivityStyle, childAges)
           );
 
-          const clarityPassed = normalizedActivities.filter((activity) => {
+          let clarityPassed = normalizedActivities.filter((activity) => {
             const result = validateActivityClarity(activity);
-            if (!result.valid && isDebugLogging) {
-              console.warn("Activity clarity validation failed:", {
+            if (!result.valid) {
+              console.warn("[clarity] rejected", {
                 title: activity?.title,
                 errors: result.errors,
-                warnings: result.warnings,
               });
             }
             return result.valid;
           });
 
-          const activitiesForAgeFit =
-            clarityPassed.length > 0 ? clarityPassed : normalizedActivities;
+          // Never serve clarity-failed content. If all fail, retry once then discard.
+          if (clarityPassed.length === 0 && normalizedActivities.length > 0) {
+            const clarityRetrySteer = [
+              "CLARITY RETRY: Previous activities failed clarity validation.",
+              "Every step needs a concrete instruction, observable doneWhen, and explicit setup when materials matter.",
+              "Avoid vague actions. Provide examples for open-ended choices.",
+            ].join("\n");
+            const clarityRetryInput = buildActivitySuggestionsInput({
+              safeCurrentMoment,
+              kidMood,
+              locationPreference,
+              childAgeRange,
+              childrenContext,
+              groupAgeContext,
+              activeChildProfile,
+              safeActivityStyle,
+              activityMode,
+              safeSelectedChildProfiles,
+              inventory,
+              safeFeedbackContext: [safeFeedbackContext, clarityRetrySteer]
+                .filter(Boolean)
+                .join("\n\n"),
+              safePreviousActivityTitles: titlesToAvoid,
+              safeSafetySettings,
+              playModeTheme: safePlayModeTheme,
+              activityPreferences:
+                activityPreferences && typeof activityPreferences === "object"
+                  ? activityPreferences
+                  : null,
+              activityCount: aiSlots,
+            });
+            const clarityRetryStarted = Date.now();
+            const clarityRetryResult = await createStructuredResponseWithMeta(
+              client,
+              {
+                instructions,
+                input: clarityRetryInput,
+                schemaName: "activity_suggestions",
+                schema: activitySuggestionsSchemaV3,
+                verbosity: "low",
+                maxOutputTokens: maxTokensForCount(aiSlots),
+              }
+            );
+            msOpenai += Date.now() - clarityRetryStarted;
+            usageMeta = {
+              model: clarityRetryResult.model || usageMeta.model,
+              inputTokens:
+                (usageMeta.inputTokens || 0) +
+                (clarityRetryResult.inputTokens || 0),
+              outputTokens:
+                (usageMeta.outputTokens || 0) +
+                (clarityRetryResult.outputTokens || 0),
+              totalTokens:
+                (usageMeta.totalTokens || 0) +
+                (clarityRetryResult.totalTokens || 0),
+              responseId:
+                clarityRetryResult.responseId || usageMeta.responseId,
+              instructionChars: usageMeta.instructionChars,
+              inputChars: usageMeta.inputChars,
+            };
+            const clarityRetryParsed = JSON.parse(clarityRetryResult.outputText);
+            const clarityRetryRaw = Array.isArray(clarityRetryParsed.activities)
+              ? clarityRetryParsed.activities
+              : [];
+            const clarityRetryNormalized = clarityRetryRaw.map((activity) =>
+              enrichActivityForServe(activity, safeActivityStyle, childAges)
+            );
+            clarityPassed = clarityRetryNormalized.filter((activity) =>
+              validateActivityClarity(activity).valid
+            );
+          }
 
-          let ageFiltered = filterActivitiesByAgeFit(
-            activitiesForAgeFit,
-            childrenContext
+          let ageFiltered = filterActivitiesByAgePolicy(
+            clarityPassed,
+            childrenContext,
+            { activityMode, expectedStyle: safeActivityStyle }
           );
           totalAgeFitRejected += ageFiltered.rejectedCount;
           let eligibleActivities = ageFiltered.activities;
 
           if (eligibleActivities.length === 0) {
-            if (enforceTeenAgeFit) {
-              const rejectionTitles = (ageFiltered.rejectionDetails || [])
-                .map((detail) => detail.title)
-                .filter(Boolean)
-                .slice(0, 5);
-              const retrySteer = [
-                "AGE RETRY: The previous activity batch was rejected for age fit or voice quality.",
-                "Suggest mature alternatives for ages 12+.",
-                "Avoid blanket forts, cozy forts, blanket/pillow caves, dens, hideouts, stuffed-animal play, magical castles, and other young-child framing.",
-                "For imaginative style: do NOT invent pretend story worlds or fantasy roleplay. Use creative thinking challenges — design briefs, strategy, invention, puzzles, skill challenges.",
-                "Prefer autonomy, strategy, design, building, cooking, photography, music, outdoor exploration, or skill challenges.",
-                "roleGuide.name must be activity-specific (e.g. Room Redesign Lead), never a generic one-word role like Designer, Strategist, Inventor, Explorer, or Player.",
-                "Write like a warm teacher: invitation → action → response. doneWhen must be a natural transition cue, never phrases like \"something in the story has changed\" or \"the objective is complete.\"",
-                rejectionTitles.length > 0
-                  ? `Rejected titles to avoid repeating: ${rejectionTitles
-                      .map((title) => `"${title}"`)
-                      .join(", ")}.`
-                  : "",
-              ]
-                .filter(Boolean)
-                .join("\n");
+            const rejectionTitles = (ageFiltered.rejectionDetails || [])
+              .map((detail) => detail.title)
+              .filter(Boolean)
+              .slice(0, 5);
+            const retrySteer = buildAgeFitRetrySteer({
+              oldestAge,
+              childAges,
+              rejectionTitles,
+            });
 
-              const retryFeedback = [safeFeedbackContext, retrySteer]
-                .filter(Boolean)
-                .join("\n\n");
+            const retryFeedback = [safeFeedbackContext, retrySteer]
+              .filter(Boolean)
+              .join("\n\n");
 
-              const retryInput = buildActivitySuggestionsInput({
-                safeCurrentMoment,
-                kidMood,
-                locationPreference,
-                childAgeRange,
-                childrenContext,
-                groupAgeContext,
-                activeChildProfile,
-                safeActivityStyle,
-                activityMode,
-                safeSelectedChildProfiles,
-                inventory,
-                safeFeedbackContext: retryFeedback,
-                safePreviousActivityTitles: [
-                  ...titlesToAvoid,
-                  ...rejectionTitles,
-                ],
-                safeSafetySettings,
-                playModeTheme: safePlayModeTheme,
-                activityPreferences:
-                  activityPreferences && typeof activityPreferences === "object"
-                    ? activityPreferences
-                    : null,
-                activityCount: aiSlots,
-              });
+            const retryInput = buildActivitySuggestionsInput({
+              safeCurrentMoment,
+              kidMood,
+              locationPreference,
+              childAgeRange,
+              childrenContext,
+              groupAgeContext,
+              activeChildProfile,
+              safeActivityStyle,
+              activityMode,
+              safeSelectedChildProfiles,
+              inventory,
+              safeFeedbackContext: retryFeedback,
+              safePreviousActivityTitles: [
+                ...titlesToAvoid,
+                ...rejectionTitles,
+              ],
+              safeSafetySettings,
+              playModeTheme: safePlayModeTheme,
+              activityPreferences:
+                activityPreferences && typeof activityPreferences === "object"
+                  ? activityPreferences
+                  : null,
+              activityCount: aiSlots,
+            });
 
-              const retryStarted = Date.now();
-              const retryResult = await createStructuredResponseWithMeta(
-                client,
-                {
-                  instructions,
-                  input: retryInput,
-                  schemaName: "activity_suggestions",
-                  schema: activitySuggestionsSchemaV3,
-                  verbosity: "low",
-                  maxOutputTokens: maxTokensForCount(aiSlots),
-                }
-              );
-              msOpenai += Date.now() - retryStarted;
-              const retryRawText = retryResult.outputText;
-              usageMeta = {
-                model: retryResult.model || usageMeta.model,
-                inputTokens:
-                  (usageMeta.inputTokens || 0) + (retryResult.inputTokens || 0),
-                outputTokens:
-                  (usageMeta.outputTokens || 0) +
-                  (retryResult.outputTokens || 0),
-                totalTokens:
-                  (usageMeta.totalTokens || 0) + (retryResult.totalTokens || 0),
-                responseId: retryResult.responseId || usageMeta.responseId,
-                instructionChars: usageMeta.instructionChars,
-                inputChars: usageMeta.inputChars,
-              };
-
-              if (isDebugLogging) {
-                console.log("RAW AI AGE-RETRY RESPONSE:");
-                console.log(retryRawText);
+            const retryStarted = Date.now();
+            const retryResult = await createStructuredResponseWithMeta(
+              client,
+              {
+                instructions,
+                input: retryInput,
+                schemaName: "activity_suggestions",
+                schema: activitySuggestionsSchemaV3,
+                verbosity: "low",
+                maxOutputTokens: maxTokensForCount(aiSlots),
               }
+            );
+            msOpenai += Date.now() - retryStarted;
+            const retryRawText = retryResult.outputText;
+            usageMeta = {
+              model: retryResult.model || usageMeta.model,
+              inputTokens:
+                (usageMeta.inputTokens || 0) + (retryResult.inputTokens || 0),
+              outputTokens:
+                (usageMeta.outputTokens || 0) +
+                (retryResult.outputTokens || 0),
+              totalTokens:
+                (usageMeta.totalTokens || 0) + (retryResult.totalTokens || 0),
+              responseId: retryResult.responseId || usageMeta.responseId,
+              instructionChars: usageMeta.instructionChars,
+              inputChars: usageMeta.inputChars,
+            };
 
-              const retryParsed = JSON.parse(retryRawText);
-              const retryRawActivities = Array.isArray(retryParsed.activities)
-                ? retryParsed.activities
-                : [];
-              const retryNormalized = retryRawActivities.map((activity) =>
+            if (isDebugLogging) {
+              console.log("RAW AI AGE-RETRY RESPONSE:");
+              console.log(retryRawText);
+            }
+
+            const retryParsed = JSON.parse(retryRawText);
+            const retryRawActivities = Array.isArray(retryParsed.activities)
+              ? retryParsed.activities
+              : [];
+            const retryNormalized = retryRawActivities
+              .map((activity) =>
                 enrichActivityForServe(activity, safeActivityStyle, childAges)
-              );
-              ageFiltered = filterActivitiesByAgeFit(
-                retryNormalized,
-                childrenContext
-              );
-              totalAgeFitRejected += ageFiltered.rejectedCount;
-              eligibleActivities = ageFiltered.activities;
+              )
+              .filter((activity) => validateActivityClarity(activity).valid);
+            ageFiltered = filterActivitiesByAgePolicy(
+              retryNormalized,
+              childrenContext,
+              { activityMode, expectedStyle: safeActivityStyle }
+            );
+            totalAgeFitRejected += ageFiltered.rejectedCount;
+            eligibleActivities = ageFiltered.activities;
 
-              if (eligibleActivities.length === 0 && cachedKept.length === 0) {
-                console.warn("[ageFit] age retry still empty for 12+", {
-                  oldestAge,
-                  totalAgeFitRejected,
-                  details: ageFiltered.rejectionDetails,
-                });
-                await recordAiUsageEvent({
-                  userId: req.auth.userId,
-                  operation: "activity-suggestions",
-                  model: usageMeta.model,
-                  inputTokens: usageMeta.inputTokens,
-                  outputTokens: usageMeta.outputTokens,
-                  totalTokens: usageMeta.totalTokens,
-                  responseId: usageMeta.responseId,
-                  latencyMs: Date.now() - startedAt,
-                  success: false,
-                  error: { message: "age-fit-empty-after-retry" },
-                });
-                return res.status(422).json({
-                  error:
-                    "Could not generate age-appropriate activities for this child. Try regenerating or updating interests.",
-                  message:
-                    "Could not generate age-appropriate activities for this child. Try regenerating or updating interests.",
-                  ageFitRejectedCount: totalAgeFitRejected,
-                });
-              }
-            } else {
-              // Younger kids / unknown ages: keep normalized batch so the family still gets ideas.
-              eligibleActivities = normalizedActivities;
+            if (eligibleActivities.length === 0 && cachedKept.length === 0) {
+              console.warn("[ageFit] AGE_FIT_FAILED after retry", {
+                oldestAge,
+                childAges,
+                totalAgeFitRejected,
+                details: ageFiltered.rejectionDetails,
+              });
+              await recordAiUsageEvent({
+                userId: req.auth.userId,
+                operation: "activity-suggestions",
+                model: usageMeta.model,
+                inputTokens: usageMeta.inputTokens,
+                outputTokens: usageMeta.outputTokens,
+                totalTokens: usageMeta.totalTokens,
+                responseId: usageMeta.responseId,
+                latencyMs: Date.now() - startedAt,
+                success: false,
+                error: { message: "AGE_FIT_FAILED" },
+              });
+              return res.status(422).json({
+                error:
+                  "Could not generate age-appropriate activities for this child. Try regenerating or updating interests.",
+                message:
+                  "Could not generate age-appropriate activities for this child. Try regenerating or updating interests.",
+                code: "AGE_FIT_FAILED",
+                ageFitRejectedCount: totalAgeFitRejected,
+              });
             }
           }
           msNormalize += Date.now() - normalizeAiStarted;
@@ -464,10 +577,20 @@ export default function createActivitySuggestionsRouter(client) {
           SUGGESTION_COUNT
         );
 
+        logAgeFitBatchSummary({
+          ages: childAges,
+          style: safeActivityStyle,
+          cacheExamined: normalizedCached.length,
+          ageRejected: totalAgeFitRejected,
+          eligible: mergedActivities.length,
+          returned: mergedActivities.length,
+        });
+
         if (mergedActivities.length === 0) {
           return res.status(422).json({
             error: "Could not generate activity suggestions.",
             message: "Could not generate activity suggestions.",
+            code: "AGE_FIT_FAILED",
             ageFitRejectedCount: totalAgeFitRejected,
           });
         }
@@ -541,6 +664,8 @@ export default function createActivitySuggestionsRouter(client) {
                 userId: req.auth.userId,
                 activities: aiOnly,
                 source: "ai",
+                childrenContext,
+                activityMode,
               });
               const ingestedByTitle = new Map(
                 ingestedAi.map((a) => [String(a.title || "").toLowerCase(), a])
@@ -582,6 +707,14 @@ export default function createActivitySuggestionsRouter(client) {
               latencyMs: msTotal,
               activities: ingested,
               batchId: recommendationBatchId,
+              generationContext: {
+                participantAges: childAges,
+                ageBands: childAges.map((age) => getPolicyAgeBand(age)),
+                activityMode,
+                activityStyle: safeActivityStyle,
+                sourcePath: source === "shared_library" ? "cache-first" : "ai",
+                agePolicyVersion: AGE_POLICY_VERSION,
+              },
             });
 
             if (usageMeta) {

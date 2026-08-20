@@ -207,6 +207,7 @@ export async function createRecommendationBatch({
   householdId = null,
   activities = [],
   batchId = null,
+  generationContext = null,
 } = {}) {
   if (!userId || !Array.isArray(activities) || activities.length === 0) {
     return {
@@ -277,6 +278,9 @@ export async function createRecommendationBatch({
         mode: batchMode,
         model: parseOptionalString(model),
         latency_ms: parseOptionalInt(latencyMs),
+        generation_context: isPlainObject(generationContext)
+          ? generationContext
+          : {},
       });
 
     if (batchError) {
