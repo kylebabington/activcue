@@ -1,7 +1,7 @@
 /* ActivCue service worker — app shell + offline Activity V2 / Rescue / Plan B.
  * Never treat cached auth/subscription as server authorization.
  */
-const CACHE_NAME = "activcue-shell-v6";
+const CACHE_NAME = "activcue-shell-v7";
 const API_CACHE = "activcue-api-v3";
 const APP_SHELL = [
   "/",

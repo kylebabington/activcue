@@ -19,6 +19,8 @@ import {
 import {
   buildChildrenAgeContext,
 } from "../utils/childAge.js";
+import { enrichActivitiesForServe } from "../utils/enrichActivityForServe.js";
+import { resolveActivityStyle } from "../utils/normalizeRequest.js";
 
 const router = Router();
 
@@ -56,6 +58,7 @@ router.post(
   async (req, res) => {
     try {
       const body = isPlainObject(req.body) ? req.body : {};
+      const childAges = childAgesFromBody(body);
       const candidates = await querySharedCandidatesForUser({
         userId: req.auth.userId,
         inventory: Array.isArray(body.inventory) ? body.inventory : [],
@@ -68,9 +71,19 @@ router.post(
         excludeCategories: Array.isArray(body.excludeCategories)
           ? body.excludeCategories
           : [],
-        childAges: childAgesFromBody(body),
+        childAges,
         limit: Math.min(Math.max(Number(body.limit) || 3, 1), 10),
       });
+
+      const activityStyle = resolveActivityStyle(
+        body.activityStyle || body.activity_style,
+        "imaginative"
+      );
+      const enrichedCandidates = enrichActivitiesForServe(
+        candidates,
+        activityStyle,
+        childAges
+      );
 
       let momentId =
         typeof body.momentId === "string" && body.momentId.trim()
@@ -88,7 +101,7 @@ router.post(
         momentId = momentSnapshot?.id || null;
       }
 
-      const withIds = attachRecommendationIds(candidates);
+      const withIds = attachRecommendationIds(enrichedCandidates);
       const batch = await createRecommendationBatch({
         userId: req.auth.userId,
         momentId,
@@ -178,6 +191,17 @@ router.post(
 
         activities = [...activities, ...presetActivities].slice(0, 4);
       }
+
+      const childAges = childAgesFromBody(body);
+      const activityStyle = resolveActivityStyle(
+        body.activityStyle || body.activity_style,
+        "imaginative"
+      );
+      activities = enrichActivitiesForServe(
+        activities,
+        activityStyle,
+        childAges
+      );
 
       let momentId =
         typeof body.momentId === "string" && body.momentId.trim()

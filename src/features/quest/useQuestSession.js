@@ -9,6 +9,7 @@ import {
 } from "../../api/familyMemoryApi";
 import { useLocalStorage } from "../../hooks/useLocalStorage";
 import { normalizeActivityStyle } from "../../utils/activityStyle";
+import { storyifyCachedImaginativeActivity } from "../demo/storyifyCachedImaginativeActivity";
 import {
   activityNeedsSetup,
   getStepDetails,
@@ -172,12 +173,13 @@ export function useQuestSession({
   }
 
   function handleStartActivity(activity) {
+    const enrichedActivity = storyifyCachedImaginativeActivity(activity);
     const durationMinutes =
-      Number(activity.estimatedMinutes) ||
+      Number(enrichedActivity.estimatedMinutes) ||
       Number(currentMoment.timeNeededMinutes) ||
       20;
 
-    const roles = Array.isArray(activity.roles) ? activity.roles : [];
+    const roles = Array.isArray(enrichedActivity.roles) ? enrichedActivity.roles : [];
     const playingChildren =
       activityMode === "family"
         ? selectedChildProfiles
@@ -195,72 +197,75 @@ export function useQuestSession({
       enabled: false,
     };
 
-    const needsSetup = activityNeedsSetup(activity);
+    const needsSetup = activityNeedsSetup(enrichedActivity);
 
     const activityToStart = {
       id: crypto.randomUUID(),
-      title: activity.title,
-      activityStyle: normalizeActivityStyle(activity, kidActivityStyle),
-      activityFormatVersion: activity.activityFormatVersion || 2,
-      visualTheme: activity.visualTheme || "",
-      theme: activity.theme || "",
-      story: activity.story || "",
-      summary: activity.summary || "",
+      title: enrichedActivity.title,
+      activityStyle: normalizeActivityStyle(enrichedActivity, kidActivityStyle),
+      activityFormatVersion: enrichedActivity.activityFormatVersion || 2,
+      visualTheme: enrichedActivity.visualTheme || "",
+      theme: enrichedActivity.theme || "",
+      story: enrichedActivity.story || "",
+      summary: enrichedActivity.summary || "",
       setupGuide:
-        activity.setupGuide && typeof activity.setupGuide === "object"
-          ? activity.setupGuide
+        enrichedActivity.setupGuide && typeof enrichedActivity.setupGuide === "object"
+          ? enrichedActivity.setupGuide
           : null,
       finishGuide:
-        activity.finishGuide && typeof activity.finishGuide === "object"
-          ? activity.finishGuide
+        enrichedActivity.finishGuide && typeof enrichedActivity.finishGuide === "object"
+          ? enrichedActivity.finishGuide
           : null,
-      kidRole: activity.kidRole || "",
-      mission: activity.mission || "",
+      kidRole: enrichedActivity.kidRole || "",
+      mission: enrichedActivity.mission || "",
       roleGuide:
-        activity.roleGuide && typeof activity.roleGuide === "object"
-          ? activity.roleGuide
+        enrichedActivity.roleGuide && typeof enrichedActivity.roleGuide === "object"
+          ? enrichedActivity.roleGuide
           : null,
       ageFit:
-        activity.ageFit && typeof activity.ageFit === "object"
-          ? activity.ageFit
+        enrichedActivity.ageFit && typeof enrichedActivity.ageFit === "object"
+          ? enrichedActivity.ageFit
           : null,
-      starterIdeas: Array.isArray(activity.starterIdeas)
-        ? activity.starterIdeas
+      starterIdeas: Array.isArray(enrichedActivity.starterIdeas)
+        ? enrichedActivity.starterIdeas
         : [],
-      starterPrompts: Array.isArray(activity.starterPrompts)
-        ? activity.starterPrompts
+      starterPrompts: Array.isArray(enrichedActivity.starterPrompts)
+        ? enrichedActivity.starterPrompts
         : [],
-      firstMoves: Array.isArray(activity.firstMoves) ? activity.firstMoves : [],
-      stepDetails: Array.isArray(activity.stepDetails)
-        ? activity.stepDetails
+      firstMoves: Array.isArray(enrichedActivity.firstMoves) ? enrichedActivity.firstMoves : [],
+      stepDetails: Array.isArray(enrichedActivity.stepDetails)
+        ? enrichedActivity.stepDetails
         : [],
       roles,
-      steps: Array.isArray(activity.steps) ? activity.steps : [],
-      extensionIdeas: Array.isArray(activity.extensionIdeas)
-        ? activity.extensionIdeas
+      steps: Array.isArray(enrichedActivity.steps) ? enrichedActivity.steps : [],
+      extensionIdeas: Array.isArray(enrichedActivity.extensionIdeas)
+        ? enrichedActivity.extensionIdeas
         : [],
-      uses: Array.isArray(activity.uses) ? activity.uses : [],
-      categories: Array.isArray(activity.categories) ? activity.categories : [],
+      uses: Array.isArray(enrichedActivity.uses) ? enrichedActivity.uses : [],
+      categories: Array.isArray(enrichedActivity.categories) ? enrichedActivity.categories : [],
       traits:
-        activity.traits && typeof activity.traits === "object"
-          ? activity.traits
+        enrichedActivity.traits && typeof enrichedActivity.traits === "object"
+          ? enrichedActivity.traits
           : {},
-      estimatedMinutes: Number(activity.estimatedMinutes) || durationMinutes,
-      energy: activity.energy || "medium",
-      mess: activity.mess || "low",
-      adultHelp: activity.adultHelp || "optional",
-      whyItFits: activity.whyItFits || "",
-      candidateId: activity.candidateId || activity.candidate_id || null,
+      estimatedMinutes: Number(enrichedActivity.estimatedMinutes) || durationMinutes,
+      energy: enrichedActivity.energy || "medium",
+      mess: enrichedActivity.mess || "low",
+      adultHelp: enrichedActivity.adultHelp || "optional",
+      whyItFits: enrichedActivity.whyItFits || "",
+      candidateId: enrichedActivity.candidateId || enrichedActivity.candidate_id || null,
       recommendationBatchId:
-        activity.recommendationBatchId ||
-        activity.recommendation_batch_id ||
+        enrichedActivity.recommendationBatchId ||
+        enrichedActivity.recommendation_batch_id ||
         null,
       momentId:
-        activity.momentId ||
-        activity.moment_id ||
+        enrichedActivity.momentId ||
+        enrichedActivity.moment_id ||
         getTimeToStartTiming()?.momentId ||
         null,
-      presentedAt: activity.presentedAt || activity.presented_at || null,
+      presentedAt: enrichedActivity.presentedAt || enrichedActivity.presented_at || null,
+      ...(enrichedActivity.storyVoiceVersion
+        ? { storyVoiceVersion: enrichedActivity.storyVoiceVersion }
+        : {}),
       selectedAt: new Date().toISOString(),
       questPhase: needsSetup ? "setup" : "playing",
       setupComplete: !needsSetup,
@@ -268,13 +273,13 @@ export function useQuestSession({
       checkedStarterIndexes: [],
       selectedStepStarterByIndex: {},
       selectedRoleName:
-        activity.roleGuide?.name || activity.kidRole || roles[0] || "",
+        enrichedActivity.roleGuide?.name || enrichedActivity.kidRole || roles[0] || "",
       roleAssignments: Object.fromEntries(
         playingChildren
           .filter((child) => child?.id)
           .map((child, index) => {
-            const fromChildRoles = Array.isArray(activity.roleGuide?.childRoles)
-              ? activity.roleGuide.childRoles.find(
+            const fromChildRoles = Array.isArray(enrichedActivity.roleGuide?.childRoles)
+              ? enrichedActivity.roleGuide.childRoles.find(
                   (role) =>
                     String(role.childName || "").toLowerCase() ===
                     String(child.name || "").toLowerCase()
@@ -285,7 +290,7 @@ export function useQuestSession({
               fromChildRoles ||
                 roles[index] ||
                 roles[0] ||
-                activity.roleGuide?.name ||
+                enrichedActivity.roleGuide?.name ||
                 "",
             ];
           })
@@ -327,7 +332,7 @@ export function useQuestSession({
     if (!needsSetup) {
       markActivityStartedAt(undefined, timingIds);
     }
-    saveActivityFeedback?.(activity, "started");
+    saveActivityFeedback?.(enrichedActivity, "started");
     if (activityToStart.candidateId) {
       void recordSharedActivityOutcome({
         candidateId: activityToStart.candidateId,
@@ -338,8 +343,8 @@ export function useQuestSession({
     }
     showStatus?.(
       needsSetup
-        ? `Started: "${activity.title}". Set up first, then press Ready.`
-        : `Started: "${activity.title}". Timer is running.`,
+        ? `Started: "${enrichedActivity.title}". Set up first, then press Ready.`
+        : `Started: "${enrichedActivity.title}". Timer is running.`,
       "success"
     );
 

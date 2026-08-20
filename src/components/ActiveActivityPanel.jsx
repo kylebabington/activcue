@@ -2,9 +2,12 @@ import { useEffect, useMemo, useRef } from "react";
 import QuestContent from "./quest/QuestContent";
 import QuestSetupScreen from "./quest/QuestSetupScreen";
 import ListeningModePanel from "./quest/ListeningModePanel";
+import SpeakButton from "./SpeakButton";
 import { getDefaultOpenSections } from "./quest/questSectionDefaults";
 import { useActivityTimer } from "../features/quest/useActivityTimer";
+import { useSpeechSynthesis } from "../hooks/useSpeechSynthesis";
 import { formatTimer } from "../utils/activityFormatters";
+import { buildNarrationText } from "../utils/buildNarrationText";
 import {
   getActivityRoleLabel,
   activityNeedsSetup,
@@ -43,6 +46,7 @@ function ActiveActivityPanel({
   canUseAiHints = false,
 }) {
   const timerSecondsRemaining = useActivityTimer(activeActivity);
+  const { speak, supported: speechSupported } = useSpeechSynthesis();
   const theme = getVisualThemeMeta(activeActivity.visualTheme);
   const roleName = getActivityRoleLabel(activeActivity);
   const steps = getStepDetails(activeActivity);
@@ -73,6 +77,9 @@ function ActiveActivityPanel({
   const didScrollOnMount = useRef(false);
   const readingMode = activeActivity.readingMode || {};
   const listeningEnabled = Boolean(readingMode.enabled);
+  const showNextPrompt =
+    isSpeechSynthesisSupported() &&
+    (listeningEnabled || readingMode.showNextPrompt !== false);
   const speechRate = Number(readingMode.speechRate) || 0.9;
 
   void setQuestPhase;
@@ -103,6 +110,18 @@ function ActiveActivityPanel({
     [activeActivity.extensionIdeas]
   );
 
+  const nextStepNarration = useMemo(() => {
+    const selected =
+      selectedStepStarterByIndex?.[String(focusStepIndex)] ??
+      selectedStepStarterByIndex?.[focusStepIndex] ??
+      null;
+    return buildNarrationText(activeActivity, "next", {
+      selectedRoleName: activeActivity.selectedRoleName || roleName,
+      roleAssignments: activeActivity.roleAssignments,
+      selectedStarterIndex: selected,
+    });
+  }, [activeActivity, focusStepIndex, roleName, selectedStepStarterByIndex]);
+
   function handleImStuck(stepIndex) {
     trackProductEvent("activity_stuck_clicked", {
       title: activeActivity.title,
@@ -118,6 +137,17 @@ function ActiveActivityPanel({
       momentId: activeActivity.momentId || null,
     });
     void handleNeedStepHint?.(stepIndex);
+  }
+
+  function handleWhatDoIDoNext() {
+    if (!nextStepNarration) return;
+    trackProductEvent("speech_read_requested", { section: "next" });
+    if (speechSupported) {
+      speak(nextStepNarration, {
+        rate: speechRate,
+        key: "what-do-i-do-next",
+      });
+    }
   }
 
   function handleToggleListeningMode() {
@@ -222,13 +252,39 @@ function ActiveActivityPanel({
         />
       )}
 
-      <div className="simple-active-actions quest-v2-global-actions">
-        <button type="button" className="ghost-button" onClick={cancelActiveActivity}>
-          Stop
-        </button>
-        <button type="button" onClick={finishActiveActivity}>
-          Done
-        </button>
+      <div className="active-activity-footer">
+        {showNextPrompt && nextStepNarration ? (
+          <div className="what-next-bar">
+            {listeningEnabled ? (
+              <button
+                type="button"
+                className="what-next-button"
+                onClick={handleWhatDoIDoNext}
+              >
+                What do I do next?
+              </button>
+            ) : (
+              <SpeakButton
+                text={nextStepNarration}
+                label="What do I do next?"
+                speechKey="what-do-i-do-next"
+                rate={speechRate}
+                section="next"
+                size="large"
+                className="what-next-speak"
+              />
+            )}
+          </div>
+        ) : null}
+
+        <div className="simple-active-actions quest-v2-global-actions">
+          <button type="button" className="ghost-button" onClick={cancelActiveActivity}>
+            Stop
+          </button>
+          <button type="button" onClick={finishActiveActivity}>
+            Done
+          </button>
+        </div>
       </div>
     </section>
   );
