@@ -15,6 +15,7 @@ import { trackProductEvent } from "../utils/analytics";
 function QuestCompleteSummary({
     lastCompletedQuest,
     clearLastCompletedQuest,
+    handleCompletedQuestReplay,
     handleCompletedQuestMoreLikeThis,
     handleCompletedQuestNeedAnotherIdea,
     saveFavoriteActivity,
@@ -139,11 +140,26 @@ function QuestCompleteSummary({
             ) : null}
 
             <div className="completion-actions">
-                <button onClick={handleCompletedQuestMoreLikeThis}>
+                {lastCompletedQuest.activity &&
+                typeof handleCompletedQuestReplay === "function" ? (
+                    <button
+                        type="button"
+                        className="generate-button"
+                        onClick={handleCompletedQuestReplay}
+                    >
+                        Play again
+                    </button>
+                ) : null}
+
+                <button
+                    type="button"
+                    onClick={handleCompletedQuestMoreLikeThis}
+                >
                     More like this
                 </button>
 
                 <button
+                    type="button"
                     className="secondary-action"
                     onClick={handleCompletedQuestNeedAnotherIdea}
                 >
@@ -151,6 +167,7 @@ function QuestCompleteSummary({
                 </button>
 
                 <button
+                    type="button"
                     className="ghost-button"
                     onClick={clearLastCompletedQuest}
                 >
@@ -292,6 +309,13 @@ function QuestPage() {
                 <QuestCompleteSummary
                     lastCompletedQuest={lastCompletedQuest}
                     clearLastCompletedQuest={clearLastCompletedQuest}
+                    handleCompletedQuestReplay={() => {
+                        if (!lastCompletedQuest.activity) {
+                            return;
+                        }
+                        handleStartActivity(lastCompletedQuest.activity);
+                        clearLastCompletedQuest();
+                    }}
                     handleCompletedQuestMoreLikeThis={handleCompletedQuestMoreLikeThis}
                     handleCompletedQuestNeedAnotherIdea={handleCompletedQuestNeedAnotherIdea}
                     saveFavoriteActivity={saveFavoriteActivity}
