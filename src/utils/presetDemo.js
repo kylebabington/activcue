@@ -15,12 +15,42 @@ export function isFreeImaginativeUnlockUsed(entitlement) {
  * - simple: all unlocked simple presets
  * - imaginative, unlock unused: all imaginative (may be locked until start)
  * - imaginative, unlock used: only the already-unlocked one
+ * - optional selectedChildProfiles: defensive age filter via ageFit
  */
-export function getEligiblePresets(activities, style, entitlement) {
+export function getEligiblePresets(
+  activities,
+  style,
+  entitlement,
+  selectedChildProfiles = []
+) {
   const list = Array.isArray(activities) ? activities : [];
-  const forStyle = list.filter(
+  let forStyle = list.filter(
     (activity) => activity?.activityStyle === style
   );
+
+  const ages = (Array.isArray(selectedChildProfiles) ? selectedChildProfiles : [])
+    .map((profile) => {
+      if (Number.isFinite(Number(profile?.ageYears))) {
+        return Number(profile.ageYears);
+      }
+      return null;
+    })
+    .filter((age) => Number.isFinite(age));
+
+  if (ages.length > 0) {
+    forStyle = forStyle.filter((activity) => {
+      const ageFit = activity?.ageFit;
+      if (!ageFit || typeof ageFit !== "object") {
+        return true;
+      }
+      const minAge = Number(ageFit.minAge ?? activity.minAge ?? activity.age_min);
+      const maxAge = Number(ageFit.maxAge ?? activity.maxAge ?? activity.age_max);
+      if (!Number.isFinite(minAge) || !Number.isFinite(maxAge)) {
+        return true;
+      }
+      return ages.every((age) => age >= minAge && age <= maxAge);
+    });
+  }
 
   if (style !== "imaginative") {
     return forStyle.filter((activity) => activity && !activity.isLocked);

@@ -10,6 +10,10 @@ const TEMPLATE_LIBRARY = [
     mess: "low",
     energy: "low",
     adultHelp: "none",
+    minAge: 3,
+    maxAge: 10,
+    targetAges: [4, 5, 6, 7],
+    maturityLevel: "child",
     steps: ["Get paper and something to draw with.", "Draw whatever you feel like.", "Hang it up or show someone later."],
   },
   {
@@ -20,6 +24,10 @@ const TEMPLATE_LIBRARY = [
     mess: "low",
     energy: "low",
     adultHelp: "none",
+    minAge: 3,
+    maxAge: 9,
+    targetAges: [4, 5, 6],
+    maturityLevel: "child",
     steps: ["Pick a coloring page.", "Color one section at a time.", "Fill in details if you want."],
   },
   {
@@ -30,6 +38,10 @@ const TEMPLATE_LIBRARY = [
     mess: "medium",
     energy: "low",
     adultHelp: "none",
+    minAge: 3,
+    maxAge: 8,
+    targetAges: [4, 5, 6],
+    maturityLevel: "young-child",
     steps: ["Open your Play-Doh.", "Roll balls, snakes, or cookies.", "Make one finished shape."],
   },
   {
@@ -40,7 +52,29 @@ const TEMPLATE_LIBRARY = [
     mess: "low",
     energy: "medium",
     adultHelp: "none",
+    minAge: 4,
+    maxAge: 9,
+    targetAges: [5, 6, 7],
+    maturityLevel: "child",
     steps: ["Dump out your blocks.", "Build the tallest tower you can.", "See if you can add one more piece."],
+  },
+  {
+    id: "block-tower-challenge",
+    title: "Build a tower that holds a book",
+    categories: ["Building toys"],
+    preferredItems: ["wooden blocks", "LEGO", "Duplo", "Mega Bloks", "magnet tiles"],
+    mess: "low",
+    energy: "medium",
+    adultHelp: "none",
+    minAge: 10,
+    maxAge: 17,
+    targetAges: [12, 13, 14],
+    maturityLevel: "teen",
+    steps: [
+      "Count out 20 pieces.",
+      "Build a tower that can hold a book using only those pieces.",
+      "Test it, then rebuild once to make it stronger.",
+    ],
   },
   {
     id: "magnet-tiles",
@@ -50,6 +84,10 @@ const TEMPLATE_LIBRARY = [
     mess: "low",
     energy: "medium",
     adultHelp: "none",
+    minAge: 4,
+    maxAge: 10,
+    targetAges: [5, 6, 7, 8],
+    maturityLevel: "child",
     steps: ["Start a flat square floor.", "Add walls.", "Make a roof or window."],
   },
   {
@@ -60,7 +98,29 @@ const TEMPLATE_LIBRARY = [
     mess: "low",
     energy: "medium",
     adultHelp: "none",
+    minAge: 5,
+    maxAge: 12,
+    targetAges: [6, 7, 8, 9],
+    maturityLevel: "child",
     steps: ["Pick a handful of bricks.", "Build anything you want.", "Give your build a name."],
+  },
+  {
+    id: "lego-design-brief",
+    title: "LEGO design challenge",
+    categories: ["Building toys"],
+    preferredItems: ["LEGO"],
+    mess: "low",
+    energy: "medium",
+    adultHelp: "none",
+    minAge: 11,
+    maxAge: 17,
+    targetAges: [12, 13, 14, 15],
+    maturityLevel: "teen",
+    steps: [
+      "Pick a constraint: under 40 bricks, or must include a moving part.",
+      "Sketch a quick goal, then build to match it.",
+      "Photograph the result and write one sentence about what you would improve.",
+    ],
   },
   {
     id: "puzzle",
@@ -70,6 +130,10 @@ const TEMPLATE_LIBRARY = [
     mess: "low",
     energy: "low",
     adultHelp: "none",
+    minAge: 4,
+    maxAge: 12,
+    targetAges: [5, 6, 7, 8],
+    maturityLevel: "child",
     steps: ["Dump the pieces.", "Find edge pieces first.", "Fill in the middle."],
   },
   {
@@ -80,6 +144,10 @@ const TEMPLATE_LIBRARY = [
     mess: "low",
     energy: "low",
     adultHelp: "optional",
+    minAge: 5,
+    maxAge: 14,
+    targetAges: [7, 8, 9, 10],
+    maturityLevel: "child",
     steps: ["Get your cards.", "Shuffle and deal.", "Play one round."],
   },
   {
@@ -90,7 +158,10 @@ const TEMPLATE_LIBRARY = [
     mess: "low",
     energy: "low",
     adultHelp: "none",
-    maxAge: 11,
+    minAge: 3,
+    maxAge: 8,
+    targetAges: [4, 5, 6],
+    maturityLevel: "young-child",
     steps: ["Lay down a blanket.", "Seat your stuffed animals.", "Serve a pretend snack."],
   },
   {
@@ -101,7 +172,10 @@ const TEMPLATE_LIBRARY = [
     mess: "medium",
     energy: "medium",
     adultHelp: "optional",
-    maxAge: 11,
+    minAge: 4,
+    maxAge: 9,
+    targetAges: [5, 6, 7],
+    maturityLevel: "child",
     steps: ["Gather blankets and pillows.", "Drape a blanket over chairs or the couch.", "Crawl inside and get cozy."],
   },
   {
@@ -112,6 +186,10 @@ const TEMPLATE_LIBRARY = [
     mess: "low",
     energy: "low",
     adultHelp: "none",
+    minAge: 4,
+    maxAge: 14,
+    targetAges: [6, 7, 8, 9],
+    maturityLevel: "child",
     steps: ["Pick a book.", "Make a comfy spot with pillows.", "Read for a little while."],
   },
   {
@@ -123,6 +201,10 @@ const TEMPLATE_LIBRARY = [
     energy: "high",
     adultHelp: "none",
     outdoor: true,
+    minAge: 4,
+    maxAge: 14,
+    targetAges: [6, 7, 8, 9],
+    maturityLevel: "child",
     steps: ["Grab a ball.", "Go to a safe play space.", "Kick, throw, or bounce for a while."],
   },
   {
@@ -134,6 +216,10 @@ const TEMPLATE_LIBRARY = [
     energy: "medium",
     adultHelp: "none",
     outdoor: true,
+    minAge: 3,
+    maxAge: 8,
+    targetAges: [4, 5, 6],
+    maturityLevel: "young-child",
     steps: ["Get the bubble bottle.", "Blow slow bubbles.", "Try to catch one without popping it."],
   },
   {
@@ -145,6 +231,10 @@ const TEMPLATE_LIBRARY = [
     energy: "medium",
     adultHelp: "none",
     outdoor: true,
+    minAge: 3,
+    maxAge: 11,
+    targetAges: [5, 6, 7, 8],
+    maturityLevel: "child",
     steps: ["Take chalk outside.", "Draw a big picture.", "Add your name."],
   },
   {
@@ -155,6 +245,10 @@ const TEMPLATE_LIBRARY = [
     mess: "low",
     energy: "medium",
     adultHelp: "none",
+    minAge: 4,
+    maxAge: 10,
+    targetAges: [5, 6, 7, 8],
+    maturityLevel: "child",
     steps: ["Pick a few toys.", "Make up a short adventure.", "Act out the ending."],
   },
 ];
@@ -266,12 +360,19 @@ export function buildSimpleActivitiesFromTemplates({
   const oldestAge = Number(oldestChildAgeYears);
 
   const candidates = TEMPLATE_LIBRARY.map((template) => {
-    if (
-      Number.isFinite(oldestAge) &&
-      Number.isFinite(template.maxAge) &&
-      oldestAge > template.maxAge
-    ) {
-      return null;
+    if (Number.isFinite(oldestAge)) {
+      if (
+        Number.isFinite(template.maxAge) &&
+        oldestAge > template.maxAge
+      ) {
+        return null;
+      }
+      if (
+        Number.isFinite(template.minAge) &&
+        oldestAge < template.minAge
+      ) {
+        return null;
+      }
     }
 
     const uses = pickMatchingItems(template, inventory);
@@ -279,6 +380,14 @@ export function buildSimpleActivitiesFromTemplates({
 
     if (uses.length === 0) {
       score -= 4;
+    }
+
+    if (
+      Number.isFinite(oldestAge) &&
+      Array.isArray(template.targetAges) &&
+      template.targetAges.includes(oldestAge)
+    ) {
+      score += 6;
     }
 
     if (!messAllowed(template.mess, momentMess)) {
@@ -339,6 +448,19 @@ export function buildSimpleActivitiesFromTemplates({
       adultHelp: template.adultHelp,
       estimatedMinutes: Math.min(targetMinutes, 20),
       whyItFits: `Fits the current moment in ${space} with supplies you own.`,
+      minAge: template.minAge,
+      maxAge: template.maxAge,
+      targetAges: template.targetAges,
+      ageFit: {
+        minAge: template.minAge,
+        maxAge: template.maxAge,
+        targetAges: Array.isArray(template.targetAges)
+          ? template.targetAges
+          : [],
+        maturityLevel: template.maturityLevel || "child",
+        independenceLevel: "mostly-independent",
+        ageFitReason: "Template matched to this age band.",
+      },
     };
   });
 }

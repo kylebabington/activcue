@@ -91,6 +91,11 @@ async function presentLocalBoard(deps, activities, source = "templates") {
 }
 
 function resolveOldestChildAgeYears(deps) {
+  const ages = resolveSelectedChildAges(deps);
+  return ages.length > 0 ? Math.max(...ages) : null;
+}
+
+function resolveSelectedChildAges(deps) {
   const profiles =
     Array.isArray(deps.selectedChildProfiles) &&
     deps.selectedChildProfiles.length > 0
@@ -98,10 +103,18 @@ function resolveOldestChildAgeYears(deps) {
       : deps.activeChildProfile
         ? [deps.activeChildProfile]
         : [];
-  const ages = profiles
+  return profiles
     .map((profile) => resolveChildAge(profile).ageYears)
     .filter((age) => Number.isFinite(age));
-  return ages.length > 0 ? Math.max(...ages) : null;
+}
+
+function resolveSelectedChildProfiles(deps) {
+  return Array.isArray(deps.selectedChildProfiles) &&
+    deps.selectedChildProfiles.length > 0
+    ? deps.selectedChildProfiles
+    : deps.activeChildProfile
+      ? [deps.activeChildProfile]
+      : [];
 }
 
 export function useActivityGeneration(deps = {}) {
@@ -301,6 +314,7 @@ export function useActivityGeneration(deps = {}) {
 
           const { activities: presetActivities } = await getPresetActivities({
             style: "simple",
+            ages: resolveSelectedChildAges(d),
           });
           const unlockedPresets = presetActivities
             .filter((activity) => activity && !activity.isLocked)
@@ -576,12 +590,20 @@ export function useActivityGeneration(deps = {}) {
               }
             }
 
-            const payload = await getPresetActivities({ style: "simple" });
-            d.mergePresetEntitlement?.(payload.entitlement);
-            const eligible = getEligiblePresets(payload.activities, "simple", {
-              ...d.entitlement,
-              ...payload.entitlement,
+            const payload = await getPresetActivities({
+              style: "simple",
+              ages: resolveSelectedChildAges(d),
             });
+            d.mergePresetEntitlement?.(payload.entitlement);
+            const eligible = getEligiblePresets(
+              payload.activities,
+              "simple",
+              {
+                ...d.entitlement,
+                ...payload.entitlement,
+              },
+              resolveSelectedChildProfiles(d)
+            );
 
             if (preferSimpleTemplates) {
               const slice = eligible.slice(0, 3);
@@ -629,7 +651,10 @@ export function useActivityGeneration(deps = {}) {
             return;
           }
 
-          const payload = await getPresetActivities({ style: "imaginative" });
+          const payload = await getPresetActivities({
+            style: "imaginative",
+            ages: resolveSelectedChildAges(d),
+          });
           d.mergePresetEntitlement?.(payload.entitlement);
           const mergedEntitlement = {
             ...d.entitlement,
@@ -638,7 +663,8 @@ export function useActivityGeneration(deps = {}) {
           const eligible = getEligiblePresets(
             payload.activities,
             "imaginative",
-            mergedEntitlement
+            mergedEntitlement,
+            resolveSelectedChildProfiles(d)
           );
 
           const { slice, nextIndex } = takeRotatedSlice(
@@ -723,7 +749,10 @@ export function useActivityGeneration(deps = {}) {
           d.kidActivityStyle === "imaginative" ? "imaginative" : "simple";
 
         if (style === "imaginative" && d.freeImaginativeUnlockUsed) {
-          const payload = await getPresetActivities({ style: "imaginative" });
+          const payload = await getPresetActivities({
+            style: "imaginative",
+            ages: resolveSelectedChildAges(d),
+          });
           d.mergePresetEntitlement?.(payload.entitlement);
           const mergedEntitlement = {
             ...d.entitlement,
@@ -732,7 +761,8 @@ export function useActivityGeneration(deps = {}) {
           const eligible = getEligiblePresets(
             payload.activities,
             "imaginative",
-            mergedEntitlement
+            mergedEntitlement,
+            resolveSelectedChildProfiles(d)
           );
           const unlocked = eligible[0];
 
@@ -751,7 +781,10 @@ export function useActivityGeneration(deps = {}) {
           return;
         }
 
-        const payload = await getPresetActivities({ style });
+        const payload = await getPresetActivities({
+          style,
+          ages: resolveSelectedChildAges(d),
+        });
         d.mergePresetEntitlement?.(payload.entitlement);
         const mergedEntitlement = {
           ...d.entitlement,
@@ -760,7 +793,8 @@ export function useActivityGeneration(deps = {}) {
         const eligible = getEligiblePresets(
           payload.activities,
           style,
-          mergedEntitlement
+          mergedEntitlement,
+          resolveSelectedChildProfiles(d)
         );
         const { activity, nextIndex } = takeRotatedOne(
           eligible,

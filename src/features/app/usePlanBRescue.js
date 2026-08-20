@@ -13,6 +13,10 @@ export function usePlanBRescue({
   handleStartActivityFromUi,
   handleGenerateActivities,
   showStatus,
+  activityStyle,
+  selectedChildProfiles,
+  activeChildProfile,
+  activityMode,
 } = {}) {
   const handleTryNextBestWithLibrary = useCallback(async () => {
     trackProductEvent("plan_b_offered", { source: "batch" });
@@ -36,6 +40,13 @@ export function usePlanBRescue({
         inventory,
         currentMoment,
         momentId: activeMomentId || null,
+        activityStyle: activityStyle || "imaginative",
+        selectedChildProfiles: selectedChildProfiles || [],
+        activeChildProfile: activeChildProfile || null,
+        activityMode: activityMode || "single-child",
+        childIds: (selectedChildProfiles || [])
+          .map((child) => child?.id)
+          .filter(Boolean),
         excludeCandidateIds: [
           rejected?.candidateId,
           ...(scoredActivities || [])
@@ -80,6 +91,10 @@ export function usePlanBRescue({
     handleStartActivityFromUi,
     handleGenerateActivities,
     showStatus,
+    activityStyle,
+    selectedChildProfiles,
+    activeChildProfile,
+    activityMode,
   ]);
 
   return { handleTryNextBestWithLibrary };
