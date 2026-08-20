@@ -1,0 +1,2176 @@
+[
+  {
+    "title": "Draw a picture",
+    "slug": "draw-a-picture",
+    "currentMin": 5,
+    "currentMax": 12,
+    "currentTargetAges": [
+      5,
+      9,
+      12
+    ],
+    "currentMaturity": "mixed-age",
+    "suggestedMin": 5,
+    "suggestedMax": 8,
+    "suggestedTargetAges": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "elementary",
+    "problems": [
+      "age-span-gte-5",
+      "mixed-age-activity"
+    ]
+  },
+  {
+    "title": "Color a page",
+    "slug": "color-a-page",
+    "currentMin": 5,
+    "currentMax": 12,
+    "currentTargetAges": [
+      5,
+      9,
+      12
+    ],
+    "currentMaturity": "mixed-age",
+    "suggestedMin": 5,
+    "suggestedMax": 8,
+    "suggestedTargetAges": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "elementary",
+    "problems": [
+      "age-span-gte-5",
+      "mixed-age-activity"
+    ]
+  },
+  {
+    "title": "Build a tower",
+    "slug": "build-a-tower",
+    "currentMin": 4,
+    "currentMax": 9,
+    "currentTargetAges": [
+      4,
+      7,
+      9
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 4,
+    "suggestedMax": 7,
+    "suggestedTargetAges": [
+      4,
+      5,
+      6,
+      7
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "early-elementary",
+    "problems": [
+      "age-span-gte-5"
+    ]
+  },
+  {
+    "title": "Do a puzzle",
+    "slug": "do-a-puzzle",
+    "currentMin": 5,
+    "currentMax": 12,
+    "currentTargetAges": [
+      5,
+      9,
+      12
+    ],
+    "currentMaturity": "mixed-age",
+    "suggestedMin": 5,
+    "suggestedMax": 8,
+    "suggestedTargetAges": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "elementary",
+    "problems": [
+      "age-span-gte-5",
+      "mixed-age-activity"
+    ]
+  },
+  {
+    "title": "Make a reading nook",
+    "slug": "make-a-reading-nook",
+    "currentMin": 5,
+    "currentMax": 12,
+    "currentTargetAges": [
+      5,
+      9,
+      12
+    ],
+    "currentMaturity": "mixed-age",
+    "suggestedMin": 5,
+    "suggestedMax": 8,
+    "suggestedTargetAges": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "elementary",
+    "problems": [
+      "age-span-gte-5",
+      "mixed-age-activity"
+    ]
+  },
+  {
+    "title": "Play a simple card game",
+    "slug": "play-a-simple-card-game",
+    "currentMin": 5,
+    "currentMax": 12,
+    "currentTargetAges": [
+      5,
+      9,
+      12
+    ],
+    "currentMaturity": "mixed-age",
+    "suggestedMin": 5,
+    "suggestedMax": 8,
+    "suggestedTargetAges": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "elementary",
+    "problems": [
+      "age-span-gte-5",
+      "mixed-age-activity"
+    ]
+  },
+  {
+    "title": "Build a cozy fort",
+    "slug": "build-a-cozy-fort",
+    "currentMin": 4,
+    "currentMax": 9,
+    "currentTargetAges": [
+      4,
+      7,
+      9
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 4,
+    "suggestedMax": 7,
+    "suggestedTargetAges": [
+      4,
+      5,
+      6,
+      7
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "early-elementary",
+    "problems": [
+      "age-span-gte-5"
+    ]
+  },
+  {
+    "title": "Make Play-Doh shapes",
+    "slug": "make-play-doh-shapes",
+    "currentMin": 4,
+    "currentMax": 9,
+    "currentTargetAges": [
+      4,
+      7,
+      9
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 4,
+    "suggestedMax": 7,
+    "suggestedTargetAges": [
+      4,
+      5,
+      6,
+      7
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "early-elementary",
+    "problems": [
+      "age-span-gte-5"
+    ]
+  },
+  {
+    "title": "Ball play outside",
+    "slug": "ball-play-outside",
+    "currentMin": 5,
+    "currentMax": 12,
+    "currentTargetAges": [
+      5,
+      9,
+      12
+    ],
+    "currentMaturity": "mixed-age",
+    "suggestedMin": 5,
+    "suggestedMax": 8,
+    "suggestedTargetAges": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "elementary",
+    "problems": [
+      "age-span-gte-5",
+      "mixed-age-activity"
+    ]
+  },
+  {
+    "title": "The Lost Shell Signal",
+    "slug": "the-lost-shell-signal",
+    "currentMin": 5,
+    "currentMax": 10,
+    "currentTargetAges": [
+      5,
+      8,
+      10
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 5,
+    "suggestedMax": 8,
+    "suggestedTargetAges": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "elementary",
+    "problems": [
+      "age-span-gte-5"
+    ]
+  },
+  {
+    "title": "Tiny Bakery Counter",
+    "slug": "tiny-bakery-counter",
+    "currentMin": 5,
+    "currentMax": 10,
+    "currentTargetAges": [
+      5,
+      8,
+      10
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 5,
+    "suggestedMax": 8,
+    "suggestedTargetAges": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "elementary",
+    "problems": [
+      "age-span-gte-5"
+    ]
+  },
+  {
+    "title": "The Quiet Clue Room",
+    "slug": "the-quiet-clue-room",
+    "currentMin": 5,
+    "currentMax": 10,
+    "currentTargetAges": [
+      5,
+      8,
+      10
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 5,
+    "suggestedMax": 8,
+    "suggestedTargetAges": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "elementary",
+    "problems": [
+      "age-span-gte-5"
+    ]
+  },
+  {
+    "title": "Downtown Map Maker",
+    "slug": "downtown-map-maker",
+    "currentMin": 8,
+    "currentMax": 13,
+    "currentTargetAges": [
+      8,
+      11,
+      13
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 8,
+    "suggestedMax": 11,
+    "suggestedTargetAges": [
+      8,
+      9,
+      10,
+      11
+    ],
+    "suggestedMaturity": "tween",
+    "bandAtMid": "older-elementary",
+    "problems": [
+      "age-span-gte-5"
+    ]
+  },
+  {
+    "title": "Stuffed Pet Clinic",
+    "slug": "stuffed-pet-clinic",
+    "currentMin": 5,
+    "currentMax": 10,
+    "currentTargetAges": [
+      5,
+      8,
+      10
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 5,
+    "suggestedMax": 8,
+    "suggestedTargetAges": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "elementary",
+    "problems": [
+      "age-span-gte-5"
+    ]
+  },
+  {
+    "title": "Museum of Lost Exhibits",
+    "slug": "museum-of-lost-exhibits",
+    "currentMin": 8,
+    "currentMax": 13,
+    "currentTargetAges": [
+      8,
+      11,
+      13
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 8,
+    "suggestedMax": 11,
+    "suggestedTargetAges": [
+      8,
+      9,
+      10,
+      11
+    ],
+    "suggestedMaturity": "tween",
+    "bandAtMid": "older-elementary",
+    "problems": [
+      "age-span-gte-5"
+    ]
+  },
+  {
+    "title": "Nature Magic Weather Map",
+    "slug": "nature-magic-weather-map",
+    "currentMin": 6,
+    "currentMax": 11,
+    "currentTargetAges": [
+      6,
+      9,
+      11
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 6,
+    "suggestedMax": 9,
+    "suggestedTargetAges": [
+      6,
+      7,
+      8,
+      9
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "elementary",
+    "problems": [
+      "age-span-gte-5"
+    ]
+  },
+  {
+    "title": "Living Room Circus Show",
+    "slug": "living-room-circus-show",
+    "currentMin": 6,
+    "currentMax": 11,
+    "currentTargetAges": [
+      6,
+      9,
+      11
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 6,
+    "suggestedMax": 9,
+    "suggestedTargetAges": [
+      6,
+      7,
+      8,
+      9
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "elementary",
+    "problems": [
+      "age-span-gte-5"
+    ]
+  },
+  {
+    "title": "Hallway Map Courier",
+    "slug": "hallway-map-courier",
+    "currentMin": 8,
+    "currentMax": 13,
+    "currentTargetAges": [
+      8,
+      11,
+      13
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 8,
+    "suggestedMax": 11,
+    "suggestedTargetAges": [
+      8,
+      9,
+      10,
+      11
+    ],
+    "suggestedMaturity": "tween",
+    "bandAtMid": "older-elementary",
+    "problems": [
+      "age-span-gte-5"
+    ]
+  },
+  {
+    "title": "Kitchen Comic Studio",
+    "slug": "kitchen-comic-studio",
+    "currentMin": 7,
+    "currentMax": 12,
+    "currentTargetAges": [
+      7,
+      10,
+      12
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 7,
+    "suggestedMax": 10,
+    "suggestedTargetAges": [
+      7,
+      8,
+      9,
+      10
+    ],
+    "suggestedMaturity": "tween",
+    "bandAtMid": "older-elementary",
+    "problems": [
+      "age-span-gte-5"
+    ]
+  },
+  {
+    "title": "Countertop Design Challenge",
+    "slug": "countertop-design-challenge",
+    "currentMin": 5,
+    "currentMax": 9,
+    "currentTargetAges": [
+      5,
+      7,
+      9
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 5,
+    "suggestedMax": 9,
+    "suggestedTargetAges": [
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "early-elementary",
+    "problems": []
+  },
+  {
+    "title": "Taste-Test Scientist",
+    "slug": "taste-test-scientist",
+    "currentMin": 6,
+    "currentMax": 11,
+    "currentTargetAges": [
+      6,
+      9,
+      11
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 6,
+    "suggestedMax": 9,
+    "suggestedTargetAges": [
+      6,
+      7,
+      8,
+      9
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "elementary",
+    "problems": [
+      "age-span-gte-5"
+    ]
+  },
+  {
+    "title": "Phone Photography Challenge",
+    "slug": "phone-photography-challenge",
+    "currentMin": 10,
+    "currentMax": 16,
+    "currentTargetAges": [
+      10,
+      13,
+      16
+    ],
+    "currentMaturity": "tween",
+    "suggestedMin": 10,
+    "suggestedMax": 13,
+    "suggestedTargetAges": [
+      10,
+      11,
+      12,
+      13
+    ],
+    "suggestedMaturity": "teen",
+    "bandAtMid": "young-teen",
+    "problems": [
+      "age-span-gte-5"
+    ]
+  },
+  {
+    "title": "Quiet Clue Desk",
+    "slug": "quiet-clue-desk",
+    "currentMin": 6,
+    "currentMax": 11,
+    "currentTargetAges": [
+      6,
+      9,
+      11
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 6,
+    "suggestedMax": 9,
+    "suggestedTargetAges": [
+      6,
+      7,
+      8,
+      9
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "elementary",
+    "problems": [
+      "age-span-gte-5"
+    ]
+  },
+  {
+    "title": "Sock Basketball",
+    "slug": "sock-basketball",
+    "currentMin": 5,
+    "currentMax": 12,
+    "currentTargetAges": [
+      5,
+      9,
+      12
+    ],
+    "currentMaturity": "mixed-age",
+    "suggestedMin": 5,
+    "suggestedMax": 8,
+    "suggestedTargetAges": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "elementary",
+    "problems": [
+      "age-span-gte-5",
+      "mixed-age-activity"
+    ]
+  },
+  {
+    "title": "Hallway Hopscotch Map",
+    "slug": "hallway-hopscotch-map",
+    "currentMin": 5,
+    "currentMax": 10,
+    "currentTargetAges": [
+      5,
+      8,
+      10
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 5,
+    "suggestedMax": 8,
+    "suggestedTargetAges": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "elementary",
+    "problems": [
+      "age-span-gte-5"
+    ]
+  },
+  {
+    "title": "Pillow Fort Broadcast",
+    "slug": "pillow-fort-broadcast",
+    "currentMin": 6,
+    "currentMax": 11,
+    "currentTargetAges": [
+      6,
+      9,
+      11
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 6,
+    "suggestedMax": 9,
+    "suggestedTargetAges": [
+      6,
+      7,
+      8,
+      9
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "elementary",
+    "problems": [
+      "age-span-gte-5"
+    ]
+  },
+  {
+    "title": "Rainy Window Gallery",
+    "slug": "rainy-window-gallery",
+    "currentMin": 5,
+    "currentMax": 10,
+    "currentTargetAges": [
+      5,
+      8,
+      10
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 5,
+    "suggestedMax": 8,
+    "suggestedTargetAges": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "elementary",
+    "problems": [
+      "age-span-gte-5"
+    ]
+  },
+  {
+    "title": "Bedtime Story Map",
+    "slug": "bedtime-story-map",
+    "currentMin": 5,
+    "currentMax": 10,
+    "currentTargetAges": [
+      5,
+      8,
+      10
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 5,
+    "suggestedMax": 8,
+    "suggestedTargetAges": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "elementary",
+    "problems": [
+      "age-span-gte-5"
+    ]
+  },
+  {
+    "title": "Shadow Theater Lights-Out",
+    "slug": "shadow-theater-lights-out",
+    "currentMin": 4,
+    "currentMax": 8,
+    "currentTargetAges": [
+      4,
+      6,
+      8
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 4,
+    "suggestedMax": 8,
+    "suggestedTargetAges": [
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "early-elementary",
+    "problems": []
+  },
+  {
+    "title": "Sibling Obstacle Relay",
+    "slug": "sibling-obstacle-relay",
+    "currentMin": 6,
+    "currentMax": 12,
+    "currentTargetAges": [
+      6,
+      9,
+      12
+    ],
+    "currentMaturity": "mixed-age",
+    "suggestedMin": 6,
+    "suggestedMax": 9,
+    "suggestedTargetAges": [
+      6,
+      7,
+      8,
+      9
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "elementary",
+    "problems": [
+      "age-span-gte-5",
+      "mixed-age-activity"
+    ]
+  },
+  {
+    "title": "Two-Kid Tower Treaty",
+    "slug": "two-kid-tower-treaty",
+    "currentMin": 4,
+    "currentMax": 9,
+    "currentTargetAges": [
+      4,
+      7,
+      9
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 4,
+    "suggestedMax": 7,
+    "suggestedTargetAges": [
+      4,
+      5,
+      6,
+      7
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "early-elementary",
+    "problems": [
+      "age-span-gte-5"
+    ]
+  },
+  {
+    "title": "Couch Camp Reset",
+    "slug": "couch-camp-reset",
+    "currentMin": 5,
+    "currentMax": 11,
+    "currentTargetAges": [
+      5,
+      8,
+      11
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 5,
+    "suggestedMax": 8,
+    "suggestedTargetAges": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "elementary",
+    "problems": [
+      "age-span-gte-5"
+    ]
+  },
+  {
+    "title": "Sticker Story Strip",
+    "slug": "sticker-story-strip",
+    "currentMin": 4,
+    "currentMax": 8,
+    "currentTargetAges": [
+      4,
+      6,
+      8
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 4,
+    "suggestedMax": 8,
+    "suggestedTargetAges": [
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "early-elementary",
+    "problems": []
+  },
+  {
+    "title": "Blanket Burrito Listen",
+    "slug": "blanket-burrito-listen",
+    "currentMin": 5,
+    "currentMax": 12,
+    "currentTargetAges": [
+      5,
+      9,
+      12
+    ],
+    "currentMaturity": "mixed-age",
+    "suggestedMin": 5,
+    "suggestedMax": 8,
+    "suggestedTargetAges": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "elementary",
+    "problems": [
+      "age-span-gte-5",
+      "mixed-age-activity"
+    ]
+  },
+  {
+    "title": "Open Afternoon Invention Lab",
+    "slug": "open-afternoon-invention-lab",
+    "currentMin": 8,
+    "currentMax": 14,
+    "currentTargetAges": [
+      8,
+      11,
+      14
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 8,
+    "suggestedMax": 11,
+    "suggestedTargetAges": [
+      8,
+      9,
+      10,
+      11
+    ],
+    "suggestedMaturity": "tween",
+    "bandAtMid": "older-elementary",
+    "problems": [
+      "age-span-gte-5"
+    ]
+  },
+  {
+    "title": "Living Room Museum Labels",
+    "slug": "living-room-museum-labels",
+    "currentMin": 7,
+    "currentMax": 12,
+    "currentTargetAges": [
+      7,
+      10,
+      12
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 7,
+    "suggestedMax": 10,
+    "suggestedTargetAges": [
+      7,
+      8,
+      9,
+      10
+    ],
+    "suggestedMaturity": "tween",
+    "bandAtMid": "older-elementary",
+    "problems": [
+      "age-span-gte-5"
+    ]
+  },
+  {
+    "title": "Tidy-Up Treasure Sort",
+    "slug": "tidy-up-treasure-sort",
+    "currentMin": 5,
+    "currentMax": 10,
+    "currentTargetAges": [
+      5,
+      8,
+      10
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 5,
+    "suggestedMax": 8,
+    "suggestedTargetAges": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "elementary",
+    "problems": [
+      "age-span-gte-5"
+    ]
+  },
+  {
+    "title": "Sock Match Speed Run",
+    "slug": "sock-match-speed-run",
+    "currentMin": 6,
+    "currentMax": 12,
+    "currentTargetAges": [
+      6,
+      9,
+      12
+    ],
+    "currentMaturity": "mixed-age",
+    "suggestedMin": 6,
+    "suggestedMax": 9,
+    "suggestedTargetAges": [
+      6,
+      7,
+      8,
+      9
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "elementary",
+    "problems": [
+      "age-span-gte-5",
+      "mixed-age-activity"
+    ]
+  },
+  {
+    "title": "Teen Playlist Curator",
+    "slug": "teen-playlist-curator",
+    "currentMin": 12,
+    "currentMax": 16,
+    "currentTargetAges": [
+      12,
+      14,
+      16
+    ],
+    "currentMaturity": "tween",
+    "suggestedMin": 12,
+    "suggestedMax": 16,
+    "suggestedTargetAges": [
+      12,
+      13,
+      14,
+      15,
+      16
+    ],
+    "suggestedMaturity": "teen",
+    "bandAtMid": "young-teen",
+    "problems": []
+  },
+  {
+    "title": "Teen Room Reset Sprint",
+    "slug": "teen-room-reset-sprint",
+    "currentMin": 12,
+    "currentMax": 16,
+    "currentTargetAges": [
+      12,
+      14,
+      16
+    ],
+    "currentMaturity": "tween",
+    "suggestedMin": 12,
+    "suggestedMax": 16,
+    "suggestedTargetAges": [
+      12,
+      13,
+      14,
+      15,
+      16
+    ],
+    "suggestedMaturity": "teen",
+    "bandAtMid": "young-teen",
+    "problems": []
+  },
+  {
+    "title": "Magazine Mashup Collage",
+    "slug": "magazine-mashup-collage",
+    "currentMin": 8,
+    "currentMax": 14,
+    "currentTargetAges": [
+      8,
+      11,
+      14
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 8,
+    "suggestedMax": 11,
+    "suggestedTargetAges": [
+      8,
+      9,
+      10,
+      11
+    ],
+    "suggestedMaturity": "tween",
+    "bandAtMid": "older-elementary",
+    "problems": [
+      "age-span-gte-5"
+    ]
+  },
+  {
+    "title": "Indoor Yoga Animal Flow",
+    "slug": "indoor-yoga-animal-flow",
+    "currentMin": 5,
+    "currentMax": 12,
+    "currentTargetAges": [
+      5,
+      9,
+      12
+    ],
+    "currentMaturity": "mixed-age",
+    "suggestedMin": 5,
+    "suggestedMax": 8,
+    "suggestedTargetAges": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "elementary",
+    "problems": [
+      "age-span-gte-5",
+      "mixed-age-activity"
+    ]
+  },
+  {
+    "title": "Dinner Helper Chop Station",
+    "slug": "dinner-helper-chop-station",
+    "currentMin": 7,
+    "currentMax": 13,
+    "currentTargetAges": [
+      7,
+      10,
+      13
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 7,
+    "suggestedMax": 10,
+    "suggestedTargetAges": [
+      7,
+      8,
+      9,
+      10
+    ],
+    "suggestedMaturity": "tween",
+    "bandAtMid": "older-elementary",
+    "problems": [
+      "age-span-gte-5"
+    ]
+  },
+  {
+    "title": "Work-Call Origami Desk",
+    "slug": "work-call-origami-desk",
+    "currentMin": 8,
+    "currentMax": 14,
+    "currentTargetAges": [
+      8,
+      11,
+      14
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 8,
+    "suggestedMax": 11,
+    "suggestedTargetAges": [
+      8,
+      9,
+      10,
+      11
+    ],
+    "suggestedMaturity": "tween",
+    "bandAtMid": "older-elementary",
+    "problems": [
+      "age-span-gte-5"
+    ]
+  },
+  {
+    "title": "Secret Spice Lab",
+    "slug": "secret-spice-lab",
+    "currentMin": 6,
+    "currentMax": 11,
+    "currentTargetAges": [
+      6,
+      9,
+      11
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 6,
+    "suggestedMax": 9,
+    "suggestedTargetAges": [
+      6,
+      7,
+      8,
+      9
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "elementary",
+    "problems": [
+      "age-span-gte-5"
+    ]
+  },
+  {
+    "title": "Dinner News Desk",
+    "slug": "dinner-news-desk",
+    "currentMin": 7,
+    "currentMax": 12,
+    "currentTargetAges": [
+      7,
+      10,
+      12
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 7,
+    "suggestedMax": 10,
+    "suggestedTargetAges": [
+      7,
+      8,
+      9,
+      10
+    ],
+    "suggestedMaturity": "tween",
+    "bandAtMid": "older-elementary",
+    "problems": [
+      "age-span-gte-5"
+    ]
+  },
+  {
+    "title": "Silent Space Relay",
+    "slug": "silent-space-relay",
+    "currentMin": 7,
+    "currentMax": 12,
+    "currentTargetAges": [
+      7,
+      10,
+      12
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 7,
+    "suggestedMax": 10,
+    "suggestedTargetAges": [
+      7,
+      8,
+      9,
+      10
+    ],
+    "suggestedMaturity": "tween",
+    "bandAtMid": "older-elementary",
+    "problems": [
+      "age-span-gte-5"
+    ]
+  },
+  {
+    "title": "Quiet Clue Desk Case",
+    "slug": "quiet-clue-desk-case",
+    "currentMin": 6,
+    "currentMax": 11,
+    "currentTargetAges": [
+      6,
+      9,
+      11
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 6,
+    "suggestedMax": 9,
+    "suggestedTargetAges": [
+      6,
+      7,
+      8,
+      9
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "elementary",
+    "problems": [
+      "age-span-gte-5"
+    ]
+  },
+  {
+    "title": "Indoor Jungle Expedition",
+    "slug": "indoor-jungle-expedition",
+    "currentMin": 6,
+    "currentMax": 11,
+    "currentTargetAges": [
+      6,
+      9,
+      11
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 6,
+    "suggestedMax": 9,
+    "suggestedTargetAges": [
+      6,
+      7,
+      8,
+      9
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "elementary",
+    "problems": [
+      "age-span-gte-5"
+    ]
+  },
+  {
+    "title": "Storm Fort Command",
+    "slug": "storm-fort-command",
+    "currentMin": 5,
+    "currentMax": 10,
+    "currentTargetAges": [
+      5,
+      8,
+      10
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 5,
+    "suggestedMax": 8,
+    "suggestedTargetAges": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "elementary",
+    "problems": [
+      "age-span-gte-5"
+    ]
+  },
+  {
+    "title": "Hallway Rescue Sprint",
+    "slug": "hallway-rescue-sprint",
+    "currentMin": 5,
+    "currentMax": 10,
+    "currentTargetAges": [
+      5,
+      8,
+      10
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 5,
+    "suggestedMax": 8,
+    "suggestedTargetAges": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "elementary",
+    "problems": [
+      "age-span-gte-5"
+    ]
+  },
+  {
+    "title": "Living Room Olympic Trials",
+    "slug": "living-room-olympic-trials",
+    "currentMin": 7,
+    "currentMax": 13,
+    "currentTargetAges": [
+      7,
+      10,
+      13
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 7,
+    "suggestedMax": 10,
+    "suggestedTargetAges": [
+      7,
+      8,
+      9,
+      10
+    ],
+    "suggestedMaturity": "tween",
+    "bandAtMid": "older-elementary",
+    "problems": [
+      "age-span-gte-5"
+    ]
+  },
+  {
+    "title": "Moonlight Library Patrol",
+    "slug": "moonlight-library-patrol",
+    "currentMin": 4,
+    "currentMax": 8,
+    "currentTargetAges": [
+      4,
+      6,
+      8
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 4,
+    "suggestedMax": 8,
+    "suggestedTargetAges": [
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "early-elementary",
+    "problems": []
+  },
+  {
+    "title": "Dream Ship Boarding",
+    "slug": "dream-ship-boarding",
+    "currentMin": 5,
+    "currentMax": 9,
+    "currentTargetAges": [
+      5,
+      7,
+      9
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 5,
+    "suggestedMax": 9,
+    "suggestedTargetAges": [
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "early-elementary",
+    "problems": []
+  },
+  {
+    "title": "Sibling Detective Bureau",
+    "slug": "sibling-detective-bureau",
+    "currentMin": 6,
+    "currentMax": 12,
+    "currentTargetAges": [
+      6,
+      9,
+      12
+    ],
+    "currentMaturity": "mixed-age",
+    "suggestedMin": 6,
+    "suggestedMax": 9,
+    "suggestedTargetAges": [
+      6,
+      7,
+      8,
+      9
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "elementary",
+    "problems": [
+      "age-span-gte-5",
+      "mixed-age-activity"
+    ]
+  },
+  {
+    "title": "Two-Captain Spaceship",
+    "slug": "two-captain-spaceship",
+    "currentMin": 6,
+    "currentMax": 12,
+    "currentTargetAges": [
+      6,
+      9,
+      12
+    ],
+    "currentMaturity": "mixed-age",
+    "suggestedMin": 6,
+    "suggestedMax": 9,
+    "suggestedTargetAges": [
+      6,
+      7,
+      8,
+      9
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "elementary",
+    "problems": [
+      "age-span-gte-5",
+      "mixed-age-activity"
+    ]
+  },
+  {
+    "title": "Solo Animal Embassy",
+    "slug": "solo-animal-embassy",
+    "currentMin": 5,
+    "currentMax": 10,
+    "currentTargetAges": [
+      5,
+      8,
+      10
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 5,
+    "suggestedMax": 8,
+    "suggestedTargetAges": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "elementary",
+    "problems": [
+      "age-span-gte-5"
+    ]
+  },
+  {
+    "title": "Independent Museum Night",
+    "slug": "independent-museum-night",
+    "currentMin": 8,
+    "currentMax": 13,
+    "currentTargetAges": [
+      8,
+      11,
+      13
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 8,
+    "suggestedMax": 11,
+    "suggestedTargetAges": [
+      8,
+      9,
+      10,
+      11
+    ],
+    "suggestedMaturity": "tween",
+    "bandAtMid": "older-elementary",
+    "problems": [
+      "age-span-gte-5"
+    ]
+  },
+  {
+    "title": "Couch Clinic Radio",
+    "slug": "couch-clinic-radio",
+    "currentMin": 5,
+    "currentMax": 10,
+    "currentTargetAges": [
+      5,
+      8,
+      10
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 5,
+    "suggestedMax": 8,
+    "suggestedTargetAges": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "elementary",
+    "problems": [
+      "age-span-gte-5"
+    ]
+  },
+  {
+    "title": "Blanket Planetarium",
+    "slug": "blanket-planetarium",
+    "currentMin": 6,
+    "currentMax": 11,
+    "currentTargetAges": [
+      6,
+      9,
+      11
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 6,
+    "suggestedMax": 9,
+    "suggestedTargetAges": [
+      6,
+      7,
+      8,
+      9
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "elementary",
+    "problems": [
+      "age-span-gte-5"
+    ]
+  },
+  {
+    "title": "Neighborhood Invention Fair",
+    "slug": "neighborhood-invention-fair",
+    "currentMin": 8,
+    "currentMax": 13,
+    "currentTargetAges": [
+      8,
+      11,
+      13
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 8,
+    "suggestedMax": 11,
+    "suggestedTargetAges": [
+      8,
+      9,
+      10,
+      11
+    ],
+    "suggestedMaturity": "tween",
+    "bandAtMid": "older-elementary",
+    "problems": [
+      "age-span-gte-5"
+    ]
+  },
+  {
+    "title": "Backyard Border Expedition",
+    "slug": "backyard-border-expedition",
+    "currentMin": 7,
+    "currentMax": 12,
+    "currentTargetAges": [
+      7,
+      10,
+      12
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 7,
+    "suggestedMax": 10,
+    "suggestedTargetAges": [
+      7,
+      8,
+      9,
+      10
+    ],
+    "suggestedMaturity": "tween",
+    "bandAtMid": "older-elementary",
+    "problems": [
+      "age-span-gte-5"
+    ]
+  },
+  {
+    "title": "Secret Animal Rescue",
+    "slug": "secret-animal-rescue-cleanout",
+    "currentMin": 5,
+    "currentMax": 10,
+    "currentTargetAges": [
+      5,
+      8,
+      10
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 5,
+    "suggestedMax": 8,
+    "suggestedTargetAges": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "elementary",
+    "problems": [
+      "age-span-gte-5"
+    ]
+  },
+  {
+    "title": "Dust Bunny Detective",
+    "slug": "dust-bunny-detective",
+    "currentMin": 6,
+    "currentMax": 11,
+    "currentTargetAges": [
+      6,
+      9,
+      11
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 6,
+    "suggestedMax": 9,
+    "suggestedTargetAges": [
+      6,
+      7,
+      8,
+      9
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "elementary",
+    "problems": [
+      "age-span-gte-5"
+    ]
+  },
+  {
+    "title": "Teen Mystery Podcast Booth",
+    "slug": "teen-mystery-podcast-booth",
+    "currentMin": 12,
+    "currentMax": 16,
+    "currentTargetAges": [
+      12,
+      14,
+      16
+    ],
+    "currentMaturity": "tween",
+    "suggestedMin": 12,
+    "suggestedMax": 16,
+    "suggestedTargetAges": [
+      12,
+      13,
+      14,
+      15,
+      16
+    ],
+    "suggestedMaturity": "teen",
+    "bandAtMid": "young-teen",
+    "problems": []
+  },
+  {
+    "title": "Tween City Budget Sim",
+    "slug": "tween-city-budget-sim",
+    "currentMin": 10,
+    "currentMax": 14,
+    "currentTargetAges": [
+      10,
+      12,
+      14
+    ],
+    "currentMaturity": "tween",
+    "suggestedMin": 10,
+    "suggestedMax": 14,
+    "suggestedTargetAges": [
+      10,
+      11,
+      12,
+      13,
+      14
+    ],
+    "suggestedMaturity": "tween",
+    "bandAtMid": "tween",
+    "problems": []
+  },
+  {
+    "title": "Mixed-Age Rescue HQ",
+    "slug": "mixed-age-rescue-hq",
+    "currentMin": 5,
+    "currentMax": 13,
+    "currentTargetAges": [
+      5,
+      9,
+      13
+    ],
+    "currentMaturity": "mixed-age",
+    "suggestedMin": 5,
+    "suggestedMax": 8,
+    "suggestedTargetAges": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "elementary",
+    "problems": [
+      "age-span-gte-5",
+      "mixed-age-activity"
+    ]
+  },
+  {
+    "title": "Tiny Dinner Theater",
+    "slug": "tiny-dinner-theater",
+    "currentMin": 6,
+    "currentMax": 10,
+    "currentTargetAges": [
+      6,
+      8,
+      10
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 6,
+    "suggestedMax": 10,
+    "suggestedTargetAges": [
+      6,
+      7,
+      8,
+      9,
+      10
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "elementary",
+    "problems": []
+  },
+  {
+    "title": "Counter Cafe Orders",
+    "slug": "counter-cafe-orders",
+    "currentMin": 4,
+    "currentMax": 8,
+    "currentTargetAges": [
+      4,
+      6,
+      8
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 4,
+    "suggestedMax": 8,
+    "suggestedTargetAges": [
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "early-elementary",
+    "problems": []
+  },
+  {
+    "title": "Whisper Train Dispatch",
+    "slug": "whisper-train-dispatch",
+    "currentMin": 5,
+    "currentMax": 9,
+    "currentTargetAges": [
+      5,
+      7,
+      9
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 5,
+    "suggestedMax": 9,
+    "suggestedTargetAges": [
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "early-elementary",
+    "problems": []
+  },
+  {
+    "title": "Library Card Quest",
+    "slug": "library-card-quest",
+    "currentMin": 6,
+    "currentMax": 11,
+    "currentTargetAges": [
+      6,
+      9,
+      11
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 6,
+    "suggestedMax": 9,
+    "suggestedTargetAges": [
+      6,
+      7,
+      8,
+      9
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "elementary",
+    "problems": [
+      "age-span-gte-5"
+    ]
+  },
+  {
+    "title": "Rainy Day Robot Lab",
+    "slug": "rainy-day-robot-lab",
+    "currentMin": 7,
+    "currentMax": 12,
+    "currentTargetAges": [
+      7,
+      10,
+      12
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 7,
+    "suggestedMax": 10,
+    "suggestedTargetAges": [
+      7,
+      8,
+      9,
+      10
+    ],
+    "suggestedMaturity": "tween",
+    "bandAtMid": "older-elementary",
+    "problems": [
+      "age-span-gte-5"
+    ]
+  },
+  {
+    "title": "Puddle Forecast Studio",
+    "slug": "puddle-forecast-studio",
+    "currentMin": 6,
+    "currentMax": 11,
+    "currentTargetAges": [
+      6,
+      9,
+      11
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 6,
+    "suggestedMax": 9,
+    "suggestedTargetAges": [
+      6,
+      7,
+      8,
+      9
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "elementary",
+    "problems": [
+      "age-span-gte-5"
+    ]
+  },
+  {
+    "title": "Zoom Animal Olympics",
+    "slug": "zoom-animal-olympics",
+    "currentMin": 5,
+    "currentMax": 10,
+    "currentTargetAges": [
+      5,
+      8,
+      10
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 5,
+    "suggestedMax": 8,
+    "suggestedTargetAges": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "elementary",
+    "problems": [
+      "age-span-gte-5"
+    ]
+  },
+  {
+    "title": "Pillow Lava Courier",
+    "slug": "pillow-lava-courier",
+    "currentMin": 5,
+    "currentMax": 10,
+    "currentTargetAges": [
+      5,
+      8,
+      10
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 5,
+    "suggestedMax": 8,
+    "suggestedTargetAges": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "elementary",
+    "problems": [
+      "age-span-gte-5"
+    ]
+  },
+  {
+    "title": "Bedtime Constellation Mail",
+    "slug": "bedtime-constellation-mail",
+    "currentMin": 5,
+    "currentMax": 9,
+    "currentTargetAges": [
+      5,
+      7,
+      9
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 5,
+    "suggestedMax": 9,
+    "suggestedTargetAges": [
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "early-elementary",
+    "problems": []
+  },
+  {
+    "title": "Goodnight Garden Patrol",
+    "slug": "goodnight-garden-patrol",
+    "currentMin": 4,
+    "currentMax": 7,
+    "currentTargetAges": [
+      4,
+      6,
+      7
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 4,
+    "suggestedMax": 7,
+    "suggestedTargetAges": [
+      4,
+      5,
+      6,
+      7
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "early-elementary",
+    "problems": []
+  },
+  {
+    "title": "Brother-Sister Bakery Shift",
+    "slug": "brother-sister-bakery-shift",
+    "currentMin": 5,
+    "currentMax": 11,
+    "currentTargetAges": [
+      5,
+      8,
+      11
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 5,
+    "suggestedMax": 8,
+    "suggestedTargetAges": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "elementary",
+    "problems": [
+      "age-span-gte-5"
+    ]
+  },
+  {
+    "title": "Fort Embassy Summit",
+    "slug": "fort-embassy-summit",
+    "currentMin": 7,
+    "currentMax": 12,
+    "currentTargetAges": [
+      7,
+      10,
+      12
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 7,
+    "suggestedMax": 10,
+    "suggestedTargetAges": [
+      7,
+      8,
+      9,
+      10
+    ],
+    "suggestedMaturity": "tween",
+    "bandAtMid": "older-elementary",
+    "problems": [
+      "age-span-gte-5"
+    ]
+  },
+  {
+    "title": "Solo Story Arcade",
+    "slug": "solo-story-arcade",
+    "currentMin": 8,
+    "currentMax": 13,
+    "currentTargetAges": [
+      8,
+      11,
+      13
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 8,
+    "suggestedMax": 11,
+    "suggestedTargetAges": [
+      8,
+      9,
+      10,
+      11
+    ],
+    "suggestedMaturity": "tween",
+    "bandAtMid": "older-elementary",
+    "problems": [
+      "age-span-gte-5"
+    ]
+  },
+  {
+    "title": "Quiet Kingdom Census",
+    "slug": "quiet-kingdom-census",
+    "currentMin": 5,
+    "currentMax": 9,
+    "currentTargetAges": [
+      5,
+      7,
+      9
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 5,
+    "suggestedMax": 9,
+    "suggestedTargetAges": [
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "early-elementary",
+    "problems": []
+  },
+  {
+    "title": "Healing Herb Apothecary",
+    "slug": "healing-herb-apothecary",
+    "currentMin": 5,
+    "currentMax": 10,
+    "currentTargetAges": [
+      5,
+      8,
+      10
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 5,
+    "suggestedMax": 8,
+    "suggestedTargetAges": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "elementary",
+    "problems": [
+      "age-span-gte-5"
+    ]
+  },
+  {
+    "title": "Cloud Watching Oracle",
+    "slug": "cloud-watching-oracle",
+    "currentMin": 7,
+    "currentMax": 13,
+    "currentTargetAges": [
+      7,
+      10,
+      13
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 7,
+    "suggestedMax": 10,
+    "suggestedTargetAges": [
+      7,
+      8,
+      9,
+      10
+    ],
+    "suggestedMaturity": "tween",
+    "bandAtMid": "older-elementary",
+    "problems": [
+      "age-span-gte-5"
+    ]
+  },
+  {
+    "title": "Afternoon Treasure Cartographers",
+    "slug": "afternoon-treasure-cartographers",
+    "currentMin": 7,
+    "currentMax": 12,
+    "currentTargetAges": [
+      7,
+      10,
+      12
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 7,
+    "suggestedMax": 10,
+    "suggestedTargetAges": [
+      7,
+      8,
+      9,
+      10
+    ],
+    "suggestedMaturity": "tween",
+    "bandAtMid": "older-elementary",
+    "problems": [
+      "age-span-gte-5"
+    ]
+  },
+  {
+    "title": "Cardboard Colony Founders",
+    "slug": "cardboard-colony-founders",
+    "currentMin": 8,
+    "currentMax": 13,
+    "currentTargetAges": [
+      8,
+      11,
+      13
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 8,
+    "suggestedMax": 11,
+    "suggestedTargetAges": [
+      8,
+      9,
+      10,
+      11
+    ],
+    "suggestedMaturity": "tween",
+    "bandAtMid": "older-elementary",
+    "problems": [
+      "age-span-gte-5"
+    ]
+  },
+  {
+    "title": "Laundry Dragon Taming",
+    "slug": "laundry-dragon-taming",
+    "currentMin": 6,
+    "currentMax": 12,
+    "currentTargetAges": [
+      6,
+      9,
+      12
+    ],
+    "currentMaturity": "mixed-age",
+    "suggestedMin": 6,
+    "suggestedMax": 9,
+    "suggestedTargetAges": [
+      6,
+      7,
+      8,
+      9
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "elementary",
+    "problems": [
+      "age-span-gte-5",
+      "mixed-age-activity"
+    ]
+  },
+  {
+    "title": "Toy City Sanitation Crew",
+    "slug": "toy-city-sanitation-crew",
+    "currentMin": 5,
+    "currentMax": 10,
+    "currentTargetAges": [
+      5,
+      8,
+      10
+    ],
+    "currentMaturity": "child",
+    "suggestedMin": 5,
+    "suggestedMax": 8,
+    "suggestedTargetAges": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "suggestedMaturity": "child",
+    "bandAtMid": "elementary",
+    "problems": [
+      "age-span-gte-5"
+    ]
+  }
+]

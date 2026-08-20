@@ -5,10 +5,11 @@ import {
 } from "../utils/promptFormatters.js";
 import { getPlayModePromptFlavor } from "../utils/playModeTheme.js";
 import { BRAND } from "../../src/config/brand.js";
+import { getPolicyAgeBand } from "../utils/activityAgePolicy.js";
 
 /**
  * Resolve which age-voice band to include for the oldest participant.
- * @returns {"under10" | "tween" | "teen" | "mixed"}
+ * @returns {"young-child"|"early-elementary"|"elementary"|"older-elementary"|"tween"|"young-teen"|"teen"|"mixed"}
  */
 export function resolvePromptAgeBand(groupAgeContext, childrenContext = []) {
   const ages = Array.isArray(childrenContext)
@@ -26,9 +27,41 @@ export function resolvePromptAgeBand(groupAgeContext, childrenContext = []) {
   if (!Number.isFinite(oldest)) {
     return "mixed";
   }
-  if (oldest >= 13) return "teen";
-  if (oldest >= 10) return "tween";
-  return "under10";
+  if (ages.length >= 2) {
+    const youngest = Math.min(...ages);
+    if (oldest - youngest >= 3) {
+      return "mixed";
+    }
+  }
+  return getPolicyAgeBand(oldest);
+}
+
+function buildExactAgeHeader(childrenContext = [], groupAgeContext = {}) {
+  const ages = Array.isArray(childrenContext)
+    ? childrenContext
+        .map((child) => Number(child?.ageYears))
+        .filter((age) => Number.isFinite(age))
+    : [];
+  if (ages.length === 1) {
+    const age = ages[0];
+    const band = getPolicyAgeBand(age);
+    return `
+TARGET CHILD AGE: EXACTLY ${age}.
+AGE BAND: ${band}.
+Put this age near the top of every design decision. ageFit.targetAges must include ${age}.
+`.trim();
+  }
+  if (ages.length > 1) {
+    return `
+TARGET CHILD AGES: EXACTLY ${ages.join(", ")}.
+Cover every listed age in ageFit.minAge/maxAge. Prefer mixed-age only when siblings span bands and each child has a real role.
+`.trim();
+  }
+  const oldest = Number(groupAgeContext?.oldestAge);
+  if (Number.isFinite(oldest)) {
+    return `TARGET CHILD AGE: EXACTLY ${oldest}.`;
+  }
+  return "Match ageFit carefully to the participating children.";
 }
 
 function buildSimpleStyleRules() {
@@ -77,11 +110,13 @@ VOICE:
 - Warm does NOT mean babyish. Avoid fake praise and sing-song language.
 `.trim();
 
-  if (ageBand === "teen") {
+  if (ageBand === "teen" || ageBand === "young-teen") {
     return `${shared}
 
-TEEN (13+) FRAMING:
-- imaginative = thinking skills. Prefer design challenges, strategy, invention briefs, creative problem-solving, photography, music, building with constraints, outdoor exploration with a goal.
+TEEN / YOUNG-TEEN FRAMING:
+- This is a young teenager. The activity must feel socially appropriate for a teenager.
+- Do not reuse preschool pretend-play framing and simply increase difficulty.
+- Prefer autonomy, design, strategy, invention, building, investigation, photography, music, games, or creative production.
 - HARD RULE: do not invent an imaginary story world unless the child's listed interests explicitly ask for roleplay/fiction.
 - roleGuide.goal: crisp creative brief (goal + constraints + what done looks like). Max ~2 sentences.
 - Prefer categories: puzzle, creative, science, building, music, reading, nature, social-game. Avoid "pretend" unless interests demand it.
@@ -92,11 +127,12 @@ TEEN (13+) FRAMING:
 `.trim();
   }
 
-  if (ageBand === "tween") {
+  if (ageBand === "tween" || ageBand === "older-elementary") {
     return `${shared}
 
-TWEEN (10–12) FRAMING:
+OLDER-ELEMENTARY / TWEEN FRAMING:
 - Prefer creative challenges over full pretend worlds. Light theme is optional.
+- Allow planning, strategy, simple optimization, and design constraints.
 - roleGuide.goal: short challenge brief (1–2 sentences), not a long lore dump.
 - Avoid forced make-believe dialogue and costume play.
 - Activity-level starterIdeas: at least 4 with mixed kinds.
@@ -104,9 +140,34 @@ TWEEN (10–12) FRAMING:
 `.trim();
   }
 
-  // under10 + mixed default to younger imaginative voice with light teen caveats if mixed
+  if (ageBand === "early-elementary") {
+    return `${shared}
+
+EARLY-ELEMENTARY (AGES 6–7) FRAMING:
+- This is an early-elementary child. Do not assume strong independent reading.
+- Instructions must be concrete and literal. Use short actions and limited choices.
+- Maximum 4 scenes with 2–4 actions each. Setup steps preferably ≤ 5.
+- The child must never infer missing setup. Provide examples they can copy immediately.
+- Avoid abstract planning unless every part is explicitly shown.
+- Never require the child to design the rules before beginning.
+- Make all invented locations explicit (e.g. "Call them Station 1, Station 2, and Station 3").
+- Vivid theme framing and a clear pretend role are OK when a natural role exists.
+`.trim();
+  }
+
+  if (ageBand === "elementary") {
+    return `${shared}
+
+ELEMENTARY (AGES 8–9) FRAMING:
+- Allow 3–5 scenes, slightly more planning, simple written lists, and two-step decisions.
+- More open-ended creation is OK when examples are provided.
+- Keep directions concrete; avoid multi-stage planning without scaffolding.
+`.trim();
+  }
+
+  // young-child + mixed default
   const under10 = `
-UNDER-10 FRAMING:
+YOUNG-CHILD / UNDER-10 FRAMING:
 - Vivid theme framing and a clear pretend role are OK when a natural role exists.
 - roleGuide.goal may be a rich setup (world, problem/invitation, who they are, first direction) — keep ≤4 sentences.
 - Prefer story-beat step titles, then a full instruction that a child can follow without guessing.
@@ -147,7 +208,13 @@ AGE APPROPRIATENESS IS A HARD REQUIREMENT.
   - ages 13+ → teen (or mixed-age when siblings span bands)
 `.trim();
 
-  if (ageBand === "teen" || ageBand === "tween" || ageBand === "mixed") {
+  if (
+    ageBand === "teen" ||
+    ageBand === "young-teen" ||
+    ageBand === "tween" ||
+    ageBand === "older-elementary" ||
+    ageBand === "mixed"
+  ) {
     return `${base}
 - Never set maturityLevel to young-child or child when any participant is 13+.
 - HARD BAN for ages 12+: blanket forts, pillow forts, cozy forts, blanket/pillow caves, dens, hideouts, magical castles, teddy tea parties, stuffed-animal play, dress-up princess parties, nursery themes — even if you stretch ageFit.maxAge.
@@ -193,6 +260,8 @@ You are ${BRAND.name}'s kid-facing activity guide.
 
 Your job is to create the right kind of activity for the current family moment.
 ${playModeFlavor}
+
+${buildExactAgeHeader(options.childrenContext, options.groupAgeContext)}
 
 Requested activity style: ${style}
 Age voice band for this batch: ${ageBand}
