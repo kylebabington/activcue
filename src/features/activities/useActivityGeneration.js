@@ -31,6 +31,7 @@ import { resolveChildAge } from "../../utils/childAge";
 import { playModeFlavorFromActivityStyle } from "../../constants/activityPreferences";
 import { createRecommendationBatch } from "../../api/recommendationTelemetryApi";
 import { trackFirstActivityGeneratedOnce, trackProductEvent } from "../../utils/analytics";
+import { storyifyCachedImaginativeActivity } from "../demo/storyifyCachedImaginativeActivity";
 
 async function recordLocalBatch(activities, { source, momentId, mode = "normal" }) {
   if (!Array.isArray(activities) || activities.length === 0) {
@@ -246,7 +247,9 @@ export function useActivityGeneration(deps = {}) {
       }
 
       async function finalizeActivities(rawActivities, meta = {}) {
-        let activities = Array.isArray(rawActivities) ? rawActivities : [];
+        let activities = (Array.isArray(rawActivities) ? rawActivities : []).map(
+          (activity) => storyifyCachedImaginativeActivity(activity)
+        );
         let recommendationBatchId = meta.recommendationBatchId || null;
         let momentId =
           meta.momentId ||

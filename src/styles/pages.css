@@ -3320,8 +3320,69 @@
   margin-top: 0.25rem;
 }
 
+.active-activity-footer {
+  position: static;
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.active-activity-footer .simple-active-actions,
+.active-activity-footer .quest-v2-global-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0;
+  grid-template-columns: none;
+}
+
+.active-activity-footer .simple-active-actions button {
+  min-width: 7.5rem;
+}
+
+.what-next-bar {
+  position: static !important;
+  inset: auto !important;
+  bottom: auto !important;
+  z-index: auto !important;
+  display: flex;
+  justify-content: stretch;
+  margin: 0;
+  padding: 0;
+  box-shadow: none;
+}
+
+.what-next-button,
+.what-next-speak {
+  position: static !important;
+  width: 100%;
+}
+
+.what-next-button,
+.what-next-speak .speak-button {
+  position: static !important;
+  width: 100%;
+  min-height: 3.1rem;
+  padding: 0.7rem 1.25rem;
+  border-radius: var(--radius-medium);
+  border: 1px solid color-mix(in srgb, var(--activity-theme-accent, var(--color-primary)) 40%, #ccc);
+  background: white;
+  box-shadow: none !important;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+
+.what-next-button:hover {
+  background: color-mix(in srgb, var(--activity-theme-accent, var(--color-primary)) 8%, white);
+}
+
 .page-layout--kid-device .speak-button,
-.page-layout--kid-device .listening-mode-primary {
+.page-layout--kid-device .listening-mode-primary,
+.page-layout--kid-device .what-next-button {
   min-height: 3.4rem;
 }
 

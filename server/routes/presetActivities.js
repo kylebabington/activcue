@@ -5,6 +5,7 @@ import { getSupabaseAdminClient } from "../lib/supabaseAdminClient.js";
 import { getUserEntitlement } from "../lib/entitlements.js";
 import { requireAuthenticatedUser } from "../middleware/requireAuthenticatedUser.js";
 import { ensureUserProfile } from "../middleware/ensureUserProfile.js";
+import { enrichActivityForServe } from "../utils/enrichActivityForServe.js";
 
 const router = Router();
 
@@ -68,8 +69,22 @@ function formatPresetActivity(
         return safePreview;
     }
 
+    const fullContent =
+        activity.full_content && typeof activity.full_content === "object"
+            ? activity.full_content
+            : {};
+
+    const enriched = enrichActivityForServe(
+        {
+            ...fullContent,
+            ...safePreview,
+        },
+        activity.activity_style || fullContent.activityStyle || "imaginative",
+        []
+    );
+
     return {
-        ...activity.full_content,
+        ...enriched,
         ...safePreview,
     };
 }

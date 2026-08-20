@@ -15,9 +15,9 @@ import { validateActivityClarity } from "../utils/activityClarityValidation.js";
 import {
   buildSafeCurrentMoment,
   buildSafeSafetySettings,
-  normalizeActivity,
   resolveActivityStyle,
 } from "../utils/normalizeRequest.js";
+import { enrichActivityForServe } from "../utils/enrichActivityForServe.js";
 import {
   buildChildrenAgeContext,
   getGroupAgeContext,
@@ -215,7 +215,7 @@ export default function createActivitySuggestionsRouter(client) {
           ? cachedCandidates
           : []
         ).map((activity) =>
-          normalizeActivity(activity, safeActivityStyle, childAges)
+          enrichActivityForServe(activity, safeActivityStyle, childAges)
         );
         const cacheAgeFiltered = filterActivitiesByAgeFit(
           normalizedCached,
@@ -298,7 +298,7 @@ export default function createActivitySuggestionsRouter(client) {
 
           const normalizeAiStarted = Date.now();
           const normalizedActivities = rawActivities.map((activity) =>
-            normalizeActivity(activity, safeActivityStyle, childAges)
+            enrichActivityForServe(activity, safeActivityStyle, childAges)
           );
 
           const clarityPassed = normalizedActivities.filter((activity) => {
@@ -414,7 +414,7 @@ export default function createActivitySuggestionsRouter(client) {
                 ? retryParsed.activities
                 : [];
               const retryNormalized = retryRawActivities.map((activity) =>
-                normalizeActivity(activity, safeActivityStyle, childAges)
+                enrichActivityForServe(activity, safeActivityStyle, childAges)
               );
               ageFiltered = filterActivitiesByAgeFit(
                 retryNormalized,
