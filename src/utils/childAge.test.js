@@ -29,14 +29,15 @@ describe("calculateAge", () => {
 
 describe("getAgeBand", () => {
   it("maps boundary ages", () => {
-    expect(getAgeBand(3)).toBe("toddler");
-    expect(getAgeBand(5)).toBe("preschool");
+    expect(getAgeBand(3)).toBe("young-child");
+    expect(getAgeBand(5)).toBe("young-child");
     expect(getAgeBand(7)).toBe("early-elementary");
     expect(getAgeBand(9)).toBe("elementary");
     expect(getAgeBand(11)).toBe("older-elementary");
+    expect(getAgeBand(12)).toBe("tween");
     expect(getAgeBand(13)).toBe("young-teen");
-    expect(getAgeBand(14)).toBe("teen");
-    expect(getAgeBand(16)).toBe("older-teen");
+    expect(getAgeBand(14)).toBe("young-teen");
+    expect(getAgeBand(16)).toBe("teen");
   });
 });
 
@@ -56,14 +57,14 @@ describe("ageRange fallback", () => {
     );
     expect(resolved.ageYears).toBe(12);
     expect(resolved.source).toBe("birthDate");
-    expect(resolved.ageBand).toBe("young-teen");
+    expect(resolved.ageBand).toBe("tween");
   });
 
   it("resolveChildAge falls back to ageRange when birthDate missing", () => {
     const resolved = resolveChildAge({ ageRange: "13+" });
     expect(resolved.ageYears).toBe(14);
     expect(resolved.source).toBe("ageRange");
-    expect(resolved.ageBand).toBe("teen");
+    expect(resolved.ageBand).toBe("young-teen");
   });
 });
 

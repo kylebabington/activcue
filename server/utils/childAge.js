@@ -1,14 +1,13 @@
 // server/utils/childAge.js — keep in sync with src/utils/childAge.js
 
 export const AGE_BANDS = Object.freeze([
-  "toddler",
-  "preschool",
+  "young-child",
   "early-elementary",
   "elementary",
   "older-elementary",
+  "tween",
   "young-teen",
   "teen",
-  "older-teen",
 ]);
 
 const AGE_RANGE_APPROX_YEARS = Object.freeze({
@@ -64,14 +63,13 @@ export function getAgeBand(age) {
   if (!Number.isFinite(n) || n < 0) {
     return "elementary";
   }
-  if (n <= 3) return "toddler";
-  if (n <= 5) return "preschool";
+  if (n <= 5) return "young-child";
   if (n <= 7) return "early-elementary";
   if (n <= 9) return "elementary";
   if (n <= 11) return "older-elementary";
-  if (n <= 13) return "young-teen";
-  if (n <= 15) return "teen";
-  return "older-teen";
+  if (n === 12) return "tween";
+  if (n <= 14) return "young-teen";
+  return "teen";
 }
 
 export function ageRangeToApproxYears(ageRange) {
