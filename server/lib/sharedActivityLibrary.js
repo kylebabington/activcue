@@ -9,6 +9,7 @@ import {
   scoreActivityAgeMatch,
 } from "../utils/activityAgePolicy.js";
 import { sanitizeForSharedLibrary } from "../utils/sanitizeForSharedLibrary.js";
+import { validateActivityForDisplay } from "../utils/activityDisplayValidation.js";
 import {
   inferParticipantMetadata,
   evaluateActivityFit,
@@ -18,9 +19,9 @@ import {
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 /**
- * Prefer validated age metadata. Flip true after content audit completes.
+ * Prefer validated age metadata. Enabled after display/age content audit gates.
  */
-export const REQUIRE_VALIDATED_AGE_FIT = false;
+export const REQUIRE_VALIDATED_AGE_FIT = true;
 
 /**
  * Days since an ISO timestamp. Missing/invalid → Infinity (no recency hit).
@@ -182,14 +183,16 @@ export function computeActivityContentHash(activity) {
   return createHash("sha256").update(stableStringify(payload)).digest("hex");
 }
 
-function toLibraryRow(activity, { source = "ai", candidateId = null, ageValidated = false } = {}) {
+function toLibraryRow(activity, { source = "ai", ageValidated = false } = {}) {
   const safe = sanitizeForSharedLibrary(activity);
   const contentHash = computeActivityContentHash(safe);
   const ageMeta = ageMetadataFromActivity(safe, { validated: ageValidated });
   const participantMeta = inferParticipantMetadata(safe);
+  const display = validateActivityForDisplay(safe, { mode: "cached" });
+  const now = new Date().toISOString();
 
   return {
-    ...(candidateId ? { id: candidateId } : {}),
+    // Never reuse a recommendation impression UUID as the library PK.
     content_hash: contentHash,
     activity_data: safe,
     activity_style: safe.activityStyle || null,
@@ -201,11 +204,36 @@ function toLibraryRow(activity, { source = "ai", candidateId = null, ageValidate
     estimated_minutes: Number(safe.estimatedMinutes) || null,
     supplies: Array.isArray(safe.uses) ? safe.uses : [],
     source,
-    is_active: true,
-    updated_at: new Date().toISOString(),
+    is_active: display.valid,
+    updated_at: now,
+    display_validated: display.valid,
+    display_validation_status: display.valid ? "valid" : "invalid",
+    display_validation_errors: display.errors,
+    display_validated_at: now,
+    activity_format_version: Number(safe.activityFormatVersion) || null,
     ...ageMeta,
     ...participantMeta,
   };
+}
+
+async function quarantineInvalidCandidate(supabase, rowId, errors) {
+  if (!supabase || !rowId) return;
+  try {
+    const now = new Date().toISOString();
+    await supabase
+      .from("shared_activity_candidates")
+      .update({
+        is_active: false,
+        display_validated: false,
+        display_validation_status: "invalid",
+        display_validation_errors: errors,
+        display_validated_at: now,
+        updated_at: now,
+      })
+      .eq("id", rowId);
+  } catch (error) {
+    console.warn("[display:quarantine] failed", { rowId, error });
+  }
 }
 
 export function formatSharedCandidate(row) {
@@ -221,6 +249,7 @@ export function formatSharedCandidate(row) {
   return {
     ...data,
     candidateId: row.id,
+    sharedCandidateId: row.id,
     contentHash: row.content_hash,
     categories: Array.isArray(row.categories) ? row.categories : data.categories || [],
     traits: row.traits && typeof row.traits === "object" ? row.traits : data.traits || {},
@@ -235,6 +264,8 @@ export function formatSharedCandidate(row) {
     maturity_level: row.maturity_level,
     age_fit_validated: row.age_fit_validated,
     ageFitValidated: row.age_fit_validated,
+    display_validated: row.display_validated,
+    displayValidated: row.display_validated,
     participant_mode: row.participant_mode,
     participant_min: row.participant_min,
     participant_max: row.participant_max,
@@ -285,9 +316,21 @@ export async function ingestGeneratedActivities({
       continue;
     }
 
+    const displayCheck = validateActivityForDisplay(
+      sanitizeForSharedLibrary(activity),
+      { mode: "cached" }
+    );
+    if (!displayCheck.valid) {
+      console.warn("[display:ingest] skipping activity that is not display-ready", {
+        title: activity?.title,
+        errors: displayCheck.errors,
+      });
+      resolved.push(activity);
+      continue;
+    }
+
     const row = toLibraryRow(activity, {
       source,
-      candidateId: activity.candidateId || null,
       ageValidated: true,
     });
 
@@ -400,7 +443,20 @@ export async function ingestPresetCandidates({
   const candidates = [];
 
   for (const activity of activities) {
-    const row = toLibraryRow(activity, { source });
+    const displayCheck = validateActivityForDisplay(
+      sanitizeForSharedLibrary(activity),
+      { mode: "cached" }
+    );
+    if (!displayCheck.valid) {
+      console.warn("[display:preset-ingest] skipping incomplete preset", {
+        title: activity?.title,
+        errors: displayCheck.errors,
+      });
+      skipped += 1;
+      continue;
+    }
+
+    const row = toLibraryRow(activity, { source, ageValidated: true });
     const { data: existing } = await supabase
       .from("shared_activity_candidates")
       .select("*")
@@ -708,6 +764,16 @@ export async function querySharedCandidatesForUser({
     }
 
     const activity = formatSharedCandidate(row);
+    const displayCheck = validateActivityForDisplay(row.activity_data, {
+      mode: "cached",
+    });
+    if (!displayCheck.valid) {
+      rejectedByReason["display-invalid"] =
+        (rejectedByReason["display-invalid"] || 0) + 1;
+      void quarantineInvalidCandidate(supabase, row.id, displayCheck.errors);
+      continue;
+    }
+
     const fit = evaluateActivityFit(activity, fitContext);
     if (!fit.eligible) {
       for (const reason of fit.hardFailures) {
