@@ -7,6 +7,7 @@ export default function QuestSetupGuide({
   speechRate,
   narration = "",
   SpeechButton,
+  showSpeech = true,
 }) {
   if (!setupGuide || typeof setupGuide !== "object") return null;
 
@@ -69,7 +70,7 @@ export default function QuestSetupGuide({
     <section className="quest-play-card quest-setup-guide" data-quest-area="setup">
       <div className="quest-play-card-header">
         <h2>Set Up First</h2>
-        {narration && SpeechButton ? (
+        {showSpeech && narration && SpeechButton ? (
           <SpeechButton
             text={narration}
             label="Read setup"

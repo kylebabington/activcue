@@ -15,12 +15,20 @@ export default function QuestSetupScreen({
   const setupNarration = buildNarrationText(activity, "setup");
 
   return (
-    <section className="quest-setup-screen panel" aria-labelledby="quest-setup-title">
+    <section className="quest-setup-screen panel" aria-label="Set up">
       <header className="quest-setup-screen-header">
-        <h2 id="quest-setup-title">Set Up First</h2>
         <p className="quest-setup-screen-lead">
           Get everything ready before Scene 1. The timer starts after you press Ready.
         </p>
+        {setupNarration ? (
+          <SpeakButton
+            text={setupNarration}
+            label="Read setup"
+            speechKey="quest-setup"
+            rate={speechRate}
+            section="setup"
+          />
+        ) : null}
       </header>
 
       {storyText ? (
@@ -35,6 +43,7 @@ export default function QuestSetupScreen({
         narration={setupNarration}
         speechRate={speechRate}
         SpeechButton={SpeakButton}
+        showSpeech={false}
       />
 
       <div className="quest-setup-screen-actions">
