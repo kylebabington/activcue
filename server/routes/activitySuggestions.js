@@ -41,6 +41,10 @@ import {
   createRecommendationBatch,
 } from "../lib/recommendationTelemetry.js";
 import { aiSuggestionsRateLimiter } from "../middleware/rateLimits.js";
+import {
+  AiResponseInvalidError,
+  generateActivitiesWithParseRecovery,
+} from "../utils/generateActivitiesWithParseRecovery.js";
 
 const router = Router();
 const isDebugLogging = process.env.DEBUG_AI_RESPONSES === "true";
@@ -111,12 +115,17 @@ function buildAgeFitRetrySteer({ oldestAge, childAges, rejectionTitles }) {
 }
 
 function preserveLibraryIds(activity) {
+  const libraryId =
+    activity.sharedCandidateId ||
+    activity.shared_candidate_id ||
+    activity.candidateId ||
+    activity.candidate_id ||
+    null;
   return {
     ...activity,
-    candidateId: activity.candidateId || activity.candidate_id,
+    // Library id stays on sharedCandidateId; impression id is minted later.
+    sharedCandidateId: libraryId,
     contentHash: activity.contentHash || activity.content_hash,
-    sharedCandidateId:
-      activity.candidateId || activity.candidate_id || null,
   };
 }
 
@@ -358,62 +367,88 @@ export default function createActivitySuggestionsRouter(client) {
             ...safePreviousActivityTitles,
             ...cachedKept.map((a) => a.title).filter(Boolean),
           ];
-          const input = buildActivitySuggestionsInput({
-            safeCurrentMoment,
-            kidMood: resolvedKidMood,
-            energyLevel: energyFromContext || resolvedKidMood,
-            locationPreference:
-              safeCurrentMoment.space || locationPreference || "",
-            childAgeRange,
-            childrenContext,
-            groupAgeContext,
-            activeChildProfile: resolvedActiveProfile,
-            safeActivityStyle,
-            activityMode: resolvedActivityMode,
-            safeSelectedChildProfiles,
-            inventory: resolvedInventory,
-            safeFeedbackContext,
-            safePreviousActivityTitles: titlesToAvoid,
-            safeSafetySettings,
-            playModeTheme: safePlayModeTheme,
-            activityPreferences:
-              activityPreferences && typeof activityPreferences === "object"
-                ? activityPreferences
-                : clientRequestContext?.preferences || null,
-            activityCount: aiSlots,
-          });
 
           const openaiStarted = Date.now();
-          const aiResult = await createStructuredResponseWithMeta(client, {
-            instructions,
-            input,
-            schemaName: "activity_suggestions",
-            schema: activitySuggestionsSchemaV3,
-            verbosity: "low",
-            maxOutputTokens: maxTokensForCount(aiSlots),
-          });
+          let recovered;
+          try {
+            recovered = await generateActivitiesWithParseRecovery({
+              expectedCount: aiSlots,
+              activityStyle: safeActivityStyle,
+              maxTokensForCount,
+              baseFeedback: safeFeedbackContext,
+              buildInput: (feedback, activityCount) =>
+                buildActivitySuggestionsInput({
+                  safeCurrentMoment,
+                  kidMood: resolvedKidMood,
+                  energyLevel: energyFromContext || resolvedKidMood,
+                  locationPreference:
+                    safeCurrentMoment.space || locationPreference || "",
+                  childAgeRange,
+                  childrenContext,
+                  groupAgeContext,
+                  activeChildProfile: resolvedActiveProfile,
+                  safeActivityStyle,
+                  activityMode: resolvedActivityMode,
+                  safeSelectedChildProfiles,
+                  inventory: resolvedInventory,
+                  safeFeedbackContext: feedback || "",
+                  safePreviousActivityTitles: titlesToAvoid,
+                  safeSafetySettings,
+                  playModeTheme: safePlayModeTheme,
+                  activityPreferences:
+                    activityPreferences && typeof activityPreferences === "object"
+                      ? activityPreferences
+                      : clientRequestContext?.preferences || null,
+                  activityCount,
+                }),
+              createResponse: async ({ input: retryInput, maxOutputTokens }) => {
+                const aiResult = await createStructuredResponseWithMeta(client, {
+                  instructions,
+                  input: retryInput,
+                  schemaName: "activity_suggestions",
+                  schema: activitySuggestionsSchemaV3,
+                  verbosity: "low",
+                  maxOutputTokens,
+                });
+                if (isDebugLogging) {
+                  console.log("RAW AI RESPONSE:");
+                  console.log(aiResult.outputText);
+                }
+                return aiResult;
+              },
+            });
+          } catch (parseError) {
+            msOpenai = Date.now() - openaiStarted;
+            if (parseError instanceof AiResponseInvalidError) {
+              await recordAiUsageEvent({
+                userId: req.auth.userId,
+                operation: "activity-suggestions",
+                model: OPENAI_MODEL,
+                latencyMs: Date.now() - startedAt,
+                success: false,
+                error: { message: "AI_RESPONSE_INVALID", code: "AI_RESPONSE_INVALID" },
+              });
+              return res.status(422).json({
+                error: parseError.message,
+                message: parseError.message,
+                code: "AI_RESPONSE_INVALID",
+              });
+            }
+            throw parseError;
+          }
           msOpenai = Date.now() - openaiStarted;
-          const rawText = aiResult.outputText;
           usageMeta = {
-            model: aiResult.model || OPENAI_MODEL,
-            inputTokens: aiResult.inputTokens,
-            outputTokens: aiResult.outputTokens,
-            totalTokens: aiResult.totalTokens,
-            responseId: aiResult.responseId,
+            model: recovered.usage?.model || OPENAI_MODEL,
+            inputTokens: recovered.usage?.inputTokens || 0,
+            outputTokens: recovered.usage?.outputTokens || 0,
+            totalTokens: recovered.usage?.totalTokens || 0,
+            responseId: recovered.usage?.responseId || null,
             instructionChars:
               typeof instructions === "string" ? instructions.length : null,
-            inputChars: typeof input === "string" ? input.length : null,
+            inputChars: null,
           };
 
-          if (isDebugLogging) {
-            console.log("RAW AI RESPONSE:");
-            console.log(rawText);
-          }
-
-          const parsed = JSON.parse(rawText);
-          const rawActivities = Array.isArray(parsed.activities)
-            ? parsed.activities
-            : [];
+          const rawActivities = recovered.activities;
 
           const normalizeAiStarted = Date.now();
           const normalizedActivities = rawActivities.map((activity) =>
@@ -438,64 +473,85 @@ export default function createActivitySuggestionsRouter(client) {
               "Every step needs a concrete instruction, observable doneWhen, and explicit setup when materials matter.",
               "Avoid vague actions. Provide examples for open-ended choices.",
             ].join("\n");
-            const clarityRetryInput = buildActivitySuggestionsInput({
-              safeCurrentMoment,
-              kidMood: resolvedKidMood,
-              energyLevel: energyFromContext || resolvedKidMood,
-              locationPreference: safeCurrentMoment.space || locationPreference || "",
-              childAgeRange,
-              childrenContext,
-              groupAgeContext,
-              activeChildProfile: resolvedActiveProfile,
-              safeActivityStyle,
-              activityMode: resolvedActivityMode,
-              safeSelectedChildProfiles,
-              inventory: resolvedInventory,
-              safeFeedbackContext: [safeFeedbackContext, clarityRetrySteer]
-                .filter(Boolean)
-                .join("\n\n"),
-              safePreviousActivityTitles: titlesToAvoid,
-              safeSafetySettings,
-              playModeTheme: safePlayModeTheme,
-              activityPreferences:
-                activityPreferences && typeof activityPreferences === "object"
-                  ? activityPreferences
-                  : null,
-              activityCount: aiSlots,
-            });
             const clarityRetryStarted = Date.now();
-            const clarityRetryResult = await createStructuredResponseWithMeta(
-              client,
-              {
-                instructions,
-                input: clarityRetryInput,
-                schemaName: "activity_suggestions",
-                schema: activitySuggestionsSchemaV3,
-                verbosity: "low",
-                maxOutputTokens: maxTokensForCount(aiSlots),
+            let clarityRetryRaw = [];
+            try {
+              const clarityRecovered = await generateActivitiesWithParseRecovery({
+                expectedCount: aiSlots,
+                activityStyle: safeActivityStyle,
+                maxTokensForCount,
+                baseFeedback: [safeFeedbackContext, clarityRetrySteer]
+                  .filter(Boolean)
+                  .join("\n\n"),
+                buildInput: (extraFeedback, activityCount) =>
+                  buildActivitySuggestionsInput({
+                    safeCurrentMoment,
+                    kidMood: resolvedKidMood,
+                    energyLevel: energyFromContext || resolvedKidMood,
+                    locationPreference:
+                      safeCurrentMoment.space || locationPreference || "",
+                    childAgeRange,
+                    childrenContext,
+                    groupAgeContext,
+                    activeChildProfile: resolvedActiveProfile,
+                    safeActivityStyle,
+                    activityMode: resolvedActivityMode,
+                    safeSelectedChildProfiles,
+                    inventory: resolvedInventory,
+                    safeFeedbackContext: [
+                      safeFeedbackContext,
+                      clarityRetrySteer,
+                      extraFeedback,
+                    ]
+                      .filter(Boolean)
+                      .join("\n\n"),
+                    safePreviousActivityTitles: titlesToAvoid,
+                    safeSafetySettings,
+                    playModeTheme: safePlayModeTheme,
+                    activityPreferences:
+                      activityPreferences &&
+                      typeof activityPreferences === "object"
+                        ? activityPreferences
+                        : null,
+                    activityCount,
+                  }),
+                createResponse: async ({
+                  input: retryInput,
+                  maxOutputTokens,
+                }) =>
+                  createStructuredResponseWithMeta(client, {
+                    instructions,
+                    input: retryInput,
+                    schemaName: "activity_suggestions",
+                    schema: activitySuggestionsSchemaV3,
+                    verbosity: "low",
+                    maxOutputTokens,
+                  }),
+              });
+              clarityRetryRaw = clarityRecovered.activities;
+              usageMeta = {
+                model: clarityRecovered.usage?.model || usageMeta.model,
+                inputTokens:
+                  (usageMeta.inputTokens || 0) +
+                  (clarityRecovered.usage?.inputTokens || 0),
+                outputTokens:
+                  (usageMeta.outputTokens || 0) +
+                  (clarityRecovered.usage?.outputTokens || 0),
+                totalTokens:
+                  (usageMeta.totalTokens || 0) +
+                  (clarityRecovered.usage?.totalTokens || 0),
+                responseId:
+                  clarityRecovered.usage?.responseId || usageMeta.responseId,
+                instructionChars: usageMeta.instructionChars,
+                inputChars: usageMeta.inputChars,
+              };
+            } catch (clarityParseError) {
+              if (!(clarityParseError instanceof AiResponseInvalidError)) {
+                throw clarityParseError;
               }
-            );
+              clarityRetryRaw = [];
+            }
             msOpenai += Date.now() - clarityRetryStarted;
-            usageMeta = {
-              model: clarityRetryResult.model || usageMeta.model,
-              inputTokens:
-                (usageMeta.inputTokens || 0) +
-                (clarityRetryResult.inputTokens || 0),
-              outputTokens:
-                (usageMeta.outputTokens || 0) +
-                (clarityRetryResult.outputTokens || 0),
-              totalTokens:
-                (usageMeta.totalTokens || 0) +
-                (clarityRetryResult.totalTokens || 0),
-              responseId:
-                clarityRetryResult.responseId || usageMeta.responseId,
-              instructionChars: usageMeta.instructionChars,
-              inputChars: usageMeta.inputChars,
-            };
-            const clarityRetryParsed = JSON.parse(clarityRetryResult.outputText);
-            const clarityRetryRaw = Array.isArray(clarityRetryParsed.activities)
-              ? clarityRetryParsed.activities
-              : [];
             const clarityRetryNormalized = clarityRetryRaw.map((activity) =>
               enrichActivityForServe(activity, safeActivityStyle, childAges)
             );
@@ -526,70 +582,115 @@ export default function createActivitySuggestionsRouter(client) {
               .filter(Boolean)
               .join("\n\n");
 
-            const retryInput = buildActivitySuggestionsInput({
-              safeCurrentMoment,
-              kidMood: resolvedKidMood,
-              energyLevel: energyFromContext || resolvedKidMood,
-              locationPreference: safeCurrentMoment.space || locationPreference || "",
-              childAgeRange,
-              childrenContext,
-              groupAgeContext,
-              activeChildProfile: resolvedActiveProfile,
-              safeActivityStyle,
-              activityMode: resolvedActivityMode,
-              safeSelectedChildProfiles,
-              inventory: resolvedInventory,
-              safeFeedbackContext: retryFeedback,
-              safePreviousActivityTitles: [
-                ...titlesToAvoid,
-                ...rejectionTitles,
-              ],
-              safeSafetySettings,
-              playModeTheme: safePlayModeTheme,
-              activityPreferences:
-                activityPreferences && typeof activityPreferences === "object"
-                  ? activityPreferences
-                  : null,
-              activityCount: aiSlots,
-            });
-
             const retryStarted = Date.now();
-            const retryResult = await createStructuredResponseWithMeta(
-              client,
-              {
-                instructions,
-                input: retryInput,
-                schemaName: "activity_suggestions",
-                schema: activitySuggestionsSchemaV3,
-                verbosity: "low",
-                maxOutputTokens: maxTokensForCount(aiSlots),
+            let retryRawActivities = [];
+            try {
+              const ageRecovered = await generateActivitiesWithParseRecovery({
+                expectedCount: aiSlots,
+                activityStyle: safeActivityStyle,
+                maxTokensForCount,
+                baseFeedback: retryFeedback,
+                buildInput: (extraFeedback, activityCount) =>
+                  buildActivitySuggestionsInput({
+                    safeCurrentMoment,
+                    kidMood: resolvedKidMood,
+                    energyLevel: energyFromContext || resolvedKidMood,
+                    locationPreference:
+                      safeCurrentMoment.space || locationPreference || "",
+                    childAgeRange,
+                    childrenContext,
+                    groupAgeContext,
+                    activeChildProfile: resolvedActiveProfile,
+                    safeActivityStyle,
+                    activityMode: resolvedActivityMode,
+                    safeSelectedChildProfiles,
+                    inventory: resolvedInventory,
+                    safeFeedbackContext: [retryFeedback, extraFeedback]
+                      .filter(Boolean)
+                      .join("\n\n"),
+                    safePreviousActivityTitles: [
+                      ...titlesToAvoid,
+                      ...rejectionTitles,
+                    ],
+                    safeSafetySettings,
+                    playModeTheme: safePlayModeTheme,
+                    activityPreferences:
+                      activityPreferences &&
+                      typeof activityPreferences === "object"
+                        ? activityPreferences
+                        : null,
+                    activityCount,
+                  }),
+                createResponse: async ({
+                  input: retryInput,
+                  maxOutputTokens,
+                }) => {
+                  const retryResult = await createStructuredResponseWithMeta(
+                    client,
+                    {
+                      instructions,
+                      input: retryInput,
+                      schemaName: "activity_suggestions",
+                      schema: activitySuggestionsSchemaV3,
+                      verbosity: "low",
+                      maxOutputTokens,
+                    }
+                  );
+                  if (isDebugLogging) {
+                    console.log("RAW AI AGE-RETRY RESPONSE:");
+                    console.log(retryResult.outputText);
+                  }
+                  return retryResult;
+                },
+              });
+              retryRawActivities = ageRecovered.activities;
+              usageMeta = {
+                model: ageRecovered.usage?.model || usageMeta.model,
+                inputTokens:
+                  (usageMeta.inputTokens || 0) +
+                  (ageRecovered.usage?.inputTokens || 0),
+                outputTokens:
+                  (usageMeta.outputTokens || 0) +
+                  (ageRecovered.usage?.outputTokens || 0),
+                totalTokens:
+                  (usageMeta.totalTokens || 0) +
+                  (ageRecovered.usage?.totalTokens || 0),
+                responseId:
+                  ageRecovered.usage?.responseId || usageMeta.responseId,
+                instructionChars: usageMeta.instructionChars,
+                inputChars: usageMeta.inputChars,
+              };
+            } catch (ageParseError) {
+              if (ageParseError instanceof AiResponseInvalidError) {
+                if (cachedKept.length === 0) {
+                  await recordAiUsageEvent({
+                    userId: req.auth.userId,
+                    operation: "activity-suggestions",
+                    model: usageMeta?.model || OPENAI_MODEL,
+                    inputTokens: usageMeta?.inputTokens,
+                    outputTokens: usageMeta?.outputTokens,
+                    totalTokens: usageMeta?.totalTokens,
+                    responseId: usageMeta?.responseId,
+                    latencyMs: Date.now() - startedAt,
+                    success: false,
+                    error: {
+                      message: "AI_RESPONSE_INVALID",
+                      code: "AI_RESPONSE_INVALID",
+                    },
+                  });
+                  return res.status(422).json({
+                    error: ageParseError.message,
+                    message: ageParseError.message,
+                    code: "AI_RESPONSE_INVALID",
+                  });
+                }
+                retryRawActivities = [];
+              } else {
+                throw ageParseError;
               }
-            );
-            msOpenai += Date.now() - retryStarted;
-            const retryRawText = retryResult.outputText;
-            usageMeta = {
-              model: retryResult.model || usageMeta.model,
-              inputTokens:
-                (usageMeta.inputTokens || 0) + (retryResult.inputTokens || 0),
-              outputTokens:
-                (usageMeta.outputTokens || 0) +
-                (retryResult.outputTokens || 0),
-              totalTokens:
-                (usageMeta.totalTokens || 0) + (retryResult.totalTokens || 0),
-              responseId: retryResult.responseId || usageMeta.responseId,
-              instructionChars: usageMeta.instructionChars,
-              inputChars: usageMeta.inputChars,
-            };
-
-            if (isDebugLogging) {
-              console.log("RAW AI AGE-RETRY RESPONSE:");
-              console.log(retryRawText);
             }
+            msOpenai += Date.now() - retryStarted;
 
-            const retryParsed = JSON.parse(retryRawText);
-            const retryRawActivities = Array.isArray(retryParsed.activities)
-              ? retryParsed.activities
-              : [];
             const retryNormalized = retryRawActivities
               .map((activity) =>
                 enrichActivityForServe(activity, safeActivityStyle, childAges)
@@ -710,7 +811,7 @@ export default function createActivitySuggestionsRouter(client) {
         void (async () => {
           try {
             const libraryCandidateIds = activitiesWithMeta
-              .map((a) => a.candidateId || a.sharedCandidateId)
+              .map((a) => a.sharedCandidateId || a.shared_candidate_id)
               .filter(Boolean);
             if (libraryCandidateIds.length > 0) {
               await recordCandidatesShown({
@@ -720,7 +821,7 @@ export default function createActivitySuggestionsRouter(client) {
             }
 
             const aiOnly = activitiesWithMeta.filter(
-              (a) => !(a.candidateId || a.sharedCandidateId)
+              (a) => !(a.sharedCandidateId || a.shared_candidate_id)
             );
             let ingested = activitiesWithMeta;
             if (aiOnly.length > 0) {
@@ -735,13 +836,22 @@ export default function createActivitySuggestionsRouter(client) {
                 ingestedAi.map((a) => [String(a.title || "").toLowerCase(), a])
               );
               ingested = activitiesWithMeta.map((activity) => {
-                if (activity.candidateId || activity.sharedCandidateId) {
+                if (activity.sharedCandidateId || activity.shared_candidate_id) {
                   return activity;
                 }
                 const match = ingestedByTitle.get(
                   String(activity.title || "").toLowerCase()
                 );
-                return match || activity;
+                if (!match) return activity;
+                return {
+                  ...activity,
+                  sharedCandidateId:
+                    match.sharedCandidateId ||
+                    match.candidateId ||
+                    activity.sharedCandidateId ||
+                    null,
+                  contentHash: match.contentHash || activity.contentHash,
+                };
               });
             }
 
