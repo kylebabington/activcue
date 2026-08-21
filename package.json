@@ -21,7 +21,8 @@
     "presets:build-expanded": "node scripts/buildExpandedPresets.mjs",
     "presets:verify-expanded": "node scripts/verifyExpandedPresets.mjs",
     "presets:import-shared": "node scripts/importPresetsToSharedLibrary.mjs",
-    "presets:audit-age-fit": "node scripts/auditActivityAgeFit.mjs --source=presets"
+    "presets:audit-age-fit": "node scripts/auditActivityAgeFit.mjs --source=presets",
+    "library:audit-privacy": "node scripts/auditSharedLibraryPrivacy.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.8",

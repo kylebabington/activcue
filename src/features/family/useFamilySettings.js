@@ -13,24 +13,6 @@ import {
   readFamilySettingsFromLocalStorage,
 } from "../../constants/familySettingsDefaults";
 
-function derivePlayingChildIds(profiles, mode, childId) {
-  const list = Array.isArray(profiles) ? profiles : [];
-
-  if (mode === "family") {
-    return list.map((child) => child.id).filter(Boolean);
-  }
-
-  if (childId && list.some((child) => child.id === childId)) {
-    return [childId];
-  }
-
-  if (list.length === 1) {
-    return [list[0].id];
-  }
-
-  return [];
-}
-
 function parentStatusFromMoment(moment) {
   return {
     activity: moment.parentActivity,
@@ -66,6 +48,7 @@ export function useFamilySettings({
   setOnboardingSkippedAt,
   activityMode,
   activeChildId,
+  playingChildIds,
   activePresetKey,
   childProfiles,
   inventory,
@@ -99,13 +82,7 @@ export function useFamilySettings({
     setActiveChildId(normalized.activeChildId);
     setActivePresetKey(normalized.activeParentPresetKey);
     setChildProfiles(normalized.childProfiles);
-    setPlayingChildIds(
-      derivePlayingChildIds(
-        normalized.childProfiles,
-        normalized.activityMode,
-        normalized.activeChildId
-      )
-    );
+    setPlayingChildIds(normalized.playingChildIds);
     setInventory(normalized.inventory);
     setSafetySettings(normalized.safetySettings);
     setActivityPreferences?.(normalized.activityPreferences);
@@ -173,6 +150,7 @@ export function useFamilySettings({
     return familySettingsPayloadFromState({
       activityMode,
       activeChildId,
+      playingChildIds,
       activeParentPresetKey: activePresetKey,
       childProfiles,
       inventory,
@@ -346,6 +324,7 @@ export function useFamilySettings({
     const payload = familySettingsPayloadFromState({
       activityMode,
       activeChildId,
+      playingChildIds,
       activeParentPresetKey: activePresetKey,
       childProfiles,
       inventory,
@@ -388,6 +367,7 @@ export function useFamilySettings({
     userId,
     activityMode,
     activeChildId,
+    playingChildIds,
     activePresetKey,
     childProfiles,
     inventory,

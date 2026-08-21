@@ -11,6 +11,10 @@ import { useFamilyContext } from "../context/domainContexts";
 import { getPresetKey } from "../utils/momentPresets";
 import { trackProductEvent } from "../utils/analytics";
 import { markMomentCreatedAt } from "../utils/timeToStart";
+import {
+  buildActivityRequestContext,
+  requestContextToLegacyPayload,
+} from "../features/activities/buildActivityRequestContext";
 
 const RESCUE_TIME_OPTIONS = [10, 20, 30];
 
@@ -38,6 +42,11 @@ function ParentPage({
   const selectedChildProfiles = family?.selectedChildProfiles || [];
   const activeChildProfile = family?.activeChildProfile || null;
   const activityMode = family?.activityMode || "single-child";
+  const playingChildIds = family?.playingChildIds || [];
+  const childProfiles = family?.childProfiles || [];
+  const safetySettings = family?.safetySettings || {};
+  const activityPreferences = family?.activityPreferences || {};
+  const kidEnergyLevel = family?.kidEnergyLevel || "neutral";
 
   const [reviewPreset, setReviewPreset] = useState(null);
   const [reviewPresetKey, setReviewPresetKey] = useState("");
@@ -109,15 +118,29 @@ function ParentPage({
 
     setRescueLoading(true);
     try {
-      const response = await fetchRescueActivities({
-        minutes,
-        inventory,
-        currentMoment: rescueMoment,
-        activityStyle: kidActivityStyle || "imaginative",
+      const requestContext = buildActivityRequestContext({
+        playingChildIds,
+        childProfiles,
         selectedChildProfiles,
         activeChildProfile,
         activityMode,
-        childIds: selectedChildProfiles.map((child) => child?.id).filter(Boolean),
+        currentMoment: rescueMoment,
+        safetySettings,
+        activityPreferences,
+        inventory,
+        kidActivityStyle,
+        kidEnergyLevel,
+      });
+      const legacy = requestContextToLegacyPayload(requestContext);
+
+      const response = await fetchRescueActivities({
+        ...legacy,
+        minutes,
+        currentMoment: rescueMoment,
+        requestContext: {
+          ...requestContext,
+          moment: rescueMoment,
+        },
       });
       const activities = Array.isArray(response?.activities)
         ? response.activities

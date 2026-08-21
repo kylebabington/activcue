@@ -386,6 +386,7 @@ export function buildActivitySuggestionsInput({
   playModeTheme = "playroom",
   activityPreferences = null,
   activityCount = 3,
+  energyLevel = null,
 }) {
   const children = Array.isArray(childrenContext) ? childrenContext : [];
   const activeResolved =
@@ -398,48 +399,91 @@ export function buildActivitySuggestionsInput({
       : {};
   const ageBand = resolvePromptAgeBand(groupAgeContext, children);
   const requestedCount = Math.max(1, Math.min(3, Number(activityCount) || 3));
+  const participantCount = children.length;
+  const resolvedMode =
+    participantCount >= 2 ? "family" : activityMode || "single-child";
+  const resolvedEnergy =
+    energyLevel || kidMood || "neutral";
+
+  const participantLines =
+    children.length > 0
+      ? children
+          .map(
+            (child) =>
+              `Child: Exact age: ${child.ageYears}
+Age band: ${child.ageBand || "unknown"}
+Interests: ${(child.interests || []).join(", ") || "none"}
+Avoids: ${(child.avoids || []).join(", ") || "none"}
+Independence: ${child.independenceLevel || "usually-independent"}`
+          )
+          .join("\n\n")
+      : "No participating children listed.";
+
+  const singlePlayerRules =
+    participantCount <= 1
+      ? `
+SINGLE-PLAYER IS A HARD REQUIREMENT.
+Exactly one child is participating.
+- Write every required action so one child can complete it.
+- Use singular "you."
+- roleGuide.childRoles must be empty.
+- Do not create partner tasks.
+- Do not create teams.
+- Do not invent siblings.
+- Do not say "one person does X while another..."
+- Do not require another person to hide, hold, judge, deliver, or respond.
+`.trim()
+      : `
+FAMILY PARTICIPANTS ONLY.
+Only the listed participants exist.
+Do not invent extra players.
+Every listed child must have a meaningful role in childRoles.
+`.trim();
 
   return `
-Family context:
-- Parent is currently doing: ${safeCurrentMoment.parentActivity}
-- Parent availability: ${safeCurrentMoment.availability}
-- Parent needs about: ${safeCurrentMoment.timeNeededMinutes} minutes
-- Activity should happen in: ${safeCurrentMoment.space}
-- Allowed mess level: ${safeCurrentMoment.messLevel}
-- Allowed noise level: ${safeCurrentMoment.noiseLevel}
-- Available supervision level: ${safeCurrentMoment.supervisionLevel}
-- Kid mood/request: ${kidMood}
-- Preferred location: ${locationPreference}
+CURRENT REQUEST — AUTHORITATIVE
+
+PARTICIPANTS:
+Count: ${participantCount || 1}
+Mode: ${resolvedMode}
+
+${participantLines}
+
+ACTIVITY:
+Style: ${safeActivityStyle}
+Energy: ${resolvedEnergy}
+
+CURRENT FAMILY MOMENT:
+Parent activity: ${safeCurrentMoment.parentActivity}
+Available time: ${safeCurrentMoment.timeNeededMinutes} minutes
+Space: ${safeCurrentMoment.space}
+Mess: ${safeCurrentMoment.messLevel}
+Noise: ${safeCurrentMoment.noiseLevel}
+Supervision: ${safeCurrentMoment.supervisionLevel}
+Availability: ${safeCurrentMoment.availability}
+
+SAFETY:
+Screen-free only: ${safeSafetySettings.screenFreeOnly}
+No food activities: ${safeSafetySettings.noFoodActivities}
+No water play: ${safeSafetySettings.noWaterPlay}
+No small objects: ${safeSafetySettings.noSmallObjects}
+Quiet mode: ${safeSafetySettings.quietMode}
+Max activity minutes: ${safeSafetySettings.maxActivityMinutes}
+Adult help allowed: ${safeSafetySettings.adultHelpAllowed}
+
+${singlePlayerRules}
+
+Family context (supporting detail):
+- Preferred location / space: ${safeCurrentMoment.space || locationPreference || "unspecified"}
+- Indoor/outdoor preference: ${prefs.indoorOutdoorPreference || "either"}
 - Legacy age range label (fallback only): ${childAgeRange || "unknown"}
 - Activity style preference (family default): ${prefs.activityStylePreference || "mix"}
 - Typical mess tolerance: ${prefs.messTolerance || "a-little"}
 - Typical setup preference: ${prefs.setupEffort || "a-few-minutes"}
 - Typical independence preference: ${prefs.independencePreference || "mostly-independent"}
-- Indoor/outdoor preference: ${prefs.indoorOutdoorPreference || "either"}
 - Play mode flavor: ${playModeTheme}
 - Prompt age band: ${ageBand}
-- Participating children (server-derived ages — authoritative):
-${
-  children.length > 0
-    ? children
-        .map(
-          (child) =>
-            `  - ${child.name}: ageYears=${child.ageYears}, ageBand=${child.ageBand}, source=${child.ageSource}, interests=${child.interests.join(", ") || "not specified"}, usually avoids=${(child.avoids || []).join(", ") || "none"}, independence=${child.independenceLevel || "usually-independent"}, notes=${child.needs || "not specified"}`
-        )
-        .join("\n")
-    : "  - None specified"
-}
 - Group age context: ${formatGroupAgeContextForPrompt(groupAgeContext)}
-- Active child profile:
-  - Name: ${activeResolved?.name || activeChildProfile?.name || "Not specified"}
-  - Exact age years: ${activeResolved?.ageYears ?? "Not specified"}
-  - Age band: ${activeResolved?.ageBand || "Not specified"}
-  - Interests: ${(activeResolved?.interests || []).join(", ") || activeChildProfile?.interests || "Not specified"}
-  - Usually avoids: ${(activeResolved?.avoids || []).join(", ") || (Array.isArray(activeChildProfile?.avoids) ? activeChildProfile.avoids.join(", ") : "None specified")}
-  - Independence: ${activeResolved?.independenceLevel || activeChildProfile?.independenceLevel || "usually-independent"}
-  - Helpful notes: ${activeResolved?.needs || activeChildProfile?.needs || "Not specified"}
-- Activity style requested by child: ${safeActivityStyle}
-- Activity mode: ${activityMode || "single-child"}
 - Selected child profiles: ${formatChildProfilesForPrompt(
     safeSelectedChildProfiles,
     children
@@ -448,14 +492,6 @@ ${
 - Inventory constraint: uses[] may ONLY reference items from that list (or common household basics if the list is empty).
 - Feedback context: ${safeFeedbackContext}
 - Previous activity titles to avoid: ${safePreviousActivityTitles.join(", ")}
-- Safety settings:
-  - Screen-free only: ${safeSafetySettings.screenFreeOnly}
-  - No food activities: ${safeSafetySettings.noFoodActivities}
-  - No water play: ${safeSafetySettings.noWaterPlay}
-  - No small objects: ${safeSafetySettings.noSmallObjects}
-  - Quiet mode: ${safeSafetySettings.quietMode}
-  - Max activity minutes: ${safeSafetySettings.maxActivityMinutes}
-  - Adult help allowed: ${safeSafetySettings.adultHelpAllowed}
 
 Return exactly ${requestedCount} V3 activities. Required fields per activity:
 activityFormatVersion, title, activityStyle, visualTheme, story, summary,

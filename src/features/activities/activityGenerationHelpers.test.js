@@ -1,63 +1,37 @@
 // src/features/activities/activityGenerationHelpers.test.js
 
 import { describe, expect, it } from "vitest";
+import { filterStartableActivities } from "./activityGenerationHelpers.js";
 import {
-  buildAutoStartFeedbackContext,
-  buildKidBoredFeedbackContext,
-  filterStartableActivities,
-  getKidActivityStyleInstruction,
-  getKidEnergyInstruction,
-} from "./activityGenerationHelpers.js";
+  buildAutoStartIntent,
+  buildKidBoredIntent,
+} from "./activityIntent.js";
 
-describe("getKidEnergyInstruction", () => {
-  it("returns structured energy intent", () => {
-    expect(getKidEnergyInstruction("quiet")).toBe("energyLevel=quiet");
-  });
-
-  it("returns energetic intent", () => {
-    expect(getKidEnergyInstruction("energetic")).toBe("energyLevel=energetic");
-  });
-
-  it("defaults to neutral", () => {
-    expect(getKidEnergyInstruction("neutral")).toBe("energyLevel=neutral");
-  });
-});
-
-describe("getKidActivityStyleInstruction", () => {
-  it("marks imaginative intent", () => {
-    expect(getKidActivityStyleInstruction("imaginative")).toBe(
-      "activityStyle=imaginative"
-    );
-  });
-
-  it("marks simple intent", () => {
-    expect(getKidActivityStyleInstruction("simple")).toBe(
-      "activityStyle=simple"
-    );
-  });
-});
-
-describe("buildKidBoredFeedbackContext", () => {
-  it("includes structured style and energy", () => {
-    const text = buildKidBoredFeedbackContext({
-      kidActivityStyle: "simple",
-      kidEnergyLevel: "quiet",
+describe("structured generation intents", () => {
+  it("builds kid-bored intent with style and energy", () => {
+    expect(
+      buildKidBoredIntent({
+        kidActivityStyle: "simple",
+        kidEnergyLevel: "quiet",
+      })
+    ).toEqual({
+      activityStyle: "simple",
+      energyLevel: "quiet",
+      generationMode: "kid-bored",
     });
-    expect(text).toMatch(/generationMode=kid-bored/);
-    expect(text).toMatch(/activityStyle=simple/);
-    expect(text).toMatch(/energyLevel=quiet/);
   });
-});
 
-describe("buildAutoStartFeedbackContext", () => {
-  it("asks for automatic start options via structured intent", () => {
-    const text = buildAutoStartFeedbackContext({
-      kidActivityStyle: "imaginative",
-      kidEnergyLevel: "energetic",
+  it("builds auto-start intent with style and energy", () => {
+    expect(
+      buildAutoStartIntent({
+        kidActivityStyle: "imaginative",
+        kidEnergyLevel: "energetic",
+      })
+    ).toEqual({
+      activityStyle: "imaginative",
+      energyLevel: "energetic",
+      generationMode: "auto-start",
     });
-    expect(text).toMatch(/generationMode=auto-start/);
-    expect(text).toMatch(/activityStyle=imaginative/);
-    expect(text).toMatch(/energyLevel=energetic/);
   });
 });
 

@@ -41,14 +41,40 @@ export function getEligiblePresets(
     forStyle = forStyle.filter((activity) => {
       const ageFit = activity?.ageFit;
       if (!ageFit || typeof ageFit !== "object") {
-        return true;
+        return false;
       }
       const minAge = Number(ageFit.minAge ?? activity.minAge ?? activity.age_min);
       const maxAge = Number(ageFit.maxAge ?? activity.maxAge ?? activity.age_max);
       if (!Number.isFinite(minAge) || !Number.isFinite(maxAge)) {
-        return true;
+        return false;
       }
       return ages.every((age) => age >= minAge && age <= maxAge);
+    });
+  }
+
+  // Single selected child cannot receive multi-role / group-only presets.
+  if (ages.length <= 1) {
+    forStyle = forStyle.filter((activity) => {
+      const roles = Array.isArray(activity?.roleGuide?.childRoles)
+        ? activity.roleGuide.childRoles
+        : [];
+      if (roles.length >= 2) {
+        return false;
+      }
+      const mode = String(
+        activity?.participantMode ||
+          activity?.participant_mode ||
+          activity?.traits?.socialMode ||
+          ""
+      ).toLowerCase();
+      if (mode === "group" || mode === "family") {
+        return false;
+      }
+      const min = Number(activity?.participantMin ?? activity?.participant_min);
+      if (Number.isFinite(min) && min > 1) {
+        return false;
+      }
+      return true;
     });
   }
 

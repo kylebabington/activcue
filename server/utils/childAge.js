@@ -102,6 +102,19 @@ export function ageYearsToAgeRange(ageYears) {
 }
 
 export function resolveChildAge(profile, today = new Date()) {
+  // Prefer explicit ageYears from an immutable request snapshot.
+  if (Number.isFinite(Number(profile?.ageYears))) {
+    const ageYears = Number(profile.ageYears);
+    return {
+      ageYears,
+      ageBand:
+        typeof profile?.ageBand === "string" && profile.ageBand.trim()
+          ? profile.ageBand.trim()
+          : getAgeBand(ageYears),
+      source: "ageYears",
+    };
+  }
+
   const birthDate =
     typeof profile?.birthDate === "string" ? profile.birthDate.trim() : "";
 

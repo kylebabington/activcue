@@ -30,6 +30,40 @@ describe("presetDemo", () => {
     ).toEqual(["i2"]);
   });
 
+  it("excludes multi-role presets for a single selected child", () => {
+    const activities = [
+      {
+        id: "solo",
+        activityStyle: "simple",
+        isLocked: false,
+        ageFit: { minAge: 4, maxAge: 10 },
+        roleGuide: { childRoles: [{ name: "Artist" }] },
+      },
+      {
+        id: "duo",
+        activityStyle: "simple",
+        isLocked: false,
+        ageFit: { minAge: 4, maxAge: 10 },
+        roleGuide: {
+          childRoles: [{ name: "Builder" }, { name: "Decorator" }],
+        },
+      },
+      {
+        id: "group",
+        activityStyle: "simple",
+        isLocked: false,
+        ageFit: { minAge: 4, maxAge: 10 },
+        participantMode: "group",
+        participantMin: 2,
+      },
+    ];
+
+    const eligible = getEligiblePresets(activities, "simple", {}, [
+      { ageYears: 6 },
+    ]);
+    expect(eligible.map((a) => a.id)).toEqual(["solo"]);
+  });
+
   it("rotates slices and wraps", () => {
     const items = ["a", "b", "c", "d"];
     const first = takeRotatedSlice(items, 0, 3);
