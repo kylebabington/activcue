@@ -375,7 +375,6 @@ export function buildActivitySuggestionsInput({
   childAgeRange,
   childrenContext,
   groupAgeContext,
-  activeChildProfile,
   safeActivityStyle,
   activityMode,
   safeSelectedChildProfiles,
@@ -389,10 +388,6 @@ export function buildActivitySuggestionsInput({
   energyLevel = null,
 }) {
   const children = Array.isArray(childrenContext) ? childrenContext : [];
-  const activeResolved =
-    children.find((child) => child.id && child.id === activeChildProfile?.id) ||
-    children[0] ||
-    null;
   const prefs =
     activityPreferences && typeof activityPreferences === "object"
       ? activityPreferences

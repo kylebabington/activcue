@@ -18,10 +18,7 @@ import {
   resolveActivityStyle,
 } from "../utils/normalizeRequest.js";
 import { enrichActivityForServe } from "../utils/enrichActivityForServe.js";
-import {
-  buildChildrenAgeContext,
-  getGroupAgeContext,
-} from "../utils/childAge.js";
+import { getGroupAgeContext } from "../utils/childAge.js";
 import {
   logAgeFitBatchSummary,
 } from "../utils/activityAgePolicy.js";
@@ -158,9 +155,6 @@ export default function createActivitySuggestionsRouter(client) {
           activitySpace,
           childAgeRange,
           activityStyle,
-          activityMode,
-          activeChildProfile,
-          selectedChildProfiles,
           feedbackContext,
           generationIntent,
           previousActivityTitles,
