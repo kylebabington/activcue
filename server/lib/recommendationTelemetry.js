@@ -225,20 +225,15 @@ export async function createRecommendationBatch({
   const batchMode = normalizeMode(mode);
 
   const candidateRows = activities.map((activity, index) => {
-    const candidateId =
-      parseOptionalString(activity?.candidateId ?? activity?.candidate_id) ||
-      createCandidateId();
+    // Impression PK must always be fresh — never the shared library UUID.
+    const candidateId = createCandidateId();
 
-    // Only link shared_activity_candidates when explicitly known or hashed
-    // from the library (preset table ids are not valid FKs for this column).
     const explicitSharedId = parseOptionalString(
       activity?.sharedCandidateId ?? activity?.shared_candidate_id
     );
-    const sharedCandidateId =
-      explicitSharedId ||
-      (activity?.contentHash
-        ? parseOptionalString(activity?.candidateId ?? activity?.candidate_id)
-        : null);
+    // Only link to shared_activity_candidates when we have an explicit library id.
+    // Do not fall back to candidateId (that conflation caused pkey collisions).
+    const sharedCandidateId = explicitSharedId || null;
 
     const fitScoreRaw =
       activity?.fitScore ?? activity?.fit_score ?? activity?.totalScore;
