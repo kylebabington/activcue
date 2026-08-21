@@ -41,6 +41,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Check Node ESM relative imports
+        run: npm run server:check-esm
+
+      - name: Smoke-import Node server
+        run: npm run server:smoke
+
       - name: Run lint
         run: npm run lint
 

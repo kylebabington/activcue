@@ -1,4 +1,4 @@
-import { resolveDoneWhen, resolveSceneInstruction, resolveSceneTitle } from "../../utils/questStepCopy";
+import { resolveDoneWhen, resolveSceneInstruction, resolveSceneTitle } from "../../utils/questStepCopy.js";
 
 const YOUNGER_INTROS = {
   space: [
