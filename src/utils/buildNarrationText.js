@@ -3,6 +3,7 @@
 import {
   getActivityMissionText,
   getActivityRoleLabel,
+  getActivityStoryText,
   getFinishGuide,
   getSetupGuide,
   getStarterIdeaText,
@@ -49,7 +50,13 @@ export function buildNarrationText(activity, section, options = {}) {
   if (section === "setup") {
     const setup = getSetupGuide(activity);
     if (!setup) return "";
-    const parts = ["First, set up."];
+    const parts = [
+      "Get everything ready before Scene 1. The timer starts after you press Ready.",
+    ];
+    const story = getActivityStoryText(activity);
+    if (story) {
+      parts.push(story);
+    }
     if (setup.needed.length > 0) {
       parts.push(
         setup.needed.length === 1

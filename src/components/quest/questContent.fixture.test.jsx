@@ -99,7 +99,7 @@ describe("lostShellSignalV3Fixture", () => {
 
   it("builds V3 setup and scene narration with natural action pauses", () => {
     const setup = buildNarrationText(normalized, "setup");
-    expect(setup).toContain("First, set up");
+    expect(setup).toContain("Get everything ready before Scene 1");
     expect(setup).toMatch(/Get 3 pieces of paper/i);
 
     const scene = buildNarrationText(normalized, "step", { stepIndex: 0 });
