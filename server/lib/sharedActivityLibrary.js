@@ -8,12 +8,17 @@ import {
   resolveAgeFit,
   scoreActivityAgeMatch,
 } from "../utils/activityAgePolicy.js";
+import { sanitizeForSharedLibrary } from "../utils/sanitizeForSharedLibrary.js";
+import {
+  inferParticipantMetadata,
+  evaluateActivityFit,
+  buildFitRequestContextFromParts,
+} from "../utils/activityFitPolicy.js";
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 /**
- * Prefer validated age metadata; set true after content audit (PR #10).
- * When false, validated rows still rank higher but unvalidated may pass range checks.
+ * Prefer validated age metadata. Flip true after content audit completes.
  */
 export const REQUIRE_VALIDATED_AGE_FIT = false;
 
@@ -177,21 +182,11 @@ export function computeActivityContentHash(activity) {
   return createHash("sha256").update(stableStringify(payload)).digest("hex");
 }
 
-function stripPrivateFields(activity) {
-  if (!activity || typeof activity !== "object") {
-    return {};
-  }
-
-  const safe = { ...activity };
-  delete safe.whyItFits;
-  delete safe.presentedAt;
-  return safe;
-}
-
 function toLibraryRow(activity, { source = "ai", candidateId = null, ageValidated = false } = {}) {
-  const safe = stripPrivateFields(activity);
+  const safe = sanitizeForSharedLibrary(activity);
   const contentHash = computeActivityContentHash(safe);
   const ageMeta = ageMetadataFromActivity(safe, { validated: ageValidated });
+  const participantMeta = inferParticipantMetadata(safe);
 
   return {
     ...(candidateId ? { id: candidateId } : {}),
@@ -209,6 +204,7 @@ function toLibraryRow(activity, { source = "ai", candidateId = null, ageValidate
     is_active: true,
     updated_at: new Date().toISOString(),
     ...ageMeta,
+    ...participantMeta,
   };
 }
 
@@ -239,6 +235,12 @@ export function formatSharedCandidate(row) {
     maturity_level: row.maturity_level,
     age_fit_validated: row.age_fit_validated,
     ageFitValidated: row.age_fit_validated,
+    participant_mode: row.participant_mode,
+    participant_min: row.participant_min,
+    participant_max: row.participant_max,
+    participantMode: row.participant_mode,
+    participantMin: row.participant_min,
+    participantMax: row.participant_max,
   };
 }
 
@@ -571,9 +573,8 @@ export async function recordCandidatesShown({
 
 /**
  * Pull shared-library candidates for cache-first / Plan B / Rescue.
- * Hard excludes: explicit exclude ids, "Not this" (rejected), style/time/mess,
- * and age-range mismatch when childAges are provided.
- * Soft penalties: times_shown, recent started/completed engagement.
+ * Hard excludes via activityFitPolicy (participants, age, style, time, mess,
+ * noise, supervision, space, safety, inventory, clarity).
  */
 export async function querySharedCandidatesForUser({
   userId,
@@ -584,6 +585,8 @@ export async function querySharedCandidatesForUser({
   activityStyle = null,
   childAges = [],
   activityMode = "single-child",
+  requestContext = null,
+  safetySettings = null,
   limit = 5,
 } = {}) {
   if (!userId) {
@@ -601,7 +604,7 @@ export async function querySharedCandidatesForUser({
   const style =
     typeof activityStyle === "string" && activityStyle.trim()
       ? activityStyle.trim().toLowerCase()
-      : null;
+      : requestContext?.activity?.style || null;
   if (style === "simple" || style === "imaginative") {
     query = query.eq("activity_style", style);
   }
@@ -609,6 +612,16 @@ export async function querySharedCandidatesForUser({
   const ages = (Array.isArray(childAges) ? childAges : [])
     .map((age) => Number(age))
     .filter((age) => Number.isFinite(age));
+
+  const participantCount =
+    requestContext?.participants?.participantCount ??
+    (activityMode === "family" ? Math.max(ages.length, 2) : Math.max(ages.length, 1));
+
+  if (participantCount <= 1) {
+    query = query.or(
+      "participant_mode.is.null,participant_mode.eq.single,participant_max.eq.1,participant_max.is.null"
+    );
+  }
 
   if (REQUIRE_VALIDATED_AGE_FIT) {
     query = query.eq("age_fit_validated", true);
@@ -637,15 +650,42 @@ export async function querySharedCandidatesForUser({
     (excludeCategories || []).map((c) => String(c).toLowerCase())
   );
 
-  const maxMinutes = Number(currentMoment.timeNeededMinutes) || 30;
-  const messLimit = String(currentMoment.messLevel || "medium").toLowerCase();
-  const messRank = { low: 1, medium: 2, high: 3 };
-  const now = Date.now();
+  const fitContext =
+    requestContext ||
+    buildFitRequestContextFromParts({
+      participants: {
+        mode: activityMode,
+        participantCount: ages.length || 1,
+        children: ages.map((ageYears, index) => ({
+          ageYears,
+          name: `Child${index + 1}`,
+        })),
+        childrenContext: ages.map((ageYears, index) => ({
+          ageYears,
+          name: `Child${index + 1}`,
+        })),
+      },
+      moment: currentMoment,
+      safety: {
+        ...(safetySettings || {}),
+        maxActivityMinutes:
+          Number(currentMoment.timeNeededMinutes) ||
+          Number(safetySettings?.maxActivityMinutes) ||
+          30,
+        quietMode:
+          safetySettings?.quietMode === true ||
+          currentMoment.noiseLevel === "quiet",
+      },
+      activity: { style },
+      inventory,
+    });
 
+  const now = Date.now();
   const scored = [];
+  const rejectedByReason = {};
   let wrongStyle = 0;
   let ageRejected = 0;
-  let maturityRejected = 0;
+  let participantRejected = 0;
 
   for (const row of rows) {
     if (exclude.has(String(row.id))) {
@@ -653,7 +693,6 @@ export async function querySharedCandidatesForUser({
     }
 
     const impression = impressionByCandidate.get(row.id);
-    // One "Not this" is enough — permanent exclude until we add forgiveness.
     if (impression && (impression.times_rejected || 0) >= 1) {
       continue;
     }
@@ -663,38 +702,26 @@ export async function querySharedCandidatesForUser({
       continue;
     }
 
-    if (!candidatePassesAgeRange(row, ages, { activityMode })) {
-      ageRejected += 1;
-      const maturity = String(
-        row.maturity_level || row.activity_data?.ageFit?.maturityLevel || ""
-      );
-      if (maturity && ages.length === 1 && maturity === "mixed-age") {
-        maturityRejected += 1;
-      }
-      continue;
-    }
-
-    // Prefer validated when not required yet.
-    if (
-      !REQUIRE_VALIDATED_AGE_FIT &&
-      ages.length > 0 &&
-      row.age_fit_validated !== true
-    ) {
-      // Still eligible, but scored lower below.
-    }
-
     const categories = Array.isArray(row.categories) ? row.categories : [];
     if (categories.some((c) => excludeCats.has(String(c).toLowerCase()))) {
       continue;
     }
 
-    const minutes = Number(row.estimated_minutes) || 20;
-    if (minutes > maxMinutes + 5) {
-      continue;
-    }
-
-    const rowMess = String(row.mess || "low").toLowerCase();
-    if ((messRank[rowMess] || 2) > (messRank[messLimit] || 2)) {
+    const activity = formatSharedCandidate(row);
+    const fit = evaluateActivityFit(activity, fitContext);
+    if (!fit.eligible) {
+      for (const reason of fit.hardFailures) {
+        rejectedByReason[reason] = (rejectedByReason[reason] || 0) + 1;
+        if (reason === "participant-count-mismatch") participantRejected += 1;
+        if (
+          reason === "age-range-mismatch" ||
+          reason === "maturity-mismatch" ||
+          reason === "mixed-age-only" ||
+          reason === "developmental-complexity"
+        ) {
+          ageRejected += 1;
+        }
+      }
       continue;
     }
 
@@ -705,11 +732,11 @@ export async function querySharedCandidatesForUser({
     score += inventoryOverlapScore(row.supplies, inventory) * 8;
     if (adultHelp === "none") score += 4;
     else if (adultHelp === "optional") score += 2;
-    // Global quality signal (all users), not a per-user ban.
     score += Math.max(0, 3 - (row.times_rejected || 0));
     score += Math.min(5, row.times_completed || 0);
     score -= impressionRankingPenalty(impression, now);
     score += scoreActivityAgeMatch(formatCandidateForPolicy(row), ages);
+    score += (fit.scores?.interests || 0) * 2;
     if (row.age_fit_validated === true) {
       score += 5;
     }
@@ -723,8 +750,8 @@ export async function querySharedCandidatesForUser({
     .slice(0, limit)
     .map(({ row }) => formatSharedCandidate(row));
 
-  console.warn(
-    `[ageFit:batch] ages=${JSON.stringify(ages)} style=${style} cacheExamined=${rows.length} wrongStyle=${wrongStyle} ageRejected=${ageRejected} maturityRejected=${maturityRejected} eligible=${scored.length} returned=${result.length}`
+  console.info(
+    `[recommendation] examined=${rows.length} rejected=${JSON.stringify(rejectedByReason)} eligible=${scored.length} returned=${result.length} source=shared_library wrongStyle=${wrongStyle} ageRejected=${ageRejected} participantRejected=${participantRejected}`
   );
 
   return result;

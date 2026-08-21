@@ -14,6 +14,7 @@ export const FAMILY_SETTINGS_LOCAL_KEYS = [
     "activityMode",
     "childProfiles",
     "activeChildId",
+    "playingChildIds",
     "safetySettings",
     "savedActivities",
     "activityHistory",
@@ -42,10 +43,77 @@ export const DEFAULT_SAFETY_SETTINGS = {
 
 export { DEFAULT_ACTIVITY_PREFERENCES };
 
+/**
+ * Derive activityMode + activeChildId from the selected playing set.
+ * playingChildIds is authoritative; mode/active id follow from it.
+ */
+export function deriveActivityModeFromPlayingChildIds(playingChildIds = []) {
+    const ids = (Array.isArray(playingChildIds) ? playingChildIds : [])
+        .map((id) => (typeof id === "string" ? id.trim() : ""))
+        .filter(Boolean);
+
+    if (ids.length >= 2) {
+        return {
+            playingChildIds: ids,
+            activityMode: "family",
+            activeChildId: "",
+        };
+    }
+
+    return {
+        playingChildIds: ids,
+        activityMode: "single-child",
+        activeChildId: ids[0] || "",
+    };
+}
+
+/**
+ * Restore saved playing ids, intersecting with known profiles.
+ * Never expands family mode to "everyone" — only restore what was saved.
+ */
+export function resolvePlayingChildIds({
+    playingChildIds,
+    childProfiles = [],
+    activityMode,
+    activeChildId,
+} = {}) {
+    const profileIds = new Set(
+        (Array.isArray(childProfiles) ? childProfiles : [])
+            .map((child) => child?.id)
+            .filter(Boolean)
+    );
+
+    const saved = (Array.isArray(playingChildIds) ? playingChildIds : [])
+        .map((id) => (typeof id === "string" ? id.trim() : ""))
+        .filter((id) => id && profileIds.has(id));
+
+    if (saved.length > 0) {
+        return saved;
+    }
+
+    // Legacy fallback for rows that predate playing_child_ids.
+    if (
+        typeof activeChildId === "string" &&
+        activeChildId &&
+        profileIds.has(activeChildId)
+    ) {
+        return [activeChildId];
+    }
+
+    if (profileIds.size === 1) {
+        return [Array.from(profileIds)[0]];
+    }
+
+    // Do not select everyone when mode was "family" but ids were never saved.
+    void activityMode;
+    return [];
+}
+
 export function buildDefaultFamilySettings() {
     return {
         activityMode: "single-child",
         activeChildId: "",
+        playingChildIds: [],
         activeParentPresetKey: "",
         childProfiles: [],
         inventory: buildDefaultInventory(),
@@ -92,24 +160,31 @@ export function readFamilySettingsFromLocalStorage() {
         defaults.activityMode
     );
 
+    const childProfiles = readLocalJson(
+        "childProfiles",
+        defaults.childProfiles
+    );
+    const activeChildId = readLocalJson(
+        "activeChildId",
+        defaults.activeChildId
+    );
+    const playingChildIds = resolvePlayingChildIds({
+        playingChildIds: readLocalJson("playingChildIds", []),
+        childProfiles,
+        activityMode,
+        activeChildId,
+    });
+    const derived = deriveActivityModeFromPlayingChildIds(playingChildIds);
+
     return {
-        activityMode:
-            activityMode === "family" ||
-            activityMode === "single-child"
-                ? activityMode
-                : defaults.activityMode,
-        activeChildId: readLocalJson(
-            "activeChildId",
-            defaults.activeChildId
-        ),
+        activityMode: derived.activityMode,
+        activeChildId: derived.activeChildId,
+        playingChildIds: derived.playingChildIds,
         activeParentPresetKey: readLocalJson(
             "activeParentPresetKey",
             defaults.activeParentPresetKey
         ),
-        childProfiles: readLocalJson(
-            "childProfiles",
-            defaults.childProfiles
-        ),
+        childProfiles,
         inventory: readLocalJson(
             "inventory",
             defaults.inventory
@@ -153,6 +228,7 @@ export function clearFamilySettingsLocalStorage() {
 export function familySettingsPayloadFromState({
     activityMode,
     activeChildId,
+    playingChildIds,
     activeParentPresetKey,
     childProfiles,
     inventory,
@@ -168,9 +244,18 @@ export function familySettingsPayloadFromState({
     onboardingCompletedAt = null,
     onboardingSkippedAt = null,
 }) {
-    return {
+    const resolvedPlaying = resolvePlayingChildIds({
+        playingChildIds,
+        childProfiles,
         activityMode,
         activeChildId,
+    });
+    const derived = deriveActivityModeFromPlayingChildIds(resolvedPlaying);
+
+    return {
+        activityMode: derived.activityMode,
+        activeChildId: derived.activeChildId,
+        playingChildIds: derived.playingChildIds,
         activeParentPresetKey,
         childProfiles,
         inventory,
@@ -226,21 +311,26 @@ export function mergeMemoryCollections(serverList, localList) {
  */
 export function normalizeFamilySettingsDocument(settings, localMemory = {}) {
     const defaults = buildDefaultFamilySettings();
+    const childProfiles = Array.isArray(settings?.childProfiles)
+        ? settings.childProfiles
+        : [];
+    const playingChildIds = resolvePlayingChildIds({
+        playingChildIds: settings?.playingChildIds,
+        childProfiles,
+        activityMode: settings?.activityMode,
+        activeChildId: settings?.activeChildId,
+    });
+    const derived = deriveActivityModeFromPlayingChildIds(playingChildIds);
 
     return {
-        activityMode:
-            settings?.activityMode === "family" ? "family" : "single-child",
-        activeChildId:
-            typeof settings?.activeChildId === "string"
-                ? settings.activeChildId
-                : "",
+        activityMode: derived.activityMode,
+        activeChildId: derived.activeChildId,
+        playingChildIds: derived.playingChildIds,
         activeParentPresetKey:
             typeof settings?.activeParentPresetKey === "string"
                 ? settings.activeParentPresetKey
                 : "",
-        childProfiles: Array.isArray(settings?.childProfiles)
-            ? settings.childProfiles
-            : [],
+        childProfiles,
         inventory: Array.isArray(settings?.inventory)
             ? settings.inventory
             : defaults.inventory,

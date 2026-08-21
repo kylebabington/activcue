@@ -22,6 +22,7 @@
     "presets:verify-expanded": "node scripts/verifyExpandedPresets.mjs",
     "presets:import-shared": "node scripts/importPresetsToSharedLibrary.mjs",
     "presets:audit-age-fit": "node scripts/auditActivityAgeFit.mjs --source=presets",
+    "library:audit-privacy": "node scripts/auditSharedLibraryPrivacy.mjs",
     "server:check-esm": "node scripts/checkServerEsmImports.mjs",
     "server:smoke": "node scripts/smokeServerImport.mjs"
   },

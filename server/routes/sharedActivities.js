@@ -17,13 +17,13 @@ import {
   attachRecommendationIds,
 } from "../lib/recommendationIds.js";
 import {
-  buildChildrenAgeContext,
-} from "../utils/childAge.js";
-import {
-  filterActivitiesByAgePolicy,
-} from "../utils/activityAgePolicy.js";
+  filterActivitiesByFitPolicy,
+  buildFitRequestContextFromParts,
+} from "../utils/activityFitPolicy.js";
 import { enrichActivitiesForServe } from "../utils/enrichActivityForServe.js";
 import { resolveActivityStyle } from "../utils/normalizeRequest.js";
+import { resolveParticipantContext } from "../utils/participantContext.js";
+import { buildSanitizedGenerationContext } from "../utils/sanitizedGenerationContext.js";
 
 const router = Router();
 
@@ -33,43 +33,62 @@ function isPlainObject(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
-function childAgesFromBody(body) {
-  if (Array.isArray(body.childAges) && body.childAges.length > 0) {
-    return body.childAges
-      .map((age) => Number(age))
-      .filter((age) => Number.isFinite(age));
+function buildFitContext(body, participants, moment, activityStyle) {
+  if (isPlainObject(body.requestContext)) {
+    return {
+      ...body.requestContext,
+      participants: {
+        ...(body.requestContext.participants || {}),
+        mode: participants.mode,
+        participantCount: participants.participantCount,
+        children: participants.children,
+        childrenContext: participants.childrenContext,
+        ages: participants.ages,
+      },
+      moment: {
+        ...(body.requestContext.moment || {}),
+        ...moment,
+      },
+      activity: {
+        ...(body.requestContext.activity || {}),
+        style: activityStyle,
+      },
+      inventory: Array.isArray(body.requestContext.inventory)
+        ? body.requestContext.inventory
+        : Array.isArray(body.inventory)
+          ? body.inventory
+          : [],
+      safety: {
+        ...(body.requestContext.safety || {}),
+        ...(isPlainObject(body.safetySettings) ? body.safetySettings : {}),
+        maxActivityMinutes:
+          Number(moment.timeNeededMinutes) ||
+          Number(body.requestContext?.safety?.maxActivityMinutes) ||
+          30,
+        quietMode:
+          body.requestContext?.safety?.quietMode === true ||
+          moment.noiseLevel === "quiet",
+      },
+    };
   }
-  const profiles = Array.isArray(body.selectedChildProfiles)
-    ? body.selectedChildProfiles
-    : body.activeChildProfile
-      ? [body.activeChildProfile]
-      : [];
-  if (profiles.length === 0) {
-    return [];
-  }
-  return buildChildrenAgeContext(profiles).map((child) => child.ageYears);
-}
 
-function childrenContextFromBody(body) {
-  const profiles = Array.isArray(body.selectedChildProfiles)
-    ? body.selectedChildProfiles
-    : body.activeChildProfile
-      ? [body.activeChildProfile]
-      : [];
-  if (profiles.length > 0) {
-    return buildChildrenAgeContext(profiles);
-  }
-  return childAgesFromBody(body).map((ageYears, index) => ({
-    name: `Child${index + 1}`,
-    ageYears,
-  }));
-}
-
-function resolveActivityMode(body) {
-  const mode = String(body.activityMode || body.activity_mode || "").trim();
-  if (mode) return mode;
-  const ages = childAgesFromBody(body);
-  return ages.length > 1 ? "family" : "single-child";
+  return buildFitRequestContextFromParts({
+    participants: {
+      mode: participants.mode,
+      participantCount: participants.participantCount,
+      children: participants.children,
+      childrenContext: participants.childrenContext,
+      ages: participants.ages,
+    },
+    moment,
+    safety: {
+      ...(isPlainObject(body.safetySettings) ? body.safetySettings : {}),
+      maxActivityMinutes: Number(moment.timeNeededMinutes) || 30,
+      quietMode: moment.noiseLevel === "quiet",
+    },
+    activity: { style: activityStyle },
+    inventory: Array.isArray(body.inventory) ? body.inventory : [],
+  });
 }
 
 /*
@@ -83,20 +102,36 @@ router.post(
   async (req, res) => {
     try {
       const body = isPlainObject(req.body) ? req.body : {};
-      const childAges = childAgesFromBody(body);
-      const childrenContext = childrenContextFromBody(body);
-      const activityMode = resolveActivityMode(body);
+      const participants = resolveParticipantContext(body);
+      if (!participants.ok) {
+        return res.status(400).json({
+          error: participants.error,
+          code: participants.code,
+        });
+      }
+
       const activityStyle = resolveActivityStyle(
-        body.activityStyle || body.activity_style,
+        body.requestContext?.activity?.style ||
+          body.activityStyle ||
+          body.activity_style,
         "imaginative"
+      );
+      const currentMoment = isPlainObject(body.requestContext?.moment)
+        ? body.requestContext.moment
+        : isPlainObject(body.currentMoment)
+          ? body.currentMoment
+          : {};
+      const fitContext = buildFitContext(
+        body,
+        participants,
+        currentMoment,
+        activityStyle
       );
 
       const candidates = await querySharedCandidatesForUser({
         userId: req.auth.userId,
-        inventory: Array.isArray(body.inventory) ? body.inventory : [],
-        currentMoment: isPlainObject(body.currentMoment)
-          ? body.currentMoment
-          : {},
+        inventory: fitContext.inventory,
+        currentMoment,
         excludeCandidateIds: Array.isArray(body.excludeCandidateIds)
           ? body.excludeCandidateIds
           : [],
@@ -104,21 +139,22 @@ router.post(
           ? body.excludeCategories
           : [],
         activityStyle,
-        childAges,
-        activityMode,
+        childAges: participants.ages,
+        activityMode: participants.mode,
+        requestContext: fitContext,
+        safetySettings: fitContext.safety,
         limit: Math.min(Math.max(Number(body.limit) || 3, 1), 10),
       });
 
       const enrichedCandidates = enrichActivitiesForServe(
         candidates,
         activityStyle,
-        childAges
+        participants.ages
       );
 
-      const policyFiltered = filterActivitiesByAgePolicy(
+      const policyFiltered = filterActivitiesByFitPolicy(
         enrichedCandidates,
-        childrenContext,
-        { activityMode, expectedStyle: activityStyle }
+        fitContext
       );
 
       let momentId =
@@ -126,14 +162,13 @@ router.post(
           ? body.momentId.trim()
           : null;
 
-      if (!momentId && isPlainObject(body.currentMoment)) {
+      if (!momentId && isPlainObject(currentMoment)) {
         const momentSnapshot = await createActivityMoment({
           userId: req.auth.userId,
-          moment: body.currentMoment,
-          kidMood: body.kidMood || null,
-          childIds: Array.isArray(body.childIds)
-            ? body.childIds
-            : childrenContext.map((c) => c.id).filter(Boolean),
+          moment: currentMoment,
+          kidMood:
+            body.requestContext?.activity?.energyLevel || body.kidMood || null,
+          childIds: participants.children.map((c) => c.id).filter(Boolean),
           rescueMode: false,
         });
         momentId = momentSnapshot?.id || null;
@@ -147,22 +182,14 @@ router.post(
         mode: "normal",
         activities: withIds.activities,
         batchId: withIds.recommendationBatchId,
-        generationContext: {
-          participantAges: childAges,
-          ageBands: childAges.map((age) => {
-            if (age <= 5) return "young-child";
-            if (age <= 7) return "early-elementary";
-            if (age <= 9) return "elementary";
-            if (age <= 11) return "older-elementary";
-            if (age === 12) return "tween";
-            if (age <= 14) return "young-teen";
-            return "teen";
-          }),
-          activityMode,
+        generationContext: buildSanitizedGenerationContext({
+          requestContext: fitContext,
+          participants,
           activityStyle,
           sourcePath: "plan-b",
-          agePolicyVersion: 2,
-        },
+          requestId: fitContext.requestId,
+          extra: { rejectSummary: policyFiltered.summary.rejectedByReason },
+        }),
       });
 
       return res.json({
@@ -192,51 +219,84 @@ router.post(
   async (req, res) => {
     try {
       const body = isPlainObject(req.body) ? req.body : {};
-      const minutes = Number(body.minutes) || 20;
-      const childAges = childAgesFromBody(body);
-      const childrenContext = childrenContextFromBody(body);
-      const activityMode = resolveActivityMode(body);
+      const participants = resolveParticipantContext(body);
+      if (!participants.ok) {
+        return res.status(400).json({
+          error: participants.error,
+          code: participants.code,
+        });
+      }
+
+      const minutes = Number(body.minutes) ||
+        Number(body.requestContext?.moment?.timeNeededMinutes) ||
+        20;
       const activityStyle = resolveActivityStyle(
-        body.activityStyle || body.activity_style,
+        body.requestContext?.activity?.style ||
+          body.activityStyle ||
+          body.activity_style,
         "imaginative"
       );
       const currentMoment = {
-        ...(isPlainObject(body.currentMoment) ? body.currentMoment : {}),
+        ...(isPlainObject(body.requestContext?.moment)
+          ? body.requestContext.moment
+          : isPlainObject(body.currentMoment)
+            ? body.currentMoment
+            : {}),
         timeNeededMinutes: minutes,
-        messLevel: body.currentMoment?.messLevel || "low",
-        noiseLevel: body.currentMoment?.noiseLevel || "quiet",
-        supervisionLevel:
-          body.currentMoment?.supervisionLevel || "independent",
+        messLevel: "low",
+        noiseLevel: "quiet",
+        supervisionLevel: "independent",
         availability:
-          body.currentMoment?.availability || "do-not-interrupt",
+          body.currentMoment?.availability ||
+          body.requestContext?.moment?.availability ||
+          "do-not-interrupt",
+      };
+
+      const baseContext = buildFitContext(
+        body,
+        participants,
+        currentMoment,
+        activityStyle
+      );
+      const fitContext = {
+        ...baseContext,
+        moment: currentMoment,
+        safety: {
+          ...(baseContext.safety || {}),
+          maxActivityMinutes: minutes,
+          quietMode: true,
+          adultHelpAllowed: "independent",
+        },
+        // Rescue overlays intentional moment constraints but keeps participants/style/safety flags.
+        participants: baseContext.participants,
+        activity: baseContext.activity,
       };
 
       let activities = await querySharedCandidatesForUser({
         userId: req.auth.userId,
-        inventory: Array.isArray(body.inventory) ? body.inventory : [],
+        inventory: fitContext.inventory,
         currentMoment,
         excludeCandidateIds: Array.isArray(body.excludeCandidateIds)
           ? body.excludeCandidateIds
           : [],
         activityStyle,
-        childAges,
-        activityMode,
+        childAges: participants.ages,
+        activityMode: participants.mode,
+        requestContext: fitContext,
+        safetySettings: fitContext.safety,
         limit: 4,
       });
 
-      // Fall back to curated presets when library is thin — age-aware.
       if (activities.length < 2) {
         const supabase = getSupabaseAdminClient();
-        let presetQuery = supabase
+        const { data: presets } = await supabase
           .from("preset_activities")
           .select("*")
           .eq("is_active", true)
           .eq("activity_style", activityStyle)
-          .lte("estimated_minutes", minutes + 5)
+          .lte("estimated_minutes", minutes)
           .order("display_order", { ascending: true })
           .limit(12);
-
-        const { data: presets } = await presetQuery;
 
         const presetActivities = (presets || []).map((row) => {
           const content =
@@ -257,6 +317,9 @@ router.post(
             target_ages: row.target_ages,
             maturity_level: row.maturity_level,
             age_fit_validated: row.age_fit_validated,
+            participant_mode: row.participant_mode,
+            participant_min: row.participant_min,
+            participant_max: row.participant_max,
             ageFit: content.ageFit || {
               minAge: row.age_min,
               maxAge: row.age_max,
@@ -266,26 +329,20 @@ router.post(
           };
         });
 
-        const presetFiltered = filterActivitiesByAgePolicy(
+        const presetFiltered = filterActivitiesByFitPolicy(
           presetActivities,
-          childrenContext,
-          { activityMode, expectedStyle: activityStyle }
+          fitContext
         );
-
         activities = [...activities, ...presetFiltered.activities].slice(0, 4);
       }
 
       activities = enrichActivitiesForServe(
         activities,
         activityStyle,
-        childAges
+        participants.ages
       );
 
-      const finalFiltered = filterActivitiesByAgePolicy(
-        activities,
-        childrenContext,
-        { activityMode, expectedStyle: activityStyle }
-      );
+      const finalFiltered = filterActivitiesByFitPolicy(activities, fitContext);
       activities = finalFiltered.activities;
 
       let momentId =
@@ -297,52 +354,40 @@ router.post(
         const momentSnapshot = await createActivityMoment({
           userId: req.auth.userId,
           moment: currentMoment,
-          kidMood: body.kidMood || null,
-          childIds: Array.isArray(body.childIds)
-            ? body.childIds
-            : childrenContext.map((c) => c.id).filter(Boolean),
+          kidMood:
+            body.requestContext?.activity?.energyLevel || body.kidMood || null,
+          childIds: participants.children.map((c) => c.id).filter(Boolean),
           rescueMode: true,
         });
         momentId = momentSnapshot?.id || null;
       }
 
-      const source =
-        activities[0]?.source === "preset" ? "curated" : "shared_library";
       const withIds = attachRecommendationIds(activities);
       const batch = await createRecommendationBatch({
         userId: req.auth.userId,
         momentId,
-        source,
+        source: "shared_library",
         mode: "rescue",
         activities: withIds.activities,
         batchId: withIds.recommendationBatchId,
-        generationContext: {
-          participantAges: childAges,
-          ageBands: childAges.map((age) => {
-            if (age <= 5) return "young-child";
-            if (age <= 7) return "early-elementary";
-            if (age <= 9) return "elementary";
-            if (age <= 11) return "older-elementary";
-            if (age === 12) return "tween";
-            if (age <= 14) return "young-teen";
-            return "teen";
-          }),
-          activityMode,
+        generationContext: buildSanitizedGenerationContext({
+          requestContext: fitContext,
+          participants,
           activityStyle,
           sourcePath: "rescue",
-          agePolicyVersion: 2,
-        },
+          requestId: fitContext.requestId,
+          extra: { rejectSummary: finalFiltered.summary.rejectedByReason },
+        }),
       });
 
       return res.json({
-        source: activities[0]?.source || "shared-library",
+        source: "rescue",
         recommendationBatchId: batch.recommendationBatchId,
         momentId,
         activities: batch.activities,
-        rescueMoment: currentMoment,
       });
     } catch (error) {
-      console.error("Rescue lookup failed:", error);
+      console.error("Rescue library lookup failed:", error);
       return res.status(500).json({
         error: "Could not load rescue activities.",
         code: "RESCUE_LOOKUP_FAILED",
@@ -367,8 +412,8 @@ router.post(
     } catch (error) {
       console.error("Shared activity outcome failed:", error);
       return res.status(500).json({
-        error: "Could not record activity outcome.",
-        code: "SHARED_OUTCOME_FAILED",
+        error: "Could not record outcome.",
+        code: "OUTCOME_FAILED",
       });
     }
   }

@@ -57,6 +57,11 @@ function formatFamilySettings(row) {
     return {
         activityMode: row.activity_mode,
         activeChildId: row.active_child_id,
+        playingChildIds: Array.isArray(row.playing_child_ids)
+            ? row.playing_child_ids.filter(
+                  (id) => typeof id === "string" && id.trim()
+              )
+            : [],
         activeParentPresetKey: row.active_parent_preset_key,
         childProfiles: row.child_profiles,
         inventory: row.inventory,
@@ -136,6 +141,28 @@ function validateSettingsPayload(body) {
         return {
             ok: false,
             error: "activeChildId must be a string.",
+        };
+    }
+
+    if (
+        body.playingChildIds !== undefined &&
+        !Array.isArray(body.playingChildIds)
+    ) {
+        return {
+            ok: false,
+            error: "playingChildIds must be an array.",
+        };
+    }
+
+    if (
+        Array.isArray(body.playingChildIds) &&
+        body.playingChildIds.some(
+            (id) => typeof id !== "string" || !id.trim()
+        )
+    ) {
+        return {
+            ok: false,
+            error: "playingChildIds must contain non-empty strings.",
         };
     }
 
@@ -262,21 +289,47 @@ function validateSettingsPayload(body) {
         };
     }
 
+    const childProfiles = Array.isArray(body.childProfiles)
+        ? body.childProfiles
+        : [];
+    const profileIdSet = new Set(
+        childProfiles
+            .map((child) =>
+                child && typeof child.id === "string" ? child.id.trim() : ""
+            )
+            .filter(Boolean)
+    );
+    let playingChildIds = Array.isArray(body.playingChildIds)
+        ? body.playingChildIds
+              .map((id) => String(id || "").trim())
+              .filter((id) => id && profileIdSet.has(id))
+        : [];
+
+    if (
+        playingChildIds.length === 0 &&
+        typeof body.activeChildId === "string" &&
+        body.activeChildId.trim() &&
+        profileIdSet.has(body.activeChildId.trim())
+    ) {
+        playingChildIds = [body.activeChildId.trim()];
+    }
+
+    const derivedMode =
+        playingChildIds.length >= 2 ? "family" : "single-child";
+    const derivedActiveChildId =
+        playingChildIds.length === 1 ? playingChildIds[0] : "";
+
     return {
         ok: true,
         settings: {
-            activity_mode: activityMode,
-            active_child_id:
-                typeof body.activeChildId === "string"
-                    ? body.activeChildId
-                    : "",
+            activity_mode: derivedMode,
+            active_child_id: derivedActiveChildId,
+            playing_child_ids: playingChildIds,
             active_parent_preset_key:
                 typeof body.activeParentPresetKey === "string"
                     ? body.activeParentPresetKey
                     : "",
-            child_profiles: Array.isArray(body.childProfiles)
-                ? body.childProfiles
-                : [],
+            child_profiles: childProfiles,
             inventory: Array.isArray(body.inventory)
                 ? body.inventory
                 : [],

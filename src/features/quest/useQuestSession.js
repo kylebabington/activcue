@@ -53,6 +53,7 @@ export function useQuestSession({
   activityMode,
   activeChildProfile,
   selectedChildProfiles = [],
+  playingChildIds = [],
   kidActivityStyle,
   kidMood,
   messLevel,
@@ -180,12 +181,21 @@ export function useQuestSession({
       20;
 
     const roles = Array.isArray(enrichedActivity.roles) ? enrichedActivity.roles : [];
+    const playingIdSet = new Set(
+      (Array.isArray(playingChildIds) ? playingChildIds : [])
+        .map((id) => String(id || "").trim())
+        .filter(Boolean)
+    );
     const playingChildren =
-      activityMode === "family"
-        ? selectedChildProfiles
-        : activeChildProfile
-          ? [activeChildProfile]
-          : [];
+      playingIdSet.size > 0
+        ? (Array.isArray(selectedChildProfiles) ? selectedChildProfiles : []).filter(
+            (child) => playingIdSet.has(child?.id)
+          )
+        : activityMode === "family"
+          ? selectedChildProfiles
+          : activeChildProfile
+            ? [activeChildProfile]
+            : [];
 
     const readingMode = {
       ...resolveReadingMode({
@@ -361,27 +371,23 @@ export function useQuestSession({
       });
     }
 
-    const playingChildIds = (
-      activityMode === "family"
-        ? selectedChildProfiles
-        : activeChildProfile
-          ? [activeChildProfile]
-          : []
+    const participantChildIds = (
+      Array.isArray(playingChildIds) && playingChildIds.length > 0
+        ? playingChildIds
+        : (Array.isArray(selectedChildProfiles) ? selectedChildProfiles : [])
+            .map((child) => child?.id)
     )
-      .map((child) => child?.id)
+      .map((id) => String(id || "").trim())
       .filter(Boolean);
 
     const childIdForSession =
-      activityMode === "family" ? "" : activeChildProfile?.id || "";
+      participantChildIds.length === 1 ? participantChildIds[0] : "";
 
     const creationPromise = createActivitySession(
       buildActivitySessionStartPayload(activityToStart, currentMoment, {
         childId: childIdForSession,
-        sessionScope:
-          playingChildIds.length > 1 || activityMode === "family"
-            ? "group"
-            : "single",
-        participantChildIds: playingChildIds,
+        sessionScope: participantChildIds.length > 1 ? "group" : "single",
+        participantChildIds,
       }),
       { expectedUserId: userId }
     )

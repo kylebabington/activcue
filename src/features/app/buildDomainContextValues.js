@@ -40,6 +40,7 @@ export function buildFamilyContextValue(input) {
     togglePlayingChild: input.togglePlayingChild,
     activityMode: input.activityMode,
     setActivityMode: input.setActivityMode,
+    kidEnergyLevel: input.kidEnergyLevel,
     newChildName: input.newChildName,
     setNewChildName: input.setNewChildName,
     newChildAgeRange: input.newChildAgeRange,

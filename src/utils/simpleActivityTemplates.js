@@ -461,6 +461,17 @@ export function buildSimpleActivitiesFromTemplates({
         independenceLevel: "mostly-independent",
         ageFitReason: "Template matched to this age band.",
       },
+      participantMode: "single",
+      participantMin: 1,
+      participantMax: 1,
+      participant_mode: "single",
+      participant_min: 1,
+      participant_max: 1,
+      roleGuide: {
+        name: "",
+        description: "",
+        childRoles: [],
+      },
     };
   });
 }

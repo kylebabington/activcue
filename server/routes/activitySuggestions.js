@@ -18,16 +18,16 @@ import {
   resolveActivityStyle,
 } from "../utils/normalizeRequest.js";
 import { enrichActivityForServe } from "../utils/enrichActivityForServe.js";
+import { getGroupAgeContext } from "../utils/childAge.js";
 import {
-  buildChildrenAgeContext,
-  getGroupAgeContext,
-} from "../utils/childAge.js";
-import {
-  filterActivitiesByAgePolicy,
   logAgeFitBatchSummary,
-  AGE_POLICY_VERSION,
-  getPolicyAgeBand,
 } from "../utils/activityAgePolicy.js";
+import {
+  filterActivitiesByFitPolicy,
+  buildFitRequestContextFromParts,
+} from "../utils/activityFitPolicy.js";
+import { resolveParticipantContext } from "../utils/participantContext.js";
+import { buildSanitizedGenerationContext } from "../utils/sanitizedGenerationContext.js";
 import { recordAiUsageEvent } from "../lib/aiUsage.js";
 import { expandGenerationIntent } from "../lib/generationIntent.js";
 import { attachRecommendationIds } from "../lib/recommendationIds.js";
@@ -155,9 +155,6 @@ export default function createActivitySuggestionsRouter(client) {
           activitySpace,
           childAgeRange,
           activityStyle,
-          activityMode,
-          activeChildProfile,
-          selectedChildProfiles,
           feedbackContext,
           generationIntent,
           previousActivityTitles,
@@ -165,40 +162,68 @@ export default function createActivitySuggestionsRouter(client) {
           playModeTheme,
           activityPreferences,
           excludeCandidateIds,
+          requestContext: clientRequestContext,
         } = req.body;
 
+        const participantResolution = resolveParticipantContext(req.body);
+        if (!participantResolution.ok) {
+          return res.status(400).json({
+            error: participantResolution.error,
+            code: participantResolution.code,
+          });
+        }
+
+        const resolvedActivityMode = participantResolution.mode;
+        const resolvedSelectedProfiles = participantResolution.children;
+        const resolvedActiveProfile =
+          resolvedActivityMode === "single-child"
+            ? resolvedSelectedProfiles[0]
+            : null;
+
+        const energyFromContext =
+          clientRequestContext?.activity?.energyLevel ||
+          generationIntent?.energyLevel ||
+          null;
+        const resolvedKidMood = kidMood || energyFromContext || "neutral";
+
         const safeActivityStyle = resolveActivityStyle(
-          generationIntent?.activityStyle || activityStyle,
-          activityMode
+          generationIntent?.activityStyle ||
+            clientRequestContext?.activity?.style ||
+            activityStyle,
+          resolvedActivityMode
         );
         const safePlayModeTheme =
           typeof playModeTheme === "string" && playModeTheme.trim()
             ? playModeTheme.trim()
             : "playroom";
         const safeCurrentMoment = buildSafeCurrentMoment({
-          currentMoment,
+          currentMoment: clientRequestContext?.moment || currentMoment,
           parentActivity,
           parentAvailability,
           messLevel,
           activitySpace,
-          safetySettings,
+          safetySettings: clientRequestContext?.safety || safetySettings,
         });
 
         if (
           !safeCurrentMoment.parentActivity ||
           !safeCurrentMoment.availability ||
-          !kidMood
+          !resolvedKidMood
         ) {
           return res.status(400).json({
             error: "Missing required fields.",
           });
         }
 
-        if (!Array.isArray(inventory)) {
+        if (!Array.isArray(inventory) && !Array.isArray(clientRequestContext?.inventory)) {
           return res.status(400).json({
             error: "Inventory must be an array.",
           });
         }
+
+        const resolvedInventory = Array.isArray(clientRequestContext?.inventory)
+          ? clientRequestContext.inventory
+          : inventory;
 
         const safeFeedbackContext = expandGenerationIntent(
           generationIntent,
@@ -211,24 +236,59 @@ export default function createActivitySuggestionsRouter(client) {
           ? previousActivityTitles
           : [];
 
-        const safeSelectedChildProfiles = Array.isArray(selectedChildProfiles)
-          ? selectedChildProfiles
-          : [];
-
-        const childrenContext = buildChildrenAgeContext(
-          safeSelectedChildProfiles.length > 0
-            ? safeSelectedChildProfiles
-            : activeChildProfile
-              ? [activeChildProfile]
-              : []
-        );
-        const childAges = childrenContext.map((child) => child.ageYears);
+        const safeSelectedChildProfiles = resolvedSelectedProfiles;
+        const childrenContext = participantResolution.childrenContext;
+        const childAges = participantResolution.ages;
         const groupAgeContext = getGroupAgeContext(childAges);
 
         const safeSafetySettings = buildSafeSafetySettings(
           safeCurrentMoment,
-          safetySettings
+          clientRequestContext?.safety || safetySettings
         );
+
+        const fitRequestContext =
+          clientRequestContext && typeof clientRequestContext === "object"
+            ? {
+                ...clientRequestContext,
+                participants: {
+                  ...(clientRequestContext.participants || {}),
+                  mode: resolvedActivityMode,
+                  participantCount: participantResolution.participantCount,
+                  children: resolvedSelectedProfiles,
+                  childrenContext,
+                  ages: childAges,
+                },
+                moment: {
+                  ...(clientRequestContext.moment || {}),
+                  ...safeCurrentMoment,
+                },
+                safety: {
+                  ...(clientRequestContext.safety || {}),
+                  ...safeSafetySettings,
+                },
+                activity: {
+                  ...(clientRequestContext.activity || {}),
+                  style: safeActivityStyle,
+                  energyLevel: energyFromContext || resolvedKidMood,
+                },
+                inventory: resolvedInventory,
+              }
+            : buildFitRequestContextFromParts({
+                participants: {
+                  mode: resolvedActivityMode,
+                  participantCount: participantResolution.participantCount,
+                  children: resolvedSelectedProfiles,
+                  childrenContext,
+                  ages: childAges,
+                },
+                moment: safeCurrentMoment,
+                safety: safeSafetySettings,
+                activity: {
+                  style: safeActivityStyle,
+                  energyLevel: energyFromContext || resolvedKidMood,
+                },
+                inventory: resolvedInventory,
+              });
 
         const safeExcludeCandidateIds = Array.isArray(excludeCandidateIds)
           ? excludeCandidateIds.map((id) => String(id)).filter(Boolean)
@@ -251,11 +311,14 @@ export default function createActivitySuggestionsRouter(client) {
         try {
           cachedCandidates = await querySharedCandidatesForUser({
             userId: req.auth.userId,
-            inventory,
+            inventory: resolvedInventory,
             currentMoment: safeCurrentMoment,
             excludeCandidateIds: safeExcludeCandidateIds,
             activityStyle: safeActivityStyle,
             childAges,
+            activityMode: resolvedActivityMode,
+            requestContext: fitRequestContext,
+            safetySettings: safeSafetySettings,
             limit: CACHE_LOOKUP_LIMIT,
           });
         } catch (cacheError) {
@@ -271,13 +334,12 @@ export default function createActivitySuggestionsRouter(client) {
         ).map((activity) =>
           enrichActivityForServe(activity, safeActivityStyle, childAges)
         );
-        const cacheAgeFiltered = filterActivitiesByAgePolicy(
+        const cacheFitFiltered = filterActivitiesByFitPolicy(
           normalizedCached,
-          childrenContext,
-          { activityMode, expectedStyle: safeActivityStyle }
+          fitRequestContext
         );
-        let totalAgeFitRejected = cacheAgeFiltered.rejectedCount;
-        const cachedKept = cacheAgeFiltered.activities
+        let totalAgeFitRejected = cacheFitFiltered.summary.rejected;
+        const cachedKept = cacheFitFiltered.activities
           .slice(0, SUGGESTION_COUNT)
           .map(preserveLibraryIds);
         msNormalize += Date.now() - normalizeCacheStarted;
@@ -298,16 +360,18 @@ export default function createActivitySuggestionsRouter(client) {
           ];
           const input = buildActivitySuggestionsInput({
             safeCurrentMoment,
-            kidMood,
-            locationPreference,
+            kidMood: resolvedKidMood,
+            energyLevel: energyFromContext || resolvedKidMood,
+            locationPreference:
+              safeCurrentMoment.space || locationPreference || "",
             childAgeRange,
             childrenContext,
             groupAgeContext,
-            activeChildProfile,
+            activeChildProfile: resolvedActiveProfile,
             safeActivityStyle,
-            activityMode,
+            activityMode: resolvedActivityMode,
             safeSelectedChildProfiles,
-            inventory,
+            inventory: resolvedInventory,
             safeFeedbackContext,
             safePreviousActivityTitles: titlesToAvoid,
             safeSafetySettings,
@@ -315,7 +379,7 @@ export default function createActivitySuggestionsRouter(client) {
             activityPreferences:
               activityPreferences && typeof activityPreferences === "object"
                 ? activityPreferences
-                : null,
+                : clientRequestContext?.preferences || null,
             activityCount: aiSlots,
           });
 
@@ -376,16 +440,17 @@ export default function createActivitySuggestionsRouter(client) {
             ].join("\n");
             const clarityRetryInput = buildActivitySuggestionsInput({
               safeCurrentMoment,
-              kidMood,
-              locationPreference,
+              kidMood: resolvedKidMood,
+              energyLevel: energyFromContext || resolvedKidMood,
+              locationPreference: safeCurrentMoment.space || locationPreference || "",
               childAgeRange,
               childrenContext,
               groupAgeContext,
-              activeChildProfile,
+              activeChildProfile: resolvedActiveProfile,
               safeActivityStyle,
-              activityMode,
+              activityMode: resolvedActivityMode,
               safeSelectedChildProfiles,
-              inventory,
+              inventory: resolvedInventory,
               safeFeedbackContext: [safeFeedbackContext, clarityRetrySteer]
                 .filter(Boolean)
                 .join("\n\n"),
@@ -439,17 +504,16 @@ export default function createActivitySuggestionsRouter(client) {
             );
           }
 
-          let ageFiltered = filterActivitiesByAgePolicy(
+          let ageFiltered = filterActivitiesByFitPolicy(
             clarityPassed,
-            childrenContext,
-            { activityMode, expectedStyle: safeActivityStyle }
+            fitRequestContext
           );
-          totalAgeFitRejected += ageFiltered.rejectedCount;
+          totalAgeFitRejected += ageFiltered.summary.rejected;
           let eligibleActivities = ageFiltered.activities;
 
           if (eligibleActivities.length === 0) {
-            const rejectionTitles = (ageFiltered.rejectionDetails || [])
-              .map((detail) => detail.title)
+            const rejectionTitles = (ageFiltered.rejected || [])
+              .map((detail) => detail.activity?.title)
               .filter(Boolean)
               .slice(0, 5);
             const retrySteer = buildAgeFitRetrySteer({
@@ -464,16 +528,17 @@ export default function createActivitySuggestionsRouter(client) {
 
             const retryInput = buildActivitySuggestionsInput({
               safeCurrentMoment,
-              kidMood,
-              locationPreference,
+              kidMood: resolvedKidMood,
+              energyLevel: energyFromContext || resolvedKidMood,
+              locationPreference: safeCurrentMoment.space || locationPreference || "",
               childAgeRange,
               childrenContext,
               groupAgeContext,
-              activeChildProfile,
+              activeChildProfile: resolvedActiveProfile,
               safeActivityStyle,
-              activityMode,
+              activityMode: resolvedActivityMode,
               safeSelectedChildProfiles,
-              inventory,
+              inventory: resolvedInventory,
               safeFeedbackContext: retryFeedback,
               safePreviousActivityTitles: [
                 ...titlesToAvoid,
@@ -530,12 +595,11 @@ export default function createActivitySuggestionsRouter(client) {
                 enrichActivityForServe(activity, safeActivityStyle, childAges)
               )
               .filter((activity) => validateActivityClarity(activity).valid);
-            ageFiltered = filterActivitiesByAgePolicy(
+            ageFiltered = filterActivitiesByFitPolicy(
               retryNormalized,
-              childrenContext,
-              { activityMode, expectedStyle: safeActivityStyle }
+              fitRequestContext
             );
-            totalAgeFitRejected += ageFiltered.rejectedCount;
+            totalAgeFitRejected += ageFiltered.summary.rejected;
             eligibleActivities = ageFiltered.activities;
 
             if (eligibleActivities.length === 0 && cachedKept.length === 0) {
@@ -543,7 +607,7 @@ export default function createActivitySuggestionsRouter(client) {
                 oldestAge,
                 childAges,
                 totalAgeFitRejected,
-                details: ageFiltered.rejectionDetails,
+                details: ageFiltered.summary.rejectedByReason,
               });
               await recordAiUsageEvent({
                 userId: req.auth.userId,
@@ -665,7 +729,7 @@ export default function createActivitySuggestionsRouter(client) {
                 activities: aiOnly,
                 source: "ai",
                 childrenContext,
-                activityMode,
+                activityMode: resolvedActivityMode,
               });
               const ingestedByTitle = new Map(
                 ingestedAi.map((a) => [String(a.title || "").toLowerCase(), a])
@@ -686,13 +750,10 @@ export default function createActivitySuggestionsRouter(client) {
               const momentSnapshot = await createActivityMoment({
                 userId: req.auth.userId,
                 moment: safeCurrentMoment,
-                kidMood,
-                childIds: [
-                  ...(activeChildProfile?.id ? [activeChildProfile.id] : []),
-                  ...safeSelectedChildProfiles
-                    .map((c) => c?.id)
-                    .filter(Boolean),
-                ],
+                kidMood: resolvedKidMood,
+                childIds: safeSelectedChildProfiles
+                  .map((c) => c?.id)
+                  .filter(Boolean),
                 rescueMode: false,
               });
               momentId = momentSnapshot?.id || null;
@@ -707,14 +768,15 @@ export default function createActivitySuggestionsRouter(client) {
               latencyMs: msTotal,
               activities: ingested,
               batchId: recommendationBatchId,
-              generationContext: {
-                participantAges: childAges,
-                ageBands: childAges.map((age) => getPolicyAgeBand(age)),
-                activityMode,
+              generationContext: buildSanitizedGenerationContext({
+                requestContext: fitRequestContext,
+                participants: participantResolution,
                 activityStyle: safeActivityStyle,
-                sourcePath: source === "shared_library" ? "cache-first" : "ai",
-                agePolicyVersion: AGE_POLICY_VERSION,
-              },
+                energyLevel: energyFromContext || resolvedKidMood,
+                sourcePath:
+                  source === "shared_library" ? "cache-first" : "ai",
+                requestId: fitRequestContext.requestId,
+              }),
             });
 
             if (usageMeta) {

@@ -22,10 +22,14 @@ import {
   scoreActivitiesForCurrentMoment,
 } from "./activityService";
 import {
-  buildAutoStartFeedbackContext,
-  buildKidBoredFeedbackContext,
-  filterStartableActivities,
-} from "./activityGenerationHelpers";
+  buildAutoStartIntent,
+  buildKidBoredIntent,
+} from "./activityIntent";
+import { filterStartableActivities } from "./activityGenerationHelpers";
+import {
+  buildActivityRequestContext,
+  requestContextToLegacyPayload,
+} from "./buildActivityRequestContext";
 import { markSuggestionsShownAt, getTimeToStartTiming } from "../../utils/timeToStart";
 import { resolveChildAge } from "../../utils/childAge";
 import { playModeFlavorFromActivityStyle } from "../../constants/activityPreferences";
@@ -214,25 +218,26 @@ export function useActivityGeneration(deps = {}) {
           activityStyle: intent?.activityStyle || d.kidActivityStyle,
         });
 
-        const result = await getActivitySuggestions({
-          currentMoment: d.currentMoment,
-          momentId: d.activeMomentId || getTimeToStartTiming()?.momentId || null,
-          parentActivity: d.currentMoment.parentActivity,
-          parentAvailability: d.currentMoment.availability,
-          inventory: d.inventory,
-          kidMood: d.kidMood,
-          messLevel: d.currentMoment.messLevel,
-          activitySpace: d.currentMoment.space,
-          childAgeRange: d.effectiveChildAgeRange,
-          activityStyle: intent?.activityStyle || d.kidActivityStyle,
-          activityMode: d.activityMode,
-          activeChildProfile: d.activeChildProfile,
+        const requestContext = buildActivityRequestContext({
+          playingChildIds: d.playingChildIds,
+          childProfiles: d.childProfiles,
           selectedChildProfiles: d.selectedChildProfiles,
-          safetySettings: {
-            ...d.safetySettings,
-            maxActivityMinutes: d.currentMoment.timeNeededMinutes,
-            quietMode: d.currentMoment.noiseLevel === "quiet",
-          },
+          activeChildProfile: d.activeChildProfile,
+          activityMode: d.activityMode,
+          activeChildId: d.activeChildId,
+          currentMoment: d.currentMoment,
+          safetySettings: d.safetySettings,
+          activityPreferences: d.activityPreferences,
+          inventory: d.inventory,
+          kidActivityStyle: intent?.activityStyle || d.kidActivityStyle,
+          kidEnergyLevel: intent?.energyLevel || d.kidEnergyLevel,
+          generationIntent: intent,
+        });
+        const legacy = requestContextToLegacyPayload(requestContext);
+
+        const result = await getActivitySuggestions({
+          ...legacy,
+          momentId: d.activeMomentId || getTimeToStartTiming()?.momentId || null,
           feedbackContext,
           generationIntent: intent || undefined,
           previousActivityTitles,
@@ -240,7 +245,6 @@ export function useActivityGeneration(deps = {}) {
           playModeTheme: playModeFlavorFromActivityStyle(
             d.activityPreferences?.activityStylePreference
           ),
-          activityPreferences: d.activityPreferences,
         });
 
         if (result?.momentId && d.setActiveMomentId) {
@@ -502,7 +506,6 @@ export function useActivityGeneration(deps = {}) {
   const handleGenerateKidActivities = useCallback(
     async (options = {}) => {
       const d = depsRef.current;
-      d.setKidMood?.(d.kidEnergyLevel);
       setLoadingIntent(options.preferSimpleTemplates ? "quick" : "board");
 
       const preferSimpleTemplates = Boolean(options.preferSimpleTemplates);
@@ -710,23 +713,22 @@ export function useActivityGeneration(deps = {}) {
       d.setActivities?.([]);
       d.navigate?.("/quest");
 
-      await handleGenerateActivities(
-        buildKidBoredFeedbackContext({
-          kidActivityStyle: d.kidActivityStyle,
-          kidEnergyLevel: d.kidEnergyLevel,
-        }),
-        {
-          allowOfflineFallback: true,
-          preferSimpleTemplates,
-        }
-      );
+      const intent = buildKidBoredIntent({
+        kidActivityStyle: d.kidActivityStyle,
+        kidEnergyLevel: d.kidEnergyLevel,
+      });
+
+      await handleGenerateActivities("", {
+        allowOfflineFallback: true,
+        preferSimpleTemplates,
+        generationIntent: intent,
+      });
     },
     [handleGenerateActivities, presetRotationIndex]
   );
 
   const handleStartSomethingForMe = useCallback(async () => {
     const d = depsRef.current;
-    d.setKidMood?.(d.kidEnergyLevel);
     setLoadingIntent("auto-start");
     d.setActiveActivity?.(null);
 
@@ -846,13 +848,15 @@ export function useActivityGeneration(deps = {}) {
       return;
     }
 
-    const generatedActivities = await handleGenerateActivities(
-      buildAutoStartFeedbackContext({
-        kidActivityStyle: d.kidActivityStyle,
-        kidEnergyLevel: d.kidEnergyLevel,
-      }),
-      { allowOfflineFallback: true }
-    );
+    const intent = buildAutoStartIntent({
+      kidActivityStyle: d.kidActivityStyle,
+      kidEnergyLevel: d.kidEnergyLevel,
+    });
+
+    const generatedActivities = await handleGenerateActivities("", {
+      allowOfflineFallback: true,
+      generationIntent: intent,
+    });
 
     if (generatedActivities === null) {
       d.navigate?.("/quest");

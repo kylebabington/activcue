@@ -3,6 +3,11 @@
 import { useCallback } from "react";
 import { fetchPlanBActivities } from "../../api/sharedActivitiesApi";
 import { trackProductEvent } from "../../utils/analytics";
+import {
+  buildActivityRequestContext,
+  requestContextToLegacyPayload,
+} from "../activities/buildActivityRequestContext";
+import { buildFeedbackIntent } from "../activities/activityIntent";
 
 export function usePlanBRescue({
   inventory,
@@ -17,6 +22,11 @@ export function usePlanBRescue({
   selectedChildProfiles,
   activeChildProfile,
   activityMode,
+  playingChildIds,
+  childProfiles,
+  safetySettings,
+  activityPreferences,
+  kidEnergyLevel,
 } = {}) {
   const handleTryNextBestWithLibrary = useCallback(async () => {
     trackProductEvent("plan_b_offered", { source: "batch" });
@@ -35,18 +45,25 @@ export function usePlanBRescue({
       });
     }
 
+    const requestContext = buildActivityRequestContext({
+      playingChildIds,
+      childProfiles,
+      selectedChildProfiles,
+      activeChildProfile,
+      activityMode,
+      currentMoment,
+      safetySettings,
+      activityPreferences,
+      inventory,
+      kidActivityStyle: activityStyle,
+      kidEnergyLevel,
+    });
+    const legacy = requestContextToLegacyPayload(requestContext);
+
     try {
       const response = await fetchPlanBActivities({
-        inventory,
-        currentMoment,
+        ...legacy,
         momentId: activeMomentId || null,
-        activityStyle: activityStyle || "imaginative",
-        selectedChildProfiles: selectedChildProfiles || [],
-        activeChildProfile: activeChildProfile || null,
-        activityMode: activityMode || "single-child",
-        childIds: (selectedChildProfiles || [])
-          .map((child) => child?.id)
-          .filter(Boolean),
         excludeCandidateIds: [
           rejected?.candidateId,
           ...(scoredActivities || [])
@@ -81,7 +98,21 @@ export function usePlanBRescue({
       "info"
     );
     trackProductEvent("regenerate", { source: "plan_b_exhausted" });
-    handleGenerateActivities?.();
+    const intent = buildFeedbackIntent({
+      feedbackIntent: "need-another-idea",
+      previousActivityTitle: rejected?.title || "",
+      activityStyle: activityStyle || "simple",
+      energyLevel: kidEnergyLevel || "neutral",
+    });
+    handleGenerateActivities?.("", {
+      generationIntent: intent,
+      excludeCandidateIds: [
+        rejected?.candidateId,
+        ...(scoredActivities || [])
+          .map((item) => item?.activity?.candidateId)
+          .filter(Boolean),
+      ].filter(Boolean),
+    });
   }, [
     inventory,
     currentMoment,
@@ -95,6 +126,11 @@ export function usePlanBRescue({
     selectedChildProfiles,
     activeChildProfile,
     activityMode,
+    playingChildIds,
+    childProfiles,
+    safetySettings,
+    activityPreferences,
+    kidEnergyLevel,
   ]);
 
   return { handleTryNextBestWithLibrary };
