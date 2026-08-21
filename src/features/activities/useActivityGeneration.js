@@ -27,6 +27,12 @@ import {
 } from "./activityIntent";
 import { filterStartableActivities } from "./activityGenerationHelpers";
 import {
+  assertActivitiesMatchRequestedStyle,
+  isImaginativeGenerationStyle,
+  resolveGenerationFailureAction,
+} from "./activityGenerationService";
+import { fetchPlanBActivities } from "../../api/sharedActivitiesApi";
+import {
   buildActivityRequestContext,
   requestContextToLegacyPayload,
 } from "./buildActivityRequestContext";
@@ -386,38 +392,145 @@ export function useActivityGeneration(deps = {}) {
           return null;
         }
 
-        if (error instanceof ApiRequestError && error.status === 422) {
+        if (
+          error instanceof ApiRequestError &&
+          (error.status === 422 ||
+            error.code === "AI_RESPONSE_INVALID" ||
+            error.code === "AGE_FIT_FAILED")
+        ) {
           const message =
             error.message ||
-            "Could not generate age-appropriate activities. Try regenerating.";
+            (error.code === "AI_RESPONSE_INVALID"
+              ? "Could not generate complete activities. Please try again."
+              : "Could not generate age-appropriate activities. Try regenerating.");
           setGenerationFailed(true);
           setGenerationErrorMessage(message);
           d.showStatus?.(message, "info");
           return [];
         }
 
+        const requestedStyle =
+          options?.generationIntent?.activityStyle ||
+          d.kidActivityStyle ||
+          "simple";
+
         trackProductEvent("AI_error", {
           status: error instanceof ApiRequestError ? error.status : null,
           code: error instanceof ApiRequestError ? error.code : null,
-          activityStyle: d.kidActivityStyle || null,
+          activityStyle: requestedStyle,
         });
 
-        const templateActivities = buildSimpleActivitiesFromTemplates({
-          inventory: d.inventory,
-          currentMoment: d.currentMoment,
-          count: 3,
-          oldestChildAgeYears: resolveOldestChildAgeYears(d),
+        const failureAction = resolveGenerationFailureAction({
+          activityStyle: requestedStyle,
+          errorCode: error instanceof ApiRequestError ? error.code : null,
+          errorStatus: error instanceof ApiRequestError ? error.status : null,
+          alreadyRetriedAi: Boolean(options?.__imaginativeRecoveryAttempted),
         });
 
-        if (templateActivities.length > 0) {
-          d.showStatus?.(
-            "Couldn’t reach the idea server — showing quick simple ideas from your supplies.",
-            "info"
-          );
-          return finalizeActivities(templateActivities, { source: "templates" });
+        if (failureAction.action === "simple_templates") {
+          const templateActivities = buildSimpleActivitiesFromTemplates({
+            inventory: d.inventory,
+            currentMoment: d.currentMoment,
+            count: 3,
+            oldestChildAgeYears: resolveOldestChildAgeYears(d),
+          });
+
+          if (templateActivities.length > 0) {
+            d.showStatus?.(
+              "Couldn’t reach the idea server — showing quick simple ideas from your supplies.",
+              "info"
+            );
+            return finalizeActivities(templateActivities, {
+              source: "templates",
+            });
+          }
         }
 
-        const message = "Something went wrong while generating ideas.";
+        if (failureAction.action === "imaginative_cache_then_retry") {
+          try {
+            const requestContext = buildActivityRequestContext({
+              playingChildIds: d.playingChildIds,
+              childProfiles: d.childProfiles,
+              selectedChildProfiles: d.selectedChildProfiles,
+              activeChildProfile: d.activeChildProfile,
+              activityMode: d.activityMode,
+              currentMoment: d.currentMoment,
+              safetySettings: d.safetySettings,
+              activityPreferences: d.activityPreferences,
+              inventory: d.inventory,
+              kidActivityStyle: "imaginative",
+              kidEnergyLevel: d.kidEnergyLevel,
+            });
+            const legacy = requestContextToLegacyPayload(requestContext);
+            const planB = await fetchPlanBActivities({
+              ...legacy,
+              momentId: d.activeMomentId || null,
+              limit: 3,
+            });
+            const cacheActivities = Array.isArray(planB?.activities)
+              ? planB.activities
+              : [];
+            const styleCheck = assertActivitiesMatchRequestedStyle(
+              cacheActivities,
+              "imaginative"
+            );
+            if (styleCheck.ok && styleCheck.activities.length > 0) {
+              d.showStatus?.(
+                "Showing imaginative ideas from the shared library.",
+                "success"
+              );
+              return finalizeActivities(styleCheck.activities, {
+                recommendationBatchId: planB?.recommendationBatchId,
+                momentId: planB?.momentId,
+                source: "shared_library",
+              });
+            }
+          } catch (cacheError) {
+            console.warn("Imaginative cache recovery failed:", cacheError);
+          }
+
+          try {
+            const retryGenerated = await requestActivities(combinedFeedback);
+            const retryActivities = retryGenerated?.activities || [];
+            const styleCheck = assertActivitiesMatchRequestedStyle(
+              retryActivities,
+              "imaginative"
+            );
+            if (styleCheck.ok && styleCheck.activities.length > 0) {
+              return finalizeActivities(
+                normalizeActivitiesToInventory(
+                  styleCheck.activities,
+                  d.inventory
+                ),
+                {
+                  recommendationBatchId: retryGenerated?.recommendationBatchId,
+                  momentId: retryGenerated?.momentId,
+                  source: retryGenerated?.source || "openai",
+                }
+              );
+            }
+          } catch (retryError) {
+            console.warn("Imaginative AI retry failed:", retryError);
+            if (
+              retryError instanceof ApiRequestError &&
+              (retryError.status === 422 ||
+                retryError.code === "AI_RESPONSE_INVALID" ||
+                retryError.code === "AGE_FIT_FAILED")
+            ) {
+              const message =
+                retryError.message ||
+                "Could not generate imaginative activities. Please try again.";
+              setGenerationFailed(true);
+              setGenerationErrorMessage(message);
+              d.showStatus?.(message, "error");
+              return [];
+            }
+          }
+        }
+
+        const message = isImaginativeGenerationStyle(requestedStyle)
+          ? "Could not generate imaginative activities. Please try again."
+          : "Something went wrong while generating ideas.";
         setGenerationFailed(true);
         setGenerationErrorMessage(message);
         d.showStatus?.(message, "error");
