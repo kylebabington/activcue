@@ -104,7 +104,13 @@ export const lostShellSignalV3Fixture = {
         "Line up all three clues in order.",
         "Say what the full signal might mean.",
       ],
-      starterIdeas: [],
+      starterIdeas: [
+        {
+          title: "Storm story",
+          example: "Say the clues mean a storm warning for the fish.",
+          kind: "imagination",
+        },
+      ],
       doneWhen: "All three clues are lined up and you said what the full signal means.",
       ifStuck: "Start with the word storm, fish, or shell and build one sentence.",
       roleInstructions: [],
@@ -116,7 +122,14 @@ export const lostShellSignalV3Fixture = {
         "Point to each clue in order.",
         "Tell your partner the complete signal in one short story.",
       ],
-      starterIdeas: [],
+      starterIdeas: [
+        {
+          title: "One-sentence signal",
+          example:
+            "First rough waves, then fish swam away, so the shells warned of a storm.",
+          kind: "choice",
+        },
+      ],
       doneWhen:
         "You told your stuffed animal one complete message using all three clues.",
       ifStuck: "Use this pattern: First ___, then ___, so now ___.",
