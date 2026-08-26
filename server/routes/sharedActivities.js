@@ -310,7 +310,7 @@ router.post(
             theme: row.theme || content.theme || "",
             estimatedMinutes: row.estimated_minutes,
             activityStyle: row.activity_style,
-            candidateId: row.id,
+            // Preset table ids are not shared_activity_candidates FKs.
             source: "preset",
             age_min: row.age_min,
             age_max: row.age_max,
