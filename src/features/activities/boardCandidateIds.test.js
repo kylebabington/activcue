@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { boardCandidateIds } from "./useActivityFeedback.js";
+import { boardCandidateIds } from "./boardCandidateIds.js";
 
 describe("boardCandidateIds", () => {
   it("collects all board candidate IDs for Not this exclusion", () => {
