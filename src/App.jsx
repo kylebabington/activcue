@@ -522,6 +522,7 @@ function App() {
     clearLastCompletedQuest,
     kidActivityStyle,
     kidEnergyLevel,
+    boardActivities: scoredActivities,
   });
 
   saveActivityFeedbackRef.current = saveActivityFeedback;

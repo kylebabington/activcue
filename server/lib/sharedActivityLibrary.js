@@ -15,6 +15,10 @@ import {
   evaluateActivityFit,
   buildFitRequestContextFromParts,
 } from "../utils/activityFitPolicy.js";
+import {
+  isImpressionSuppressed,
+  selectFreshFirstCandidates,
+} from "../utils/suggestionFill.js";
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -37,21 +41,31 @@ export function daysSinceTimestamp(iso, now = Date.now()) {
 /**
  * Soft ranking penalties from per-user impression history.
  * Shown / started / completed are never hard bans — only "Not this" is.
+ * Heavily shown items still lose hard to fresh ones via fresh-first selection.
  */
 export function impressionRankingPenalty(impression, now = Date.now()) {
   if (!impression) {
     return 0;
   }
 
-  // Prefer fresher ideas when equally good: shown once −1 … capped at −4.
-  let penalty = Math.min(4, Number(impression.times_shown) || 0);
+  const timesShown = Number(impression.times_shown) || 0;
+  // Prefer fresher ideas: grows with times_shown (capped so scores stay usable).
+  let penalty = Math.min(25, timesShown * 2);
 
-  // Started (and completed-as-engagement) → temporary recency cooldown.
+  const days = daysSinceTimestamp(
+    impression.last_seen_at || impression.first_seen_at,
+    now
+  );
+
+  // Shown-only recency cooldown (even without start/complete).
+  if (timesShown > 0) {
+    if (days < 7) penalty += 15;
+    else if (days < 21) penalty += 8;
+    else if (days < 60) penalty += 3;
+  }
+
+  // Started (and completed-as-engagement) → stronger temporary cooldown.
   if ((Number(impression.times_started) || 0) > 0) {
-    const days = daysSinceTimestamp(
-      impression.last_seen_at || impression.first_seen_at,
-      now
-    );
     if (days < 7) penalty += 12;
     else if (days < 21) penalty += 8;
     else if (days < 60) penalty += 4;
@@ -807,17 +821,22 @@ export async function querySharedCandidatesForUser({
       score += 5;
     }
 
-    scored.push({ row, score });
+    scored.push({
+      row,
+      score,
+      impression,
+      suppressed: isImpressionSuppressed(impression, now),
+    });
   }
 
-  scored.sort((a, b) => b.score - a.score);
+  const selected = selectFreshFirstCandidates(scored, limit, now);
+  const result = selected.map(({ row }) => formatSharedCandidate(row));
 
-  const result = scored
-    .slice(0, limit)
-    .map(({ row }) => formatSharedCandidate(row));
+  const freshCount = scored.filter((e) => !e.suppressed).length;
+  const suppressedCount = scored.length - freshCount;
 
   console.info(
-    `[recommendation] examined=${rows.length} rejected=${JSON.stringify(rejectedByReason)} eligible=${scored.length} returned=${result.length} source=shared_library wrongStyle=${wrongStyle} ageRejected=${ageRejected} participantRejected=${participantRejected}`
+    `[recommendation] examined=${rows.length} rejected=${JSON.stringify(rejectedByReason)} eligible=${scored.length} fresh=${freshCount} suppressed=${suppressedCount} returned=${result.length} source=shared_library wrongStyle=${wrongStyle} ageRejected=${ageRejected} participantRejected=${participantRejected}`
   );
 
   return result;

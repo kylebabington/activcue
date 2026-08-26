@@ -20,9 +20,32 @@ describe("daysSinceTimestamp", () => {
 describe("impressionRankingPenalty", () => {
   const now = Date.parse("2026-08-12T12:00:00.000Z");
 
-  it("penalizes times_shown up to 4 and does not hard-ban", () => {
-    expect(impressionRankingPenalty({ times_shown: 1 }, now)).toBe(1);
-    expect(impressionRankingPenalty({ times_shown: 9 }, now)).toBe(4);
+  it("grows with times_shown well past the old cap of 4", () => {
+    expect(impressionRankingPenalty({ times_shown: 1 }, now)).toBeGreaterThan(
+      0
+    );
+    const once = impressionRankingPenalty({ times_shown: 1 }, now);
+    const many = impressionRankingPenalty({ times_shown: 14 }, now);
+    expect(many).toBeGreaterThan(once);
+    expect(many).toBeGreaterThanOrEqual(25);
+  });
+
+  it("applies shown-only recency even without a start", () => {
+    const recent = impressionRankingPenalty(
+      {
+        times_shown: 1,
+        last_seen_at: "2026-08-11T12:00:00.000Z",
+      },
+      now
+    );
+    const old = impressionRankingPenalty(
+      {
+        times_shown: 1,
+        last_seen_at: "2026-01-01T12:00:00.000Z",
+      },
+      now
+    );
+    expect(recent).toBeGreaterThan(old);
   });
 
   it("applies a large temporary penalty for a recent start", () => {
@@ -34,7 +57,8 @@ describe("impressionRankingPenalty", () => {
       },
       now
     );
-    expect(penalty).toBe(1 + 12);
+    // times_shown*2 + shown recency (+15) + started recency (+12)
+    expect(penalty).toBe(2 + 15 + 12);
   });
 
   it("decays started/completed engagement over months", () => {

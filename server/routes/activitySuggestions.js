@@ -45,12 +45,66 @@ import {
   AiResponseInvalidError,
   generateActivitiesWithParseRecovery,
 } from "../utils/generateActivitiesWithParseRecovery.js";
+import {
+  SUGGESTION_COUNT,
+  MAX_AI_GENERATE_COUNT,
+  computeAiGenerateCount,
+  takeAiFill,
+} from "../utils/suggestionFill.js";
 
 const router = Router();
 const isDebugLogging = process.env.DEBUG_AI_RESPONSES === "true";
-const SUGGESTION_COUNT = 3;
 /** Over-fetch before age-fit so we still fill the pool after rejects. */
 const CACHE_LOOKUP_LIMIT = 12;
+
+function mergeUsageMeta(base, next) {
+  if (!next) return base;
+  if (!base) {
+    return {
+      model: next.model || OPENAI_MODEL,
+      inputTokens: next.inputTokens || 0,
+      outputTokens: next.outputTokens || 0,
+      totalTokens: next.totalTokens || 0,
+      responseId: next.responseId || null,
+      instructionChars: next.instructionChars ?? null,
+      inputChars: next.inputChars ?? null,
+    };
+  }
+  return {
+    model: next.model || base.model,
+    inputTokens: (base.inputTokens || 0) + (next.inputTokens || 0),
+    outputTokens: (base.outputTokens || 0) + (next.outputTokens || 0),
+    totalTokens: (base.totalTokens || 0) + (next.totalTokens || 0),
+    responseId: next.responseId || base.responseId,
+    instructionChars: base.instructionChars,
+    inputChars: base.inputChars,
+  };
+}
+
+function buildPartialRefillSteer({ remaining, rejectionTitles, rejectedByReason }) {
+  const reasonParts =
+    rejectedByReason && typeof rejectedByReason === "object"
+      ? Object.entries(rejectedByReason)
+          .map(([reason, count]) => `${reason}:${count}`)
+          .join(", ")
+      : "";
+  const lines = [
+    `PARTIAL REFILL: Need ${remaining} more activity(ies) that pass clarity and fit filters.`,
+    "Do not repeat any titles listed to avoid.",
+    "Match participant count, age, mess, noise, supervision, space, and inventory constraints exactly.",
+  ];
+  if (reasonParts) {
+    lines.push(`Previous batch failed fit for: ${reasonParts}.`);
+  }
+  if (rejectionTitles?.length > 0) {
+    lines.push(
+      `Rejected titles to avoid: ${rejectionTitles
+        .map((title) => `"${title}"`)
+        .join(", ")}.`
+    );
+  }
+  return lines.join("\n");
+}
 
 function logSuggestionTiming(payload) {
   try {
@@ -130,7 +184,10 @@ function preserveLibraryIds(activity) {
 }
 
 function maxTokensForCount(count) {
-  const n = Math.max(1, Math.min(SUGGESTION_COUNT, Number(count) || 1));
+  const n = Math.max(
+    1,
+    Math.min(MAX_AI_GENERATE_COUNT, Number(count) || 1)
+  );
   return Math.max(1800, Math.ceil(4500 * (n / SUGGESTION_COUNT)));
 }
 
@@ -356,12 +413,29 @@ export default function createActivitySuggestionsRouter(client) {
         const aiSlots = SUGGESTION_COUNT - cachedKept.length;
         let aiActivities = [];
         let usageMeta = null;
+        const aiDiagnostics = {
+          aiAttempted: false,
+          aiRequestedCount: 0,
+          aiGeneratedCount: 0,
+          aiClarityRejectedCount: 0,
+          aiFitRejectedCount: 0,
+          aiRejectedByReason: {},
+          aiEligibleCount: 0,
+          refillAttempted: false,
+          refillRequestedCount: 0,
+          refillGeneratedCount: 0,
+          refillEligibleCount: 0,
+        };
 
         if (aiSlots > 0) {
+          const aiGenerateCount = computeAiGenerateCount(aiSlots);
+          aiDiagnostics.aiAttempted = true;
+          aiDiagnostics.aiRequestedCount = aiGenerateCount;
+
           const instructions = buildActivitySuggestionsInstructions(
             safeActivityStyle,
             safePlayModeTheme,
-            { childrenContext, groupAgeContext, activityCount: aiSlots }
+            { childrenContext, groupAgeContext, activityCount: aiGenerateCount }
           );
           const titlesToAvoid = [
             ...safePreviousActivityTitles,
@@ -372,7 +446,7 @@ export default function createActivitySuggestionsRouter(client) {
           let recovered;
           try {
             recovered = await generateActivitiesWithParseRecovery({
-              expectedCount: aiSlots,
+              expectedCount: aiGenerateCount,
               activityStyle: safeActivityStyle,
               maxTokensForCount,
               baseFeedback: safeFeedbackContext,
@@ -449,6 +523,9 @@ export default function createActivitySuggestionsRouter(client) {
           };
 
           const rawActivities = recovered.activities;
+          aiDiagnostics.aiGeneratedCount = Array.isArray(rawActivities)
+            ? rawActivities.length
+            : 0;
 
           const normalizeAiStarted = Date.now();
           const normalizedActivities = rawActivities.map((activity) =>
@@ -458,6 +535,7 @@ export default function createActivitySuggestionsRouter(client) {
           let clarityPassed = normalizedActivities.filter((activity) => {
             const result = validateActivityClarity(activity);
             if (!result.valid) {
+              aiDiagnostics.aiClarityRejectedCount += 1;
               console.warn("[clarity] rejected", {
                 title: activity?.title,
                 errors: result.errors,
@@ -477,7 +555,7 @@ export default function createActivitySuggestionsRouter(client) {
             let clarityRetryRaw = [];
             try {
               const clarityRecovered = await generateActivitiesWithParseRecovery({
-                expectedCount: aiSlots,
+                expectedCount: aiGenerateCount,
                 activityStyle: safeActivityStyle,
                 maxTokensForCount,
                 baseFeedback: [safeFeedbackContext, clarityRetrySteer]
@@ -529,22 +607,13 @@ export default function createActivitySuggestionsRouter(client) {
                   }),
               });
               clarityRetryRaw = clarityRecovered.activities;
-              usageMeta = {
-                model: clarityRecovered.usage?.model || usageMeta.model,
-                inputTokens:
-                  (usageMeta.inputTokens || 0) +
-                  (clarityRecovered.usage?.inputTokens || 0),
-                outputTokens:
-                  (usageMeta.outputTokens || 0) +
-                  (clarityRecovered.usage?.outputTokens || 0),
-                totalTokens:
-                  (usageMeta.totalTokens || 0) +
-                  (clarityRecovered.usage?.totalTokens || 0),
-                responseId:
-                  clarityRecovered.usage?.responseId || usageMeta.responseId,
-                instructionChars: usageMeta.instructionChars,
-                inputChars: usageMeta.inputChars,
-              };
+              usageMeta = mergeUsageMeta(usageMeta, {
+                model: clarityRecovered.usage?.model,
+                inputTokens: clarityRecovered.usage?.inputTokens || 0,
+                outputTokens: clarityRecovered.usage?.outputTokens || 0,
+                totalTokens: clarityRecovered.usage?.totalTokens || 0,
+                responseId: clarityRecovered.usage?.responseId,
+              });
             } catch (clarityParseError) {
               if (!(clarityParseError instanceof AiResponseInvalidError)) {
                 throw clarityParseError;
@@ -555,9 +624,14 @@ export default function createActivitySuggestionsRouter(client) {
             const clarityRetryNormalized = clarityRetryRaw.map((activity) =>
               enrichActivityForServe(activity, safeActivityStyle, childAges)
             );
-            clarityPassed = clarityRetryNormalized.filter((activity) =>
-              validateActivityClarity(activity).valid
-            );
+            clarityPassed = clarityRetryNormalized.filter((activity) => {
+              const result = validateActivityClarity(activity);
+              if (!result.valid) {
+                aiDiagnostics.aiClarityRejectedCount += 1;
+              }
+              return result.valid;
+            });
+            aiDiagnostics.aiGeneratedCount += clarityRetryRaw.length;
           }
 
           let ageFiltered = filterActivitiesByFitPolicy(
@@ -565,10 +639,20 @@ export default function createActivitySuggestionsRouter(client) {
             fitRequestContext
           );
           totalAgeFitRejected += ageFiltered.summary.rejected;
+          aiDiagnostics.aiFitRejectedCount += ageFiltered.summary.rejected || 0;
+          if (ageFiltered.summary?.rejectedByReason) {
+            for (const [reason, count] of Object.entries(
+              ageFiltered.summary.rejectedByReason
+            )) {
+              aiDiagnostics.aiRejectedByReason[reason] =
+                (aiDiagnostics.aiRejectedByReason[reason] || 0) + count;
+            }
+          }
           let eligibleActivities = ageFiltered.activities;
+          let lastRejectedDetails = ageFiltered.rejected || [];
 
           if (eligibleActivities.length === 0) {
-            const rejectionTitles = (ageFiltered.rejected || [])
+            const rejectionTitles = lastRejectedDetails
               .map((detail) => detail.activity?.title)
               .filter(Boolean)
               .slice(0, 5);
@@ -586,7 +670,7 @@ export default function createActivitySuggestionsRouter(client) {
             let retryRawActivities = [];
             try {
               const ageRecovered = await generateActivitiesWithParseRecovery({
-                expectedCount: aiSlots,
+                expectedCount: aiGenerateCount,
                 activityStyle: safeActivityStyle,
                 maxTokensForCount,
                 baseFeedback: retryFeedback,
@@ -644,22 +728,14 @@ export default function createActivitySuggestionsRouter(client) {
                 },
               });
               retryRawActivities = ageRecovered.activities;
-              usageMeta = {
-                model: ageRecovered.usage?.model || usageMeta.model,
-                inputTokens:
-                  (usageMeta.inputTokens || 0) +
-                  (ageRecovered.usage?.inputTokens || 0),
-                outputTokens:
-                  (usageMeta.outputTokens || 0) +
-                  (ageRecovered.usage?.outputTokens || 0),
-                totalTokens:
-                  (usageMeta.totalTokens || 0) +
-                  (ageRecovered.usage?.totalTokens || 0),
-                responseId:
-                  ageRecovered.usage?.responseId || usageMeta.responseId,
-                instructionChars: usageMeta.instructionChars,
-                inputChars: usageMeta.inputChars,
-              };
+              usageMeta = mergeUsageMeta(usageMeta, {
+                model: ageRecovered.usage?.model,
+                inputTokens: ageRecovered.usage?.inputTokens || 0,
+                outputTokens: ageRecovered.usage?.outputTokens || 0,
+                totalTokens: ageRecovered.usage?.totalTokens || 0,
+                responseId: ageRecovered.usage?.responseId,
+              });
+              aiDiagnostics.aiGeneratedCount += retryRawActivities.length;
             } catch (ageParseError) {
               if (ageParseError instanceof AiResponseInvalidError) {
                 if (cachedKept.length === 0) {
@@ -695,45 +771,227 @@ export default function createActivitySuggestionsRouter(client) {
               .map((activity) =>
                 enrichActivityForServe(activity, safeActivityStyle, childAges)
               )
-              .filter((activity) => validateActivityClarity(activity).valid);
+              .filter((activity) => {
+                const result = validateActivityClarity(activity);
+                if (!result.valid) {
+                  aiDiagnostics.aiClarityRejectedCount += 1;
+                }
+                return result.valid;
+              });
             ageFiltered = filterActivitiesByFitPolicy(
               retryNormalized,
               fitRequestContext
             );
             totalAgeFitRejected += ageFiltered.summary.rejected;
+            aiDiagnostics.aiFitRejectedCount +=
+              ageFiltered.summary.rejected || 0;
+            if (ageFiltered.summary?.rejectedByReason) {
+              for (const [reason, count] of Object.entries(
+                ageFiltered.summary.rejectedByReason
+              )) {
+                aiDiagnostics.aiRejectedByReason[reason] =
+                  (aiDiagnostics.aiRejectedByReason[reason] || 0) + count;
+              }
+            }
             eligibleActivities = ageFiltered.activities;
+            lastRejectedDetails = ageFiltered.rejected || [];
+          }
 
-            if (eligibleActivities.length === 0 && cachedKept.length === 0) {
-              console.warn("[ageFit] AGE_FIT_FAILED after retry", {
-                oldestAge,
-                childAges,
-                totalAgeFitRejected,
-                details: ageFiltered.summary.rejectedByReason,
+          // One partial-shortage refill when survivors < needed slots.
+          if (eligibleActivities.length < aiSlots) {
+            const remaining = aiSlots - eligibleActivities.length;
+            const refillCount = computeAiGenerateCount(remaining);
+            const rejectionTitles = lastRejectedDetails
+              .map((detail) => detail.activity?.title)
+              .filter(Boolean);
+            const acceptedTitles = eligibleActivities
+              .map((a) => a.title)
+              .filter(Boolean);
+            const refillSteer = buildPartialRefillSteer({
+              remaining,
+              rejectionTitles,
+              rejectedByReason: aiDiagnostics.aiRejectedByReason,
+            });
+            const refillTitlesToAvoid = [
+              ...titlesToAvoid,
+              ...acceptedTitles,
+              ...rejectionTitles,
+            ];
+            const refillFeedback = [safeFeedbackContext, refillSteer]
+              .filter(Boolean)
+              .join("\n\n");
+
+            aiDiagnostics.refillAttempted = true;
+            aiDiagnostics.refillRequestedCount = refillCount;
+
+            const refillInstructions = buildActivitySuggestionsInstructions(
+              safeActivityStyle,
+              safePlayModeTheme,
+              {
+                childrenContext,
+                groupAgeContext,
+                activityCount: refillCount,
+              }
+            );
+
+            if (
+              eligibleActivities.length === 0 &&
+              (lastRejectedDetails.length > 0 ||
+                Object.keys(aiDiagnostics.aiRejectedByReason).length > 0)
+            ) {
+              console.warn("[activity-suggestions:ai-rejected]", {
+                aiSlots,
+                kept: 0,
+                rejectedByReason: aiDiagnostics.aiRejectedByReason,
+                titles: rejectionTitles.slice(0, 8),
               });
-              await recordAiUsageEvent({
-                userId: req.auth.userId,
-                operation: "activity-suggestions",
-                model: usageMeta.model,
-                inputTokens: usageMeta.inputTokens,
-                outputTokens: usageMeta.outputTokens,
-                totalTokens: usageMeta.totalTokens,
-                responseId: usageMeta.responseId,
-                latencyMs: Date.now() - startedAt,
-                success: false,
-                error: { message: "AGE_FIT_FAILED" },
-              });
-              return res.status(422).json({
-                error:
-                  "Could not generate age-appropriate activities for this child. Try regenerating or updating interests.",
-                message:
-                  "Could not generate age-appropriate activities for this child. Try regenerating or updating interests.",
-                code: "AGE_FIT_FAILED",
-                ageFitRejectedCount: totalAgeFitRejected,
+            } else if (eligibleActivities.length > 0) {
+              console.warn("[activity-suggestions:ai-partial]", {
+                aiSlots,
+                kept: eligibleActivities.length,
+                remaining,
+                rejectedByReason: aiDiagnostics.aiRejectedByReason,
               });
             }
-          }
-          msNormalize += Date.now() - normalizeAiStarted;
 
+            const refillStarted = Date.now();
+            let refillRaw = [];
+            try {
+              const refillRecovered = await generateActivitiesWithParseRecovery({
+                expectedCount: refillCount,
+                activityStyle: safeActivityStyle,
+                maxTokensForCount,
+                baseFeedback: refillFeedback,
+                buildInput: (extraFeedback, activityCount) =>
+                  buildActivitySuggestionsInput({
+                    safeCurrentMoment,
+                    kidMood: resolvedKidMood,
+                    energyLevel: energyFromContext || resolvedKidMood,
+                    locationPreference:
+                      safeCurrentMoment.space || locationPreference || "",
+                    childAgeRange,
+                    childrenContext,
+                    groupAgeContext,
+                    activeChildProfile: resolvedActiveProfile,
+                    safeActivityStyle,
+                    activityMode: resolvedActivityMode,
+                    safeSelectedChildProfiles,
+                    inventory: resolvedInventory,
+                    safeFeedbackContext: [refillFeedback, extraFeedback]
+                      .filter(Boolean)
+                      .join("\n\n"),
+                    safePreviousActivityTitles: refillTitlesToAvoid,
+                    safeSafetySettings,
+                    playModeTheme: safePlayModeTheme,
+                    activityPreferences:
+                      activityPreferences &&
+                      typeof activityPreferences === "object"
+                        ? activityPreferences
+                        : null,
+                    activityCount,
+                  }),
+                createResponse: async ({
+                  input: retryInput,
+                  maxOutputTokens,
+                }) =>
+                  createStructuredResponseWithMeta(client, {
+                    instructions: refillInstructions,
+                    input: retryInput,
+                    schemaName: "activity_suggestions",
+                    schema: activitySuggestionsSchemaV3,
+                    verbosity: "low",
+                    maxOutputTokens,
+                  }),
+              });
+              refillRaw = refillRecovered.activities;
+              usageMeta = mergeUsageMeta(usageMeta, {
+                model: refillRecovered.usage?.model,
+                inputTokens: refillRecovered.usage?.inputTokens || 0,
+                outputTokens: refillRecovered.usage?.outputTokens || 0,
+                totalTokens: refillRecovered.usage?.totalTokens || 0,
+                responseId: refillRecovered.usage?.responseId,
+              });
+            } catch (refillParseError) {
+              if (!(refillParseError instanceof AiResponseInvalidError)) {
+                throw refillParseError;
+              }
+              refillRaw = [];
+            }
+            msOpenai += Date.now() - refillStarted;
+            aiDiagnostics.refillGeneratedCount = refillRaw.length;
+
+            const refillClarity = refillRaw
+              .map((activity) =>
+                enrichActivityForServe(activity, safeActivityStyle, childAges)
+              )
+              .filter((activity) => {
+                const result = validateActivityClarity(activity);
+                if (!result.valid) {
+                  aiDiagnostics.aiClarityRejectedCount += 1;
+                  console.warn("[clarity] rejected", {
+                    title: activity?.title,
+                    errors: result.errors,
+                    phase: "refill",
+                  });
+                }
+                return result.valid;
+              });
+            const refillFiltered = filterActivitiesByFitPolicy(
+              refillClarity,
+              fitRequestContext
+            );
+            totalAgeFitRejected += refillFiltered.summary.rejected;
+            aiDiagnostics.aiFitRejectedCount +=
+              refillFiltered.summary.rejected || 0;
+            if (refillFiltered.summary?.rejectedByReason) {
+              for (const [reason, count] of Object.entries(
+                refillFiltered.summary.rejectedByReason
+              )) {
+                aiDiagnostics.aiRejectedByReason[reason] =
+                  (aiDiagnostics.aiRejectedByReason[reason] || 0) + count;
+              }
+            }
+            aiDiagnostics.refillEligibleCount =
+              refillFiltered.activities.length;
+            eligibleActivities = takeAiFill(
+              eligibleActivities,
+              refillFiltered.activities,
+              aiSlots
+            );
+          }
+
+          if (eligibleActivities.length === 0 && cachedKept.length === 0) {
+            console.warn("[ageFit] AGE_FIT_FAILED after refill", {
+              oldestAge,
+              childAges,
+              totalAgeFitRejected,
+              details: aiDiagnostics.aiRejectedByReason,
+              ...aiDiagnostics,
+            });
+            await recordAiUsageEvent({
+              userId: req.auth.userId,
+              operation: "activity-suggestions",
+              model: usageMeta?.model || OPENAI_MODEL,
+              inputTokens: usageMeta?.inputTokens,
+              outputTokens: usageMeta?.outputTokens,
+              totalTokens: usageMeta?.totalTokens,
+              responseId: usageMeta?.responseId,
+              latencyMs: Date.now() - startedAt,
+              success: false,
+              error: { message: "AGE_FIT_FAILED" },
+            });
+            return res.status(422).json({
+              error:
+                "Could not generate age-appropriate activities for this child. Try regenerating or updating interests.",
+              message:
+                "Could not generate age-appropriate activities for this child. Try regenerating or updating interests.",
+              code: "AGE_FIT_FAILED",
+              ageFitRejectedCount: totalAgeFitRejected,
+            });
+          }
+
+          msNormalize += Date.now() - normalizeAiStarted;
+          aiDiagnostics.aiEligibleCount = eligibleActivities.length;
           aiActivities = eligibleActivities.slice(0, aiSlots);
         }
 
@@ -773,6 +1031,8 @@ export default function createActivitySuggestionsRouter(client) {
         }));
         const recommendationBatchId = withIds.recommendationBatchId;
         const msTotal = Date.now() - startedAt;
+        const finalCount = mergedActivities.length;
+        const underfilled = finalCount < SUGGESTION_COUNT;
         const timing = {
           source,
           msCacheLookup,
@@ -781,6 +1041,19 @@ export default function createActivitySuggestionsRouter(client) {
           msTotal,
           cacheCount: cachedKept.length,
           aiCount: aiActivities.length,
+          finalCount,
+          underfilled,
+          aiAttempted: aiDiagnostics.aiAttempted,
+          aiRequestedCount: aiDiagnostics.aiRequestedCount,
+          aiGeneratedCount: aiDiagnostics.aiGeneratedCount,
+          aiClarityRejectedCount: aiDiagnostics.aiClarityRejectedCount,
+          aiFitRejectedCount: aiDiagnostics.aiFitRejectedCount,
+          aiRejectedByReason: aiDiagnostics.aiRejectedByReason,
+          aiEligibleCount: aiDiagnostics.aiEligibleCount,
+          refillAttempted: aiDiagnostics.refillAttempted,
+          refillRequestedCount: aiDiagnostics.refillRequestedCount,
+          refillGeneratedCount: aiDiagnostics.refillGeneratedCount,
+          refillEligibleCount: aiDiagnostics.refillEligibleCount,
           ...(usageMeta
             ? {
                 instructionChars: usageMeta.instructionChars,
