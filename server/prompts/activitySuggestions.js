@@ -6,6 +6,7 @@ import {
 import { getPlayModePromptFlavor } from "../utils/playModeTheme.js";
 import { BRAND } from "../../src/config/brand.js";
 import { getPolicyAgeBand } from "../utils/activityAgePolicy.js";
+import { clampAiGenerateCount } from "../utils/suggestionFill.js";
 
 /**
  * Resolve which age-voice band to include for the oldest participant.
@@ -246,10 +247,7 @@ export function buildActivitySuggestionsInstructions(
       ? buildSimpleStyleRules()
       : buildImaginativeStyleRules(ageBand);
 
-  const requestedCount = Math.max(
-    1,
-    Math.min(3, Number(options.activityCount) || 3)
-  );
+  const requestedCount = clampAiGenerateCount(options.activityCount);
   const countPhrase =
     requestedCount === 1
       ? "1 activity"
@@ -393,7 +391,7 @@ export function buildActivitySuggestionsInput({
       ? activityPreferences
       : {};
   const ageBand = resolvePromptAgeBand(groupAgeContext, children);
-  const requestedCount = Math.max(1, Math.min(3, Number(activityCount) || 3));
+  const requestedCount = clampAiGenerateCount(activityCount);
   const participantCount = children.length;
   const resolvedMode =
     participantCount >= 2 ? "family" : activityMode || "single-child";

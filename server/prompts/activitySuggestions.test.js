@@ -114,4 +114,20 @@ describe("buildActivitySuggestionsInstructions", () => {
     expect(one).toContain("Give exactly 1 activity.");
     expect(two).toContain("Give exactly 2 activities.");
   });
+
+  it("allows over-generation counts above 3 up to 5", () => {
+    const forFive = buildActivitySuggestionsInstructions(
+      "simple",
+      "playroom",
+      { groupAgeContext: { oldestAge: 8 }, activityCount: 5 }
+    );
+    const forNine = buildActivitySuggestionsInstructions(
+      "simple",
+      "playroom",
+      { groupAgeContext: { oldestAge: 8 }, activityCount: 9 }
+    );
+    expect(forFive).toContain("5 activities");
+    expect(forNine).toContain("5 activities");
+    expect(forNine).not.toContain("9 activities");
+  });
 });

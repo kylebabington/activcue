@@ -8,6 +8,7 @@ import {
 } from "./activityIntent";
 import { trackProductEvent } from "../../utils/analytics";
 import { recordSharedActivityOutcome } from "../../api/sharedActivitiesApi";
+import { boardCandidateIds } from "./boardCandidateIds";
 
 export function useActivityFeedback({
   kidMood,
@@ -31,6 +32,8 @@ export function useActivityFeedback({
   clearLastCompletedQuest,
   kidActivityStyle,
   kidEnergyLevel,
+  /** Current suggestion board — used to exclude all cards on "Not this". */
+  boardActivities = [],
 } = {}) {
   function saveActivityFeedback(activity, feedbackType) {
     const notThisFeedbackTypes = [
@@ -122,50 +125,56 @@ export function useActivityFeedback({
     });
   }
 
-  function excludeIdsFromActivity(activity) {
-    const id = activity?.candidateId || activity?.candidate_id;
-    return id ? [String(id)] : [];
+  /** Permanent reject is only the clicked card; next request excludes the whole board. */
+  function excludeIdsFromBoard(rejectedActivity) {
+    const boardIds = boardCandidateIds(boardActivities);
+    const rejectedId =
+      rejectedActivity?.candidateId || rejectedActivity?.candidate_id;
+    if (rejectedId) {
+      boardIds.push(String(rejectedId));
+    }
+    return [...new Set(boardIds)];
   }
 
   function handleTooMessy(activity) {
     saveActivityFeedback(activity, "too-messy");
     regenerateFromFeedback("too-messy", activity.title, {
-      excludeCandidateIds: excludeIdsFromActivity(activity),
+      excludeCandidateIds: excludeIdsFromBoard(activity),
     });
   }
 
   function handleTooHard(activity) {
     saveActivityFeedback(activity, "too-hard");
     regenerateFromFeedback("too-hard", activity.title, {
-      excludeCandidateIds: excludeIdsFromActivity(activity),
+      excludeCandidateIds: excludeIdsFromBoard(activity),
     });
   }
 
   function handleTooYoung(activity) {
     saveActivityFeedback(activity, "too-young");
     regenerateFromFeedback("too-young", activity.title, {
-      excludeCandidateIds: excludeIdsFromActivity(activity),
+      excludeCandidateIds: excludeIdsFromBoard(activity),
     });
   }
 
   function handleTooOld(activity) {
     saveActivityFeedback(activity, "too-old");
     regenerateFromFeedback("too-old", activity.title, {
-      excludeCandidateIds: excludeIdsFromActivity(activity),
+      excludeCandidateIds: excludeIdsFromBoard(activity),
     });
   }
 
   function handleTooEasy(activity) {
     saveActivityFeedback(activity, "too-easy");
     regenerateFromFeedback("too-easy", activity.title, {
-      excludeCandidateIds: excludeIdsFromActivity(activity),
+      excludeCandidateIds: excludeIdsFromBoard(activity),
     });
   }
 
   function handleNeedQuieter(activity) {
     saveActivityFeedback(activity, "need-quieter");
     regenerateFromFeedback("need-quieter", activity.title, {
-      excludeCandidateIds: excludeIdsFromActivity(activity),
+      excludeCandidateIds: excludeIdsFromBoard(activity),
     });
   }
 
@@ -339,9 +348,7 @@ export function useActivityFeedback({
     }
 
     const completedTitle = lastCompletedQuest.title;
-    const excludeCandidateIds = excludeIdsFromActivity(
-      lastCompletedQuest.activity
-    );
+    const excludeCandidateIds = excludeIdsFromBoard(lastCompletedQuest.activity);
     clearLastCompletedQuest?.();
     regenerateFromFeedback("more-like-this", completedTitle, {
       excludeCandidateIds,
@@ -351,7 +358,7 @@ export function useActivityFeedback({
 
   function handleCompletedQuestNeedAnotherIdea() {
     const completedTitle = lastCompletedQuest?.title || "the last activity";
-    const excludeCandidateIds = excludeIdsFromActivity(
+    const excludeCandidateIds = excludeIdsFromBoard(
       lastCompletedQuest?.activity
     );
     clearLastCompletedQuest?.();
