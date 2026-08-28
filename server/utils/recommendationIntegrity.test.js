@@ -145,6 +145,39 @@ describe("recommendation integrity suite", () => {
     expect(result.hardFailures).not.toContain("participant-count-mismatch");
   });
 
+  it("family mode allows cooperative socialMode with stale cache metadata", () => {
+    const request = requestForAges([6, 8]);
+    const cooperativeSeed = {
+      ...seedA,
+      title: "Team Sorting Line",
+      traits: { socialMode: "cooperative" },
+      participant_mode: "single",
+      participant_min: 1,
+      participant_max: 1,
+      participant_fit_validated: false,
+      ageFit: {
+        minAge: 5,
+        maxAge: 10,
+        targetAges: [6, 8],
+        maturityLevel: "child",
+      },
+      roleGuide: {
+        name: "Sorters",
+        description: "Sort together.",
+        childRoles: [
+          { childName: "A", age: 6, roleTitle: "Sorter", responsibility: "Sort", firstAction: "Pick" },
+          { childName: "B", age: 8, roleTitle: "Checker", responsibility: "Check", firstAction: "Verify" },
+        ],
+      },
+      stepDetails: [
+        { title: "Sort", actions: ["Pick five items.", "Place them in a row.", "Check the row."], doneWhen: "Row is sorted.", starterIdeas: [], ifStuck: "Sort three first.", roleInstructions: [] },
+        { title: "Label", actions: ["Write a label.", "Tape it on.", "Read it aloud."], doneWhen: "Label is taped.", starterIdeas: [], ifStuck: "Use initials.", roleInstructions: [] },
+      ],
+    };
+    const result = evaluateActivityFit(cooperativeSeed, request);
+    expect(result.hardFailures).not.toContain("participant-count-mismatch");
+  });
+
   it("builds sanitized generation context without names", () => {
     const participants = resolveParticipantContext({
       selectedChildProfiles: [

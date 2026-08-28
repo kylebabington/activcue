@@ -3,6 +3,7 @@ import {
   evaluateActivityAgeFit,
   getExpectedMaturityLevel,
   getPolicyAgeBand,
+  getDevelopmentalComplexityBudget,
   scoreActivityAgeMatch,
   validateDevelopmentalComplexity,
   AGE_POLICY_VERSION,
@@ -267,5 +268,44 @@ describe("scoreActivityAgeMatch", () => {
       [6]
     );
     expect(tight).toBeGreaterThan(broad);
+  });
+
+  it("getDevelopmentalComplexityBudget matches validator for youngest 6", () => {
+    const budget = getDevelopmentalComplexityBudget(6, "imaginative");
+    expect(budget.maxScenes).toBe(4);
+    expect(budget.maxActionsPerScene).toBe(4);
+  });
+
+  it("ages 6 and 8 pass with four scenes and four actions per scene", () => {
+    const activity = concreteAge6Activity({
+      stepDetails: Array.from({ length: 4 }, (_, i) => ({
+        title: `Scene ${i + 1}`,
+        actions: ["Act one.", "Act two.", "Act three.", "Act four."],
+        doneWhen: "Done.",
+        starterIdeas: [],
+        ifStuck: "Try two.",
+        roleInstructions: [],
+      })),
+    });
+    const result = validateDevelopmentalComplexity(activity, [6, 8]);
+    expect(result.ok).toBe(true);
+  });
+
+  it("ages 6 and 8 fail with five actions in one scene", () => {
+    const activity = concreteAge6Activity({
+      stepDetails: [
+        {
+          title: "Scene",
+          actions: ["A", "B", "C", "D", "E"],
+          doneWhen: "Done.",
+          starterIdeas: [],
+          ifStuck: "Try three.",
+          roleInstructions: [],
+        },
+      ],
+    });
+    const result = validateDevelopmentalComplexity(activity, [6, 8]);
+    expect(result.ok).toBe(false);
+    expect(result.warnings).toContain("too-many-actions-per-scene");
   });
 });

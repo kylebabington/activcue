@@ -3,6 +3,11 @@
 
 import { evaluateActivityAgeFit } from "./activityAgePolicy.js";
 import { validateActivityClarity } from "./activityClarityValidation.js";
+import {
+  normalizeParticipantMeta,
+  evaluateParticipantCompatibility,
+  toFitParticipantMeta,
+} from "./participantMeta.js";
 
 export const FIT_POLICY_VERSION = 1;
 
@@ -26,6 +31,8 @@ const LOUD_RE =
   /\b(loud|shout|yell|scream|stomping|drum|noisy|high[- ]energy chase)\b/i;
 const PARTNER_RE =
   /\b(partner|sibling|take turns with|one person .+ while (the )?other|two children|both kids|team up|your brother|your sister)\b/i;
+
+export { PARTNER_RE };
 
 function textBlob(activity) {
   const parts = [
@@ -51,51 +58,16 @@ function textBlob(activity) {
   return parts.filter(Boolean).join(" ");
 }
 
-function resolveParticipantMeta(activity) {
-  const mode = String(
-    activity?.participant_mode ||
-      activity?.participantMode ||
-      activity?.traits?.socialMode ||
-      ""
-  ).toLowerCase();
-  const min = Number(
-    activity?.participant_min ?? activity?.participantMin ?? NaN
-  );
-  const max = Number(
-    activity?.participant_max ?? activity?.participantMax ?? NaN
-  );
-  const roles = Array.isArray(activity?.roleGuide?.childRoles)
-    ? activity.roleGuide.childRoles
-    : [];
-
-  let inferredMode = mode;
-  let inferredMin = Number.isFinite(min) ? min : null;
-  let inferredMax = Number.isFinite(max) ? max : null;
-
-  if (!inferredMode) {
-    if (roles.length >= 2) {
-      inferredMode = "group";
-      inferredMin = inferredMin ?? roles.length;
-      inferredMax = inferredMax ?? Math.max(roles.length, 4);
-    } else {
-      inferredMode = "single";
-      inferredMin = inferredMin ?? 1;
-      inferredMax = inferredMax ?? 1;
-    }
-  }
-
-  if (inferredMin == null) {
-    inferredMin = inferredMode === "group" ? 2 : 1;
-  }
-  if (inferredMax == null) {
-    inferredMax = inferredMode === "group" ? 4 : 1;
-  }
-
+function buildParticipantDiagnostics(activity, normalized) {
   return {
-    mode: inferredMode === "group" || inferredMode === "family" ? "group" : "single",
-    min: inferredMin,
-    max: inferredMax,
-    roleCount: roles.length,
+    participantMode: normalized.participantMode,
+    participantMin: normalized.participantMin,
+    participantMax: normalized.participantMax,
+    roleCount: normalized.roleCount,
+    socialMode: normalized.socialMode,
+    source: normalized.source,
+    metadataContradiction: normalized.metadataContradiction,
+    title: activity?.title || null,
   };
 }
 
@@ -167,34 +139,17 @@ export function evaluateActivityFit(activity, requestContext = {}) {
     activityPrefs.style || requestContext.expectedStyle || null;
   const inventory = requestContext.inventory || [];
 
-  // --- Participants ---
-  const participantMeta = resolveParticipantMeta(activity);
-  if (participantCount <= 1) {
-    if (participantMeta.mode === "group" || participantMeta.min > 1) {
-      hardFailures.push("participant-count-mismatch");
-    }
-    if (participantMeta.roleCount >= 2) {
-      hardFailures.push("participant-count-mismatch");
-    }
-    const blob = textBlob(activity);
-    if (PARTNER_RE.test(blob)) {
-      hardFailures.push("participant-count-mismatch");
-    }
-  } else if (participantCount >= 2) {
-    if (
-      Number.isFinite(participantMeta.max) &&
-      participantCount > participantMeta.max
-    ) {
-      hardFailures.push("participant-count-mismatch");
-    }
-    if (
-      Number.isFinite(participantMeta.min) &&
-      participantCount < participantMeta.min &&
-      participantMeta.mode === "group"
-    ) {
-      hardFailures.push("participant-count-mismatch");
-    }
-  }
+  // --- Participants (min/max-first) ---
+  const normalizedParticipant = normalizeParticipantMeta(activity);
+  const participantMeta = toFitParticipantMeta(normalizedParticipant);
+  const blob = textBlob(activity);
+  const participantFailures = evaluateParticipantCompatibility(
+    participantMeta,
+    participantCount,
+    blob,
+    PARTNER_RE
+  );
+  hardFailures.push(...participantFailures);
 
   // --- Age (delegates to activityAgePolicy) ---
   const ageEval = evaluateActivityAgeFit({
@@ -270,7 +225,6 @@ export function evaluateActivityFit(activity, requestContext = {}) {
 
   // --- Space ---
   const space = String(moment.space || "");
-  const blob = textBlob(activity);
   if (space && INDOOR_SPACE_RE.test(space) && OUTDOOR_ACTIVITY_RE.test(blob)) {
     hardFailures.push("space-mismatch");
   }
@@ -326,6 +280,11 @@ export function evaluateActivityFit(activity, requestContext = {}) {
     hardFailures: uniqueFailures,
     scores,
     fitPolicyVersion: FIT_POLICY_VERSION,
+    participantDiagnostics: buildParticipantDiagnostics(
+      activity,
+      normalizedParticipant
+    ),
+    ageWarnings: ageEval.warnings || [],
   };
 }
 
@@ -388,11 +347,11 @@ export function buildFitRequestContextFromParts({
  * Infer participant metadata for cache columns from activity structure.
  */
 export function inferParticipantMetadata(activity) {
-  const meta = resolveParticipantMeta(activity);
+  const normalized = normalizeParticipantMeta(activity);
   return {
-    participant_mode: meta.mode,
-    participant_min: meta.min,
-    participant_max: meta.max,
-    participant_fit_validated: false,
+    participant_mode: normalized.participant_mode,
+    participant_min: normalized.participant_min,
+    participant_max: normalized.participant_max,
+    participant_fit_validated: true,
   };
 }

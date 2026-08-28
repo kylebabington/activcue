@@ -81,21 +81,108 @@ function mergeUsageMeta(base, next) {
   };
 }
 
-function buildPartialRefillSteer({ remaining, rejectionTitles, rejectedByReason }) {
+function summarizeRejectedDetails(rejectedDetails = []) {
+  const developmentalWarnings = {};
+  const participantSamples = [];
+  for (const detail of rejectedDetails.slice(0, 5)) {
+    const result = detail?.result || {};
+    for (const warning of result.ageWarnings || []) {
+      developmentalWarnings[warning] = (developmentalWarnings[warning] || 0) + 1;
+    }
+    if (result.participantDiagnostics && participantSamples.length < 3) {
+      participantSamples.push(result.participantDiagnostics);
+    }
+  }
+  return { developmentalWarnings, participantSamples };
+}
+
+function classifyFitFailureType(rejectedByReason = {}) {
+  if ((rejectedByReason["participant-count-mismatch"] || 0) > 0) {
+    return "PARTICIPANT_FIT_FAILED";
+  }
+  if ((rejectedByReason["developmental-complexity"] || 0) > 0) {
+    return "DEVELOPMENTAL_COMPLEXITY_FAILED";
+  }
+  if ((rejectedByReason["noise-limit"] || 0) > 0) {
+    return "NOISE_FIT_FAILED";
+  }
+  if ((rejectedByReason["space-mismatch"] || 0) > 0) {
+    return "SPACE_FIT_FAILED";
+  }
+  if ((rejectedByReason["age-range-mismatch"] || 0) > 0) {
+    return "AGE_RANGE_FAILED";
+  }
+  return "AGE_FIT_FAILED";
+}
+
+function buildPartialRefillSteer({
+  remaining,
+  rejectionTitles,
+  rejectedByReason,
+  participantCount,
+  rejectedDetails = [],
+  allowedSocialModes = [],
+}) {
+  const { developmentalWarnings, participantSamples } =
+    summarizeRejectedDetails(rejectedDetails);
+
   const reasonParts =
     rejectedByReason && typeof rejectedByReason === "object"
       ? Object.entries(rejectedByReason)
           .map(([reason, count]) => `${reason}:${count}`)
           .join(", ")
       : "";
+
+  const devParts = Object.entries(developmentalWarnings)
+    .map(([w, count]) => `${w}:${count}`)
+    .join(", ");
+
   const lines = [
     `PARTIAL REFILL: Need ${remaining} more activity(ies) that pass clarity and fit filters.`,
     "Do not repeat any titles listed to avoid.",
-    "Match participant count, age, mess, noise, supervision, space, and inventory constraints exactly.",
+    `Required participant count: ${participantCount}.`,
   ];
+
+  if (allowedSocialModes.length > 0) {
+    lines.push(
+      `Allowed traits.socialMode values for this request: ${allowedSocialModes.join(", ")}.`
+    );
+  }
+
+  if (participantCount >= 2) {
+    lines.push(
+      "Every listed child must have a meaningful childRoles entry. Use cooperative or flexible socialMode unless the activity is genuinely solo.",
+      "participantMin must be ≤ participant count and participantMax must be ≥ participant count."
+    );
+  } else {
+    lines.push(
+      "Single-player: childRoles must be empty. Use solo or flexible socialMode. No partner language."
+    );
+  }
+
+  lines.push(
+    "Match age, mess, noise, supervision, space, and inventory constraints exactly."
+  );
+
+  if (devParts) {
+    lines.push(`Developmental failures to fix: ${devParts}.`);
+    lines.push(
+      "If too-many-actions-per-scene: reduce actions per scene to the budget maximum.",
+      "If too-many-scenes: reduce stepDetails count.",
+      "If abstract-planning: use concrete literal actions with examples."
+    );
+  }
+
   if (reasonParts) {
     lines.push(`Previous batch failed fit for: ${reasonParts}.`);
   }
+
+  if (participantSamples.length > 0) {
+    lines.push(
+      `Sample normalized participant metadata from rejects: ${JSON.stringify(participantSamples)}`
+    );
+  }
+
   if (rejectionTitles?.length > 0) {
     lines.push(
       `Rejected titles to avoid: ${rejectionTitles
@@ -811,6 +898,12 @@ export default function createActivitySuggestionsRouter(client) {
               remaining,
               rejectionTitles,
               rejectedByReason: aiDiagnostics.aiRejectedByReason,
+              participantCount: childAges.length || 1,
+              rejectedDetails: lastRejectedDetails,
+              allowedSocialModes:
+                (childAges.length || 1) >= 2
+                  ? ["cooperative", "competitive", "flexible", "group", "family"]
+                  : ["solo", "flexible"],
             });
             const refillTitlesToAvoid = [
               ...titlesToAvoid,
@@ -843,7 +936,11 @@ export default function createActivitySuggestionsRouter(client) {
                 aiSlots,
                 kept: 0,
                 rejectedByReason: aiDiagnostics.aiRejectedByReason,
+                failureType: classifyFitFailureType(
+                  aiDiagnostics.aiRejectedByReason
+                ),
                 titles: rejectionTitles.slice(0, 8),
+                ...summarizeRejectedDetails(lastRejectedDetails),
               });
             } else if (eligibleActivities.length > 0) {
               console.warn("[activity-suggestions:ai-partial]", {
@@ -965,6 +1062,9 @@ export default function createActivitySuggestionsRouter(client) {
               oldestAge,
               childAges,
               totalAgeFitRejected,
+              failureType: classifyFitFailureType(
+                aiDiagnostics.aiRejectedByReason
+              ),
               details: aiDiagnostics.aiRejectedByReason,
               ...aiDiagnostics,
             });
