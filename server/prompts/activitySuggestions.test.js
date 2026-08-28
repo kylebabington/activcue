@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildActivitySuggestionsInstructions,
+  buildActivitySuggestionsInput,
   resolvePromptAgeBand,
 } from "./activitySuggestions.js";
 
@@ -47,7 +48,7 @@ describe("buildActivitySuggestionsInstructions", () => {
     expect(instructions).toContain("Room Redesign Lead");
     expect(instructions).toContain("NEVER use a generic one-word role");
     expect(instructions).not.toContain("EARLY-ELEMENTARY (AGES 6–7) FRAMING");
-    expect(instructions).toContain("TARGET CHILD AGE: EXACTLY 13");
+    expect(instructions).toContain("ACTIVITY DESIGN BRIEF");
   });
 
   it("keeps simple activities practical instead of forcing story framing", () => {
@@ -59,8 +60,9 @@ describe("buildActivitySuggestionsInstructions", () => {
 
     expect(instructions).toContain("STYLE RULES (simple — only)");
     expect(instructions).toContain(
-      "Do NOT create an elaborate pretend story."
+      "Do NOT create an elaborate pretend story or fantasy mission."
     );
+    expect(instructions).toContain("paper ramp");
     expect(instructions).not.toContain("STYLE RULES (imaginative");
   });
 
@@ -72,10 +74,10 @@ describe("buildActivitySuggestionsInstructions", () => {
     );
 
     expect(instructions).toContain("ACTION WRITING RULES");
+    expect(instructions).toContain("COMPLEXITY BUDGET");
     expect(instructions).toContain("SECTION OWNERSHIP");
     expect(instructions).toContain("activityFormatVersion");
-    expect(instructions).toContain("Do not copy objects, settings, or jobs from the examples");
-    expect(instructions).toContain("8-year-old");
+    expect(instructions).toContain('BAD: "Draw the map."');
     expect(instructions).toContain("setupGuide");
     expect(instructions).toContain("finishGuide");
     expect(instructions).toContain("actions[]");
@@ -98,7 +100,9 @@ describe("buildActivitySuggestionsInstructions", () => {
     );
 
     expect(imaginative.length).toBeLessThan(14000);
-    expect(simple.length).toBeLessThan(imaginative.length);
+    expect(simple.length).toBeLessThan(14000);
+    expect(imaginative).not.toContain("STYLE RULES (simple");
+    expect(simple).not.toContain("STYLE RULES (imaginative");
   });
 
   it("requests a variable activity count for hybrid cache fill", () => {
@@ -129,5 +133,62 @@ describe("buildActivitySuggestionsInstructions", () => {
     expect(forFive).toContain("5 activities");
     expect(forNine).toContain("5 activities");
     expect(forNine).not.toContain("9 activities");
+  });
+
+  it("uses four-action maximum for ages 6 and 8 in instructions", () => {
+    const instructions = buildActivitySuggestionsInstructions(
+      "imaginative",
+      "playroom",
+      {
+        childrenContext: [{ ageYears: 6 }, { ageYears: 8 }],
+        groupAgeContext: { youngestAge: 6, oldestAge: 8 },
+      }
+    );
+    expect(instructions).toContain("Maximum 4 actions per scene");
+    expect(instructions).not.toContain("3–7 actions per scene");
+    expect(instructions).not.toContain("4–7 sentences");
+  });
+
+  it("buildActivitySuggestionsInput uses design brief with both ages once", () => {
+    const input = buildActivitySuggestionsInput({
+      safeCurrentMoment: {
+        parentActivity: "work",
+        timeNeededMinutes: 20,
+        space: "Living room",
+        messLevel: "low",
+        noiseLevel: "quiet",
+        supervisionLevel: "independent",
+        availability: "limited",
+      },
+      kidMood: "neutral",
+      childrenContext: [
+        { ageYears: 6, ageBand: "early-elementary", interests: [], avoids: [] },
+        { ageYears: 8, ageBand: "elementary", interests: [], avoids: [] },
+      ],
+      groupAgeContext: { youngestAge: 6, oldestAge: 8 },
+      safeActivityStyle: "imaginative",
+      activityMode: "family",
+      safeSelectedChildProfiles: [],
+      inventory: [],
+      safeFeedbackContext: "",
+      safePreviousActivityTitles: [],
+      safeSafetySettings: {
+        screenFreeOnly: true,
+        noFoodActivities: false,
+        noWaterPlay: true,
+        noSmallObjects: true,
+        quietMode: true,
+        maxActivityMinutes: 20,
+        adultHelpAllowed: "independent",
+      },
+    });
+    expect(input).toContain("ACTIVITY DESIGN BRIEF");
+    expect(input).toContain('"age": 6');
+    expect(input).toContain('"age": 8');
+    expect(input).toContain('"requiredRoleCount": 2');
+    expect(input).toContain('"directionsMustWorkForAge": 6');
+    expect(input).toContain('"engagementMustWorkForAge": 8');
+    expect(input).not.toContain("PARTICIPANTS:");
+    expect(input).not.toContain("Selected child profiles");
   });
 });

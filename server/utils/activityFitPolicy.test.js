@@ -155,4 +155,67 @@ describe("evaluateActivityFit", () => {
     expect(result.eligible).toBe(false);
     expect(result.hardFailures).toContain("noise-limit");
   });
+
+  it("accepts flexible social mode for one child", () => {
+    const result = evaluateActivityFit(
+      baseActivity({
+        traits: { socialMode: "flexible" },
+      }),
+      baseRequest()
+    );
+    expect(result.hardFailures).not.toContain("participant-count-mismatch");
+  });
+
+  it("accepts flexible social mode for two children", () => {
+    const result = evaluateActivityFit(
+      baseActivity({
+        traits: { socialMode: "flexible" },
+      }),
+      baseRequest({
+        participants: {
+          mode: "family",
+          participantCount: 2,
+          children: [
+            { id: "c6", ageYears: 6 },
+            { id: "c8", ageYears: 8 },
+          ],
+          childrenContext: [{ ageYears: 6 }, { ageYears: 8 }],
+        },
+      })
+    );
+    expect(result.hardFailures).not.toContain("participant-count-mismatch");
+  });
+
+  it("rejects cooperative social mode for one child", () => {
+    const result = evaluateActivityFit(
+      baseActivity({ traits: { socialMode: "cooperative" } }),
+      baseRequest()
+    );
+    expect(result.hardFailures).toContain("participant-count-mismatch");
+  });
+
+  it("accepts cooperative social mode for two children with roles", () => {
+    const result = evaluateActivityFit(
+      baseActivity({
+        traits: { socialMode: "cooperative" },
+        roleGuide: {
+          name: "Team",
+          description: "Work together.",
+          childRoles: [
+            { childName: "A", age: 6, roleTitle: "Sorter", responsibility: "Sort", firstAction: "Pick" },
+            { childName: "B", age: 8, roleTitle: "Checker", responsibility: "Check", firstAction: "Verify" },
+          ],
+        },
+      }),
+      baseRequest({
+        participants: {
+          mode: "family",
+          participantCount: 2,
+          children: [{ ageYears: 6 }, { ageYears: 8 }],
+          childrenContext: [{ ageYears: 6 }, { ageYears: 8 }],
+        },
+      })
+    );
+    expect(result.hardFailures).not.toContain("participant-count-mismatch");
+  });
 });

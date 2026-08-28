@@ -6,6 +6,7 @@
 
 import { storyifyCachedImaginativeActivity } from "../../src/features/demo/storyifyCachedImaginativeActivity.js";
 import { normalizeActivity } from "./normalizeRequest.js";
+import { applyParticipantMeta } from "./participantMeta.js";
 
 /**
  * Enrich an activity before returning it to the client.
@@ -31,7 +32,8 @@ export function enrichActivityForServe(
   };
 
   const storyified = storyifyCachedImaginativeActivity(withStyle);
-  return normalizeActivity(storyified, safeActivityStyle, fallbackAges);
+  const normalized = normalizeActivity(storyified, safeActivityStyle, fallbackAges);
+  return applyParticipantMeta(normalized);
 }
 
 export function enrichActivitiesForServe(

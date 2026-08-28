@@ -256,6 +256,40 @@ export function scoreActivityAgeMatch(activity, ages = []) {
 }
 
 /**
+ * Developmental complexity limits aligned with validateDevelopmentalComplexity.
+ */
+export function getDevelopmentalComplexityBudget(youngestAge, activityStyle = "imaginative") {
+  const youngest = Number(youngestAge);
+  const style = String(activityStyle || "imaginative").toLowerCase();
+  if (!Number.isFinite(youngest)) {
+    return {
+      maxScenes: 5,
+      maxActionsPerScene: style === "simple" ? 6 : 7,
+      maxSetupSteps: 5,
+    };
+  }
+  if (youngest <= 7) {
+    return {
+      maxScenes: 4,
+      maxActionsPerScene: 4,
+      maxSetupSteps: 5,
+    };
+  }
+  if (youngest <= 9) {
+    return {
+      maxScenes: 5,
+      maxActionsPerScene: 6,
+      maxSetupSteps: 5,
+    };
+  }
+  return {
+    maxScenes: 5,
+    maxActionsPerScene: style === "simple" ? 6 : 7,
+    maxSetupSteps: 5,
+  };
+}
+
+/**
  * Developmental complexity limits by age band of the youngest focus child.
  * @returns {{ ok: boolean, warnings: string[] }}
  */

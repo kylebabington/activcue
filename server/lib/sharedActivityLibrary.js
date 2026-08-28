@@ -283,9 +283,11 @@ export function formatSharedCandidate(row) {
     participant_mode: row.participant_mode,
     participant_min: row.participant_min,
     participant_max: row.participant_max,
+    participant_fit_validated: row.participant_fit_validated,
     participantMode: row.participant_mode,
     participantMin: row.participant_min,
     participantMax: row.participant_max,
+    participantFitValidated: row.participant_fit_validated,
   };
 }
 

@@ -1,12 +1,14 @@
 import {
-  formatChildProfilesForPrompt,
   formatInventoryForPrompt,
-  formatGroupAgeContextForPrompt,
 } from "../utils/promptFormatters.js";
 import { getPlayModePromptFlavor } from "../utils/playModeTheme.js";
 import { BRAND } from "../../src/config/brand.js";
-import { getPolicyAgeBand } from "../utils/activityAgePolicy.js";
+import { getPolicyAgeBand, getDevelopmentalComplexityBudget } from "../utils/activityAgePolicy.js";
 import { clampAiGenerateCount } from "../utils/suggestionFill.js";
+import {
+  buildActivityDesignBrief,
+  formatActivityDesignBriefForPrompt,
+} from "../utils/activityDesignBrief.js";
 
 /**
  * Resolve which age-voice band to include for the oldest participant.
@@ -37,62 +39,60 @@ export function resolvePromptAgeBand(groupAgeContext, childrenContext = []) {
   return getPolicyAgeBand(oldest);
 }
 
-function buildExactAgeHeader(childrenContext = [], groupAgeContext = {}) {
-  const ages = Array.isArray(childrenContext)
-    ? childrenContext
-        .map((child) => Number(child?.ageYears))
-        .filter((age) => Number.isFinite(age))
-    : [];
-  if (ages.length === 1) {
-    const age = ages[0];
-    const band = getPolicyAgeBand(age);
-    return `
-TARGET CHILD AGE: EXACTLY ${age}.
-AGE BAND: ${band}.
-Put this age near the top of every design decision. ageFit.targetAges must include ${age}.
-`.trim();
-  }
-  if (ages.length > 1) {
-    return `
-TARGET CHILD AGES: EXACTLY ${ages.join(", ")}.
-Cover every listed age in ageFit.minAge/maxAge. Prefer mixed-age only when siblings span bands and each child has a real role.
-`.trim();
-  }
-  const oldest = Number(groupAgeContext?.oldestAge);
-  if (Number.isFinite(oldest)) {
-    return `TARGET CHILD AGE: EXACTLY ${oldest}.`;
-  }
-  return "Match ageFit carefully to the participating children.";
+function resolveYoungestAge(childrenContext = [], groupAgeContext = {}) {
+  const ages = (Array.isArray(childrenContext) ? childrenContext : [])
+    .map((child) => Number(child?.ageYears))
+    .filter((age) => Number.isFinite(age));
+  if (ages.length > 0) return Math.min(...ages);
+  const youngest = Number(groupAgeContext?.youngestAge);
+  return Number.isFinite(youngest) ? youngest : null;
 }
 
-function buildSimpleStyleRules() {
+function buildComplexityBudgetRules(budget, style) {
+  const maxActions = budget?.maxActionsPerScene ?? 4;
+  const maxScenes = budget?.maxScenes ?? 4;
+  const minActions = style === "simple" ? 2 : 3;
+  return `
+COMPLEXITY BUDGET (hard — must match validator):
+- Maximum ${maxScenes} stepDetails (scenes).
+- Maximum ${maxActions} actions per scene.
+- Minimum ${minActions} actions per scene when the scene needs multiple steps.
+- setupGuide.steps preferably ≤ ${budget?.maxSetupSteps ?? 5}.
+- Each action is one concrete sentence. Use doneWhen and ifStuck for completion and recovery — do not pad a scene with extra vague actions.
+`.trim();
+}
+
+function buildSimpleStyleRules(budget) {
+  const maxActions = budget?.maxActionsPerScene ?? 4;
   return `
 STYLE RULES (simple — only):
 - Set activityStyle to "simple".
-- Give plain, real-life activities.
-- Use 2 to 4 stepDetails with practical titles and self-contained instructions.
-- Each instruction must say what to do, how to do it, what to try if it is not working, and how to know the step is finished.
+- Simple means: low setup, literal directions, familiar materials, child-startable, minimal parent help — NOT low engagement or one obvious action.
+- Separate these dimensions: setup effort (low), instruction complexity (concrete), engagement depth (substantial), imaginative framing (none required).
+- Use 2 to ${budget?.maxScenes ?? 4} stepDetails with practical titles and self-contained actions[].
+- Each actions[] item must say what to do, how to do it, what to try if stuck, and how to know the step is finished (via doneWhen).
 - Each step should include 1 to 2 practical starterIdeas (concrete tips the child can try now).
-- Activity-level starterIdeas: 0 to 2 practical “how to begin” directions.
+- Activity-level starterIdeas: 0 to 2 practical "how to begin" directions.
 - ifStuck should offer a simpler practical fallback that is NOT the same as a starter idea.
-- Do NOT create an elaborate pretend story.
-- Do NOT invent a fantasy mission.
+- Do NOT create an elaborate pretend story or fantasy mission.
 - Do NOT use words like quest, mission, adventure, challenge, hero, explorer, kingdom, secret, agent, wizard, or rescue.
 - theme should be plain. roleGuide.name may be empty unless family mode needs real jobs.
-- roleGuide.goal should be a plain real-world goal (≤2 sentences).
+- roleGuide.description should state a plain real-world goal (≤2 sentences).
 - roleInstructions should usually be empty unless this is a family activity.
 - visualTheme: prefer art, building, science, neighborhood, or animals as fits.
 - summary ≤ 2 short sentences. whyItFits ≤ 2 short sentences.
+- Maximum ${maxActions} actions per scene.
 
-Good simple examples:
-- Draw a picture of your family.
-- Jump on the trampoline.
-- Build with blocks.
-- Do a puzzle.
+Good simple examples (substantial, not one-liners):
+- Sort pantry items by color into three labeled piles, then rearrange one shelf section so the tallest items are in back.
+- Build a paper ramp and test which cardboard angle makes a toy car roll farthest; record the winning angle on a sticky note.
+- Create a living-room obstacle path using pillows and tape lines, then time yourself completing it twice and beat your first time.
 `.trim();
 }
 
-function buildImaginativeStyleRules(ageBand) {
+function buildImaginativeStyleRules(ageBand, budget = {}) {
+  const maxScenes = budget.maxScenes ?? 5;
+  const maxActions = budget.maxActionsPerScene ?? 7;
   const shared = `
 STYLE RULES (imaginative — only):
 - Set activityStyle to "imaginative".
@@ -147,7 +147,7 @@ OLDER-ELEMENTARY / TWEEN FRAMING:
 EARLY-ELEMENTARY (AGES 6–7) FRAMING:
 - This is an early-elementary child. Do not assume strong independent reading.
 - Instructions must be concrete and literal. Use short actions and limited choices.
-- Maximum 4 scenes with 2–4 actions each. Setup steps preferably ≤ 5.
+- Maximum ${Math.min(maxScenes, 4)} scenes with up to ${Math.min(maxActions, 4)} actions each. Setup steps preferably ≤ ${budget.maxSetupSteps ?? 5}.
 - The child must never infer missing setup. Provide examples they can copy immediately.
 - Avoid abstract planning unless every part is explicitly shown.
 - Never require the child to design the rules before beginning.
@@ -160,7 +160,8 @@ EARLY-ELEMENTARY (AGES 6–7) FRAMING:
     return `${shared}
 
 ELEMENTARY (AGES 8–9) FRAMING:
-- Allow 3–5 scenes, slightly more planning, simple written lists, and two-step decisions.
+- Allow up to ${maxScenes} scenes, slightly more planning, simple written lists, and two-step decisions.
+- Up to ${maxActions} actions per scene when each action is concrete.
 - More open-ended creation is OK when examples are provided.
 - Keep directions concrete; avoid multi-stage planning without scaffolding.
 `.trim();
@@ -242,10 +243,16 @@ export function buildActivitySuggestionsInstructions(
     options.childrenContext
   );
 
+  const youngest = resolveYoungestAge(
+    options.childrenContext,
+    options.groupAgeContext
+  );
+  const budget = getDevelopmentalComplexityBudget(youngest, style);
+
   const styleRules =
     style === "simple"
-      ? buildSimpleStyleRules()
-      : buildImaginativeStyleRules(ageBand);
+      ? buildSimpleStyleRules(budget)
+      : buildImaginativeStyleRules(ageBand, budget);
 
   const requestedCount = clampAiGenerateCount(options.activityCount);
   const countPhrase =
@@ -253,13 +260,16 @@ export function buildActivitySuggestionsInstructions(
       ? "1 activity"
       : `${requestedCount} activities`;
 
+  const complexityRules = buildComplexityBudgetRules(budget, style);
+
   return `
 You are ${BRAND.name}'s kid-facing activity guide.
 
 Your job is to create the right kind of activity for the current family moment.
 ${playModeFlavor}
 
-${buildExactAgeHeader(options.childrenContext, options.groupAgeContext)}
+Follow the ACTIVITY DESIGN BRIEF in the user input for exact participant ages and complexity budget.
+Do not average children into one synthetic age.
 
 Requested activity style: ${style}
 Age voice band for this batch: ${ageBand}
@@ -285,7 +295,7 @@ SECTION OWNERSHIP IS A HARD REQUIREMENT — every field has exactly one job:
 
 ACTION WRITING RULES (hard — every actions[] item):
 - Each action is one independently executable sentence starting with a concrete verb: Get, Put, Place, Walk, Stand, Sit, Pick up, Turn, Draw, Write, Say, Count, Choose, Move, Build, Fold, Line up, Point, Look.
-- Imaginative activities: 3–7 actions per scene. Simple activities: 2–6 actions per scene.
+- ${complexityRules}
 - BAN vague standalone actions: Explore the station, Continue the story, Investigate the clue, Prepare the lab, Set everything up, Make it better, Create your signal, Figure out what happens, Use your imagination.
 - If you need investigation language, follow it immediately with literal steps.
 - doneWhen must be observable ("Three clues are lined up beside your stuffed animal") — never "You finished this step" or "Move on when ready."
@@ -304,19 +314,15 @@ ${styleRules}
 PROSE CAPS (hard):
 - summary: max 2 sentences.
 - whyItFits: max 2 sentences.
-- roleGuide.description / goal / firstAction: short; goal max ~2–3 sentences (under-10 imaginative may use up to 4).
+- roleGuide.description: short (max ~2–3 sentences).
 
 STEP WRITING RULES (hard — every stepDetail.actions[]):
 - The child should not have to reverse-engineer what you meant.
-- An 8-year-old must be able to do THIS scene without asking an adult what you meant.
-- instruction is the full scene/step for everyone. It must answer: (1) What am I doing? (2) How do I do it, naming THIS activity's objects and where they go? (3) What should I do if something isn't working? (4) How do I know I'm finished?
-- Write 4–7 sentences of concrete, observable action. Do not stop at a short label.
-- Write the how-to for THIS activity and THIS scene only. Do not copy objects, settings, or jobs from the examples.
-- BAD: "Draw the map." GOOD: "Put paper on the floor. Draw three room landmarks you can see — a chair, a door, and a lamp — then draw a path between them. If the map is messy, mark just two spots first. You are ready when you can follow the path with your finger."
-- BAD: "Send a signal." GOOD: "Stack two books as a radio. Write one short message and park it on the stack. If you do not have books, use a chair seat. You are ready when the message is sitting on the radio."
-- NEVER reuse greeting desks, Open signs, diplomats, radios, or trail maps unless those things belong to this activity.
-- Ban vague instructions such as: "Test the map", "Add details", "Connect the routes", "Continue the story", "Set everything up", "Do the next part", "Make it better".
-- title is a short beat name, never a substitute for the instruction.
+- Follow the complexity budget for actions per scene.
+- Each action must name THIS activity's objects and where they go.
+- Use doneWhen for how to know the scene is finished; use ifStuck for one simpler rescue.
+- BAD: "Draw the map." GOOD: "Put paper on the floor. Draw three room landmarks you can see — a chair, a door, and a lamp — then draw a path between them."
+- title is a short beat name, never a substitute for actions[].
 - doneWhen is an observable ready-to-continue cue for THIS step only ("Every zone has a name you can point to.", "You have drawn a path between at least two zones.").
 - NEVER write generic doneWhen such as "You finished this step", "You finished this part of the activity", "when you finish this step", "this step is done", or "the objective is complete".
 - doneWhen must name a visible result from this step's action, not the mere fact that the step happened.
@@ -370,12 +376,10 @@ export function buildActivitySuggestionsInput({
   safeCurrentMoment,
   kidMood,
   locationPreference,
-  childAgeRange,
   childrenContext,
   groupAgeContext,
   safeActivityStyle,
   activityMode,
-  safeSelectedChildProfiles,
   inventory,
   safeFeedbackContext,
   safePreviousActivityTitles,
@@ -390,7 +394,6 @@ export function buildActivitySuggestionsInput({
     activityPreferences && typeof activityPreferences === "object"
       ? activityPreferences
       : {};
-  const ageBand = resolvePromptAgeBand(groupAgeContext, children);
   const requestedCount = clampAiGenerateCount(activityCount);
   const participantCount = children.length;
   const resolvedMode =
@@ -398,19 +401,13 @@ export function buildActivitySuggestionsInput({
   const resolvedEnergy =
     energyLevel || kidMood || "neutral";
 
-  const participantLines =
-    children.length > 0
-      ? children
-          .map(
-            (child) =>
-              `Child: Exact age: ${child.ageYears}
-Age band: ${child.ageBand || "unknown"}
-Interests: ${(child.interests || []).join(", ") || "none"}
-Avoids: ${(child.avoids || []).join(", ") || "none"}
-Independence: ${child.independenceLevel || "usually-independent"}`
-          )
-          .join("\n\n")
-      : "No participating children listed.";
+  const designBrief = buildActivityDesignBrief({
+    childrenContext: children,
+    groupAgeContext,
+    activityMode: resolvedMode,
+    activityStyle: safeActivityStyle,
+  });
+  const designBriefJson = formatActivityDesignBriefForPrompt(designBrief);
 
   const singlePlayerRules =
     participantCount <= 1
@@ -436,11 +433,8 @@ Every listed child must have a meaningful role in childRoles.
   return `
 CURRENT REQUEST — AUTHORITATIVE
 
-PARTICIPANTS:
-Count: ${participantCount || 1}
-Mode: ${resolvedMode}
-
-${participantLines}
+ACTIVITY DESIGN BRIEF (follow exactly — do not duplicate ages elsewhere):
+${designBriefJson}
 
 ACTIVITY:
 Style: ${safeActivityStyle}
@@ -469,18 +463,11 @@ ${singlePlayerRules}
 Family context (supporting detail):
 - Preferred location / space: ${safeCurrentMoment.space || locationPreference || "unspecified"}
 - Indoor/outdoor preference: ${prefs.indoorOutdoorPreference || "either"}
-- Legacy age range label (fallback only): ${childAgeRange || "unknown"}
 - Activity style preference (family default): ${prefs.activityStylePreference || "mix"}
 - Typical mess tolerance: ${prefs.messTolerance || "a-little"}
 - Typical setup preference: ${prefs.setupEffort || "a-few-minutes"}
 - Typical independence preference: ${prefs.independencePreference || "mostly-independent"}
 - Play mode flavor: ${playModeTheme}
-- Prompt age band: ${ageBand}
-- Group age context: ${formatGroupAgeContextForPrompt(groupAgeContext)}
-- Selected child profiles: ${formatChildProfilesForPrompt(
-    safeSelectedChildProfiles,
-    children
-  )}
 - Available toys/supplies by category: ${formatInventoryForPrompt(inventory)}
 - Inventory constraint: uses[] may ONLY reference items from that list (or common household basics if the list is empty).
 - Feedback context: ${safeFeedbackContext}
