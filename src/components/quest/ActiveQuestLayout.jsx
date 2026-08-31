@@ -11,6 +11,8 @@ import {
   getStarterIdeaText,
   getStarterKindIcon,
   getStepActions,
+  getStepStoryBeat,
+  getStepSceneOutcome,
   getStepStarterIdeas,
   isActivityFormatV3,
 } from "../../utils/activityVisualTheme";
@@ -284,6 +286,17 @@ function CurrentSceneCard({
           />
         ) : null}
       </div>
+
+      {isImaginative && getStepStoryBeat(step) ? (
+        <p className="quest-step-story-beat">{getStepStoryBeat(step)}</p>
+      ) : null}
+
+      {isComplete && isImaginative && getStepSceneOutcome(step) ? (
+        <div className="quest-scene-block quest-scene-outcome-block">
+          <p className="quest-play-card-kicker">What happened</p>
+          <p className="quest-scene-outcome">{getStepSceneOutcome(step)}</p>
+        </div>
+      ) : null}
 
       <QuestActionList
         actions={getStepActions(step)}

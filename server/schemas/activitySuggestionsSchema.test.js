@@ -14,5 +14,11 @@ describe("activitySuggestionsSchemaV3", () => {
     expect(step.required).toContain("actions");
     expect(step.properties.actions.minItems).toBe(1);
     expect(step.properties.instruction).toBeUndefined();
+    expect(step.properties.storyBeat).toEqual({ type: "string" });
+    expect(step.required).not.toContain("storyBeat");
+
+    const finishGuide = item.properties.finishGuide;
+    expect(finishGuide.properties.resolution).toEqual({ type: "string" });
+    expect(finishGuide.required).not.toContain("resolution");
   });
 });

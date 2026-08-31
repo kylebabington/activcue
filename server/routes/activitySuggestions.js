@@ -11,7 +11,14 @@ import {
   buildActivitySuggestionsInstructions,
 } from "../prompts/activitySuggestions.js";
 import { activitySuggestionsSchemaV3 } from "../schemas/activitySuggestionsSchemaV3.js";
-import { validateActivityClarity } from "../utils/activityClarityValidation.js";
+import { activitySuggestionsSchemaV4 } from "../schemas/activitySuggestionsSchemaV4.js";
+import {
+  validateImaginativeStoryQuality,
+  formatStoryQualitySteerHints,
+} from "../utils/activityStoryQualityValidation.js";
+import { formatNarrativeSteerHints } from "../utils/activityNarrativeValidation.js";
+import { validateActivityQuality } from "../utils/validateActivityQuality.js";
+import { isActivityFormatV4 } from "../utils/activityFormat.js";
 import {
   buildSafeCurrentMoment,
   buildSafeSafetySettings,
@@ -115,6 +122,108 @@ function classifyFitFailureType(rejectedByReason = {}) {
   return "AGE_FIT_FAILED";
 }
 
+function buildStoryQualityContext(groupAgeContext, childrenContext) {
+  const ages = Array.isArray(childrenContext)
+    ? childrenContext
+        .map((child) => Number(child?.ageYears))
+        .filter((age) => Number.isFinite(age))
+    : [];
+  return {
+    youngestAge:
+      ages.length > 0
+        ? Math.min(...ages)
+        : Number(groupAgeContext?.youngestAge) || null,
+    oldestAge:
+      ages.length > 0
+        ? Math.max(...ages)
+        : Number(groupAgeContext?.oldestAge) || null,
+    participantCount: ages.length || 1,
+  };
+}
+
+function recordStoryRejection(aiDiagnostics, result, activity) {
+  aiDiagnostics.aiStoryRejectedCount += 1;
+  for (const reason of result.reasons || []) {
+    aiDiagnostics.aiStoryRejectedByReason[reason] =
+      (aiDiagnostics.aiStoryRejectedByReason[reason] || 0) + 1;
+  }
+  console.warn("[story-quality] rejected", {
+    title: activity?.title,
+    errors: result.errors,
+    reasons: result.reasons,
+  });
+}
+
+function resolveGenerationSchema(activityStyle) {
+  if (activityStyle === "imaginative") {
+    return activitySuggestionsSchemaV4;
+  }
+  return activitySuggestionsSchemaV3;
+}
+
+function formatQualitySteerHints(reasons = [], activityStyle) {
+  if (activityStyle === "imaginative") {
+    return formatNarrativeSteerHints(reasons);
+  }
+  return formatStoryQualitySteerHints(reasons);
+}
+
+function recordNarrativeRejection(aiDiagnostics, result, activity) {
+  aiDiagnostics.aiStoryRejectedCount += 1;
+  aiDiagnostics.aiNarrativeRejectedCount =
+    (aiDiagnostics.aiNarrativeRejectedCount || 0) + 1;
+  for (const reason of result.reasons || []) {
+    aiDiagnostics.aiStoryRejectedByReason[reason] =
+      (aiDiagnostics.aiStoryRejectedByReason[reason] || 0) + 1;
+    aiDiagnostics.aiNarrativeRejectedByReason =
+      aiDiagnostics.aiNarrativeRejectedByReason || {};
+    aiDiagnostics.aiNarrativeRejectedByReason[reason] =
+      (aiDiagnostics.aiNarrativeRejectedByReason[reason] || 0) + 1;
+  }
+  console.warn("[narrative-quality] rejected", {
+    title: activity?.title,
+    errors: result.errors,
+    reasons: result.reasons,
+  });
+}
+
+function passesAiGenerationQuality(
+  activity,
+  { activityStyle, storyContext, aiDiagnostics }
+) {
+  const quality = validateActivityQuality(activity, storyContext, {
+    mode: "generation",
+    childrenContext: storyContext?.childrenContext,
+    activityMode: storyContext?.activityMode,
+  });
+
+  if (!quality.checks?.clarity?.valid) {
+    aiDiagnostics.aiClarityRejectedCount += 1;
+    console.warn("[clarity] rejected", {
+      title: activity?.title,
+      errors: quality.checks?.clarity?.errors,
+    });
+    return false;
+  }
+
+  if (activityStyle === "imaginative") {
+    const narrativeResult = quality.checks?.narrative;
+    if (narrativeResult && !narrativeResult.skipped && !narrativeResult.valid) {
+      recordNarrativeRejection(aiDiagnostics, narrativeResult, activity);
+      return false;
+    }
+    if (!isActivityFormatV4(activity)) {
+      const storyResult = validateImaginativeStoryQuality(activity, storyContext);
+      if (!storyResult.valid) {
+        recordStoryRejection(aiDiagnostics, storyResult, activity);
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
 function buildPartialRefillSteer({
   remaining,
   rejectionTitles,
@@ -122,6 +231,7 @@ function buildPartialRefillSteer({
   participantCount,
   rejectedDetails = [],
   allowedSocialModes = [],
+  storyRejectedByReason = {},
 }) {
   const { developmentalWarnings, participantSamples } =
     summarizeRejectedDetails(rejectedDetails);
@@ -177,6 +287,21 @@ function buildPartialRefillSteer({
     lines.push(`Previous batch failed fit for: ${reasonParts}.`);
   }
 
+  const storyReasonParts =
+    storyRejectedByReason && typeof storyRejectedByReason === "object"
+      ? Object.entries(storyRejectedByReason)
+          .map(([reason, count]) => `${reason}:${count}`)
+          .join(", ")
+      : "";
+
+  if (storyReasonParts) {
+    lines.push(`Previous batch failed story quality for: ${storyReasonParts}.`);
+    const storyHints = formatStoryQualitySteerHints(
+      Object.keys(storyRejectedByReason)
+    );
+    lines.push(...storyHints);
+  }
+
   if (participantSamples.length > 0) {
     lines.push(
       `Sample normalized participant metadata from rejects: ${JSON.stringify(participantSamples)}`
@@ -192,6 +317,8 @@ function buildPartialRefillSteer({
   }
   return lines.join("\n");
 }
+
+export { buildPartialRefillSteer };
 
 function logSuggestionTiming(payload) {
   try {
@@ -458,22 +585,33 @@ export default function createActivitySuggestionsRouter(client) {
         const oldestAge =
           childAges.length > 0 ? Math.max(...childAges) : null;
 
-        // Cache-first pool: keep good library fits, fill remaining slots with AI.
+        // Cache-first pool: imaginative uses V4 narrative-valid only; legacy is last resort.
         const cacheLookupStarted = Date.now();
         let cachedCandidates = [];
+        const cacheQueryBase = {
+          userId: req.auth.userId,
+          inventory: resolvedInventory,
+          currentMoment: safeCurrentMoment,
+          excludeCandidateIds: safeExcludeCandidateIds,
+          activityStyle: safeActivityStyle,
+          childAges,
+          activityMode: resolvedActivityMode,
+          requestContext: fitRequestContext,
+          safetySettings: safeSafetySettings,
+        };
         try {
-          cachedCandidates = await querySharedCandidatesForUser({
-            userId: req.auth.userId,
-            inventory: resolvedInventory,
-            currentMoment: safeCurrentMoment,
-            excludeCandidateIds: safeExcludeCandidateIds,
-            activityStyle: safeActivityStyle,
-            childAges,
-            activityMode: resolvedActivityMode,
-            requestContext: fitRequestContext,
-            safetySettings: safeSafetySettings,
-            limit: CACHE_LOOKUP_LIMIT,
-          });
+          if (safeActivityStyle === "imaginative") {
+            cachedCandidates = await querySharedCandidatesForUser({
+              ...cacheQueryBase,
+              cacheQualityTier: "narrative-v4",
+              limit: SUGGESTION_COUNT,
+            });
+          } else {
+            cachedCandidates = await querySharedCandidatesForUser({
+              ...cacheQueryBase,
+              limit: CACHE_LOOKUP_LIMIT,
+            });
+          }
         } catch (cacheError) {
           console.warn("Cache-first library lookup failed:", cacheError);
           cachedCandidates = [];
@@ -505,6 +643,8 @@ export default function createActivitySuggestionsRouter(client) {
           aiRequestedCount: 0,
           aiGeneratedCount: 0,
           aiClarityRejectedCount: 0,
+          aiStoryRejectedCount: 0,
+          aiStoryRejectedByReason: {},
           aiFitRejectedCount: 0,
           aiRejectedByReason: {},
           aiEligibleCount: 0,
@@ -513,6 +653,13 @@ export default function createActivitySuggestionsRouter(client) {
           refillGeneratedCount: 0,
           refillEligibleCount: 0,
         };
+        const storyQualityContext = buildStoryQualityContext(
+          groupAgeContext,
+          childrenContext
+        );
+        storyQualityContext.childrenContext = childrenContext;
+        storyQualityContext.activityMode = resolvedActivityMode;
+        const generationSchema = resolveGenerationSchema(safeActivityStyle);
 
         if (aiSlots > 0) {
           const aiGenerateCount = computeAiGenerateCount(aiSlots);
@@ -567,7 +714,7 @@ export default function createActivitySuggestionsRouter(client) {
                   instructions,
                   input: retryInput,
                   schemaName: "activity_suggestions",
-                  schema: activitySuggestionsSchemaV3,
+                  schema: generationSchema,
                   verbosity: "low",
                   maxOutputTokens,
                 });
@@ -619,25 +766,34 @@ export default function createActivitySuggestionsRouter(client) {
             enrichActivityForServe(activity, safeActivityStyle, childAges)
           );
 
-          let clarityPassed = normalizedActivities.filter((activity) => {
-            const result = validateActivityClarity(activity);
-            if (!result.valid) {
-              aiDiagnostics.aiClarityRejectedCount += 1;
-              console.warn("[clarity] rejected", {
-                title: activity?.title,
-                errors: result.errors,
-              });
-            }
-            return result.valid;
-          });
+          let clarityPassed = normalizedActivities.filter((activity) =>
+            passesAiGenerationQuality(activity, {
+              activityStyle: safeActivityStyle,
+              storyContext: storyQualityContext,
+              aiDiagnostics,
+            })
+          );
 
           // Never serve clarity-failed content. If all fail, retry once then discard.
           if (clarityPassed.length === 0 && normalizedActivities.length > 0) {
-            const clarityRetrySteer = [
+            const clarityRetrySteerParts = [
               "CLARITY RETRY: Previous activities failed clarity validation.",
               "Every step needs a concrete instruction, observable doneWhen, and explicit setup when materials matter.",
               "Avoid vague actions. Provide examples for open-ended choices.",
-            ].join("\n");
+            ];
+            if (safeActivityStyle === "imaginative") {
+              clarityRetrySteerParts.push(
+                "CAUSALITY RETRY: Previous activities failed narrative quality.",
+                "Rebuild the scene sequence. Each scene must follow problem/change → necessary action → consequence.",
+                "Every scene needs sceneSetup (why act now) and sceneOutcome (what changed because they succeeded).",
+                "Do NOT add descriptive language to themed tasks — change the actions if they do not belong in the story.",
+                ...formatQualitySteerHints(
+                  Object.keys(aiDiagnostics.aiStoryRejectedByReason),
+                  safeActivityStyle
+                )
+              );
+            }
+            const clarityRetrySteer = clarityRetrySteerParts.join("\n");
             const clarityRetryStarted = Date.now();
             let clarityRetryRaw = [];
             try {
@@ -688,7 +844,7 @@ export default function createActivitySuggestionsRouter(client) {
                     instructions,
                     input: retryInput,
                     schemaName: "activity_suggestions",
-                    schema: activitySuggestionsSchemaV3,
+                    schema: generationSchema,
                     verbosity: "low",
                     maxOutputTokens,
                   }),
@@ -711,13 +867,13 @@ export default function createActivitySuggestionsRouter(client) {
             const clarityRetryNormalized = clarityRetryRaw.map((activity) =>
               enrichActivityForServe(activity, safeActivityStyle, childAges)
             );
-            clarityPassed = clarityRetryNormalized.filter((activity) => {
-              const result = validateActivityClarity(activity);
-              if (!result.valid) {
-                aiDiagnostics.aiClarityRejectedCount += 1;
-              }
-              return result.valid;
-            });
+            clarityPassed = clarityRetryNormalized.filter((activity) =>
+              passesAiGenerationQuality(activity, {
+                activityStyle: safeActivityStyle,
+                storyContext: storyQualityContext,
+                aiDiagnostics,
+              })
+            );
             aiDiagnostics.aiGeneratedCount += clarityRetryRaw.length;
           }
 
@@ -802,7 +958,7 @@ export default function createActivitySuggestionsRouter(client) {
                       instructions,
                       input: retryInput,
                       schemaName: "activity_suggestions",
-                      schema: activitySuggestionsSchemaV3,
+                      schema: generationSchema,
                       verbosity: "low",
                       maxOutputTokens,
                     }
@@ -858,13 +1014,13 @@ export default function createActivitySuggestionsRouter(client) {
               .map((activity) =>
                 enrichActivityForServe(activity, safeActivityStyle, childAges)
               )
-              .filter((activity) => {
-                const result = validateActivityClarity(activity);
-                if (!result.valid) {
-                  aiDiagnostics.aiClarityRejectedCount += 1;
-                }
-                return result.valid;
-              });
+              .filter((activity) =>
+                passesAiGenerationQuality(activity, {
+                  activityStyle: safeActivityStyle,
+                  storyContext: storyQualityContext,
+                  aiDiagnostics,
+                })
+              );
             ageFiltered = filterActivitiesByFitPolicy(
               retryNormalized,
               fitRequestContext
@@ -904,6 +1060,7 @@ export default function createActivitySuggestionsRouter(client) {
                 (childAges.length || 1) >= 2
                   ? ["cooperative", "competitive", "flexible", "group", "family"]
                   : ["solo", "flexible"],
+              storyRejectedByReason: aiDiagnostics.aiStoryRejectedByReason,
             });
             const refillTitlesToAvoid = [
               ...titlesToAvoid,
@@ -995,7 +1152,7 @@ export default function createActivitySuggestionsRouter(client) {
                     instructions: refillInstructions,
                     input: retryInput,
                     schemaName: "activity_suggestions",
-                    schema: activitySuggestionsSchemaV3,
+                    schema: generationSchema,
                     verbosity: "low",
                     maxOutputTokens,
                   }),
@@ -1021,18 +1178,13 @@ export default function createActivitySuggestionsRouter(client) {
               .map((activity) =>
                 enrichActivityForServe(activity, safeActivityStyle, childAges)
               )
-              .filter((activity) => {
-                const result = validateActivityClarity(activity);
-                if (!result.valid) {
-                  aiDiagnostics.aiClarityRejectedCount += 1;
-                  console.warn("[clarity] rejected", {
-                    title: activity?.title,
-                    errors: result.errors,
-                    phase: "refill",
-                  });
-                }
-                return result.valid;
-              });
+              .filter((activity) =>
+                passesAiGenerationQuality(activity, {
+                  activityStyle: safeActivityStyle,
+                  storyContext: storyQualityContext,
+                  aiDiagnostics,
+                })
+              );
             const refillFiltered = filterActivitiesByFitPolicy(
               refillClarity,
               fitRequestContext
@@ -1095,7 +1247,35 @@ export default function createActivitySuggestionsRouter(client) {
           aiActivities = eligibleActivities.slice(0, aiSlots);
         }
 
-        const mergedActivities = [...cachedKept, ...aiActivities].slice(
+        let legacyActivities = [];
+        if (safeActivityStyle === "imaginative") {
+          const missingAfterGeneration =
+            SUGGESTION_COUNT - cachedKept.length - aiActivities.length;
+          if (missingAfterGeneration > 0) {
+            try {
+              const legacyCached = await querySharedCandidatesForUser({
+                ...cacheQueryBase,
+                cacheQualityTier: "legacy",
+                limit: missingAfterGeneration,
+              });
+              const normalizedLegacy = legacyCached.map((activity) =>
+                enrichActivityForServe(activity, safeActivityStyle, childAges)
+              );
+              const legacyFitFiltered = filterActivitiesByFitPolicy(
+                normalizedLegacy,
+                fitRequestContext
+              );
+              legacyActivities = legacyFitFiltered.activities
+                .slice(0, missingAfterGeneration)
+                .map(preserveLibraryIds);
+              totalAgeFitRejected += legacyFitFiltered.summary.rejected;
+            } catch (legacyCacheError) {
+              console.warn("Legacy imaginative cache fallback failed:", legacyCacheError);
+            }
+          }
+        }
+
+        const mergedActivities = [...cachedKept, ...aiActivities, ...legacyActivities].slice(
           0,
           SUGGESTION_COUNT
         );
@@ -1147,6 +1327,8 @@ export default function createActivitySuggestionsRouter(client) {
           aiRequestedCount: aiDiagnostics.aiRequestedCount,
           aiGeneratedCount: aiDiagnostics.aiGeneratedCount,
           aiClarityRejectedCount: aiDiagnostics.aiClarityRejectedCount,
+          aiStoryRejectedCount: aiDiagnostics.aiStoryRejectedCount,
+          aiStoryRejectedByReason: aiDiagnostics.aiStoryRejectedByReason,
           aiFitRejectedCount: aiDiagnostics.aiFitRejectedCount,
           aiRejectedByReason: aiDiagnostics.aiRejectedByReason,
           aiEligibleCount: aiDiagnostics.aiEligibleCount,

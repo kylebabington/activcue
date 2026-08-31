@@ -90,8 +90,12 @@ describe("lostShellSignalV3Fixture", () => {
     expect(html).toContain("Set Up");
     expect(html).toContain("Get these things");
     expect(html).toContain("quest-action-list");
+    expect(html).toContain("quest-step-story-beat");
+    expect(html).toContain("The first clue has washed up alone");
     expect(html).toContain("Walk slowly to Station 1.");
     expect(html).toContain("The Big Finish");
+    expect(html).toContain("quest-finish-resolution");
+    expect(html).toContain("three clues now spell out");
     expect(html).toContain("Want to keep playing?");
     expect(html).toContain("Draw the complete signal.");
     expect(html).not.toContain("quest-collapsible-section");
@@ -104,7 +108,20 @@ describe("lostShellSignalV3Fixture", () => {
 
     const scene = buildNarrationText(normalized, "step", { stepIndex: 0 });
     expect(scene).toContain("Scene 1");
+    expect(scene).toContain("The first clue has washed up alone");
     expect(scene).toContain("First, Walk slowly");
     expect(scene).toContain("Next,");
+  });
+
+  it("renders legacy V2 cached activities without storyBeat", () => {
+    const html = renderToStaticMarkup(
+      <QuestContent
+        activity={completeActivityV2Fixture}
+        mode="active"
+        focusStepIndex={0}
+      />
+    );
+    expect(html).not.toContain("quest-step-story-beat");
+    expect(html).toContain("Current scene");
   });
 });

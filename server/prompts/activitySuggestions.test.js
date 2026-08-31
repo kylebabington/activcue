@@ -62,6 +62,7 @@ describe("buildActivitySuggestionsInstructions", () => {
     expect(instructions).toContain(
       "Do NOT create an elaborate pretend story or fantasy mission."
     );
+    expect(instructions).toContain("Do NOT include storyBeat or finishGuide.resolution");
     expect(instructions).toContain("paper ramp");
     expect(instructions).not.toContain("STYLE RULES (imaginative");
   });
@@ -77,10 +78,17 @@ describe("buildActivitySuggestionsInstructions", () => {
     expect(instructions).toContain("COMPLEXITY BUDGET");
     expect(instructions).toContain("SECTION OWNERSHIP");
     expect(instructions).toContain("activityFormatVersion");
+    expect(instructions).toContain("qualityContractVersion");
     expect(instructions).toContain('BAD: "Draw the map."');
     expect(instructions).toContain("setupGuide");
     expect(instructions).toContain("finishGuide");
     expect(instructions).toContain("actions[]");
+    expect(instructions).toContain("CAUSAL ACTIVITY DESIGN");
+    expect(instructions).toContain("sceneSetup");
+    expect(instructions).toContain("sceneOutcome");
+    expect(instructions).toContain("WHY TEST");
+    expect(instructions).toContain("SWAP TEST");
+    expect(instructions).toContain("finishGuide.resolution");
     expect(instructions).not.toContain("step instruction: max 2–3 sentences");
     expect(instructions).not.toContain(
       "Prefer fewer, denser steps over long prose"
@@ -99,7 +107,7 @@ describe("buildActivitySuggestionsInstructions", () => {
       { groupAgeContext: { oldestAge: 8 } }
     );
 
-    expect(imaginative.length).toBeLessThan(14000);
+    expect(imaginative.length).toBeLessThan(16000);
     expect(simple.length).toBeLessThan(14000);
     expect(imaginative).not.toContain("STYLE RULES (simple");
     expect(simple).not.toContain("STYLE RULES (imaginative");
@@ -190,5 +198,8 @@ describe("buildActivitySuggestionsInstructions", () => {
     expect(input).toContain('"engagementMustWorkForAge": 8');
     expect(input).not.toContain("PARTICIPANTS:");
     expect(input).not.toContain("Selected child profiles");
+    expect(input).toContain("sceneSetup");
+    expect(input).toContain("sceneOutcome");
+    expect(input).toContain("finishGuide{resolution");
   });
 });

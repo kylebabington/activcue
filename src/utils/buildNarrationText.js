@@ -11,6 +11,8 @@ import {
   getStepActions,
   getStepDetails,
   getStepStarterIdeas,
+  getStepStoryBeat,
+  getStepSceneOutcome,
   getStepStuckPrompts,
   isActivityFormatV3,
 } from "./activityVisualTheme";
@@ -151,6 +153,11 @@ export function buildNarrationText(activity, section, options = {}) {
       : `${sceneLabel} ${stepIndex + 1}`;
     const parts = [heading];
 
+    const storyBeat = getStepStoryBeat(step);
+    if (storyBeat) {
+      parts.push(storyBeat);
+    }
+
     if (actions.length > 1) {
       actions.forEach((action, actionIndex) => {
         const prefix =
@@ -208,6 +215,15 @@ export function buildNarrationText(activity, section, options = {}) {
     return joinSentences(parts);
   }
 
+  if (section === "scene-outcome") {
+    const stepIndex = Number(options.stepIndex) || 0;
+    const step = steps[stepIndex];
+    if (!step) return "";
+    const outcome = getStepSceneOutcome(step);
+    if (!outcome) return "";
+    return joinSentences([outcome]);
+  }
+
   if (section === "stuck") {
     const stepIndex = Number(options.stepIndex) || 0;
     const step = steps[stepIndex];
@@ -238,8 +254,10 @@ export function buildNarrationText(activity, section, options = {}) {
 
   if (section === "finish") {
     const finishGuide = getFinishGuide(activity);
-    if (finishGuide.action) {
-      const parts = [finishGuide.action];
+    if (finishGuide.action || finishGuide.resolution) {
+      const parts = [];
+      if (finishGuide.resolution) parts.push(finishGuide.resolution);
+      if (finishGuide.action) parts.push(finishGuide.action);
       if (finishGuide.example) parts.push(`For example: ${finishGuide.example}`);
       if (finishGuide.doneWhen) parts.push(`Done when ${finishGuide.doneWhen}`);
       return joinSentences(parts);

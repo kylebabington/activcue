@@ -1,7 +1,5 @@
-/**
- * Deterministic quality checks for Activity Format V3.
- * Prompts are requests; validators are rules.
- */
+import { getDevelopmentalComplexityBudget } from "./activityAgePolicy.js";
+import { isActivityFormatV4 } from "./activityFormat.js";
 
 const GENERIC_DONE_WHEN = [
   /you'?re done with the step/i,
@@ -119,13 +117,18 @@ function validateStarterIdeas(starterIdeas, pathPrefix, errors) {
   });
 }
 
-function validateActions(actions, activityStyle, path, errors) {
+function getMinActionsPerScene(activityStyle) {
+  return activityStyle === "simple" ? 2 : 3;
+}
+
+function validateActions(actions, activityStyle, path, errors, youngestAge) {
   if (!Array.isArray(actions) || actions.length === 0) {
     errors.push(`${path}: actions must contain at least one item`);
     return;
   }
-  const min = activityStyle === "imaginative" ? 3 : 2;
-  const max = activityStyle === "imaginative" ? 7 : 6;
+  const budget = getDevelopmentalComplexityBudget(youngestAge, activityStyle);
+  const min = getMinActionsPerScene(activityStyle);
+  const max = budget.maxActionsPerScene;
   if (actions.length < min || actions.length > max) {
     errors.push(
       `${path}: expected ${min}–${max} actions for ${activityStyle} activity, got ${actions.length}`
@@ -250,9 +253,11 @@ function validateRepetition(activity, warnings) {
 }
 
 /**
+ * @param {object} activity
+ * @param {{ youngestAge?: number|null }} [context]
  * @returns {{ valid: boolean, errors: string[], warnings: string[] }}
  */
-export function validateActivityClarity(activity) {
+export function validateActivityClarity(activity, context = {}) {
   const errors = [];
   const warnings = [];
 
@@ -260,9 +265,16 @@ export function validateActivityClarity(activity) {
     return { valid: false, errors: ["activity is required"], warnings };
   }
 
-  if (Number(activity.activityFormatVersion) !== 3) {
-    return { valid: true, errors: [], warnings: ["skipped: not V3"] };
+  const formatVersion = Number(activity.activityFormatVersion);
+  if (formatVersion !== 3 && !isActivityFormatV4(activity)) {
+    return { valid: true, errors: [], warnings: ["skipped: not V3/V4"] };
   }
+
+  const youngestAge = Number.isFinite(Number(context.youngestAge))
+    ? Number(context.youngestAge)
+    : Number.isFinite(Number(activity?.ageFit?.minAge))
+      ? Number(activity.ageFit.minAge)
+      : null;
 
   validateSetupGuide(activity, errors, warnings);
   validateParentIndependence(activity, errors);
@@ -275,7 +287,7 @@ export function validateActivityClarity(activity) {
 
   (activity.stepDetails || []).forEach((step, index) => {
     const path = `stepDetails[${index}]`;
-    validateActions(step?.actions, activityStyle, `${path}.actions`, errors);
+    validateActions(step?.actions, activityStyle, `${path}.actions`, errors, youngestAge);
     validateDoneWhen(step?.doneWhen, `${path}.doneWhen`, errors);
     validateStarterIdeas(step?.starterIdeas, `${path}.starterIdeas`, errors);
   });

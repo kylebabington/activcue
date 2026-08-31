@@ -4,7 +4,9 @@ import { lostShellSignalV3Fixture } from "../../src/fixtures/lostShellSignalV3Fi
 
 describe("validateActivityClarity", () => {
   it("accepts the Lost Shell Signal golden fixture", () => {
-    const result = validateActivityClarity(lostShellSignalV3Fixture);
+    const result = validateActivityClarity(lostShellSignalV3Fixture, {
+      youngestAge: 9,
+    });
     expect(result.valid).toBe(true);
     expect(result.errors).toEqual([]);
   });

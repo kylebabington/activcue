@@ -6,7 +6,11 @@ export const lostShellSignalV3Fixture = {
   activityStyle: "imaginative",
   visualTheme: "animals",
   story:
-    "Three ocean clues washed up on shore, but nobody knows what they mean together. You are the Sea Signal Finder who must visit each station and decode the message before the tide changes.",
+    "Three ocean clues washed up on shore after last night's tide pulled the signal markers away from Shell Harbor. " +
+    "Nobody knows what the clues mean together, and the tide will change again before anyone else can read them. " +
+    "You are the Sea Signal Finder who must visit each station and decode the message while your stuffed-animal partner waits for the answer. " +
+    "Each clue must be read in order so the full signal makes sense before the water covers the shore again. " +
+    "When all three clues connect, the harbor animals will know whether to stay or move to higher ground.",
   summary:
     "Decode three face-down ocean clues at pillow stations and tell your stuffed-animal partner what the complete signal means.",
   roleGuide: {
@@ -54,6 +58,8 @@ export const lostShellSignalV3Fixture = {
   stepDetails: [
     {
       title: "The First Signal",
+      storyBeat:
+        "The first clue has washed up alone, and the rest of the signal cannot be guessed until you read it.",
       actions: [
         "Walk slowly to Station 1.",
         "Stand beside the pillow or blanket.",
@@ -77,6 +83,8 @@ export const lostShellSignalV3Fixture = {
     },
     {
       title: "The Second Signal",
+      storyBeat:
+        "A second clue appears, and you must decide how it connects to the first message.",
       actions: [
         "Walk to Station 2.",
         "Turn over the second clue.",
@@ -98,6 +106,8 @@ export const lostShellSignalV3Fixture = {
     },
     {
       title: "The Third Signal",
+      storyBeat:
+        "The final clue completes the pattern, and the full signal is almost ready to report.",
       actions: [
         "Walk to Station 3.",
         "Turn over the third clue.",
@@ -117,6 +127,8 @@ export const lostShellSignalV3Fixture = {
     },
     {
       title: "Report to Your Partner",
+      storyBeat:
+        "Your partner is waiting for the complete message before the tide changes again.",
       actions: [
         "Sit beside your stuffed animal.",
         "Point to each clue in order.",
@@ -137,6 +149,8 @@ export const lostShellSignalV3Fixture = {
     },
   ],
   finishGuide: {
+    resolution:
+      "The three clues now spell out a clear storm warning, and your partner knows exactly what the harbor animals should do.",
     action:
       "Put all three clues in order and tell your stuffed-animal partner what the complete signal means.",
     example:

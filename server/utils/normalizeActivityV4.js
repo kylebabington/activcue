@@ -6,6 +6,17 @@ import {
   resolveActivityStyle,
 } from "./normalizeRequest.js";
 import { inferVisualThemeFromActivity } from "./normalizeShared.js";
+import {
+  ACTIVE_ACTIVITY_FORMAT_VERSION,
+  QUALITY_CONTRACT_VERSION,
+} from "./activityFormatConstants.js";
+import { isActivityFormatV4 } from "./activityFormat.js";
+import {
+  dedupeActions,
+  deriveInstructionFromActions,
+  normalizeSetupGuide,
+  normalizeRoleGuideV3,
+} from "./normalizeActivityV3.js";
 
 function asString(value, fallback = "") {
   return typeof value === "string" ? value.trim() : fallback;
@@ -18,50 +29,10 @@ function asStringArray(value) {
     .filter(Boolean);
 }
 
-function dedupeActions(actions) {
-  const seen = new Set();
-  const result = [];
-  for (const raw of actions) {
-    const text = asString(raw);
-    if (!text) continue;
-    const key = text.toLowerCase();
-    if (seen.has(key)) continue;
-    seen.add(key);
-    result.push(text);
-  }
-  return result;
-}
-
-function deriveInstructionFromActions(actions) {
-  return actions.join(" ");
-}
-
-function normalizeSetupGuide(setupGuide, uses = []) {
-  const source =
-    setupGuide && typeof setupGuide === "object" && !Array.isArray(setupGuide)
-      ? setupGuide
-      : {};
-
-  const needed = asStringArray(source.needed);
-  const steps = asStringArray(source.steps);
-  const readyWhen = asString(source.readyWhen);
-
-  if (needed.length === 0 && uses.length > 0) {
-    needed.push(...uses.slice(0, 8));
-  }
-
-  return {
-    needed,
-    steps,
-    readyWhen:
-      readyWhen ||
-      (steps.length > 0
-        ? "You have finished the setup steps and can start Scene 1."
-        : "You are ready to begin."),
-  };
-}
-
-function normalizeFinishGuide(finishGuide, extensionIdeas = []) {
+/**
+ * Preserve causal fields exactly as provided — never invent from storyBeat or legacy mirrors.
+ */
+function normalizeFinishGuideV4(finishGuide, extensionIdeas = []) {
   const source =
     finishGuide && typeof finishGuide === "object" && !Array.isArray(finishGuide)
       ? finishGuide
@@ -69,13 +40,12 @@ function normalizeFinishGuide(finishGuide, extensionIdeas = []) {
 
   const extensions = asStringArray(source.extensions);
   const legacyExtensions = asStringArray(extensionIdeas);
-
   const resolution = asString(source.resolution);
 
   return {
-    action: asString(source.action, "Wrap up the activity."),
+    action: asString(source.action),
     example: asString(source.example),
-    doneWhen: asString(source.doneWhen, "You have finished the ending."),
+    doneWhen: asString(source.doneWhen),
     ...(resolution ? { resolution } : {}),
     extensions:
       extensions.length > 0
@@ -86,50 +56,7 @@ function normalizeFinishGuide(finishGuide, extensionIdeas = []) {
   };
 }
 
-function normalizeRoleGuideV3(roleGuide, fallbacks = {}) {
-  const source =
-    roleGuide && typeof roleGuide === "object" && !Array.isArray(roleGuide)
-      ? roleGuide
-      : {};
-
-  const childRoles = Array.isArray(source.childRoles)
-    ? source.childRoles
-        .filter((role) => role && typeof role === "object")
-        .map((role) => ({
-          childName: asString(role.childName, "Player"),
-          age: Number.isFinite(Number(role.age)) ? Number(role.age) : 0,
-          roleTitle: asString(role.roleTitle, asString(role.name, "Player")),
-          responsibility: asString(
-            role.responsibility,
-            asString(role.description, "Help with the activity.")
-          ),
-          firstAction: asString(
-            role.firstAction,
-            "Look around and pick a spot to begin."
-          ),
-        }))
-        .filter((role) => role.roleTitle || role.responsibility)
-    : [];
-
-  const name = asString(source.name, asString(fallbacks.kidRole, "Player"));
-  const description = asString(
-    source.description,
-    asString(fallbacks.summary, "You get to play this activity.")
-  );
-
-  return {
-    name,
-    description,
-    goal: asString(source.goal, description),
-    firstAction: asString(
-      source.firstAction,
-      "Look around and pick a spot to begin."
-    ),
-    childRoles,
-  };
-}
-
-function normalizeStepDetailsV3(stepDetails) {
+function normalizeStepDetailsV4(stepDetails) {
   if (!Array.isArray(stepDetails)) return [];
 
   return stepDetails
@@ -151,8 +78,8 @@ function normalizeStepDetailsV3(stepDetails) {
         : [];
 
       const starterIdeas = normalizeStarterIdeas(raw.starterIdeas);
-
-      const storyBeat = asString(raw.storyBeat);
+      const sceneSetup = asString(raw.sceneSetup);
+      const sceneOutcome = asString(raw.sceneOutcome);
 
       const step = {
         title,
@@ -162,7 +89,8 @@ function normalizeStepDetailsV3(stepDetails) {
         doneWhen: asString(raw.doneWhen),
         ifStuck: asString(raw.ifStuck),
         roleInstructions,
-        ...(storyBeat ? { storyBeat } : {}),
+        ...(sceneSetup ? { sceneSetup } : {}),
+        ...(sceneOutcome ? { sceneOutcome } : {}),
       };
 
       return {
@@ -173,25 +101,20 @@ function normalizeStepDetailsV3(stepDetails) {
     .filter(Boolean);
 }
 
-function deriveV1FieldsFromV3(activity, fallbackAges = []) {
+function deriveV1FieldsFromV4(activity, fallbackAges = []) {
   const roleGuide = normalizeRoleGuideV3(activity.roleGuide, activity);
   const ageFit = normalizeAgeFit(activity.ageFit, fallbackAges);
   const starterIdeas = normalizeStarterIdeas(
     activity.starterIdeas,
     activity.starterPrompts
   );
-  const stepDetails = normalizeStepDetailsV3(activity.stepDetails, {
-    ...activity,
-    roleGuide,
-  });
-
+  const stepDetails = normalizeStepDetailsV4(activity.stepDetails);
   const stepsFromDetails = stepDetails.map((step) =>
     step.title && step.instruction && step.title !== step.instruction
       ? `${step.title}: ${step.instruction}`
       : step.instruction || step.title
   );
-
-  const finishGuide = normalizeFinishGuide(
+  const finishGuide = normalizeFinishGuideV4(
     activity.finishGuide,
     activity.extensionIdeas
   );
@@ -205,7 +128,7 @@ function deriveV1FieldsFromV3(activity, fallbackAges = []) {
     finishGuide,
     extensionIdeas: finishGuide.extensions,
     kidRole: asString(activity.kidRole) || roleGuide.name,
-    mission: asString(activity.mission) || roleGuide.goal,
+    mission: asString(activity.mission) || asString(activity.story),
     theme: asString(activity.theme) || asString(activity.story),
     story: asString(activity.story),
     steps:
@@ -231,13 +154,13 @@ function deriveV1FieldsFromV3(activity, fallbackAges = []) {
   };
 }
 
-export function normalizeActivityV3(activity, safeActivityStyle, fallbackAges = []) {
+export function normalizeActivityV4(activity, safeActivityStyle, fallbackAges = []) {
   const activityStyle = resolveActivityStyle(
     activity?.activityStyle,
     safeActivityStyle
   );
 
-  const derived = deriveV1FieldsFromV3(
+  const derived = deriveV1FieldsFromV4(
     {
       ...activity,
       activityStyle,
@@ -245,9 +168,16 @@ export function normalizeActivityV3(activity, safeActivityStyle, fallbackAges = 
     fallbackAges
   );
 
+  const qualityContractVersion = Number.isFinite(
+    Number(activity?.qualityContractVersion)
+  )
+    ? Number(activity.qualityContractVersion)
+    : QUALITY_CONTRACT_VERSION;
+
   return {
     ...activity,
-    activityFormatVersion: 3,
+    activityFormatVersion: ACTIVE_ACTIVITY_FORMAT_VERSION,
+    qualityContractVersion,
     activityStyle,
     visualTheme: inferVisualThemeFromActivity({ ...activity, activityStyle }),
     summary: asString(activity.summary),
@@ -260,15 +190,4 @@ export function normalizeActivityV3(activity, safeActivityStyle, fallbackAges = 
   };
 }
 
-export function isActivityFormatV3(activity) {
-  return Number(activity?.activityFormatVersion) >= 3;
-}
-
-export {
-  dedupeActions,
-  deriveInstructionFromActions,
-  normalizeSetupGuide,
-  normalizeFinishGuide,
-  normalizeStepDetailsV3,
-  normalizeRoleGuideV3,
-};
+export { isActivityFormatV4, normalizeStepDetailsV4, normalizeFinishGuideV4 };
