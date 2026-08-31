@@ -10,6 +10,9 @@ import {
 } from "../utils/activityAgePolicy.js";
 import { sanitizeForSharedLibrary } from "../utils/sanitizeForSharedLibrary.js";
 import { validateActivityForDisplay } from "../utils/activityDisplayValidation.js";
+import { validateActivityQuality } from "../utils/validateActivityQuality.js";
+import { isActivityFormatV4 } from "../utils/activityFormat.js";
+import { ACTIVE_ACTIVITY_FORMAT_VERSION } from "../utils/activityFormatConstants.js";
 import {
   inferParticipantMetadata,
   evaluateActivityFit,
@@ -183,6 +186,49 @@ function stableStringify(value) {
 }
 
 export function computeActivityContentHash(activity) {
+  const formatVersion = Number(activity?.activityFormatVersion) || 2;
+
+  if (formatVersion >= ACTIVE_ACTIVITY_FORMAT_VERSION) {
+    const payload = {
+      activityFormatVersion: formatVersion,
+      qualityContractVersion: activity?.qualityContractVersion ?? null,
+      title: activity?.title || "",
+      activityStyle: activity?.activityStyle || "",
+      story: activity?.story || "",
+      roleGuide: activity?.roleGuide || {},
+      setupGuide: activity?.setupGuide || {},
+      stepDetails: Array.isArray(activity?.stepDetails) ? activity.stepDetails : [],
+      finishGuide: activity?.finishGuide || {},
+      uses: Array.isArray(activity?.uses) ? activity.uses : [],
+      categories: Array.isArray(activity?.categories) ? activity.categories : [],
+      traits: activity?.traits || {},
+      energy: activity?.energy || "",
+      mess: activity?.mess || "",
+      adultHelp: activity?.adultHelp || "",
+    };
+    return createHash("sha256").update(stableStringify(payload)).digest("hex");
+  }
+
+  if (formatVersion >= 3) {
+    const payload = {
+      activityFormatVersion: formatVersion,
+      title: activity?.title || "",
+      activityStyle: activity?.activityStyle || "",
+      story: activity?.story || "",
+      roleGuide: activity?.roleGuide || {},
+      setupGuide: activity?.setupGuide || {},
+      stepDetails: Array.isArray(activity?.stepDetails) ? activity.stepDetails : [],
+      finishGuide: activity?.finishGuide || {},
+      uses: Array.isArray(activity?.uses) ? activity.uses : [],
+      categories: Array.isArray(activity?.categories) ? activity.categories : [],
+      traits: activity?.traits || {},
+      energy: activity?.energy || "",
+      mess: activity?.mess || "",
+      adultHelp: activity?.adultHelp || "",
+    };
+    return createHash("sha256").update(stableStringify(payload)).digest("hex");
+  }
+
   const payload = {
     title: activity?.title || "",
     activityStyle: activity?.activityStyle || "",
@@ -203,7 +249,14 @@ function toLibraryRow(activity, { source = "ai", ageValidated = false } = {}) {
   const ageMeta = ageMetadataFromActivity(safe, { validated: ageValidated });
   const participantMeta = inferParticipantMetadata(safe);
   const display = validateActivityForDisplay(safe, { mode: "cached" });
+  const quality = validateActivityQuality(safe, {}, { mode: "cached" });
+  const narrativeValidated = quality.narrativeValidated === true;
   const now = new Date().toISOString();
+
+  const imaginativeV4 =
+    isActivityFormatV4(safe) && safe.activityStyle === "imaginative";
+  const isActive =
+    display.valid && (!imaginativeV4 || narrativeValidated);
 
   return {
     // Never reuse a recommendation impression UUID as the library PK.
@@ -218,13 +271,22 @@ function toLibraryRow(activity, { source = "ai", ageValidated = false } = {}) {
     estimated_minutes: Number(safe.estimatedMinutes) || null,
     supplies: Array.isArray(safe.uses) ? safe.uses : [],
     source,
-    is_active: display.valid,
+    is_active: isActive,
     updated_at: now,
     display_validated: display.valid,
     display_validation_status: display.valid ? "valid" : "invalid",
     display_validation_errors: display.errors,
     display_validated_at: now,
     activity_format_version: Number(safe.activityFormatVersion) || null,
+    quality_contract_version: Number(safe.qualityContractVersion) || null,
+    narrative_validated: narrativeValidated,
+    narrative_validation_status: imaginativeV4
+      ? narrativeValidated
+        ? "valid"
+        : "invalid"
+      : "legacy",
+    narrative_validation_errors: quality.errors,
+    narrative_validated_at: now,
     ...ageMeta,
     ...participantMeta,
   };
@@ -660,6 +722,7 @@ export async function querySharedCandidatesForUser({
   requestContext = null,
   safetySettings = null,
   limit = 5,
+  cacheQualityTier = null,
 } = {}) {
   if (!userId) {
     return [];
@@ -762,6 +825,49 @@ export async function querySharedCandidatesForUser({
   for (const row of rows) {
     if (exclude.has(String(row.id))) {
       continue;
+    }
+
+    if (cacheQualityTier === "narrative-v4") {
+      const formatVersion =
+        row.activity_format_version ??
+        (Number(row.activity_data?.activityFormatVersion) || 0);
+      const narrativeValid =
+        row.narrative_validated === true ||
+        (row.narrative_validation_status === "valid" &&
+          formatVersion >= ACTIVE_ACTIVITY_FORMAT_VERSION);
+      if (formatVersion < ACTIVE_ACTIVITY_FORMAT_VERSION || !narrativeValid) {
+        if (formatVersion >= ACTIVE_ACTIVITY_FORMAT_VERSION && !narrativeValid) {
+          const inMemory = validateActivityQuality(
+            row.activity_data || {},
+            {},
+            { mode: "cached" }
+          );
+          if (!inMemory.narrativeValidated) {
+            rejectedByReason["narrative-not-valid"] =
+              (rejectedByReason["narrative-not-valid"] || 0) + 1;
+            continue;
+          }
+        } else {
+          rejectedByReason["not-narrative-v4"] =
+            (rejectedByReason["not-narrative-v4"] || 0) + 1;
+          continue;
+        }
+      }
+    }
+
+    if (cacheQualityTier === "legacy") {
+      const formatVersion =
+        row.activity_format_version ??
+        (Number(row.activity_data?.activityFormatVersion) || 0);
+      const narrativeValid = row.narrative_validated === true;
+      if (
+        formatVersion >= ACTIVE_ACTIVITY_FORMAT_VERSION &&
+        narrativeValid
+      ) {
+        rejectedByReason["narrative-v4-excluded-from-legacy"] =
+          (rejectedByReason["narrative-v4-excluded-from-legacy"] || 0) + 1;
+        continue;
+      }
     }
 
     const impression = impressionByCandidate.get(row.id);

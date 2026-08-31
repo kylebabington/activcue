@@ -76,6 +76,7 @@ STYLE RULES (simple — only):
 - ifStuck should offer a simpler practical fallback that is NOT the same as a starter idea.
 - Do NOT create an elaborate pretend story or fantasy mission.
 - Do NOT use words like quest, mission, adventure, challenge, hero, explorer, kingdom, secret, agent, wizard, or rescue.
+- Do NOT include storyBeat or finishGuide.resolution — simple activities use plain goals only.
 - theme should be plain. roleGuide.name may be empty unless family mode needs real jobs.
 - roleGuide.description should state a plain real-world goal (≤2 sentences).
 - roleInstructions should usually be empty unless this is a family activity.
@@ -87,6 +88,57 @@ Good simple examples (substantial, not one-liners):
 - Sort pantry items by color into three labeled piles, then rearrange one shelf section so the tallest items are in back.
 - Build a paper ramp and test which cardboard angle makes a toy car roll farthest; record the winning angle on a sticky note.
 - Create a living-room obstacle path using pillows and tape lines, then time yourself completing it twice and beat your first time.
+`.trim();
+}
+
+function buildCausalStoryDesignRules(ageBand, participantCount = 1) {
+  const isTeen = ageBand === "teen" || ageBand === "young-teen";
+
+  const multiChild =
+    participantCount >= 2
+      ? `
+MULTI-CHILD STORY ROLES (hard when 2+ children participate):
+- Introduce both childRoles naturally in the opening story by roleTitle.
+- Give each role a distinct reason to exist — both must affect the outcome.
+- Refer to each role's contribution in relevant sceneSetup fields.
+- Do not make the older child merely supervise.
+`.trim()
+      : "";
+
+  const ageTone = isTeen || ageBand === "tween" || ageBand === "older-elementary"
+    ? `Use challenge-first framing for ages 10+ — creative brief, design problem, investigation, or mystery. NOT young-child rescue fantasy unless interests explicitly ask for roleplay.`
+    : `Use vivid causal adventure for under-10 — specific place, inciting event, named problem, stakes.`;
+
+  return `
+CAUSAL ACTIVITY DESIGN — HARD REQUIREMENT
+An imaginative activity is ONE continuous story, not a collection of themed mini-games.
+
+Start with a specific incident that creates a problem, need, mystery, goal, or opportunity.
+
+Every scene must follow this chain:
+WHAT CHANGED → WHY IT MATTERS → WHAT THE CHILD DOES → WHAT HAPPENS BECAUSE THEY SUCCEEDED
+
+Use BUT / THEREFORE story logic. Do NOT build structure with "and then", unrelated surprises, arbitrary checkpoints, or generic mini-games.
+
+WHY TEST (hard): For every substantial action, the child must be able to answer "Why am I doing this right now?" from sceneSetup — not from the activity theme.
+
+SWAP TEST (hard): If two scenes could be reordered without breaking the story, the story is too generic. Rebuild so each scene exists because of the previous sceneOutcome.
+
+REPLACEMENT TEST (hard): If a scene's main action could be swapped for an unrelated children's activity without changing the story, rewrite the action or the story problem.
+
+Never add build/find/crawl/jump/balance/carry/sort/hide/search/draw/throw/collect/stack/race/count merely for variety — only when they logically solve the current story problem.
+
+${ageTone}
+
+stepDetails[].sceneSetup (required): what has just changed and why action is necessary NOW.
+stepDetails[].actions[]: concrete directions that solve the sceneSetup problem.
+stepDetails[].doneWhen: observable success for this scene.
+stepDetails[].sceneOutcome (required): what changed because the child succeeded — must create/reveal the reason for the next scene.
+finishGuide.resolution: how the OPENING problem from story is resolved (narrative only).
+finishGuide.action: what the child physically does for the ending (distinct from resolution).
+finishGuide.doneWhen: observable completion (distinct from resolution and action).
+
+${multiChild}
 `.trim();
 }
 
@@ -252,7 +304,43 @@ export function buildActivitySuggestionsInstructions(
   const styleRules =
     style === "simple"
       ? buildSimpleStyleRules(budget)
-      : buildImaginativeStyleRules(ageBand, budget);
+      : `${buildImaginativeStyleRules(ageBand, budget)}
+
+${buildCausalStoryDesignRules(ageBand, options.childrenContext?.length || 1)}`;
+
+  const formatBlock =
+    style === "imaginative"
+      ? `
+ACTIVITY FORMAT V4 (required — imaginative only):
+- Set activityFormatVersion to 4 and qualityContractVersion to 1.
+- activityStyle must be "imaginative".
+- story: WHY this situation exists — WHERE, WHAT happened, WHO needs help, WHY it matters. No setup directions.
+- summary: max 2 sentences — what the child will do.
+- roleGuide: { name, description, childRoles[] }. WHO the child is. No fluff titles.
+- setupGuide: { needed[], steps[], readyWhen }. Physical prep before Scene 1 only.
+- stepDetails: { title, sceneSetup, actions[], starterIdeas[], doneWhen, sceneOutcome, ifStuck, roleInstructions[] }. Do NOT include instruction or storyBeat.
+- finishGuide: { resolution, action, example, doneWhen, extensions[] }. resolution = narrative payoff; action = final physical step; doneWhen = observable completion. Do not duplicate text across these fields.
+- starterIdeas: concrete examples. title and example must differ.
+- Set visualTheme to one of: space, jungle, detective, animals, fantasy, building, science, art, expedition, neighborhood, rescue, mystery.
+
+SECTION OWNERSHIP (hard):
+- story → opening situation and reason only
+- roleGuide → who + overall job only
+- setupGuide → physical prep before play only
+- sceneSetup → why action is necessary NOW in this scene
+- actions[] → in-scene literal directions only
+- sceneOutcome → story consequence of success (causes next scene)
+- finishGuide.resolution → how opening problem was resolved
+- finishGuide.action → final physical ending step
+- finishGuide.doneWhen → observable ending completion
+`
+      : `
+ACTIVITY FORMAT V3 (required — simple activities only):
+- Set activityFormatVersion to 3.
+- story: plain real-world goal. No fantasy mission.
+- stepDetails: { title, actions[], starterIdeas[], doneWhen, ifStuck, roleInstructions[] }. No storyBeat, sceneSetup, or sceneOutcome.
+- finishGuide: { action, example, doneWhen, extensions[] }. No resolution field.
+`;
 
   const requestedCount = clampAiGenerateCount(options.activityCount);
   const countPhrase =
@@ -274,24 +362,7 @@ Do not average children into one synthetic age.
 Requested activity style: ${style}
 Age voice band for this batch: ${ageBand}
 
-ACTIVITY FORMAT V3 (required — do NOT emit legacy mirrors like kidRole, mission, starterPrompts, firstMoves, steps, roles, instruction, theme, extensionIdeas):
-- Set activityFormatVersion to 3.
-- story: WHY this imaginary situation exists. Narrative only. No setup. No step directions. Do not repeat roleGuide.
-- summary: max 2 sentences — what the child will do.
-- roleGuide: { name, description, childRoles[] }. WHO the child is. Max 1–2 short sentences in description. No setup. No step directions.
-- setupGuide: { needed[], steps[], readyWhen }. EVERYTHING that must exist before Scene 1. Explain what to get, where to put it, and what each invented location means (station, base camp, lab, etc.).
-- stepDetails: { title, actions[], starterIdeas[], doneWhen, ifStuck, roleInstructions[] }. Do NOT include instruction — the server derives it from actions.
-- finishGuide: { action, example, doneWhen, extensions[] }. Exactly ONE ending. Extensions are optional afterward only.
-- starterIdeas: concrete examples the child may copy. title and example must differ. Never title === example.
-- Set visualTheme to one of: space, jungle, detective, animals, fantasy, building, science, art, expedition, neighborhood, rescue, mystery.
-
-SECTION OWNERSHIP IS A HARD REQUIREMENT — every field has exactly one job:
-- story → narrative why only
-- roleGuide → who + overall job only
-- setupGuide → physical prep before play only
-- stepDetails.actions → in-scene actions only
-- finishGuide → ending only
-- starterIdeas → optional inspiration, not required steps
+${formatBlock}
 
 ACTION WRITING RULES (hard — every actions[] item):
 - Each action is one independently executable sentence starting with a concrete verb: Get, Put, Place, Walk, Stand, Sit, Pick up, Turn, Draw, Write, Say, Count, Choose, Move, Build, Fold, Line up, Point, Look.
@@ -409,6 +480,27 @@ export function buildActivitySuggestionsInput({
   });
   const designBriefJson = formatActivityDesignBriefForPrompt(designBrief);
 
+  const formatFields =
+    safeActivityStyle === "imaginative"
+      ? `Return exactly ${requestedCount} V4 imaginative activities. Required fields per activity:
+activityFormatVersion (4), qualityContractVersion (1), title, activityStyle ("imaginative"), visualTheme, story, summary,
+roleGuide{name,description,childRoles[]},
+ageFit{minAge,maxAge,targetAges,maturityLevel,independenceLevel,ageFitReason},
+setupGuide{needed,steps,readyWhen},
+starterIdeas[{title,example,kind}], stepDetails[{title,sceneSetup,actions,starterIdeas,doneWhen,sceneOutcome,ifStuck,roleInstructions}],
+finishGuide{resolution,action,example,doneWhen,extensions},
+uses[], energy, mess, adultHelp, estimatedMinutes, whyItFits,
+categories[], traits{setupEffort,structure,socialMode,creativity,movement}.`
+      : `Return exactly ${requestedCount} V3 simple activities. Required fields per activity:
+activityFormatVersion (3), title, activityStyle ("simple"), visualTheme, story, summary,
+roleGuide{name,description,childRoles[]},
+ageFit{minAge,maxAge,targetAges,maturityLevel,independenceLevel,ageFitReason},
+setupGuide{needed,steps,readyWhen},
+starterIdeas[{title,example,kind}], stepDetails[{title,actions,starterIdeas,doneWhen,ifStuck,roleInstructions}],
+finishGuide{action,example,doneWhen,extensions},
+uses[], energy, mess, adultHelp, estimatedMinutes, whyItFits,
+categories[], traits{setupEffort,structure,socialMode,creativity,movement}.`;
+
   const singlePlayerRules =
     participantCount <= 1
       ? `
@@ -473,15 +565,7 @@ Family context (supporting detail):
 - Feedback context: ${safeFeedbackContext}
 - Previous activity titles to avoid: ${safePreviousActivityTitles.join(", ")}
 
-Return exactly ${requestedCount} V3 activities. Required fields per activity:
-activityFormatVersion, title, activityStyle, visualTheme, story, summary,
-roleGuide{name,description,childRoles[]},
-ageFit{minAge,maxAge,targetAges,maturityLevel,independenceLevel,ageFitReason},
-setupGuide{needed,steps,readyWhen},
-starterIdeas[{title,example,kind}], stepDetails[{title,actions,starterIdeas,doneWhen,ifStuck,roleInstructions}],
-finishGuide{action,example,doneWhen,extensions},
-uses[], energy, mess, adultHelp, estimatedMinutes, whyItFits,
-categories[], traits{setupEffort,structure,socialMode,creativity,movement}.
+${formatFields}
 
 Do NOT include instruction, theme, extensionIdeas, or legacy mirrors.
 Keep summary/whyItFits short. actions[] must follow ACTION WRITING RULES.

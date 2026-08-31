@@ -1,0 +1,33 @@
+[
+  {
+    "id": "solo-age-6-animal-rescue",
+    "activityStyle": "imaginative",
+    "childrenContext": [{ "ageYears": 6 }],
+    "notes": "Solo young child animal rescue — expect causal-adventure mode"
+  },
+  {
+    "id": "solo-age-7-fantasy-mystery",
+    "activityStyle": "imaginative",
+    "childrenContext": [{ "ageYears": 7 }],
+    "notes": "Fantasy/mystery framing with concrete home objects"
+  },
+  {
+    "id": "solo-age-13-photography",
+    "activityStyle": "imaginative",
+    "childrenContext": [{ "ageYears": 13 }],
+    "notes": "Teen challenge-progression — no preschool roleplay"
+  },
+  {
+    "id": "mixed-6-8",
+    "activityStyle": "imaginative",
+    "childrenContext": [{ "ageYears": 6 }, { "ageYears": 8 }],
+    "activityMode": "family",
+    "notes": "Mixed-age cooperative roles in opening story"
+  },
+  {
+    "id": "simple-paper-ramp",
+    "activityStyle": "simple",
+    "childrenContext": [{ "ageYears": 8 }],
+    "notes": "Simple V3 — practical progression, no sceneSetup"
+  }
+]

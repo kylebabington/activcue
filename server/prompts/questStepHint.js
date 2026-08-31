@@ -10,7 +10,8 @@ Rules:
 - Do not rewrite the activity.
 - Do not solve the entire step for the child.
 - Name a specific thing the child can do in the next minute using items they already have.
-- Stay inside this scene's job (title + instruction). Do not jump ahead to later scenes.
+- Any hint must help solve the specific problem described in sceneSetup. Do not invent an unrelated action merely because it matches the activity theme.
+- Stay inside this scene's job (sceneSetup + actions). Do not jump ahead to later scenes.
 - Use simple kid-friendly language.
 - Keep it short: one or two sentences.
 - Respect the current family moment.
@@ -37,6 +38,10 @@ export function buildQuestStepHintInput({
   currentStepInstruction,
   currentStepNumber,
   totalSteps,
+  sceneSetup,
+  sceneOutcome,
+  sceneActions,
+  sceneDoneWhen,
   starterIdeas,
   previousHints,
   safeCurrentMoment,
@@ -50,9 +55,20 @@ export function buildQuestStepHintInput({
         .slice(0, 40)
     : [];
 
+  const storyText =
+    activeActivity?.story ||
+    activeActivity?.mission ||
+    activeActivity?.summary ||
+    "Not specified";
+
   const sceneTitle = currentStepTitle || currentStep || "Not specified";
   const sceneInstruction =
     currentStepInstruction || currentStep || "Not specified";
+  const actionsList = Array.isArray(sceneActions)
+    ? sceneActions.filter(Boolean)
+    : sceneInstruction
+      ? [sceneInstruction]
+      : [];
   const starterLines = Array.isArray(starterIdeas)
     ? starterIdeas
         .map((idea) => {
@@ -70,13 +86,16 @@ export function buildQuestStepHintInput({
   return `
 Activity:
 - Title: ${activeActivity.title || "Untitled activity"}
-- Theme: ${activeActivity.theme || "Not specified"}
-- Story: ${activeActivity.mission || "Not specified"}
+- Theme: ${activeActivity.theme || activeActivity.visualTheme || "Not specified"}
+- Story: ${storyText}
 - Uses: ${(Array.isArray(activeActivity.uses) ? activeActivity.uses : []).join(", ") || "Not specified"}
 
 Current scene:
 - Scene ${currentStepNumber || "?"} of ${totalSteps || "?"}: ${sceneTitle}
-- What to do: ${sceneInstruction}
+- Why this scene matters: ${sceneSetup || "Not specified"}
+- Actions: ${actionsList.length > 0 ? actionsList.join(" | ") : sceneInstruction}
+- Done when: ${sceneDoneWhen || "Not specified"}
+${sceneOutcome ? `- Story consequence after success (for context only): ${sceneOutcome}` : ""}
 
 Starter ideas already on the card (give a different action):
 ${starterLines.length > 0 ? starterLines.map((line) => `- ${line}`).join("\n") : "- None"}

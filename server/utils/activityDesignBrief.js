@@ -50,6 +50,19 @@ export function buildActivityDesignBrief({
 
   const requiredRoleCount = participantCount >= 2 ? participantCount : 0;
 
+  const narrativeDesign = {
+    mode: resolveNarrativeDesignMode({
+      activityStyle,
+      youngestAge: youngest,
+      oldestAge: oldest,
+    }),
+    requiresIncitingIncident: activityStyle === "imaginative",
+    requiresSceneSetup: activityStyle === "imaginative",
+    requiresSceneOutcome: activityStyle === "imaginative",
+    requiresCausalTransitions: activityStyle === "imaginative",
+    finalSceneResolvesOpeningProblem: activityStyle === "imaginative",
+  };
+
   return {
     participants: {
       count: participantCount,
@@ -66,7 +79,31 @@ export function buildActivityDesignBrief({
           : "Single child completes every required action alone.",
     },
     complexityBudget,
+    narrativeDesign,
   };
+}
+
+export function resolveNarrativeDesignMode({
+  activityStyle = "imaginative",
+  youngestAge = null,
+  oldestAge = null,
+} = {}) {
+  if (activityStyle === "simple") {
+    return "practical-progression";
+  }
+  const oldest = Number.isFinite(Number(oldestAge)) ? Number(oldestAge) : null;
+  const youngest = Number.isFinite(Number(youngestAge)) ? Number(youngestAge) : null;
+  const focusAge = oldest ?? youngest;
+  if (!Number.isFinite(focusAge)) {
+    return "causal-adventure";
+  }
+  if (focusAge >= 13) {
+    return "challenge-progression";
+  }
+  if (focusAge >= 10) {
+    return "causal-challenge";
+  }
+  return "causal-adventure";
 }
 
 export function formatActivityDesignBriefForPrompt(brief) {

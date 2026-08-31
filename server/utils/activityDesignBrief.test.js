@@ -32,6 +32,8 @@ describe("buildActivityDesignBrief", () => {
     expect(brief.groupDesign.requiredRoleCount).toBe(2);
     expect(brief.groupDesign.directionsMustWorkForAge).toBe(6);
     expect(brief.groupDesign.engagementMustWorkForAge).toBe(8);
+    expect(brief.narrativeDesign.mode).toBe("causal-adventure");
+    expect(brief.narrativeDesign.requiresSceneSetup).toBe(true);
   });
 
   it("does not include names or birth dates in prompt JSON", () => {

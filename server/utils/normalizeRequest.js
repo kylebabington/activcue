@@ -9,6 +9,8 @@ import {
 import { STARTER_IDEA_KINDS } from "../schemas/activitySuggestionsSchema.js";
 import { inferVisualThemeFromActivity } from "./normalizeShared.js";
 import { normalizeActivityV3, isActivityFormatV3 } from "./normalizeActivityV3.js";
+import { normalizeActivityV4 } from "./normalizeActivityV4.js";
+import { isActivityFormatV4 } from "./activityFormat.js";
 import {
   resolveDoneWhen,
   resolveIfStuck,
@@ -454,6 +456,13 @@ function normalizeLegacyActivity(activity, safeActivityStyle, fallbackAges = [])
 }
 
 export function normalizeActivity(activity, safeActivityStyle, fallbackAges = []) {
+  if (
+    isActivityFormatV4(activity) ||
+    Number(activity?.activityFormatVersion) === 4
+  ) {
+    return normalizeActivityV4(activity, safeActivityStyle, fallbackAges);
+  }
+
   if (
     isActivityFormatV3(activity) ||
     Number(activity?.activityFormatVersion) === 3

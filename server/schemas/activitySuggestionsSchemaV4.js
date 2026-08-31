@@ -10,8 +10,9 @@ import {
   STARTER_IDEA_KINDS,
   VISUAL_THEMES,
 } from "./activitySuggestionsSchema.js";
+import { QUALITY_CONTRACT_VERSION } from "../utils/activityFormatConstants.js";
 
-const childRoleSchemaV3 = {
+const childRoleSchemaV4 = {
   type: "object",
   properties: {
     childName: { type: "string" },
@@ -24,21 +25,21 @@ const childRoleSchemaV3 = {
   additionalProperties: false,
 };
 
-const roleGuideSchemaV3 = {
+const roleGuideSchemaV4 = {
   type: "object",
   properties: {
     name: { type: "string" },
     description: { type: "string" },
     childRoles: {
       type: "array",
-      items: childRoleSchemaV3,
+      items: childRoleSchemaV4,
     },
   },
   required: ["name", "description", "childRoles"],
   additionalProperties: false,
 };
 
-const ageFitSchemaV3 = {
+const ageFitSchemaV4 = {
   type: "object",
   properties: {
     minAge: { type: "number" },
@@ -68,7 +69,7 @@ const ageFitSchemaV3 = {
   additionalProperties: false,
 };
 
-const starterIdeaSchemaV3 = {
+const starterIdeaSchemaV4 = {
   type: "object",
   properties: {
     title: { type: "string" },
@@ -82,7 +83,7 @@ const starterIdeaSchemaV3 = {
   additionalProperties: false,
 };
 
-const stepRoleInstructionSchemaV3 = {
+const stepRoleInstructionSchemaV4 = {
   type: "object",
   properties: {
     roleName: { type: "string" },
@@ -92,10 +93,11 @@ const stepRoleInstructionSchemaV3 = {
   additionalProperties: false,
 };
 
-const stepDetailSchemaV3 = {
+const stepDetailSchemaV4 = {
   type: "object",
   properties: {
     title: { type: "string" },
+    sceneSetup: { type: "string" },
     actions: {
       type: "array",
       items: { type: "string" },
@@ -103,28 +105,30 @@ const stepDetailSchemaV3 = {
     },
     starterIdeas: {
       type: "array",
-      items: starterIdeaSchemaV3,
+      items: starterIdeaSchemaV4,
     },
     doneWhen: { type: "string" },
+    sceneOutcome: { type: "string" },
     ifStuck: { type: "string" },
     roleInstructions: {
       type: "array",
-      items: stepRoleInstructionSchemaV3,
+      items: stepRoleInstructionSchemaV4,
     },
-    storyBeat: { type: "string" },
   },
   required: [
     "title",
+    "sceneSetup",
     "actions",
     "starterIdeas",
     "doneWhen",
+    "sceneOutcome",
     "ifStuck",
     "roleInstructions",
   ],
   additionalProperties: false,
 };
 
-const setupGuideSchemaV3 = {
+const setupGuideSchemaV4 = {
   type: "object",
   properties: {
     needed: {
@@ -141,9 +145,10 @@ const setupGuideSchemaV3 = {
   additionalProperties: false,
 };
 
-const finishGuideSchemaV3 = {
+const finishGuideSchemaV4 = {
   type: "object",
   properties: {
+    resolution: { type: "string" },
     action: { type: "string" },
     example: { type: "string" },
     doneWhen: { type: "string" },
@@ -151,14 +156,13 @@ const finishGuideSchemaV3 = {
       type: "array",
       items: { type: "string" },
     },
-    resolution: { type: "string" },
   },
-  required: ["action", "example", "doneWhen", "extensions"],
+  required: ["resolution", "action", "example", "doneWhen", "extensions"],
   additionalProperties: false,
 };
 
-/** Activity Format V3 — actions[] is source of truth; instruction is derived server-side. */
-export const activitySuggestionsSchemaV3 = {
+/** Activity Format V4 — imaginative-only causal story structure. */
+export const activitySuggestionsSchemaV4 = {
   type: "object",
   properties: {
     activities: {
@@ -168,12 +172,16 @@ export const activitySuggestionsSchemaV3 = {
         properties: {
           activityFormatVersion: {
             type: "number",
-            enum: [3],
+            enum: [4],
+          },
+          qualityContractVersion: {
+            type: "number",
+            enum: [QUALITY_CONTRACT_VERSION],
           },
           title: { type: "string" },
           activityStyle: {
             type: "string",
-            enum: ["simple", "imaginative"],
+            enum: ["imaginative"],
           },
           visualTheme: {
             type: "string",
@@ -181,18 +189,18 @@ export const activitySuggestionsSchemaV3 = {
           },
           story: { type: "string" },
           summary: { type: "string" },
-          roleGuide: roleGuideSchemaV3,
-          ageFit: ageFitSchemaV3,
-          setupGuide: setupGuideSchemaV3,
+          roleGuide: roleGuideSchemaV4,
+          ageFit: ageFitSchemaV4,
+          setupGuide: setupGuideSchemaV4,
           starterIdeas: {
             type: "array",
-            items: starterIdeaSchemaV3,
+            items: starterIdeaSchemaV4,
           },
           stepDetails: {
             type: "array",
-            items: stepDetailSchemaV3,
+            items: stepDetailSchemaV4,
           },
-          finishGuide: finishGuideSchemaV3,
+          finishGuide: finishGuideSchemaV4,
           uses: {
             type: "array",
             items: { type: "string" },
@@ -256,6 +264,7 @@ export const activitySuggestionsSchemaV3 = {
         },
         required: [
           "activityFormatVersion",
+          "qualityContractVersion",
           "title",
           "activityStyle",
           "visualTheme",
@@ -282,4 +291,10 @@ export const activitySuggestionsSchemaV3 = {
   },
   required: ["activities"],
   additionalProperties: false,
+};
+
+export {
+  stepDetailSchemaV4,
+  finishGuideSchemaV4,
+  roleGuideSchemaV4,
 };

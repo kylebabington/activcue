@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { completeActivityV2Fixture } from "../fixtures/completeActivityV2Fixture";
+import { lostShellSignalV3Fixture } from "../fixtures/lostShellSignalV3Fixture";
 import { buildNarrationText } from "./buildNarrationText";
 
 describe("buildNarrationText", () => {
@@ -71,5 +72,21 @@ describe("buildNarrationText", () => {
       stuckPromptIndex: 0,
     });
     expect(text.length).toBeGreaterThan(0);
+  });
+
+  it("includes storyBeat before actions and resolution before finish action for V3", () => {
+    const stepText = buildNarrationText(lostShellSignalV3Fixture, "step", {
+      stepIndex: 0,
+    });
+    expect(stepText).toContain("The first clue has washed up alone");
+    expect(stepText.indexOf("The first clue has washed up alone")).toBeLessThan(
+      stepText.indexOf("Walk slowly")
+    );
+
+    const finishText = buildNarrationText(lostShellSignalV3Fixture, "finish");
+    expect(finishText).toContain("three clues now spell out");
+    expect(finishText.indexOf("three clues now spell out")).toBeLessThan(
+      finishText.indexOf("Put all three clues")
+    );
   });
 });

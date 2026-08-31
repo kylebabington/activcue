@@ -51,7 +51,22 @@ export function getActivityMissionText(activity) {
 }
 
 export function isActivityFormatV3(activity) {
-  return Number(activity?.activityFormatVersion) >= 3;
+  const version = Number(activity?.activityFormatVersion);
+  return version === 3 || version >= 4;
+}
+
+export function isActivityFormatV4(activity) {
+  return Number(activity?.activityFormatVersion) === 4;
+}
+
+export function getStepSceneSetup(step) {
+  if (!step || typeof step !== "object") return "";
+  return String(step.sceneSetup || step.storyBeat || "").trim();
+}
+
+export function getStepSceneOutcome(step) {
+  if (!step || typeof step !== "object") return "";
+  return String(step.sceneOutcome || "").trim();
 }
 
 export function getActivityStoryText(activity) {
@@ -82,6 +97,7 @@ export function getFinishGuide(activity) {
   if (isActivityFormatV3(activity) && activity?.finishGuide) {
     const guide = activity.finishGuide;
     return {
+      resolution: String(guide.resolution || "").trim(),
       action: String(guide.action || "").trim(),
       example: String(guide.example || "").trim(),
       doneWhen: String(guide.doneWhen || "").trim(),
@@ -94,11 +110,16 @@ export function getFinishGuide(activity) {
     ? activity.extensionIdeas.filter(Boolean)
     : [];
   return {
+    resolution: "",
     action: "",
     example: "",
     doneWhen: "",
     extensions,
   };
+}
+
+export function getStepStoryBeat(step) {
+  return getStepSceneSetup(step);
 }
 
 export function getStepActions(step) {

@@ -342,6 +342,7 @@ export function storyifyCachedImaginativeActivity(activity) {
     activityFormatVersion: 2,
     activityStyle: "imaginative",
     storyVoiceVersion: 1,
+    legacyStoryified: true,
     visualTheme: theme,
     mission,
     roleGuide: {

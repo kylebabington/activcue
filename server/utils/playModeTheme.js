@@ -22,7 +22,7 @@ PLAY MODE — PLAYROOM:
 - Prefer short, start-now activities with quick first moves.
 - Bias toward high-energy movement or playful bursts when the moment allows noise and energy.
 - Keep steps few and immediate.
-- For imaginative activities under ~10, punchy themes beat long lore.
+- For imaginative activities under ~10: start quickly BUT never skip the reason for the first action. Use 2–4 sentences of causal setup so the child knows WHY before acting. Short story ≠ shallow story.
 - For ages 13+, punchy creative challenges beat pretend adventures.
 `,
 };

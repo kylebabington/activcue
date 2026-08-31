@@ -10,6 +10,7 @@ export default function QuestFinishGuide({
     finishGuide && typeof finishGuide === "object" ? finishGuide : null;
   const action = String(guide?.action || "").trim();
   const example = String(guide?.example || "").trim();
+  const resolution = String(guide?.resolution || "").trim();
   const doneWhen = String(guide?.doneWhen || "").trim();
   const extensions =
     Array.isArray(guide?.extensions) && guide.extensions.length > 0
@@ -20,6 +21,9 @@ export default function QuestFinishGuide({
 
   return (
     <>
+      {resolution ? (
+        <p className="quest-finish-resolution">{resolution}</p>
+      ) : null}
       {action ? (
         <div className="quest-finish-primary">
           <p className="quest-finish-action">{action}</p>
