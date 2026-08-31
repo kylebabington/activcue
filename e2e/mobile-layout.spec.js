@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { ensurePermanentAppSession } from "./helpers/signupFlow.js";
 
 const PHONE_VIEWPORTS = [
   { name: "small phone", width: 320, height: 700 },
@@ -26,7 +27,8 @@ test("mobile app header uses the menu button instead of desktop navigation", asy
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/demo");
+  await ensurePermanentAppSession(page);
+  await page.goto("/app");
 
   const menuButton = page.getByRole("button", { name: /open menu/i });
   await expect(menuButton).toBeVisible();

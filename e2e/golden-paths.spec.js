@@ -143,8 +143,14 @@ test.describe("ActivCue golden paths", () => {
     await expect(
       page.getByRole("heading", { name: /What kind of moment are you in/i })
     ).toBeVisible();
-    await page.getByRole("link", { name: /cook dinner/i }).first().click();
-    await expect(page).toHaveURL(/\/demo/, { timeout: 15000 });
+    const cookDinnerLink = page.getByRole("link", {
+      name: /I need 20 minutes to cook dinner/i,
+    });
+    await expect(cookDinnerLink).toBeVisible();
+    await cookDinnerLink.click();
+    await expect(page).toHaveURL(/\/demo.*situation=cook-dinner/, {
+      timeout: 15000,
+    });
     await expect(
       page.getByRole("heading", { name: /How old are they/i })
     ).toBeVisible({ timeout: 15000 });

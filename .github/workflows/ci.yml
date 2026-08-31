@@ -169,6 +169,22 @@ jobs:
           # Optional: comma-separated production Supabase hostnames to refuse in CI.
           ACTIVCUE_BLOCKED_SUPABASE_HOSTS: ${{ vars.ACTIVCUE_BLOCKED_SUPABASE_HOSTS }}
 
+      - name: Upload Playwright HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          if-no-files-found: ignore
+
+      - name: Upload Playwright test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-test-results
+          path: test-results/
+          if-no-files-found: ignore
+
       - name: Stop local Supabase
         if: always()
         run: supabase stop --no-backup || true
