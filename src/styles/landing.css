@@ -1283,6 +1283,12 @@ button.landing-btn:disabled {
   grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
   gap: 0.85rem;
   margin-top: 1.25rem;
+  list-style: none;
+  padding: 0;
+}
+
+.landing-situations-grid > li {
+  display: contents;
 }
 
 .landing-situation {

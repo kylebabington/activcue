@@ -24,28 +24,28 @@ export default function LandingSituations() {
           Tap a real situation. {BRAND.name} will ask one question, then show
           three things that fit.
         </p>
-        <div className="landing-situations-grid" role="list">
+        <ul className="landing-situations-grid">
           {LANDING_SITUATIONS.map((situation) => (
-            <Link
-              key={situation.id}
-              role="listitem"
-              className="landing-situation"
-              to={buildDemoUrl(situation)}
-              onClick={() =>
-                trackProductEvent("demo_started", {
-                  source: "landing_situation",
-                  situationId: situation.id,
-                  momentId: situation.momentId,
-                })
-              }
-            >
-              <span className="landing-situation-quote">
-                &ldquo;{situation.quote}&rdquo;
-              </span>
-              <span className="landing-situation-cta">Try this moment</span>
-            </Link>
+            <li key={situation.id}>
+              <Link
+                className="landing-situation"
+                to={buildDemoUrl(situation)}
+                onClick={() =>
+                  trackProductEvent("demo_started", {
+                    source: "landing_situation",
+                    situationId: situation.id,
+                    momentId: situation.momentId,
+                  })
+                }
+              >
+                <span className="landing-situation-quote">
+                  &ldquo;{situation.quote}&rdquo;
+                </span>
+                <span className="landing-situation-cta">Try this moment</span>
+              </Link>
+            </li>
           ))}
-        </div>
+        </ul>
         <div className="landing-section-cta">
           <Link
             className="landing-btn landing-btn--primary"

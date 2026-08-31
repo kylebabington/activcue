@@ -9,6 +9,52 @@ export function uniqueTestEmail(prefix = "e2e") {
 }
 
 /**
+ * Wait for /onboarding to load and reach the child setup step ("Who's playing?").
+ * Clicks through the welcome screen when it appears.
+ */
+export async function advanceToOnboardingChildStep(page) {
+  await expect(page).toHaveURL(/\/onboarding/, { timeout: 45000 });
+
+  const welcomeButton = page.getByRole("button", { name: /Add first child/i });
+  const childFormHeading = page.getByRole("heading", { name: /Who.s playing/i });
+
+  await expect(async () => {
+    if (await childFormHeading.isVisible()) {
+      return;
+    }
+    if (await welcomeButton.isVisible()) {
+      await welcomeButton.click();
+    }
+    await expect(childFormHeading).toBeVisible();
+  }).toPass({ timeout: 30000 });
+}
+
+/**
+ * Fill the onboarding child form and add one kid.
+ * Assumes advanceToOnboardingChildStep() has already run.
+ */
+export async function fillOnboardingChild(
+  page,
+  { childName = "Sam", ageYears = "8" } = {}
+) {
+  await page.getByPlaceholder("Sam").fill(childName);
+  await page.getByPlaceholder("12").fill(ageYears);
+  await page.getByRole("button", { name: /^Add kid$/i }).click();
+}
+
+/**
+ * Complete onboarding by adding one child and continuing.
+ */
+export async function completeOnboardingWithChild(
+  page,
+  { childName = "Sam", ageYears = "8" } = {}
+) {
+  await advanceToOnboardingChildStep(page);
+  await fillOnboardingChild(page, { childName, ageYears });
+  await page.getByRole("button", { name: /Find something to do/i }).click();
+}
+
+/**
  * Signup as a brand-new permanent user, then add one kid (or skip).
  */
 export async function signupAndOnboard(
@@ -21,11 +67,29 @@ export async function signupAndOnboard(
   } = {}
 ) {
   await page.goto("/signup");
-  await waitForAuthSession(page);
 
-  await expect(
-    page.getByRole("heading", { name: /Create your account|Save your activity|account/i })
-  ).toBeVisible({ timeout: 30000 });
+  const authBootstrapError = page.getByRole("heading", {
+    name: /could not start your session/i,
+  });
+  const signupHeading = page.getByRole("heading", {
+    name: /Create your account|Save your activity|account/i,
+  });
+
+  await expect(signupHeading.or(authBootstrapError)).toBeVisible({
+    timeout: 30000,
+  });
+
+  if (await authBootstrapError.isVisible()) {
+    const detail =
+      (await page.locator('[role="alert"] p').first().textContent()) ||
+      "unknown error";
+    throw new Error(
+      `Signup auth bootstrap failed (${detail}). ` +
+        "Ensure local Supabase is running (`npx supabase start`) and E2E is not reusing a dev server pointed at production."
+    );
+  }
+
+  await waitForAuthSession(page);
 
   await page.locator('input[type="email"]').fill(email);
   const passwordInputs = page.locator('input[type="password"]');
@@ -40,25 +104,11 @@ export async function signupAndOnboard(
   await waitForAuthSession(page);
 
   if (/\/onboarding/.test(page.url())) {
-    const welcomeContinue = page.getByRole("button", { name: /Add first child/i });
-    if (await welcomeContinue.isVisible().catch(() => false)) {
-      await welcomeContinue.click();
-    }
-
     if (addChild) {
-      await expect(
-        page.getByRole("heading", { name: /Who.s playing/i })
-      ).toBeVisible({ timeout: 15000 });
-
-      await page.getByPlaceholder("Sam").fill(childName);
-      await page.getByPlaceholder("12").fill("8");
-      await page.getByRole("button", { name: /^Add kid$/i }).click();
-      await page.getByRole("button", { name: /Find something to do/i }).click();
+      await completeOnboardingWithChild(page, { childName });
     } else {
-      const skip = page.getByRole("button", { name: /Skip for now/i });
-      if (await skip.isVisible().catch(() => false)) {
-        await skip.click();
-      }
+      await advanceToOnboardingChildStep(page);
+      await page.getByRole("button", { name: /Skip for now/i }).click();
     }
   }
 
@@ -78,17 +128,7 @@ export async function ensurePermanentAppSession(page) {
   }
 
   if (/\/onboarding/.test(page.url())) {
-    const skip = page.getByRole("button", { name: /Skip for now/i });
-    const addFirst = page.getByRole("button", { name: /Add first child/i });
-    if (await addFirst.isVisible().catch(() => false)) {
-      await addFirst.click();
-      await page.getByPlaceholder("Sam").fill("Sam");
-      await page.getByPlaceholder("12").fill("8");
-      await page.getByRole("button", { name: /^Add kid$/i }).click();
-      await page.getByRole("button", { name: /Find something to do|Skip for now/i }).click();
-    } else if (await skip.isVisible().catch(() => false)) {
-      await skip.click();
-    }
+    await completeOnboardingWithChild(page);
   }
 
   await waitForAuthSession(page);
