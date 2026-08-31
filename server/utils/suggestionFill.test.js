@@ -2,11 +2,21 @@ import { describe, expect, it } from "vitest";
 import {
   SUGGESTION_COUNT,
   computeAiGenerateCount,
+  computeV4ImaginativeGenerateCount,
   clampAiGenerateCount,
   isImpressionSuppressed,
   selectFreshFirstCandidates,
   takeAiFill,
 } from "./suggestionFill.js";
+
+describe("computeV4ImaginativeGenerateCount", () => {
+  it("requests exactly the missing display slots for V4 imaginative", () => {
+    expect(computeV4ImaginativeGenerateCount(1)).toBe(1);
+    expect(computeV4ImaginativeGenerateCount(2)).toBe(2);
+    expect(computeV4ImaginativeGenerateCount(3)).toBe(3);
+    expect(computeV4ImaginativeGenerateCount(9)).toBe(5);
+  });
+});
 
 describe("computeAiGenerateCount", () => {
   it("maps slots to over-generate counts capped at 5", () => {

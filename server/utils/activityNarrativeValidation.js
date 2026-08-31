@@ -10,6 +10,7 @@ import {
   hasQualityContractVersion,
 } from "./activityFormat.js";
 import { QUALITY_CONTRACT_VERSION } from "./activityFormatConstants.js";
+import { UNDER10_OPENING_STORY } from "./narrativeStoryRequirements.js";
 
 const GENERIC_STORY_PATTERNS = [
   /^some animals need help/i,
@@ -97,12 +98,16 @@ function validateOpeningStory(story, { oldestAge }, errors, reasons) {
   const words = countWords(story);
 
   if (under10) {
-    if (sentences < 4 || words < 70 || words > 140) {
+    if (
+      sentences < UNDER10_OPENING_STORY.minSentences ||
+      words < UNDER10_OPENING_STORY.minWords ||
+      words > UNDER10_OPENING_STORY.maxWords
+    ) {
       pushReason(
         errors,
         reasons,
         "story-too-thin",
-        `story must be 4–6 sentences (~70–120 words) for under-10; got ${sentences} sentences, ${words} words`
+        `story must be ${UNDER10_OPENING_STORY.targetSentences} sentences (~${UNDER10_OPENING_STORY.targetWords} words) for under-10; got ${sentences} sentences, ${words} words`
       );
     }
   } else if (teen || oldestAge >= 10) {
@@ -262,11 +267,12 @@ function validateFinishGuideOwnership(finishGuide, errors, reasons) {
   }
 }
 
-function validateMultiChildRoles(story, roleGuide, participantCount, errors, reasons) {
-  if (participantCount < 2) return;
+function collectMultiChildRoleWarnings(story, roleGuide, participantCount) {
+  const warnings = [];
+  if (participantCount < 2) return warnings;
 
   const childRoles = Array.isArray(roleGuide?.childRoles) ? roleGuide.childRoles : [];
-  if (childRoles.length < 2) return;
+  if (childRoles.length < 2) return warnings;
 
   const storyLower = story.toLowerCase();
   const missingRoles = childRoles
@@ -275,23 +281,23 @@ function validateMultiChildRoles(story, roleGuide, participantCount, errors, rea
     .filter((title) => !storyLower.includes(title.toLowerCase()));
 
   if (missingRoles.length > 0) {
-    pushReason(
-      errors,
-      reasons,
-      "story-roles-missing",
-      `opening story must introduce role titles: ${missingRoles.join(", ")}`
-    );
+    warnings.push({
+      code: "story-roles-missing",
+      detail: `opening story does not mention role titles verbatim: ${missingRoles.join(", ")}`,
+    });
   }
+  return warnings;
 }
 
 /**
  * @param {object} activity
  * @param {{ youngestAge?: number|null, oldestAge?: number|null, participantCount?: number }} context
- * @returns {{ valid: boolean, errors: string[], reasons: string[], skipped?: boolean }}
+ * @returns {{ valid: boolean, errors: string[], reasons: string[], warnings?: Array<{code: string, detail: string}>, skipped?: boolean }}
  */
 export function validateActivityNarrative(activity, context = {}) {
   const errors = [];
   const reasons = [];
+  const warnings = [];
 
   if (!activity || typeof activity !== "object") {
     return { valid: false, errors: ["activity is required"], reasons: ["story-too-thin"] };
@@ -324,12 +330,15 @@ export function validateActivityNarrative(activity, context = {}) {
   validateOpeningStory(story, { oldestAge }, errors, reasons);
   validateSceneFields(activity.stepDetails, errors, reasons);
   validateFinishGuideOwnership(activity.finishGuide, errors, reasons);
-  validateMultiChildRoles(story, activity.roleGuide, participantCount, errors, reasons);
+  warnings.push(
+    ...collectMultiChildRoleWarnings(story, activity.roleGuide, participantCount)
+  );
 
   return {
     valid: errors.length === 0,
     errors,
     reasons: [...new Set(reasons)],
+    warnings,
   };
 }
 
@@ -339,7 +348,7 @@ export function formatNarrativeSteerHints(reasons = []) {
 
   if (unique.includes("story-too-thin")) {
     hints.push(
-      "Write a 4–6 sentence opening story (~70–120 words for under-10) with WHERE, WHAT happened, WHO needs help, WHY it cannot fix itself, WHY the child's role matters, and WHAT success looks like."
+      `Write a ${UNDER10_OPENING_STORY.targetSentences} sentence opening story (~${UNDER10_OPENING_STORY.targetWords} words for under-10) with WHERE, WHAT happened before play, the current PROBLEM, WHY it matters, and WHY the child/children are needed.`
     );
   }
   if (unique.includes("story-missing-problem")) {
@@ -367,11 +376,6 @@ export function formatNarrativeSteerHints(reasons = []) {
   if (unique.includes("story-resolution-missing") || unique.includes("finish-fields-duplicated")) {
     hints.push(
       "finishGuide.resolution = how the opening problem was resolved (narrative). finishGuide.action = what the child does (physical). finishGuide.doneWhen = observable result. Do not repeat the same text."
-    );
-  }
-  if (unique.includes("story-roles-missing")) {
-    hints.push(
-      "For family activities, name each childRoles.roleTitle in the opening story and explain why both roles matter."
     );
   }
   if (

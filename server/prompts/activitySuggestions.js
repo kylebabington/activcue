@@ -5,6 +5,7 @@ import { getPlayModePromptFlavor } from "../utils/playModeTheme.js";
 import { BRAND } from "../../src/config/brand.js";
 import { getPolicyAgeBand, getDevelopmentalComplexityBudget } from "../utils/activityAgePolicy.js";
 import { clampAiGenerateCount } from "../utils/suggestionFill.js";
+import { UNDER10_OPENING_STORY_PROMPT } from "../utils/narrativeStoryRequirements.js";
 import {
   buildActivityDesignBrief,
   formatActivityDesignBriefForPrompt,
@@ -98,7 +99,7 @@ function buildCausalStoryDesignRules(ageBand, participantCount = 1) {
     participantCount >= 2
       ? `
 MULTI-CHILD STORY ROLES (hard when 2+ children participate):
-- Introduce both childRoles naturally in the opening story by roleTitle.
+- Give each childRole a distinct contribution in the opening story — describe what each child does, not necessarily the exact roleTitle string.
 - Give each role a distinct reason to exist — both must affect the outcome.
 - Refer to each role's contribution in relevant sceneSetup fields.
 - Do not make the older child merely supervise.
@@ -107,7 +108,7 @@ MULTI-CHILD STORY ROLES (hard when 2+ children participate):
 
   const ageTone = isTeen || ageBand === "tween" || ageBand === "older-elementary"
     ? `Use challenge-first framing for ages 10+ — creative brief, design problem, investigation, or mystery. NOT young-child rescue fantasy unless interests explicitly ask for roleplay.`
-    : `Use vivid causal adventure for under-10 — specific place, inciting event, named problem, stakes.`;
+    : `Use vivid causal adventure for under-10 — specific place, inciting event, named problem, stakes. ${UNDER10_OPENING_STORY_PROMPT}`;
 
   return `
 CAUSAL ACTIVITY DESIGN — HARD REQUIREMENT
@@ -171,7 +172,7 @@ TEEN / YOUNG-TEEN FRAMING:
 - Do not reuse preschool pretend-play framing and simply increase difficulty.
 - Prefer autonomy, design, strategy, invention, building, investigation, photography, music, games, or creative production.
 - HARD RULE: do not invent an imaginary story world unless the child's listed interests explicitly ask for roleplay/fiction.
-- roleGuide.goal: crisp creative brief (goal + constraints + what done looks like). Max ~2 sentences.
+- roleGuide.description: crisp creative brief (goal + constraints + what done looks like). Max ~2 sentences. Put stakes in story.
 - Prefer categories: puzzle, creative, science, building, music, reading, nature, social-game. Avoid "pretend" unless interests demand it.
 - Activity-level starterIdeas: 3–5 thinking prompts (approaches, constraints, variations) — not "pretend you are…".
 - Include 3 to 5 stepDetails. Each needs 1–2 step-specific starterIdeas, a self-contained instruction, doneWhen as a tangible ready-to-continue cue, ifStuck as a simpler strategy.
@@ -186,7 +187,7 @@ TEEN / YOUNG-TEEN FRAMING:
 OLDER-ELEMENTARY / TWEEN FRAMING:
 - Prefer creative challenges over full pretend worlds. Light theme is optional.
 - Allow planning, strategy, simple optimization, and design constraints.
-- roleGuide.goal: short challenge brief (1–2 sentences), not a long lore dump.
+- roleGuide.description: short challenge brief (1–2 sentences), not a long lore dump. Put the design problem in story.
 - Avoid forced make-believe dialogue and costume play.
 - Activity-level starterIdeas: at least 4 with mixed kinds.
 - Include 3 to 5 stepDetails. Each needs 2 step-specific starterIdeas, a self-contained instruction, transition-style doneWhen, and ifStuck rescue.
@@ -223,7 +224,7 @@ ELEMENTARY (AGES 8–9) FRAMING:
   const under10 = `
 YOUNG-CHILD / UNDER-10 FRAMING:
 - Vivid theme framing and a clear pretend role are OK when a natural role exists.
-- roleGuide.goal may be a rich setup (world, problem/invitation, who they are, first direction) — keep ≤4 sentences.
+- story carries the world, problem, and invitation; roleGuide.description states who they are and their overall job (≤4 sentences).
 - Prefer story-beat step titles, then a full instruction that a child can follow without guessing.
 - Activity-level starterIdeas: at least 4 with mixed kinds (how the story begins).
 - Include 4 to 5 stepDetails. Each needs 2 step-specific starterIdeas.
@@ -314,7 +315,7 @@ ${buildCausalStoryDesignRules(ageBand, options.childrenContext?.length || 1)}`;
 ACTIVITY FORMAT V4 (required — imaginative only):
 - Set activityFormatVersion to 4 and qualityContractVersion to 1.
 - activityStyle must be "imaginative".
-- story: WHY this situation exists — WHERE, WHAT happened, WHO needs help, WHY it matters. No setup directions.
+- story: WHY this situation exists — WHERE, WHAT happened before play, current PROBLEM/need/mystery, WHY it matters, WHY the child/children are needed. Under-10: ${UNDER10_OPENING_STORY_PROMPT.replace(/\n/g, " ")} No setup directions.
 - summary: max 2 sentences — what the child will do.
 - roleGuide: { name, description, childRoles[] }. WHO the child is. No fluff titles.
 - setupGuide: { needed[], steps[], readyWhen }. Physical prep before Scene 1 only.

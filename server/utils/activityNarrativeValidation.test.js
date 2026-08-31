@@ -12,6 +12,23 @@ import {
 } from "./activityNarrativeValidation.js";
 import { QUALITY_CONTRACT_VERSION } from "./activityFormatConstants.js";
 
+function buildMinimalV4Activity(storyOverrides = {}) {
+  return {
+    ...stormStrandedAnimalRescueV4Fixture,
+    story:
+      "Overnight, a thunderstorm tore through Pinecone Wildlife Sanctuary and flooded the creek beside the animal shelter. " +
+      "Three young stuffed animals are still inside the shelter, but the water is rising and another storm is forecast before sunset. " +
+      "The wooden bridge washed away, so nobody can reach the shelter from the main trail until a safe crossing is built. " +
+      "You are the rescue ranger who must reach them and get everyone inside before the weather worsens again tonight.",
+    roleGuide: {
+      name: "Rescue Ranger",
+      description: "Reach the stranded animals and get everyone to safety.",
+      childRoles: [],
+    },
+    ...storyOverrides,
+  };
+}
+
 describe("validateActivityNarrative", () => {
   it("passes the golden causal V4 fixture", () => {
     const result = validateActivityNarrative(stormStrandedAnimalRescueV4Fixture, {
@@ -130,6 +147,80 @@ describe("validateActivityNarrative", () => {
     expect(result.valid).toBe(false);
     expect(result.reasons).toContain("v4-style-mismatch");
   });
+
+  it("passes under-10 story with 55+ words and 3+ causal sentences", () => {
+    const result = validateActivityNarrative(buildMinimalV4Activity(), {
+      oldestAge: 7,
+      participantCount: 1,
+    });
+    expect(result.valid).toBe(true);
+    expect(result.reasons).not.toContain("story-too-thin");
+  });
+
+  it("rejects under-10 story with 3 sentences but under 50 words", () => {
+    const result = validateActivityNarrative(
+      buildMinimalV4Activity({
+        story:
+          "A storm flooded the creek by the shelter. " +
+          "Three animals are trapped inside alone. " +
+          "You must reach them fast.",
+      }),
+      { oldestAge: 7 }
+    );
+    expect(result.valid).toBe(false);
+    expect(result.reasons).toContain("story-too-thin");
+  });
+
+  it("rejects production-like thin stories (~40–46 words, 2 sentences)", () => {
+    const result = validateActivityNarrative(
+      buildMinimalV4Activity({
+        story:
+          "A thunderstorm flooded the creek beside the Pinecone Wildlife Sanctuary animal shelter and three young stuffed animals are still trapped inside alone. " +
+          "The water is rising fast toward the shelter door and you must reach them before the next storm arrives tonight.",
+      }),
+      { oldestAge: 7 }
+    );
+    expect(result.valid).toBe(false);
+    expect(result.reasons).toContain("story-too-thin");
+  });
+
+  it("allows contribution-based multi-child story without exact roleTitle strings", () => {
+    const result = validateActivityNarrative(
+      buildMinimalV4Activity({
+        story:
+          "Overnight, wind tore through the backyard bird sanctuary and scattered nesting supplies across the patio. " +
+          "Several small birds are calling from different corners, but none can find safe nests before nightfall. " +
+          "One of you prepares safe nests while the other decodes the animal signals so every bird reaches the right shelter. " +
+          "If the nests are not ready before dusk, the youngest birds may stay exposed in the cold.",
+        roleGuide: {
+          name: "Nest Rescue Team",
+          description: "Prepare nests and guide birds to safety.",
+          childRoles: [
+            {
+              childName: "Sam",
+              age: 6,
+              roleTitle: "Animal Nest Builder",
+              responsibility: "Prepare safe nests.",
+              firstAction: "Gather soft materials.",
+            },
+            {
+              childName: "Riley",
+              age: 8,
+              roleTitle: "Clue Match Captain",
+              responsibility: "Decode bird signals.",
+              firstAction: "Listen for calls.",
+            },
+          ],
+        },
+      }),
+      { oldestAge: 7, participantCount: 2 }
+    );
+    expect(result.valid).toBe(true);
+    expect(result.reasons).not.toContain("story-roles-missing");
+    expect(result.warnings?.some((w) => w.code === "story-roles-missing")).toBe(
+      true
+    );
+  });
 });
 
 describe("formatNarrativeSteerHints", () => {
@@ -140,6 +231,12 @@ describe("formatNarrativeSteerHints", () => {
     ]);
     expect(hints.join(" ")).toMatch(/CAUSALITY RETRY/i);
     expect(hints.join(" ")).toMatch(/sceneSetup/i);
+  });
+
+  it("uses aligned under-10 story targets for story-too-thin", () => {
+    const hints = formatNarrativeSteerHints(["story-too-thin"]);
+    expect(hints.join(" ")).toMatch(/3–5 sentence/i);
+    expect(hints.join(" ")).toMatch(/55–90 words/i);
   });
 });
 

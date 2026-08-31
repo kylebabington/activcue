@@ -19,6 +19,12 @@ export function computeAiGenerateCount(slotsNeeded) {
   return Math.min(MAX_AI_GENERATE_COUNT, slots + 2);
 }
 
+/** V4 imaginative: request exactly the missing display slots (no over-generation). */
+export function computeV4ImaginativeGenerateCount(slotsNeeded) {
+  const slots = Math.max(1, Number(slotsNeeded) || 1);
+  return Math.min(MAX_AI_GENERATE_COUNT, slots);
+}
+
 /**
  * Clamp a requested generation count for prompts / token budgets.
  */

@@ -56,8 +56,22 @@ import {
   SUGGESTION_COUNT,
   MAX_AI_GENERATE_COUNT,
   computeAiGenerateCount,
+  computeV4ImaginativeGenerateCount,
   takeAiFill,
 } from "../utils/suggestionFill.js";
+import {
+  shouldRunNarrativeRetry,
+  shouldRunAgeFitRetry,
+  shouldRunPartialRefill,
+  shouldFailAgeFit,
+} from "../utils/activitySuggestionsRetryPolicy.js";
+
+function resolveAiGenerateCount(activityStyle, slotsNeeded) {
+  if (activityStyle === "imaginative") {
+    return computeV4ImaginativeGenerateCount(slotsNeeded);
+  }
+  return computeAiGenerateCount(slotsNeeded);
+}
 
 const router = Router();
 const isDebugLogging = process.env.DEBUG_AI_RESPONSES === "true";
@@ -637,6 +651,7 @@ export default function createActivitySuggestionsRouter(client) {
 
         const aiSlots = SUGGESTION_COUNT - cachedKept.length;
         let aiActivities = [];
+        let qualitySurvivorCount = 0;
         let usageMeta = null;
         const aiDiagnostics = {
           aiAttempted: false,
@@ -645,13 +660,25 @@ export default function createActivitySuggestionsRouter(client) {
           aiClarityRejectedCount: 0,
           aiStoryRejectedCount: 0,
           aiStoryRejectedByReason: {},
+          aiNarrativeRejectedCount: 0,
+          aiNarrativeRejectedByReason: {},
           aiFitRejectedCount: 0,
           aiRejectedByReason: {},
           aiEligibleCount: 0,
+          initialGenerationCount: 0,
+          initialGenerationMs: 0,
+          narrativeRetryAttempted: false,
+          narrativeRetryMs: 0,
+          ageRetryAttempted: false,
+          ageRetryMs: 0,
+          ageRetryEligibleCount: null,
           refillAttempted: false,
+          refillMs: 0,
           refillRequestedCount: 0,
           refillGeneratedCount: 0,
           refillEligibleCount: 0,
+          openAiBatchCount: 0,
+          openAiCallCount: 0,
         };
         const storyQualityContext = buildStoryQualityContext(
           groupAgeContext,
@@ -662,9 +689,10 @@ export default function createActivitySuggestionsRouter(client) {
         const generationSchema = resolveGenerationSchema(safeActivityStyle);
 
         if (aiSlots > 0) {
-          const aiGenerateCount = computeAiGenerateCount(aiSlots);
+          const aiGenerateCount = resolveAiGenerateCount(safeActivityStyle, aiSlots);
           aiDiagnostics.aiAttempted = true;
           aiDiagnostics.aiRequestedCount = aiGenerateCount;
+          aiDiagnostics.initialGenerationCount = aiGenerateCount;
 
           const instructions = buildActivitySuggestionsInstructions(
             safeActivityStyle,
@@ -679,6 +707,7 @@ export default function createActivitySuggestionsRouter(client) {
           const openaiStarted = Date.now();
           let recovered;
           try {
+            aiDiagnostics.openAiBatchCount += 1;
             recovered = await generateActivitiesWithParseRecovery({
               expectedCount: aiGenerateCount,
               activityStyle: safeActivityStyle,
@@ -710,6 +739,7 @@ export default function createActivitySuggestionsRouter(client) {
                   activityCount,
                 }),
               createResponse: async ({ input: retryInput, maxOutputTokens }) => {
+                aiDiagnostics.openAiCallCount += 1;
                 const aiResult = await createStructuredResponseWithMeta(client, {
                   instructions,
                   input: retryInput,
@@ -727,6 +757,7 @@ export default function createActivitySuggestionsRouter(client) {
             });
           } catch (parseError) {
             msOpenai = Date.now() - openaiStarted;
+            aiDiagnostics.initialGenerationMs = msOpenai;
             if (parseError instanceof AiResponseInvalidError) {
               await recordAiUsageEvent({
                 userId: req.auth.userId,
@@ -745,6 +776,7 @@ export default function createActivitySuggestionsRouter(client) {
             throw parseError;
           }
           msOpenai = Date.now() - openaiStarted;
+          aiDiagnostics.initialGenerationMs = msOpenai;
           usageMeta = {
             model: recovered.usage?.model || OPENAI_MODEL,
             inputTokens: recovered.usage?.inputTokens || 0,
@@ -775,7 +807,13 @@ export default function createActivitySuggestionsRouter(client) {
           );
 
           // Never serve clarity-failed content. If all fail, retry once then discard.
-          if (clarityPassed.length === 0 && normalizedActivities.length > 0) {
+          if (
+            shouldRunNarrativeRetry({
+              generatedCount: normalizedActivities.length,
+              qualitySurvivorCount: clarityPassed.length,
+            })
+          ) {
+            aiDiagnostics.narrativeRetryAttempted = true;
             const clarityRetrySteerParts = [
               "CLARITY RETRY: Previous activities failed clarity validation.",
               "Every step needs a concrete instruction, observable doneWhen, and explicit setup when materials matter.",
@@ -797,6 +835,7 @@ export default function createActivitySuggestionsRouter(client) {
             const clarityRetryStarted = Date.now();
             let clarityRetryRaw = [];
             try {
+              aiDiagnostics.openAiBatchCount += 1;
               const clarityRecovered = await generateActivitiesWithParseRecovery({
                 expectedCount: aiGenerateCount,
                 activityStyle: safeActivityStyle,
@@ -839,15 +878,17 @@ export default function createActivitySuggestionsRouter(client) {
                 createResponse: async ({
                   input: retryInput,
                   maxOutputTokens,
-                }) =>
-                  createStructuredResponseWithMeta(client, {
+                }) => {
+                  aiDiagnostics.openAiCallCount += 1;
+                  return createStructuredResponseWithMeta(client, {
                     instructions,
                     input: retryInput,
                     schemaName: "activity_suggestions",
                     schema: generationSchema,
                     verbosity: "low",
                     maxOutputTokens,
-                  }),
+                  });
+                },
               });
               clarityRetryRaw = clarityRecovered.activities;
               usageMeta = mergeUsageMeta(usageMeta, {
@@ -864,6 +905,7 @@ export default function createActivitySuggestionsRouter(client) {
               clarityRetryRaw = [];
             }
             msOpenai += Date.now() - clarityRetryStarted;
+            aiDiagnostics.narrativeRetryMs = Date.now() - clarityRetryStarted;
             const clarityRetryNormalized = clarityRetryRaw.map((activity) =>
               enrichActivityForServe(activity, safeActivityStyle, childAges)
             );
@@ -876,6 +918,9 @@ export default function createActivitySuggestionsRouter(client) {
             );
             aiDiagnostics.aiGeneratedCount += clarityRetryRaw.length;
           }
+
+          const qualitySurvivorCountAfterQuality = clarityPassed.length;
+          qualitySurvivorCount = qualitySurvivorCountAfterQuality;
 
           let ageFiltered = filterActivitiesByFitPolicy(
             clarityPassed,
@@ -894,7 +939,13 @@ export default function createActivitySuggestionsRouter(client) {
           let eligibleActivities = ageFiltered.activities;
           let lastRejectedDetails = ageFiltered.rejected || [];
 
-          if (eligibleActivities.length === 0) {
+          if (
+            shouldRunAgeFitRetry({
+              qualitySurvivorCount,
+              eligibleCount: eligibleActivities.length,
+            })
+          ) {
+            aiDiagnostics.ageRetryAttempted = true;
             const rejectionTitles = lastRejectedDetails
               .map((detail) => detail.activity?.title)
               .filter(Boolean)
@@ -912,6 +963,7 @@ export default function createActivitySuggestionsRouter(client) {
             const retryStarted = Date.now();
             let retryRawActivities = [];
             try {
+              aiDiagnostics.openAiBatchCount += 1;
               const ageRecovered = await generateActivitiesWithParseRecovery({
                 expectedCount: aiGenerateCount,
                 activityStyle: safeActivityStyle,
@@ -952,6 +1004,7 @@ export default function createActivitySuggestionsRouter(client) {
                   input: retryInput,
                   maxOutputTokens,
                 }) => {
+                  aiDiagnostics.openAiCallCount += 1;
                   const retryResult = await createStructuredResponseWithMeta(
                     client,
                     {
@@ -1009,6 +1062,7 @@ export default function createActivitySuggestionsRouter(client) {
               }
             }
             msOpenai += Date.now() - retryStarted;
+            aiDiagnostics.ageRetryMs = Date.now() - retryStarted;
 
             const retryNormalized = retryRawActivities
               .map((activity) =>
@@ -1038,12 +1092,24 @@ export default function createActivitySuggestionsRouter(client) {
             }
             eligibleActivities = ageFiltered.activities;
             lastRejectedDetails = ageFiltered.rejected || [];
+            aiDiagnostics.ageRetryEligibleCount = eligibleActivities.length;
           }
 
           // One partial-shortage refill when survivors < needed slots.
-          if (eligibleActivities.length < aiSlots) {
+          if (
+            shouldRunPartialRefill({
+              qualitySurvivorCount,
+              eligibleCount: eligibleActivities.length,
+              aiSlots,
+              ageRetryAttempted: aiDiagnostics.ageRetryAttempted,
+              ageRetryEligibleCount: aiDiagnostics.ageRetryEligibleCount,
+            })
+          ) {
             const remaining = aiSlots - eligibleActivities.length;
-            const refillCount = computeAiGenerateCount(remaining);
+            const refillCount =
+              safeActivityStyle === "imaginative"
+                ? remaining
+                : computeAiGenerateCount(remaining);
             const rejectionTitles = lastRejectedDetails
               .map((detail) => detail.activity?.title)
               .filter(Boolean);
@@ -1111,6 +1177,7 @@ export default function createActivitySuggestionsRouter(client) {
             const refillStarted = Date.now();
             let refillRaw = [];
             try {
+              aiDiagnostics.openAiBatchCount += 1;
               const refillRecovered = await generateActivitiesWithParseRecovery({
                 expectedCount: refillCount,
                 activityStyle: safeActivityStyle,
@@ -1147,15 +1214,17 @@ export default function createActivitySuggestionsRouter(client) {
                 createResponse: async ({
                   input: retryInput,
                   maxOutputTokens,
-                }) =>
-                  createStructuredResponseWithMeta(client, {
+                }) => {
+                  aiDiagnostics.openAiCallCount += 1;
+                  return createStructuredResponseWithMeta(client, {
                     instructions: refillInstructions,
                     input: retryInput,
                     schemaName: "activity_suggestions",
                     schema: generationSchema,
                     verbosity: "low",
                     maxOutputTokens,
-                  }),
+                  });
+                },
               });
               refillRaw = refillRecovered.activities;
               usageMeta = mergeUsageMeta(usageMeta, {
@@ -1172,6 +1241,7 @@ export default function createActivitySuggestionsRouter(client) {
               refillRaw = [];
             }
             msOpenai += Date.now() - refillStarted;
+            aiDiagnostics.refillMs = Date.now() - refillStarted;
             aiDiagnostics.refillGeneratedCount = refillRaw.length;
 
             const refillClarity = refillRaw
@@ -1209,7 +1279,13 @@ export default function createActivitySuggestionsRouter(client) {
             );
           }
 
-          if (eligibleActivities.length === 0 && cachedKept.length === 0) {
+          if (
+            shouldFailAgeFit({
+              qualitySurvivorCount,
+              eligibleCount: eligibleActivities.length,
+              cachedKeptCount: cachedKept.length,
+            })
+          ) {
             console.warn("[ageFit] AGE_FIT_FAILED after refill", {
               oldestAge,
               childAges,
@@ -1323,16 +1399,28 @@ export default function createActivitySuggestionsRouter(client) {
           aiCount: aiActivities.length,
           finalCount,
           underfilled,
+          initialGenerationCount: aiDiagnostics.initialGenerationCount,
+          initialGenerationMs: aiDiagnostics.initialGenerationMs,
+          narrativeRetryAttempted: aiDiagnostics.narrativeRetryAttempted,
+          narrativeRetryMs: aiDiagnostics.narrativeRetryMs,
+          ageRetryAttempted: aiDiagnostics.ageRetryAttempted,
+          ageRetryMs: aiDiagnostics.ageRetryMs,
+          refillAttempted: aiDiagnostics.refillAttempted,
+          refillMs: aiDiagnostics.refillMs,
+          legacyFallbackCount: legacyActivities.length,
+          openAiBatchCount: aiDiagnostics.openAiBatchCount,
+          openAiCallCount: aiDiagnostics.openAiCallCount,
           aiAttempted: aiDiagnostics.aiAttempted,
           aiRequestedCount: aiDiagnostics.aiRequestedCount,
           aiGeneratedCount: aiDiagnostics.aiGeneratedCount,
           aiClarityRejectedCount: aiDiagnostics.aiClarityRejectedCount,
           aiStoryRejectedCount: aiDiagnostics.aiStoryRejectedCount,
           aiStoryRejectedByReason: aiDiagnostics.aiStoryRejectedByReason,
+          aiNarrativeRejectedCount: aiDiagnostics.aiNarrativeRejectedCount,
+          aiNarrativeRejectedByReason: aiDiagnostics.aiNarrativeRejectedByReason,
           aiFitRejectedCount: aiDiagnostics.aiFitRejectedCount,
           aiRejectedByReason: aiDiagnostics.aiRejectedByReason,
           aiEligibleCount: aiDiagnostics.aiEligibleCount,
-          refillAttempted: aiDiagnostics.refillAttempted,
           refillRequestedCount: aiDiagnostics.refillRequestedCount,
           refillGeneratedCount: aiDiagnostics.refillGeneratedCount,
           refillEligibleCount: aiDiagnostics.refillEligibleCount,

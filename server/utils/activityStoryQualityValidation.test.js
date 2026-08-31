@@ -209,7 +209,7 @@ describe("formatStoryQualitySteerHints", () => {
       "story-beat-missing",
     ]);
     expect(hints.length).toBeGreaterThanOrEqual(2);
-    expect(hints.join(" ")).toMatch(/4–6 sentence/i);
+    expect(hints.join(" ")).toMatch(/3–5 sentence/i);
     expect(hints.join(" ")).toMatch(/storyBeat/i);
   });
 });

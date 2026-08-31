@@ -202,4 +202,27 @@ describe("buildActivitySuggestionsInstructions", () => {
     expect(input).toContain("sceneOutcome");
     expect(input).toContain("finishGuide{resolution");
   });
+
+  it("includes under-10 opening story requirements aligned with validator", () => {
+    const instructions = buildActivitySuggestionsInstructions(
+      "imaginative",
+      "playroom",
+      { groupAgeContext: { oldestAge: 7 } }
+    );
+    expect(instructions).toContain("3–5");
+    expect(instructions).toContain("55–90");
+    expect(instructions).toContain("WHAT happened before play began");
+    expect(instructions).toContain("WHY the child/children are needed");
+  });
+
+  it("does not reference unsupported roleGuide.goal in V4 imaginative prompts", () => {
+    for (const oldestAge of [7, 11, 14]) {
+      const instructions = buildActivitySuggestionsInstructions(
+        "imaginative",
+        "playroom",
+        { groupAgeContext: { oldestAge } }
+      );
+      expect(instructions).not.toContain("roleGuide.goal");
+    }
+  });
 });
