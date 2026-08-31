@@ -18,6 +18,6 @@ describe("buildPartialRefillSteer", () => {
     expect(steer).toContain("story-too-thin:2");
     expect(steer).toContain("story-beat-missing:1");
     expect(steer).toMatch(/sceneSetup|storyBeat/i);
-    expect(steer).toMatch(/4–6 sentence/i);
+    expect(steer).toMatch(/3–5 sentence/i);
   });
 });
