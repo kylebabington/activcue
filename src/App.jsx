@@ -53,6 +53,7 @@ import { formatAvailabilityLabel } from "./utils/activityFormatters";
 import { isFreeImaginativeUnlockUsed } from "./utils/presetDemo";
 import { mergeInventoryWithHouseholdBasics } from "./constants/inventoryPresets";
 import { kidActivityStyleFromPreference } from "./constants/activityPreferences";
+import { familySettingsPayloadFromState } from "./constants/familySettingsDefaults";
 
 function App() {
   const navigate = useNavigate();
@@ -320,6 +321,7 @@ function App() {
     familySettingsError,
     familySettingsSaveStatus,
     retryFamilySettingsSave,
+    flushFamilySettingsSave,
     suppressFamilySettingsSavesRef,
     familySettingsSaveTimeoutRef,
     familySettingsSaveChainRef,
@@ -574,6 +576,94 @@ function App() {
     childProfilesEmpty &&
     !onboardingCompletedAt &&
     !onboardingSkippedAt;
+
+  const completeOnboardingAndPersist = useCallback(
+    async ({
+      children = [],
+      inventory: nextInventory = [],
+      moment = null,
+      skipped = false,
+    } = {}) => {
+      const completedAt = new Date().toISOString();
+      const onboardingMeta = {
+        onboardingVersion: 1,
+        onboardingCompletedAt: skipped ? null : completedAt,
+        onboardingSkippedAt: skipped ? completedAt : null,
+      };
+      const nextChildren =
+        Array.isArray(children) && children.length > 0 ? children : [];
+      const nextPlayingChildIds =
+        nextChildren.length > 0
+          ? [String(nextChildren[0].id)]
+          : playingChildIds;
+      const nextInventoryValue =
+        Array.isArray(nextInventory) && nextInventory.length > 0
+          ? nextInventory
+          : inventory;
+      const nextMoment =
+        moment && typeof moment === "object" ? moment : currentMoment;
+
+      const payload = familySettingsPayloadFromState({
+        activityMode,
+        activeChildId:
+          nextPlayingChildIds[0] || activeChildId || null,
+        playingChildIds: nextPlayingChildIds,
+        activeParentPresetKey: activePresetKey,
+        childProfiles: nextChildren.length > 0 ? nextChildren : childProfiles,
+        inventory: nextInventoryValue,
+        safetySettings,
+        activityPreferences,
+        assumeHouseholdBasics,
+        currentMoment: nextMoment,
+        customParentPresets,
+        lastSuccessfulMoment,
+        uiTheme,
+        kidDeviceMode,
+        onboardingVersion: onboardingMeta.onboardingVersion,
+        onboardingCompletedAt: onboardingMeta.onboardingCompletedAt,
+        onboardingSkippedAt: onboardingMeta.onboardingSkippedAt,
+      });
+
+      if (!user?.id) {
+        throw new Error("Sign in before finishing onboarding.");
+      }
+
+      // Persist through the existing save queue before flipping local
+      // onboarding state, so a failed save keeps the draft recoverable.
+      await flushFamilySettingsSave(payload);
+
+      applyOnboardingDraft({
+        children: nextChildren,
+        inventory: nextInventoryValue,
+        moment: nextMoment && typeof nextMoment === "object" ? nextMoment : null,
+        skipped,
+        onboardingVersion: onboardingMeta.onboardingVersion,
+        onboardingCompletedAt: onboardingMeta.onboardingCompletedAt,
+        onboardingSkippedAt: onboardingMeta.onboardingSkippedAt,
+      });
+
+      return onboardingMeta;
+    },
+    [
+      applyOnboardingDraft,
+      childProfiles,
+      playingChildIds,
+      inventory,
+      currentMoment,
+      activityMode,
+      activeChildId,
+      activePresetKey,
+      safetySettings,
+      activityPreferences,
+      assumeHouseholdBasics,
+      customParentPresets,
+      lastSuccessfulMoment,
+      uiTheme,
+      kidDeviceMode,
+      flushFamilySettingsSave,
+      user?.id,
+    ]
+  );
 
   const resetLearnedRecommendations = useCallback(() => {
     const confirmed = window.confirm(
@@ -1001,6 +1091,7 @@ function App() {
           gettingBetterCopy={gettingBetterCopy}
           setupNudgeNeeded={setupNudgeNeeded}
           applyOnboardingDraft={applyOnboardingDraft}
+          completeOnboardingAndPersist={completeOnboardingAndPersist}
           handleStartActivityFromUi={handleStartActivityFromUi}
           needsOnboarding={needsOnboarding}
         />

@@ -8,8 +8,6 @@ import { familyDataRateLimiter } from "../middleware/rateLimits.js";
 
 const router = Router();
 
-router.use(familyDataRateLimiter);
-
 function isPlainObject(value) {
   return (
     value !== null &&
@@ -244,6 +242,7 @@ router.get(
   "/family-memory/saved-activities",
   requireAuthenticatedUser,
   ensureUserProfile,
+  familyDataRateLimiter,
   async (req, res) => {
     try {
       const supabase = getSupabaseAdminClient();
@@ -282,6 +281,7 @@ router.post(
   "/family-memory/saved-activities",
   requireAuthenticatedUser,
   ensureUserProfile,
+  familyDataRateLimiter,
   async (req, res) => {
     try {
       const activityData = req.body?.activityData ?? req.body?.activity_data;
@@ -332,6 +332,7 @@ router.delete(
   "/family-memory/saved-activities/:id",
   requireAuthenticatedUser,
   ensureUserProfile,
+  familyDataRateLimiter,
   async (req, res) => {
     try {
       const id = String(req.params.id || "").trim();
@@ -386,6 +387,7 @@ router.get(
   "/family-memory/activity-events",
   requireAuthenticatedUser,
   ensureUserProfile,
+  familyDataRateLimiter,
   async (req, res) => {
     try {
       const supabase = getSupabaseAdminClient();
@@ -437,6 +439,7 @@ router.post(
   "/family-memory/activity-events",
   requireAuthenticatedUser,
   ensureUserProfile,
+  familyDataRateLimiter,
   async (req, res) => {
     try {
       const body = isPlainObject(req.body) ? req.body : {};
@@ -515,6 +518,7 @@ router.delete(
   "/family-memory/activity-events",
   requireAuthenticatedUser,
   ensureUserProfile,
+  familyDataRateLimiter,
   async (req, res) => {
     try {
       const supabase = getSupabaseAdminClient();
@@ -552,6 +556,7 @@ router.delete(
   "/family-data",
   requireAuthenticatedUser,
   ensureUserProfile,
+  familyDataRateLimiter,
   async (req, res) => {
     const userId = req.auth.userId;
 
@@ -608,6 +613,7 @@ router.get(
   "/family-memory/activity-sessions",
   requireAuthenticatedUser,
   ensureUserProfile,
+  familyDataRateLimiter,
   async (req, res) => {
     try {
       const supabase = getSupabaseAdminClient();
@@ -667,6 +673,7 @@ router.post(
   "/family-memory/activity-sessions",
   requireAuthenticatedUser,
   ensureUserProfile,
+  familyDataRateLimiter,
   async (req, res) => {
     try {
       const body = isPlainObject(req.body) ? req.body : {};
@@ -816,6 +823,7 @@ router.patch(
   "/family-memory/activity-sessions/:id/participants/:childId",
   requireAuthenticatedUser,
   ensureUserProfile,
+  familyDataRateLimiter,
   async (req, res) => {
     try {
       const sessionId = String(req.params.id || "").trim();
@@ -920,6 +928,7 @@ router.patch(
   "/family-memory/activity-sessions/:id",
   requireAuthenticatedUser,
   ensureUserProfile,
+  familyDataRateLimiter,
   async (req, res) => {
     try {
       const id = String(req.params.id || "").trim();

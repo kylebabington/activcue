@@ -27,8 +27,6 @@ import { buildSanitizedGenerationContext } from "../utils/sanitizedGenerationCon
 
 const router = Router();
 
-router.use(familyDataRateLimiter);
-
 function isPlainObject(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
@@ -99,6 +97,7 @@ router.post(
   "/shared-activities/plan-b",
   requireAuthenticatedUser,
   ensureUserProfile,
+  familyDataRateLimiter,
   async (req, res) => {
     try {
       const body = isPlainObject(req.body) ? req.body : {};
@@ -216,6 +215,7 @@ router.post(
   "/shared-activities/rescue",
   requireAuthenticatedUser,
   ensureUserProfile,
+  familyDataRateLimiter,
   async (req, res) => {
     try {
       const body = isPlainObject(req.body) ? req.body : {};
@@ -400,6 +400,7 @@ router.post(
   "/shared-activities/outcome",
   requireAuthenticatedUser,
   ensureUserProfile,
+  familyDataRateLimiter,
   async (req, res) => {
     try {
       const body = isPlainObject(req.body) ? req.body : {};

@@ -396,9 +396,9 @@ function validateSettingsPayload(body) {
  */
 router.get(
     "/family-settings",
-    familyDataRateLimiter,
     requireAuthenticatedUser,
     ensureUserProfile,
+    familyDataRateLimiter,
     async (req, res) => {
         try {
             const supabase = getSupabaseAdminClient();
@@ -453,9 +453,9 @@ router.get(
  */
 router.put(
     "/family-settings",
-    familyDataRateLimiter,
     requireAuthenticatedUser,
     ensureUserProfile,
+    familyDataRateLimiter,
     async (req, res) => {
         try {
             const validation = validateSettingsPayload(
@@ -521,9 +521,9 @@ router.put(
  */
 router.post(
     "/family-settings/parent-pin",
-    parentPinRateLimiter,
     requireAuthenticatedUser,
     ensureUserProfile,
+    parentPinRateLimiter,
     async (req, res) => {
         try {
             const pin = String(req.body?.pin || "").trim();
@@ -578,9 +578,9 @@ router.post(
  */
 router.post(
     "/family-settings/verify-parent-pin",
-    parentPinRateLimiter,
     requireAuthenticatedUser,
     ensureUserProfile,
+    parentPinRateLimiter,
     async (req, res) => {
         try {
             const pin = String(req.body?.pin || "").trim();

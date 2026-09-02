@@ -9,8 +9,6 @@ import { familyDataRateLimiter } from "../middleware/rateLimits.js";
 const router = Router();
 const MIN_SAMPLE = 3;
 
-router.use(familyDataRateLimiter);
-
 function average(numbers) {
   if (!numbers.length) {
     return null;
@@ -50,6 +48,7 @@ router.get(
   "/family-insights",
   requireAuthenticatedUser,
   ensureUserProfile,
+  familyDataRateLimiter,
   async (req, res) => {
     try {
       const supabase = getSupabaseAdminClient();

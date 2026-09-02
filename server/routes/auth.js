@@ -18,9 +18,9 @@ const router = Router();
  */
 router.get(
   "/auth/me",
-  authRateLimiter,
   requireAuthenticatedUser,
   ensureUserProfile,
+  authRateLimiter,
   async (req, res) => {
     try {
       const entitlement =
@@ -98,9 +98,9 @@ router.get(
  */
 router.post(
   "/auth/check-email",
-  emailCheckRateLimiter,
   requireAuthenticatedUser,
   ensureUserProfile,
+  emailCheckRateLimiter,
   async (req, res) => {
     try {
       const result =
@@ -165,9 +165,9 @@ router.post(
  */
 router.post(
   "/auth/convert-anonymous",
-  authRateLimiter,
   requireAuthenticatedUser,
   ensureUserProfile,
+  authRateLimiter,
   async (req, res) => {
     if (!req.auth.isAnonymous) {
       return res.status(400).json({

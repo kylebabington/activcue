@@ -13,8 +13,6 @@ import { getSupabaseAdminClient } from "../lib/supabaseAdminClient.js";
 
 const router = Router();
 
-router.use(familyDataRateLimiter);
-
 function isPlainObject(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
@@ -27,6 +25,7 @@ router.post(
   "/activity-moments",
   requireAuthenticatedUser,
   ensureUserProfile,
+  familyDataRateLimiter,
   async (req, res) => {
     try {
       const body = isPlainObject(req.body) ? req.body : {};
@@ -67,6 +66,7 @@ router.get(
   "/activity-moments/:id",
   requireAuthenticatedUser,
   ensureUserProfile,
+  familyDataRateLimiter,
   async (req, res) => {
     try {
       const momentId = String(req.params.id || "").trim();
@@ -119,6 +119,7 @@ router.post(
   "/recommendation-batches",
   requireAuthenticatedUser,
   ensureUserProfile,
+  familyDataRateLimiter,
   async (req, res) => {
     try {
       const body = isPlainObject(req.body) ? req.body : {};

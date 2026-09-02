@@ -71,6 +71,7 @@ export function AppRoutes({
   gettingBetterCopy,
   setupNudgeNeeded,
   applyOnboardingDraft,
+  completeOnboardingAndPersist,
   handleStartActivityFromUi,
   needsOnboarding = false,
 }) {
@@ -93,6 +94,7 @@ export function AppRoutes({
             <Suspense fallback={<RouteFallback />}>
               <OnboardingPage
                 applyOnboardingDraft={applyOnboardingDraft}
+                completeOnboardingAndPersist={completeOnboardingAndPersist}
                 handleStartActivity={handleStartActivityFromUi}
               />
             </Suspense>
@@ -124,6 +126,7 @@ export function AppRoutes({
           <Suspense fallback={<RouteFallback />}>
             <OnboardingPage
               applyOnboardingDraft={applyOnboardingDraft}
+              completeOnboardingAndPersist={completeOnboardingAndPersist}
               handleStartActivity={handleStartActivityFromUi}
             />
           </Suspense>

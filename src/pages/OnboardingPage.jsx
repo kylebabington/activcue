@@ -92,7 +92,13 @@ function WelcomeStep({ onContinue }) {
   );
 }
 
-function ChildStep({ childrenDraft, setChildrenDraft, onFinish, onSkip }) {
+function ChildStep({
+  childrenDraft,
+  setChildrenDraft,
+  onFinish,
+  onSkip,
+  isPersisting = false,
+}) {
   const [name, setName] = useState("");
   const [ageRange, setAgeRange] = useState("6-9");
   const [birthDate, setBirthDate] = useState("");
@@ -280,11 +286,16 @@ function ChildStep({ childrenDraft, setChildrenDraft, onFinish, onSkip }) {
         <button
           type="button"
           onClick={onFinish}
-          disabled={childrenDraft.length === 0}
+          disabled={childrenDraft.length === 0 || isPersisting}
         >
-          Find something to do
+          {isPersisting ? "Saving…" : "Find something to do"}
         </button>
-        <button type="button" className="ghost-button" onClick={onSkip}>
+        <button
+          type="button"
+          className="ghost-button"
+          onClick={onSkip}
+          disabled={isPersisting}
+        >
           Skip for now
         </button>
       </div>
@@ -292,11 +303,17 @@ function ChildStep({ childrenDraft, setChildrenDraft, onFinish, onSkip }) {
   );
 }
 
-function OnboardingPage({ applyOnboardingDraft, handleStartActivity }) {
+function OnboardingPage({
+  applyOnboardingDraft,
+  completeOnboardingAndPersist,
+  handleStartActivity,
+}) {
   const navigate = useNavigate();
   const saved = useMemo(() => readDraft(), []);
   const [step, setStep] = useState(saved?.step || "welcome");
   const [childrenDraft, setChildrenDraft] = useState(saved?.children || []);
+  const [persistError, setPersistError] = useState("");
+  const [isPersisting, setIsPersisting] = useState(false);
 
   function persist(next) {
     writeDraft(next);
@@ -330,40 +347,94 @@ function OnboardingPage({ applyOnboardingDraft, handleStartActivity }) {
     return pickFirstActivityForChild(children[0]);
   }
 
-  function finish(skipped = false) {
-    applyOnboardingDraft?.({
+  async function persistOnboarding(skipped = false) {
+    const persistFn =
+      typeof completeOnboardingAndPersist === "function"
+        ? completeOnboardingAndPersist
+        : null;
+
+    if (!persistFn) {
+      applyOnboardingDraft?.({
+        children: childrenDraft,
+        inventory: [],
+        moment: null,
+        skipped,
+      });
+      return;
+    }
+
+    await persistFn({
       children: childrenDraft,
       inventory: [],
       moment: null,
       skipped,
     });
-    trackProductEvent(skipped ? "onboarding_skipped" : "onboarding_completed", {
-      childCount: childrenDraft.length,
-      supplyCount: 0,
-    });
-    clearLocalDraft();
   }
 
-  function handleSkip() {
-    finish(true);
-    clearDemoActivityHandoff();
-    navigate("/app");
-  }
-
-  function handleFinish() {
-    if (childrenDraft.length === 0) return;
-    finish(false);
-    const activity = resolveActivityToStart(childrenDraft);
-    if (activity && typeof handleStartActivity === "function") {
-      handleStartActivity(activity);
-      trackProductEvent("activity_started", {
-        source: "onboarding",
-        slug: activity.slug || "",
-      });
-      navigate("/quest");
+  async function handleSkip() {
+    if (isPersisting) {
       return;
     }
-    navigate("/app");
+
+    setPersistError("");
+    setIsPersisting(true);
+    try {
+      await persistOnboarding(true);
+      trackProductEvent("onboarding_skipped", {
+        childCount: childrenDraft.length,
+        supplyCount: 0,
+      });
+      clearLocalDraft();
+      clearDemoActivityHandoff();
+      navigate("/app");
+    } catch (error) {
+      console.error("Could not save onboarding:", error);
+      setPersistError(
+        error instanceof Error
+          ? error.message
+          : "Could not save onboarding. Your draft is still here — try again."
+      );
+    } finally {
+      setIsPersisting(false);
+    }
+  }
+
+  async function handleFinish() {
+    if (childrenDraft.length === 0 || isPersisting) {
+      return;
+    }
+
+    setPersistError("");
+    setIsPersisting(true);
+    try {
+      await persistOnboarding(false);
+      trackProductEvent("onboarding_completed", {
+        childCount: childrenDraft.length,
+        supplyCount: 0,
+      });
+      clearLocalDraft();
+
+      const activity = resolveActivityToStart(childrenDraft);
+      if (activity && typeof handleStartActivity === "function") {
+        handleStartActivity(activity);
+        trackProductEvent("activity_started", {
+          source: "onboarding",
+          slug: activity.slug || "",
+        });
+        navigate("/quest");
+        return;
+      }
+      navigate("/app");
+    } catch (error) {
+      console.error("Could not save onboarding:", error);
+      setPersistError(
+        error instanceof Error
+          ? error.message
+          : "Could not save onboarding. Your draft is still here — try again."
+      );
+    } finally {
+      setIsPersisting(false);
+    }
   }
 
   return (
@@ -372,6 +443,12 @@ function OnboardingPage({ applyOnboardingDraft, handleStartActivity }) {
         <h1>{BRAND.name}</h1>
         <p>A quick setup so the next activity actually fits.</p>
       </section>
+
+      {persistError ? (
+        <p className="error-text" role="alert">
+          {persistError}
+        </p>
+      ) : null}
 
       {step === "welcome" ? (
         <WelcomeStep onContinue={() => go("children")} />
@@ -382,6 +459,7 @@ function OnboardingPage({ applyOnboardingDraft, handleStartActivity }) {
           setChildrenDraft={setChildrenDraft}
           onFinish={handleFinish}
           onSkip={handleSkip}
+          isPersisting={isPersisting}
         />
       ) : null}
     </section>

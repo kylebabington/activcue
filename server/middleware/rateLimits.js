@@ -15,10 +15,19 @@ export const PUBLIC_PRODUCT_EVENTS_RATE_LIMIT = {
   max: 60,
 };
 
+export function userOrIpKey(req) {
+  const userId = req.auth?.userId;
+  if (userId) {
+    return `user:${userId}`;
+  }
+  return ipKeyGenerator(req.ip);
+}
+
 export const authRateLimiter = rateLimit({
   ...AUTH_RATE_LIMIT,
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: userOrIpKey,
   message: {
     error: "Too many auth requests. Try again in a few minutes.",
     code: "RATE_LIMITED",
@@ -29,6 +38,7 @@ export const emailCheckRateLimiter = rateLimit({
   ...EMAIL_CHECK_RATE_LIMIT,
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: userOrIpKey,
   message: {
     error:
       "Too many email checks. Try again in a few minutes, or try logging in.",
@@ -36,12 +46,24 @@ export const emailCheckRateLimiter = rateLimit({
   },
 });
 
-function userOrIpKey(req) {
-  const userId = req.auth?.userId;
-  if (userId) {
-    return `user:${userId}`;
-  }
-  return ipKeyGenerator(req.ip);
+/**
+ * Family-data limiter factory. Production uses one shared instance so
+ * family-settings / memory / insights / etc. share one per-user allowance.
+ * Tests can create isolated limiters with a smaller max.
+ */
+export function createFamilyDataRateLimiter(overrides = {}) {
+  const { keyGenerator = userOrIpKey, ...restOverrides } = overrides;
+  return rateLimit({
+    ...FAMILY_DATA_RATE_LIMIT,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {
+      error: "Too many family data requests. Try again in a few minutes.",
+      code: "RATE_LIMITED",
+    },
+    ...restOverrides,
+    keyGenerator,
+  });
 }
 
 export const aiSuggestionsRateLimiter = rateLimit({
@@ -79,16 +101,7 @@ export const billingRateLimiter = rateLimit({
   },
 });
 
-export const familyDataRateLimiter = rateLimit({
-  ...FAMILY_DATA_RATE_LIMIT,
-  standardHeaders: true,
-  legacyHeaders: false,
-  keyGenerator: userOrIpKey,
-  message: {
-    error: "Too many family data requests. Try again in a few minutes.",
-    code: "RATE_LIMITED",
-  },
-});
+export const familyDataRateLimiter = createFamilyDataRateLimiter();
 
 export const parentPinRateLimiter = rateLimit({
   ...PARENT_PIN_RATE_LIMIT,

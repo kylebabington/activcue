@@ -12,8 +12,6 @@ import { familyDataRateLimiter } from "../middleware/rateLimits.js";
 
 const router = Router();
 
-router.use(familyDataRateLimiter);
-
 function isPlainObject(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
@@ -25,6 +23,7 @@ router.get(
   "/households/me",
   requireAuthenticatedUser,
   ensureUserProfile,
+  familyDataRateLimiter,
   async (req, res) => {
     try {
       const householdId = await ensureUserHousehold(req.auth.userId);
@@ -69,6 +68,7 @@ router.post(
   "/households/invites",
   requireAuthenticatedUser,
   ensureUserProfile,
+  familyDataRateLimiter,
   async (req, res) => {
     try {
       const body = isPlainObject(req.body) ? req.body : {};
@@ -142,6 +142,7 @@ router.post(
   "/households/invites/accept",
   requireAuthenticatedUser,
   ensureUserProfile,
+  familyDataRateLimiter,
   async (req, res) => {
     try {
       const body = isPlainObject(req.body) ? req.body : {};

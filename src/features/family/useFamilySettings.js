@@ -176,6 +176,37 @@ export function useFamilySettings({
     queueFamilySettingsSave(buildCurrentFamilySettingsPayload(), userId);
   }
 
+  /*
+   * Cancel any pending debounce and enqueue an immediate save through the
+   * existing serialized queue. Callers may pass an explicit payload when React
+   * state has not flushed yet (e.g. onboarding completion).
+   */
+  function flushFamilySettingsSave(payloadOverride) {
+    if (familySettingsSaveTimeoutRef.current !== null) {
+      window.clearTimeout(familySettingsSaveTimeoutRef.current);
+      familySettingsSaveTimeoutRef.current = null;
+    }
+
+    if (!userId || suppressFamilySettingsSavesRef.current) {
+      return Promise.reject(
+        new Error("Family settings are not ready to save yet.")
+      );
+    }
+
+    if (familySettingsHydrateUserIdRef.current !== userId) {
+      return Promise.reject(
+        new Error("Family settings are not ready to save yet.")
+      );
+    }
+
+    const payload =
+      payloadOverride != null
+        ? payloadOverride
+        : buildCurrentFamilySettingsPayload();
+
+    return queueFamilySettingsSave(payload, userId);
+  }
+
   useEffect(() => {
     let isMounted = true;
 
@@ -389,6 +420,7 @@ export function useFamilySettings({
     familySettingsError,
     familySettingsSaveStatus,
     retryFamilySettingsSave,
+    flushFamilySettingsSave,
     suppressFamilySettingsSavesRef,
     familySettingsSaveTimeoutRef,
     familySettingsSaveChainRef,
