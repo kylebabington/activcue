@@ -1,3 +1,4 @@
+import { resolveParticipantRoleBindings } from "./resolveParticipantRoleBindings.js";
 import { getSceneBeatTitle } from "./sceneBeatTitles.js";
 
 /**
@@ -406,18 +407,12 @@ function findRoleInstruction(roleInstructions, roleName) {
   );
 }
 
-function findChildRole(childRoles, child) {
-  const childName = normalizeName(child?.name);
-  if (!childName) return null;
-  return (
-    childRoles.find((role) => normalizeName(role?.childName) === childName) ||
-    null
-  );
-}
-
 /**
  * Role-specific responsibilities for the current scene.
  * These are additive: the caller should still render getSceneInstruction(step).
+ *
+ * Lookup is child id → assigned role title → matching roleInstruction.
+ * Canonical slot labels such as "Child 1" are never compared to family names.
  */
 export function getStepRoleParts(
   step,
@@ -436,11 +431,14 @@ export function getStepRoleParts(
   if (roleInstructions.length === 0) return [];
 
   const safeChildRoles = Array.isArray(childRoles) ? childRoles : [];
+  const { roleAssignments: boundAssignments } = resolveParticipantRoleBindings({
+    childRoles: safeChildRoles,
+    playingChildren,
+  });
+  const assignments = { ...boundAssignments, ...(roleAssignments || {}) };
   const assignedParts = (Array.isArray(playingChildren) ? playingChildren : [])
     .map((child) => {
-      const assignedRole = roleAssignments?.[child?.id] || "";
-      const childRole = findChildRole(safeChildRoles, child);
-      const roleName = assignedRole || childRole?.roleTitle || "";
+      const roleName = (child?.id && assignments[child.id]) || "";
       const match = findRoleInstruction(roleInstructions, roleName);
       if (!match) return null;
       return {
@@ -452,6 +450,10 @@ export function getStepRoleParts(
     .filter(Boolean);
 
   if (assignedParts.length > 0) return assignedParts;
+
+  if ((Array.isArray(playingChildren) ? playingChildren : []).length > 0) {
+    return [];
+  }
 
   const selected = findRoleInstruction(roleInstructions, selectedRoleName);
   const ordered = selected

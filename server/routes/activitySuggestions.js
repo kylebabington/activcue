@@ -276,6 +276,7 @@ function buildPartialRefillSteer({
   if (participantCount >= 2) {
     lines.push(
       "Every listed child must have a meaningful childRoles entry. Use cooperative or flexible socialMode unless the activity is genuinely solo.",
+      "childRoles.childName must be Child 1, Child 2, Child 3, … matching the design brief. Never use personal names.",
       "participantMin must be ≤ participant count and participantMax must be ≥ participant count."
     );
   } else {

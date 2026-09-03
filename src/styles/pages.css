@@ -991,6 +991,7 @@
 
 .quest-play-role-list strong {
   font-size: 1rem;
+  white-space: nowrap;
 }
 
 .quest-play-role-list span,
@@ -1593,10 +1594,25 @@
 }
 
 .quest-v2-role-row {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
   gap: 0.75rem;
   align-items: center;
+}
+
+.quest-v2-role-row > span {
+  white-space: nowrap;
+}
+
+.quest-v2-role-row select {
+  width: 100%;
+  min-width: 0;
+}
+
+@media (max-width: 639px) /* below Small */ {
+  .quest-v2-role-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .quest-v2-starter-doors {

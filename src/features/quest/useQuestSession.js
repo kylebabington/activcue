@@ -34,6 +34,7 @@ import {
   getYoungestPlayingAgeYears,
   resolveReadingMode,
 } from "../../utils/readingMode";
+import { buildInitialRoleAssignments } from "../../utils/resolveParticipantRoleBindings";
 import {
   buildActivitySessionExitPatch,
   buildActivitySessionStartPayload,
@@ -284,27 +285,13 @@ export function useQuestSession({
       selectedStepStarterByIndex: {},
       selectedRoleName:
         enrichedActivity.roleGuide?.name || enrichedActivity.kidRole || roles[0] || "",
-      roleAssignments: Object.fromEntries(
-        playingChildren
-          .filter((child) => child?.id)
-          .map((child, index) => {
-            const fromChildRoles = Array.isArray(enrichedActivity.roleGuide?.childRoles)
-              ? enrichedActivity.roleGuide.childRoles.find(
-                  (role) =>
-                    String(role.childName || "").toLowerCase() ===
-                    String(child.name || "").toLowerCase()
-                )?.roleTitle
-              : null;
-            return [
-              child.id,
-              fromChildRoles ||
-                roles[index] ||
-                roles[0] ||
-                enrichedActivity.roleGuide?.name ||
-                "",
-            ];
-          })
-      ),
+      roleAssignments: buildInitialRoleAssignments({
+        childRoles: enrichedActivity.roleGuide?.childRoles,
+        playingChildren,
+        fallbackRoles: roles,
+        fallbackRoleName:
+          enrichedActivity.roleGuide?.name || enrichedActivity.kidRole || "",
+      }),
       showBuiltInHelp: false,
       showAiHintPanel: false,
       currentStepIndex: 0,

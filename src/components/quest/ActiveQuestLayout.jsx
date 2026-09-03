@@ -17,6 +17,7 @@ import {
   isActivityFormatV3,
 } from "../../utils/activityVisualTheme";
 import { buildNarrationText } from "../../utils/buildNarrationText";
+import { getDisplayRoleCards } from "../../utils/resolveParticipantRoleBindings";
 import QuestActionList from "./QuestActionList";
 import QuestFinishGuide from "./QuestFinishGuide";
 import QuestSetupGuide from "./QuestSetupGuide";
@@ -90,13 +91,19 @@ function RoleList({
   roleAssignments,
   onAssignRole,
 }) {
-  if (childRoles.length > 0) {
+  const displayRoles = getDisplayRoleCards({
+    childRoles,
+    playingChildren,
+    roleAssignments,
+  });
+
+  if (displayRoles.length > 0) {
     return (
       <>
         <ul className="quest-play-role-list">
-          {childRoles.map((role) => (
-            <li key={`${role.childName}-${role.roleTitle}`}>
-              <strong>{role.childName || "Player"}</strong>
+          {displayRoles.map((role) => (
+            <li key={role.key}>
+              <strong>{role.displayName || "Player"}</strong>
               <span>{role.roleTitle}</span>
             </li>
           ))}
@@ -531,6 +538,7 @@ export default function ActiveQuestLayout({
   const roleNarration = buildNarrationText(activity, "role", {
     selectedRoleName: selectedRoleName || roleName,
     roleAssignments,
+    playingChildren,
   });
   const startersNarration = buildNarrationText(activity, "starters");
   const materialsNarration = buildNarrationText(activity, "materials");
@@ -648,6 +656,7 @@ export default function ActiveQuestLayout({
                 stepIndex: currentIndex,
                 selectedRoleName: selectedRoleName || roleName,
                 roleAssignments,
+                playingChildren,
                 selectedStarterIndex:
                   selectedStepStarterByIndex?.[String(currentIndex)] ??
                   selectedStepStarterByIndex?.[currentIndex] ??

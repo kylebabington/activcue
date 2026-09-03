@@ -1,7 +1,10 @@
 /**
  * Strip household-specific identity before writing to the shared activity library.
- * Generic roles (Player 1 / Player 2) are kept; real names and ids are not.
+ * Participant slots are always canonical Child 1 / Child 2 / Child 3 … so
+ * semantically identical activities hash the same regardless of Player/Kid/Sibling labels.
  */
+
+import { canonicalParticipantLabel } from "../../src/utils/resolveParticipantRoleBindings.js";
 
 const GENERIC_NAME_RE = /^(player(?:\s*\d+)?|child(?:\s*\d+)?|kid(?:\s*\d+)?|sibling(?:\s*\d+)?|partner(?:\s*\d+)?)$/i;
 
@@ -44,9 +47,7 @@ function sanitizeChildRole(role, index) {
     return null;
   }
 
-  const rawName = String(role.childName || "").trim();
-  const childName =
-    rawName && isGenericRoleName(rawName) ? rawName : `Player ${index + 1}`;
+  const childName = canonicalParticipantLabel(index);
 
   return {
     childName,

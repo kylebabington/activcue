@@ -59,6 +59,77 @@ describe("QuestContent active layout", () => {
     expect(html).toMatch(/Starting Ideas[\s\S]*Read/);
     expect(html).toMatch(/The Big Finish[\s\S]*Read/);
   });
+
+  it("shows current family names for canonical Child 1 / Child 2 slots", () => {
+    const cachedActivity = {
+      ...completeActivityV2Fixture,
+      roles: ["Animal Room Setter", "Base Shape Builder"],
+      roleGuide: {
+        ...completeActivityV2Fixture.roleGuide,
+        childRoles: [
+          {
+            childName: "Child 1",
+            age: 6,
+            roleTitle: "Animal Room Setter",
+            responsibility: "Choose animal rooms.",
+            firstAction: "Pick a pillow bed.",
+          },
+          {
+            childName: "Child 2",
+            age: 8,
+            roleTitle: "Base Shape Builder",
+            responsibility: "Build the walls.",
+            firstAction: "Stack the blocks.",
+          },
+        ],
+      },
+    };
+    const familyHtml = renderToStaticMarkup(
+      <QuestContent
+        activity={cachedActivity}
+        mode="active"
+        focusStepIndex={0}
+        playingChildren={[
+          { id: "bertie", name: "Bertie", ageYears: 6 },
+          { id: "charlie", name: "Charlie", ageYears: 8 },
+        ]}
+        roleAssignments={{
+          bertie: "Animal Room Setter",
+          charlie: "Base Shape Builder",
+        }}
+      />
+    );
+
+    expect(familyHtml).toContain("Bertie");
+    expect(familyHtml).toContain("Charlie");
+    expect(familyHtml).toContain("Animal Room Setter");
+    expect(familyHtml).toContain("Base Shape Builder");
+    expect(familyHtml).not.toContain("Child 1");
+    expect(familyHtml).not.toContain("Child 2");
+
+    const reuseHtml = renderToStaticMarkup(
+      <QuestContent
+        activity={cachedActivity}
+        mode="active"
+        focusStepIndex={0}
+        playingChildren={[
+          { id: "maya", name: "Maya", ageYears: 6 },
+          { id: "theo", name: "Theo", ageYears: 8 },
+        ]}
+        roleAssignments={{
+          maya: "Animal Room Setter",
+          theo: "Base Shape Builder",
+        }}
+      />
+    );
+
+    expect(reuseHtml).toContain("Maya");
+    expect(reuseHtml).toContain("Theo");
+    expect(reuseHtml).not.toContain("Bertie");
+    expect(reuseHtml).not.toContain("Charlie");
+    expect(reuseHtml).not.toContain("Child 1");
+    expect(reuseHtml).not.toContain("Child 2");
+  });
 });
 
 describe("QuestContent preview layout", () => {
@@ -92,6 +163,16 @@ describe("active quest CSS", () => {
     );
     expect(pagesCss).toMatch(
       /quest-active-other-scenes[\s\S]*order:\s*7/
+    );
+  });
+
+  it("keeps role-picker names on one line and stacks them on narrow screens", () => {
+    expect(pagesCss).toMatch(
+      /\.quest-v2-role-row \{[\s\S]*grid-template-columns:\s*max-content minmax\(0, 1fr\)/
+    );
+    expect(pagesCss).toMatch(/\.quest-v2-role-row > span \{[\s\S]*white-space:\s*nowrap/);
+    expect(pagesCss).toMatch(
+      /@media \(max-width: 639px\)[\s\S]*\.quest-v2-role-row \{[\s\S]*grid-template-columns:\s*minmax\(0, 1fr\)/
     );
   });
 });

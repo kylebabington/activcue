@@ -1,5 +1,6 @@
 // server/utils/ageFitValidation.js
 
+import { resolveParticipantRoleBindings } from "../../src/utils/resolveParticipantRoleBindings.js";
 import {
   getGroupAgeContext,
   isEligibleForChildren,
@@ -198,20 +199,11 @@ export function validateMixedAgeRoles(activity, childrenContext = []) {
 
   if (childRoles.length === 0) {
     reasons.push("missing-child-roles");
-  }
-
-  for (const child of children) {
-    const name = String(child.name || "").trim().toLowerCase();
-    if (!name) continue;
-    const match = childRoles.find(
-      (role) =>
-        String(role?.childName || "")
-          .trim()
-          .toLowerCase() === name
-    );
-    if (!match) {
-      reasons.push(`missing-role-for:${child.name}`);
-    }
+  } else if (childRoles.length < children.length) {
+    children.slice(childRoles.length).forEach((child, extraIndex) => {
+      const label = String(child?.name || "").trim() || `child-${extraIndex + 1}`;
+      reasons.push(`missing-role-for:${label}`);
+    });
   }
 
   const oldest = children.reduce((best, child) => {
@@ -220,12 +212,19 @@ export function validateMixedAgeRoles(activity, childrenContext = []) {
   }, null);
 
   if (oldest) {
-    const oldestRole = childRoles.find(
-      (role) =>
-        String(role?.childName || "")
-          .trim()
-          .toLowerCase() === String(oldest.name || "").trim().toLowerCase()
-    );
+    const { slotBindings } = resolveParticipantRoleBindings({
+      childRoles,
+      playingChildren: children,
+    });
+    const oldestIndex = children.indexOf(oldest);
+    const oldestBinding = slotBindings.find((binding) => {
+      if (oldest?.id && binding.childId === String(oldest.id)) return true;
+      return binding.childIndex === oldestIndex;
+    });
+    const oldestRole =
+      oldestBinding && childRoles[oldestBinding.slotIndex]
+        ? childRoles[oldestBinding.slotIndex]
+        : null;
     const roleText = [
       oldestRole?.roleTitle,
       oldestRole?.responsibility,

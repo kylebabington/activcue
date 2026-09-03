@@ -29,6 +29,10 @@ describe("buildActivityDesignBrief", () => {
     });
     expect(brief.participants.count).toBe(2);
     expect(brief.participants.children.map((c) => c.age)).toEqual([6, 8]);
+    expect(brief.participants.children.map((c) => c.label)).toEqual([
+      "Child 1",
+      "Child 2",
+    ]);
     expect(brief.groupDesign.requiredRoleCount).toBe(2);
     expect(brief.groupDesign.directionsMustWorkForAge).toBe(6);
     expect(brief.groupDesign.engagementMustWorkForAge).toBe(8);

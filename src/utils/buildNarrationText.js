@@ -16,6 +16,7 @@ import {
   getStepStuckPrompts,
   isActivityFormatV3,
 } from "./activityVisualTheme";
+import { getBoundChildRoleNarration } from "./resolveParticipantRoleBindings";
 import { getSceneInstruction, getStepRoleParts } from "./questStepCopy";
 
 function joinSentences(parts) {
@@ -30,7 +31,7 @@ function joinSentences(parts) {
  * Compose spoken scripts from Activity Format V2 fields.
  * @param {object} activity
  * @param {"mission"|"role"|"starters"|"starter"|"step"|"next"|"stuck"|"materials"|"finish"|"setup"|"story"} section
- * @param {{ stepIndex?: number, starterIndex?: number, stuckPromptIndex?: number, selectedRoleName?: string, roleAssignments?: object, includeDoneWhen?: boolean }} [options]
+ * @param {{ stepIndex?: number, starterIndex?: number, stuckPromptIndex?: number, selectedRoleName?: string, roleAssignments?: object, playingChildren?: object[], includeDoneWhen?: boolean }} [options]
  */
 export function buildNarrationText(activity, section, options = {}) {
   if (!activity) return "";
@@ -42,6 +43,9 @@ export function buildNarrationText(activity, section, options = {}) {
   const mission = getActivityMissionText(activity);
   const selectedRoleName = options.selectedRoleName || roleName;
   const roleAssignments = options.roleAssignments || {};
+  const playingChildren = Array.isArray(options.playingChildren)
+    ? options.playingChildren
+    : [];
 
   if (section === "story" || section === "mission") {
     return joinSentences([
@@ -96,9 +100,14 @@ export function buildNarrationText(activity, section, options = {}) {
     }
 
     if (childRoles.length > 0) {
-      childRoles.forEach((role) => {
-        const name = role.childName || "Player";
-        const title = role.roleTitle || "helper";
+      const boundRoles = getBoundChildRoleNarration({
+        childRoles,
+        playingChildren,
+        roleAssignments,
+      });
+      boundRoles.forEach((role) => {
+        const name = role.name || "Player";
+        const title = role.title || "helper";
         roleParts.push(`${name} is the ${title}`);
         if (role.responsibility) roleParts.push(role.responsibility);
         if (role.firstAction) {
@@ -175,6 +184,7 @@ export function buildNarrationText(activity, section, options = {}) {
     const roleParts = getStepRoleParts(step, {
       selectedRoleName,
       roleAssignments,
+      playingChildren,
       childRoles: Array.isArray(activity?.roleGuide?.childRoles)
         ? activity.roleGuide.childRoles
         : [],

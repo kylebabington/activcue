@@ -24,6 +24,7 @@ import {
   getSceneInstruction,
   getStepRoleParts,
 } from "../../utils/questStepCopy";
+import { getDisplayRoleCards } from "../../utils/resolveParticipantRoleBindings";
 import SpeakButton from "../SpeakButton";
 import ActiveQuestLayout from "./ActiveQuestLayout";
 import CollapsibleQuestSection from "./CollapsibleQuestSection";
@@ -325,6 +326,7 @@ export default function QuestContent({
   const roleNarration = buildNarrationText(activity, "role", {
     selectedRoleName: selectedRoleName || roleName,
     roleAssignments,
+    playingChildren,
   });
   const startersNarration = buildNarrationText(activity, "starters");
   const resolvedSpeechRate =
@@ -510,13 +512,17 @@ export default function QuestContent({
         ) : null}
         {childRoles.length > 0 ? (
           <ul className="quest-child-roles">
-            {childRoles.map((role) => (
-              <li key={`${role.childName}-${role.roleTitle}`}>
+            {getDisplayRoleCards({
+              childRoles,
+              playingChildren,
+              roleAssignments,
+            }).map((role) => (
+              <li key={role.key}>
                 <strong>
-                  {role.childName}
+                  {role.displayName}
                   {role.age ? ` (${role.age})` : ""}: {role.roleTitle}
                 </strong>
-                <p>{role.responsibility}</p>
+                {role.responsibility ? <p>{role.responsibility}</p> : null}
                 {role.firstAction ? (
                   <p>
                     <em>{isImaginativeActivity ? "First move:" : "Start with:"}</em>{" "}
@@ -657,6 +663,7 @@ export default function QuestContent({
                     stepIndex: index,
                     selectedRoleName: selectedRoleName || roleName,
                     roleAssignments,
+                    playingChildren,
                     selectedStarterIndex:
                       selectedStepStarterByIndex?.[String(index)] ??
                       selectedStepStarterByIndex?.[index] ??
