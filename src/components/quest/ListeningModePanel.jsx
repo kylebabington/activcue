@@ -68,6 +68,7 @@ export default function ListeningModePanel({
     ? buildNarrationText(activity, "role", {
         selectedRoleName,
         roleAssignments,
+        playingChildren,
       })
     : "";
 
@@ -97,6 +98,7 @@ export default function ListeningModePanel({
         stepIndex: currentStepIndex,
         selectedRoleName,
         roleAssignments,
+        playingChildren,
         selectedStarterIndex,
       })
     : "";

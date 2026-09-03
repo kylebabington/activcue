@@ -201,6 +201,59 @@ describe("getStepRoleParts", () => {
       },
     ]);
   });
+
+  it("resolves step roles through child id and role title, not Child 1 name matching", () => {
+    const parts = getStepRoleParts(
+      {
+        roleInstructions: [
+          {
+            roleName: "Animal Room Setter",
+            instruction: "Choose where the animals should rest.",
+          },
+          {
+            roleName: "Base Shape Builder",
+            instruction: "Build the walls and paths.",
+          },
+        ],
+      },
+      {
+        playingChildren: [
+          { id: "bertie", name: "Bertie", ageYears: 6 },
+          { id: "charlie", name: "Charlie", ageYears: 8 },
+        ],
+        roleAssignments: {
+          bertie: "Animal Room Setter",
+          charlie: "Base Shape Builder",
+        },
+        childRoles: [
+          {
+            childName: "Child 1",
+            age: 6,
+            roleTitle: "Animal Room Setter",
+          },
+          {
+            childName: "Child 2",
+            age: 8,
+            roleTitle: "Base Shape Builder",
+          },
+        ],
+      }
+    );
+
+    expect(parts).toEqual([
+      {
+        childName: "Bertie",
+        roleName: "Animal Room Setter",
+        instruction: "Choose where the animals should rest.",
+      },
+      {
+        childName: "Charlie",
+        roleName: "Base Shape Builder",
+        instruction: "Build the walls and paths.",
+      },
+    ]);
+    expect(parts.some((part) => /Child \d/.test(part.childName))).toBe(false);
+  });
 });
 
 describe("ACTIVE_QUEST_STACK_ORDER", () => {

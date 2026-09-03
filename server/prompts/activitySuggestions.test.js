@@ -201,6 +201,11 @@ describe("buildActivitySuggestionsInstructions", () => {
     expect(input).toContain("sceneSetup");
     expect(input).toContain("sceneOutcome");
     expect(input).toContain("finishGuide{resolution");
+    expect(input).toContain('"label": "Child 1"');
+    expect(input).toContain('"label": "Child 2"');
+    expect(input).toContain(
+      'childRoles[].childName must be exactly "Child 1", "Child 2", "Child 3"'
+    );
   });
 
   it("includes under-10 opening story requirements aligned with validator", () => {
@@ -224,5 +229,15 @@ describe("buildActivitySuggestionsInstructions", () => {
       );
       expect(instructions).not.toContain("roleGuide.goal");
     }
+  });
+
+  it("requires canonical Child N participant labels in family role output", () => {
+    const instructions = buildActivitySuggestionsInstructions(
+      "imaginative",
+      "playroom",
+      { groupAgeContext: { oldestAge: 8 } }
+    );
+    expect(instructions).toContain("childRoles.childName MUST use the participant labels");
+    expect(instructions).toContain("Never insert real personal names");
   });
 });

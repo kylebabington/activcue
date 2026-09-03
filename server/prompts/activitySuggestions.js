@@ -380,6 +380,7 @@ MIXED-AGE / FAMILY ROLE RULES:
 - Every participating child must have a meaningful role in childRoles when activity mode is family.
 - Do not make the oldest child merely supervise younger children.
 - childRoles.roleTitle must be activity-specific, never a generic one-word title.
+- childRoles.childName MUST use the participant labels from the design brief exactly (Child 1, Child 2, Child 3, …). Never insert real personal names.
 
 ${styleRules}
 
@@ -521,6 +522,8 @@ FAMILY PARTICIPANTS ONLY.
 Only the listed participants exist.
 Do not invent extra players.
 Every listed child must have a meaningful role in childRoles.
+childRoles[].childName must be exactly "Child 1", "Child 2", "Child 3", and so on, matching the design brief labels.
+Never use real personal names in childRoles.
 `.trim();
 
   return `

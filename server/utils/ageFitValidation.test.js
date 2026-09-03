@@ -58,6 +58,43 @@ describe("ageFitValidation", () => {
     expect(result.reasons).toContain("oldest-as-babysitter");
   });
 
+  it("does not require canonical Child N slots to match household names", () => {
+    const result = validateMixedAgeRoles(
+      {
+        roleGuide: {
+          childRoles: [
+            {
+              childName: "Child 1",
+              age: 6,
+              roleTitle: "Scout",
+              responsibility: "Find materials",
+              firstAction: "Look around",
+            },
+            {
+              childName: "Child 2",
+              age: 10,
+              roleTitle: "Builder",
+              responsibility: "Assemble",
+              firstAction: "Start base",
+            },
+            {
+              childName: "Child 3",
+              age: 14,
+              roleTitle: "Designer",
+              responsibility: "Plan the layout",
+              firstAction: "Sketch the plan",
+            },
+          ],
+        },
+      },
+      mixedChildren
+    );
+    expect(result.ok).toBe(true);
+    expect(result.reasons.some((reason) => reason.startsWith("missing-role-for"))).toBe(
+      false
+    );
+  });
+
   it("rejects blanket fort content for a 14-year-old even if ageFit spans them", () => {
     const result = validateAgeContentFit(
       {

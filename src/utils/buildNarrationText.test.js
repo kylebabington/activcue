@@ -18,6 +18,95 @@ describe("buildNarrationText", () => {
     expect(text).toContain("Sam is the Signal Runner");
   });
 
+  it("uses current family names in role narration instead of Child 1 slots", () => {
+    const activity = {
+      ...completeActivityV2Fixture,
+      roleGuide: {
+        ...completeActivityV2Fixture.roleGuide,
+        childRoles: [
+          {
+            childName: "Child 1",
+            age: 6,
+            roleTitle: "Animal Room Setter",
+            responsibility: "Choose animal rooms.",
+            firstAction: "Pick a pillow bed.",
+          },
+          {
+            childName: "Child 2",
+            age: 8,
+            roleTitle: "Base Shape Builder",
+            responsibility: "Build the walls.",
+            firstAction: "Stack the blocks.",
+          },
+        ],
+      },
+    };
+    const playingChildren = [
+      { id: "bertie", name: "Bertie", ageYears: 6 },
+      { id: "charlie", name: "Charlie", ageYears: 8 },
+    ];
+    const roleAssignments = {
+      bertie: "Animal Room Setter",
+      charlie: "Base Shape Builder",
+    };
+
+    const text = buildNarrationText(activity, "role", {
+      playingChildren,
+      roleAssignments,
+    });
+
+    expect(text).toContain("Bertie is the Animal Room Setter");
+    expect(text).toContain("Charlie is the Base Shape Builder");
+    expect(text).not.toContain("Child 1");
+    expect(text).not.toContain("Child 2");
+  });
+
+  it("uses current family names in step role narration", () => {
+    const activity = {
+      ...completeActivityV2Fixture,
+      roleGuide: {
+        ...completeActivityV2Fixture.roleGuide,
+        childRoles: [
+          { childName: "Child 1", age: 6, roleTitle: "Animal Room Setter" },
+          { childName: "Child 2", age: 8, roleTitle: "Base Shape Builder" },
+        ],
+      },
+      stepDetails: [
+        {
+          ...completeActivityV2Fixture.stepDetails[0],
+          roleInstructions: [
+            {
+              roleName: "Animal Room Setter",
+              instruction: "Choose where the animals should rest.",
+            },
+            {
+              roleName: "Base Shape Builder",
+              instruction: "Build the walls and paths.",
+            },
+          ],
+        },
+        ...completeActivityV2Fixture.stepDetails.slice(1),
+      ],
+    };
+
+    const text = buildNarrationText(activity, "step", {
+      stepIndex: 0,
+      playingChildren: [
+        { id: "bertie", name: "Bertie", ageYears: 6 },
+        { id: "charlie", name: "Charlie", ageYears: 8 },
+      ],
+      roleAssignments: {
+        bertie: "Animal Room Setter",
+        charlie: "Base Shape Builder",
+      },
+    });
+
+    expect(text).toContain("Bertie");
+    expect(text).toContain("Charlie");
+    expect(text).not.toContain("Child 1");
+    expect(text).not.toContain("Child 2");
+  });
+
   it("builds supplies and finish narration for the play board", () => {
     expect(buildNarrationText(completeActivityV2Fixture, "materials")).toContain(
       "paper"
