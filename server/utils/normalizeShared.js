@@ -23,12 +23,13 @@ export function inferVisualThemeFromActivity(activity) {
 
   const guesses = [
     ["space", /space|moon|rocket|planet|star|orbit/],
+    ["expedition", /history|historical|ancient|civilization|museum|timeline/],
     ["jungle", /jungle|forest|nature|tree|leaf/],
     ["detective", /detect|clue|mystery|case|spy/],
     ["animals", /animal|zoo|pet|creature|wildlife|shell|ocean|sea/],
     ["fantasy", /magic|dragon|wizard|fairy|castle|kingdom/],
+    ["science", /science|lab|experiment|robot|invent|engineer|engineering/],
     ["building", /build|construct|tower|block|fort/],
-    ["science", /science|lab|experiment|robot|invent/],
     ["art", /art|draw|paint|comic|color|craft/],
     ["expedition", /expedition|explore|map|trek|voyage/],
     ["neighborhood", /neighbor|street|town|city|community/],

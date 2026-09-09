@@ -80,9 +80,9 @@ describe("ageFitValidation", () => {
             {
               childName: "Child 3",
               age: 14,
-              roleTitle: "Designer",
-              responsibility: "Plan the layout",
-              firstAction: "Sketch the plan",
+              roleTitle: "Layout Analyst",
+              responsibility: "Compare two layouts and explain which moves people faster",
+              firstAction: "Time each path and record the evidence",
             },
           ],
         },
@@ -201,6 +201,8 @@ describe("ageFitValidation", () => {
         {
           title: "Good",
           ageFit: { minAge: 5, maxAge: 16, maturityLevel: "mixed-age" },
+          story: "Packages pile up. Your job is to choose the faster delivery path using only three baskets.",
+          categories: ["puzzle"],
           roleGuide: {
             childRoles: [
               {
@@ -217,12 +219,30 @@ describe("ageFitValidation", () => {
               },
               {
                 childName: "Reese",
-                roleTitle: "Designer",
-                responsibility: "Plan the layout",
-                firstAction: "Sketch the plan",
+                roleTitle: "Route Analyst",
+                responsibility: "Compare two delivery routes and explain which is faster",
+                firstAction: "Time each path and record the evidence",
               },
             ],
           },
+          stepDetails: [
+            {
+              title: "Try path A",
+              actions: [
+                "Walk the first delivery path and time how long it takes.",
+                "Record the time on paper.",
+              ],
+              doneWhen: "Path A has a written time.",
+            },
+            {
+              title: "Compare and choose",
+              actions: [
+                "Time the second path and compare the two results.",
+                "Choose the faster route and explain why the evidence supports it.",
+              ],
+              doneWhen: "You can point to the faster route and say why.",
+            },
+          ],
         },
         {
           title: "Bad",
@@ -330,5 +350,71 @@ describe("ageFitValidation", () => {
       kidRole: "Artist",
     });
     expect(result.ok).toBe(true);
+  });
+
+  it("allows teen pretend framing when interests explicitly support fiction", () => {
+    const result = validateAgeContentFit(
+      {
+        title: "Game Design Studio",
+        mission: "You are a brave hero on a magical quest to save the kingdom.",
+        ageFit: { minAge: 13, maxAge: 16, maturityLevel: "teen" },
+      },
+      [{ name: "Jordan", ageYears: 13, interests: ["game design", "gaming"] }]
+    );
+    expect(result.ok).toBe(true);
+  });
+
+  it("scales mixed-age roles so the oldest does higher-order reasoning", () => {
+    const children = [
+      { name: "Child 1", ageYears: 7 },
+      { name: "Child 2", ageYears: 12 },
+    ];
+    const shallow = validateMixedAgeRoles(
+      {
+        roleGuide: {
+          childRoles: [
+            {
+              childName: "Child 1",
+              roleTitle: "Field Collector",
+              responsibility: "Gather samples and sort them by color",
+              firstAction: "Pick up leaves",
+            },
+            {
+              childName: "Child 2",
+              roleTitle: "Helper",
+              responsibility: "Help the younger child and read directions aloud",
+              firstAction: "Watch and wait",
+            },
+          ],
+        },
+      },
+      children
+    );
+    expect(shallow.ok).toBe(false);
+    expect(shallow.reasons).toContain("oldest-role-cognitively-shallow");
+
+    const rich = validateMixedAgeRoles(
+      {
+        roleGuide: {
+          childRoles: [
+            {
+              childName: "Child 1",
+              roleTitle: "Field Collector",
+              responsibility: "Gather samples, sort them, and describe visible traits",
+              firstAction: "Collect three leaves",
+            },
+            {
+              childName: "Child 2",
+              roleTitle: "Research Scientist",
+              responsibility:
+                "Choose comparison criteria, record observations, identify patterns, form a hypothesis, and explain results",
+              firstAction: "Write the comparison criteria",
+            },
+          ],
+        },
+      },
+      children
+    );
+    expect(rich.ok).toBe(true);
   });
 });

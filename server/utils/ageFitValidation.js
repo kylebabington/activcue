@@ -6,9 +6,14 @@ import {
   isEligibleForChildren,
   validateAgeFit,
 } from "./childAge.js";
+import { interestsSupportFiction } from "./cognitiveInquiryProfile.js";
+import { validateOlderChildInquiryQuality } from "./olderChildInquiryValidation.js";
 
 const BABYSITTER_PATTERN =
-  /\b(supervise|babysit|watch(ing)? the (younger|little)|manage (the )?younger|help(ing)? (the )?younger|look after|take care of (the )?younger)\b/i;
+  /\b(supervise|babysit|watch(ing)? the (younger|little)|manage (the )?younger|help(ing)? (the )?younger|look after|take care of (the )?younger|read(ing)? directions aloud)\b/i;
+
+const OLDER_ROLE_REASONING_PATTERN =
+  /\b(hypothes|predict|measure|test|compar|infer|evidence|constraint|analy[sz]|explain|redesign|optim|trade[- ]?off|criteria|pattern|justify|rank|variable|record|claim)\b/i;
 
 /**
  * Themes/language that feel young-child even when ageFit.maxAge is stretched.
@@ -171,7 +176,7 @@ export function validateAgeContentFit(activity, childrenContext = []) {
     const hitsPretendStory = TEEN_PRETEND_STORY_PATTERNS.some((pattern) =>
       pattern.test(text)
     );
-    if (hitsPretendStory) {
+    if (hitsPretendStory && !interestsSupportFiction(childrenContext)) {
       reasons.push("teen-pretend-story");
     }
   }
@@ -236,6 +241,15 @@ export function validateMixedAgeRoles(activity, childrenContext = []) {
     if (roleText && BABYSITTER_PATTERN.test(roleText)) {
       reasons.push("oldest-as-babysitter");
     }
+
+    if (
+      roleText &&
+      Number.isFinite(oldest.ageYears) &&
+      oldest.ageYears >= 10 &&
+      !OLDER_ROLE_REASONING_PATTERN.test(roleText)
+    ) {
+      reasons.push("oldest-role-cognitively-shallow");
+    }
   }
 
   return { ok: reasons.length === 0, reasons };
@@ -286,18 +300,21 @@ export function evaluateActivityAgeQuality(activity, childrenContext = []) {
   const mixed = validateMixedAgeRoles(activity, childrenContext);
   const content = validateAgeContentFit(activity, childrenContext);
   const voice = validateActivityVoiceQuality(activity);
+  const inquiry = validateOlderChildInquiryQuality(activity, childrenContext);
 
   return {
-    ok: ageFitOk && mixed.ok && content.ok && voice.ok,
+    ok: ageFitOk && mixed.ok && content.ok && voice.ok && inquiry.ok,
     ageFitOk,
     mixedAgeOk: mixed.ok,
     contentOk: content.ok,
     voiceOk: voice.ok,
+    inquiryOk: inquiry.ok,
     reasons: [
       ...(ageFitOk ? [] : ["age-fit-range"]),
       ...mixed.reasons,
       ...content.reasons,
       ...voice.reasons,
+      ...inquiry.reasons,
     ],
   };
 }

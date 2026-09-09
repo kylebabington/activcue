@@ -26,9 +26,8 @@ import {
 } from "../utils/normalizeRequest.js";
 import { enrichActivityForServe } from "../utils/enrichActivityForServe.js";
 import { getGroupAgeContext } from "../utils/childAge.js";
-import {
-  logAgeFitBatchSummary,
-} from "../utils/activityAgePolicy.js";
+import { logAgeFitBatchSummary } from "../utils/activityAgePolicy.js";
+import { buildAgeFitRetrySteer } from "../utils/ageFitRetrySteer.js";
 import {
   filterActivitiesByFitPolicy,
   buildFitRequestContextFromParts,
@@ -344,57 +343,6 @@ function logSuggestionTiming(payload) {
   } catch {
     // ignore
   }
-}
-
-function buildAgeFitRetrySteer({ oldestAge, childAges, rejectionTitles }) {
-  const agesLabel =
-    Array.isArray(childAges) && childAges.length > 0
-      ? childAges.join(", ")
-      : String(oldestAge ?? "unknown");
-  const lines = [
-    "AGE RETRY: The previous activity batch was rejected for age fit, maturity, or developmental complexity.",
-    `TARGET CHILD AGE(S): EXACTLY ${agesLabel}.`,
-    "ageFit.minAge/maxAge must cover every participating child. targetAges should include the exact ages.",
-  ];
-
-  if (Number.isFinite(oldestAge) && oldestAge >= 13) {
-    lines.push(
-      "This is a young teenager. The activity must feel socially appropriate for a teenager.",
-      "Do not reuse preschool pretend-play framing. Prefer autonomy, design, strategy, invention, building, investigation, photography, music, games, or creative production.",
-      "Avoid blanket forts, stuffed-animal play, fairy/princess framing, and magical castles."
-    );
-  } else if (Number.isFinite(oldestAge) && oldestAge >= 10) {
-    lines.push(
-      "This is an older-elementary / tween child. Prefer challenge-first framing with strategy and independent creation.",
-      "Avoid preschool fort/nursery framing."
-    );
-  } else if (Number.isFinite(oldestAge) && oldestAge <= 7) {
-    lines.push(
-      "This is an early-elementary child. Instructions must be concrete and literal.",
-      "Use short actions and limited choices. Maximum 4 scenes with 2–4 actions each.",
-      "The child must never infer missing setup. Provide examples they can copy immediately.",
-      "Avoid abstract planning, optimal sequences, and designing rules before beginning."
-    );
-  } else {
-    lines.push(
-      "Match maturityLevel to the child's age band. Keep directions concrete with modest planning."
-    );
-  }
-
-  lines.push(
-    "roleGuide.name must be activity-specific, never a generic one-word role.",
-    "Write like a warm teacher: invitation → action → response."
-  );
-
-  if (rejectionTitles?.length > 0) {
-    lines.push(
-      `Rejected titles to avoid repeating: ${rejectionTitles
-        .map((title) => `"${title}"`)
-        .join(", ")}.`
-    );
-  }
-
-  return lines.join("\n");
 }
 
 function preserveLibraryIds(activity) {
@@ -955,6 +903,9 @@ export default function createActivitySuggestionsRouter(client) {
               oldestAge,
               childAges,
               rejectionTitles,
+              rejectedReasons: lastRejectedDetails.flatMap(
+                (detail) => detail.result?.hardFailures || detail.reasons || []
+              ),
             });
 
             const retryFeedback = [safeFeedbackContext, retrySteer]

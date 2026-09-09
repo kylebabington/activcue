@@ -16,6 +16,8 @@ export const ACTIVITY_CATEGORIES = [
   "sensory",
   "nature",
   "science",
+  "engineering",
+  "history",
   "music",
   "reading",
   "social-game",
@@ -119,6 +121,24 @@ const CATEGORY_KEYWORDS = {
     "texture",
   ],
   science: ["science", "experiment", "magnet", " magnifying", "observe"],
+  engineering: [
+    "engineering",
+    "engineer",
+    "load test",
+    "cantilever",
+    "prototype",
+    "redesign",
+    "structural",
+  ],
+  history: [
+    "history",
+    "historical",
+    "ancient",
+    "civilization",
+    "historian",
+    "archaeology",
+    "timeline",
+  ],
   music: ["music", "sing", "song", "drum", "instrument", "rhythm"],
   "social-game": [
     "board game",
@@ -131,6 +151,8 @@ const CATEGORY_KEYWORDS = {
 };
 
 const CATEGORY_PRIORITY = [
+  "engineering",
+  "history",
   "nature",
   "movement",
   "building",
@@ -262,6 +284,7 @@ function inferSetupEffort(category, mess, usesCount) {
 
   if (
     category === "building" ||
+    category === "engineering" ||
     category === "nature" ||
     mess === "medium" ||
     usesCount >= 2

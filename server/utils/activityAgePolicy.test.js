@@ -54,8 +54,8 @@ function concreteAge6Activity(overrides = {}) {
 }
 
 describe("activityAgePolicy bands", () => {
-  it("exposes policy version 2", () => {
-    expect(AGE_POLICY_VERSION).toBe(2);
+  it("exposes policy version 3", () => {
+    expect(AGE_POLICY_VERSION).toBe(3);
   });
 
   it("maps refined policy bands", () => {
@@ -181,6 +181,8 @@ describe("evaluateActivityAgeFit", () => {
       activity: {
         title: "Family Delivery Hub",
         summary: "Run a family delivery desk with age-appropriate jobs.",
+        story: "Orders keep backing up. Using only three baskets, the team must find which delivery order is fastest.",
+        categories: ["puzzle"],
         ageFit: {
           minAge: 6,
           maxAge: 14,
@@ -197,26 +199,36 @@ describe("evaluateActivityAgeFit", () => {
             },
             {
               childName: "Alex",
-              roleTitle: "Route Planner",
-              responsibility: "Plan the delivery order",
-              firstAction: "Write the stop list",
+              roleTitle: "Route Analyst",
+              responsibility: "Compare two delivery orders, time each, and explain which is faster",
+              firstAction: "Time the first route and record the evidence",
             },
           ],
         },
         stepDetails: [
           {
             title: "Open the hub",
-            instruction: "Put three baskets on the table and label them.",
+            actions: [
+              "Put three baskets on the table and label them A, B, and C.",
+              "Sam sorts packages into the three baskets.",
+            ],
+            doneWhen: "Every package is in a labeled basket.",
           },
           {
-            title: "Sort",
-            instruction: "Sam sorts. Alex writes the route.",
+            title: "Test routes",
+            actions: [
+              "Alex times walking route A and records the minutes.",
+              "Alex times route B, compares the two results, and chooses the faster order.",
+              "Alex explains why the evidence supports that choice.",
+            ],
+            doneWhen: "The faster route is written down with a reason.",
           },
         ],
       },
       childrenContext: [child(6, "Sam"), child(13, "Alex")],
       activityMode: "family",
     });
+    expect(result.reasons).toEqual([]);
     expect(result.eligible).toBe(true);
   });
 });

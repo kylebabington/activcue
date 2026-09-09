@@ -10,6 +10,10 @@ import {
   buildActivityDesignBrief,
   formatActivityDesignBriefForPrompt,
 } from "../utils/activityDesignBrief.js";
+import {
+  formatDomainInquiryPromptBlock,
+  formatMixedAgeCognitiveRoleRules,
+} from "../utils/domainInquiryGuidance.js";
 
 /**
  * Resolve which age-voice band to include for the oldest participant.
@@ -47,6 +51,15 @@ function resolveYoungestAge(childrenContext = [], groupAgeContext = {}) {
   if (ages.length > 0) return Math.min(...ages);
   const youngest = Number(groupAgeContext?.youngestAge);
   return Number.isFinite(youngest) ? youngest : null;
+}
+
+function resolveOldestAge(childrenContext = [], groupAgeContext = {}) {
+  const ages = (Array.isArray(childrenContext) ? childrenContext : [])
+    .map((child) => Number(child?.ageYears))
+    .filter((age) => Number.isFinite(age));
+  if (ages.length > 0) return Math.max(...ages);
+  const oldest = Number(groupAgeContext?.oldestAge);
+  return Number.isFinite(oldest) ? oldest : null;
 }
 
 function buildComplexityBudgetRules(budget, style) {
@@ -106,9 +119,10 @@ MULTI-CHILD STORY ROLES (hard when 2+ children participate):
 `.trim()
       : "";
 
-  const ageTone = isTeen || ageBand === "tween" || ageBand === "older-elementary"
-    ? `Use challenge-first framing for ages 10+ — creative brief, design problem, investigation, or mystery. NOT young-child rescue fantasy unless interests explicitly ask for roleplay.`
-    : `Use vivid causal adventure for under-10 — specific place, inciting event, named problem, stakes. ${UNDER10_OPENING_STORY_PROMPT}`;
+  const ageTone =
+    isTeen || ageBand === "tween" || ageBand === "older-elementary"
+      ? `For ages 10+, story is a real-world scenario, investigation context, design brief, or historical question — not a whimsical rescue fantasy unless interests explicitly ask for roleplay. State the authentic problem, constraints, and why the child's thinking matters.`
+      : `Use vivid causal adventure for under-10 — specific place, inciting event, named problem, stakes. ${UNDER10_OPENING_STORY_PROMPT}`;
 
   return `
 CAUSAL ACTIVITY DESIGN — HARD REQUIREMENT
@@ -169,14 +183,16 @@ VOICE:
 
 TEEN / YOUNG-TEEN FRAMING:
 - This is a young teenager. The activity must feel socially appropriate for a teenager.
+- Default to authentic real-world inquiry: scientific method, engineering iteration, historical evidence/causation, photography/documentation, design optimization, or independent investigation.
 - Do not reuse preschool pretend-play framing and simply increase difficulty.
-- Prefer autonomy, design, strategy, invention, building, investigation, photography, music, games, or creative production.
-- HARD RULE: do not invent an imaginary story world unless the child's listed interests explicitly ask for roleplay/fiction.
-- roleGuide.description: crisp creative brief (goal + constraints + what done looks like). Max ~2 sentences. Put stakes in story.
-- Prefer categories: puzzle, creative, science, building, music, reading, nature, social-game. Avoid "pretend" unless interests demand it.
+- HARD RULE: do not invent an imaginary story world unless the child's listed interests explicitly ask for roleplay/fiction, fantasy, game design, gaming narrative, or worldbuilding.
+- Even then, the activity must involve substantive thinking. Game design is acceptable. "Pretend you are a wizard and build a pillow fort" is not.
+- Prefer authentic role titles when they fit: Research Scientist, Field Scientist, Environmental Scientist, Engineer, Structural Engineer, Mechanical Engineer, Historian.
+- roleGuide.description: crisp creative brief (goal + constraints + what done looks like). Max ~2 sentences. Put the real-world problem in story.
+- Prefer categories: science, engineering, history, nature, puzzle, creative, building, music, reading, social-game. Avoid "pretend" unless interests demand it.
 - Activity-level starterIdeas: 3–5 thinking prompts (approaches, constraints, variations) — not "pretend you are…".
 - Include 3 to 5 stepDetails. Each needs 1–2 step-specific starterIdeas, a self-contained instruction, doneWhen as a tangible ready-to-continue cue, ifStuck as a simpler strategy.
-- visualTheme: prefer building, science, art, detective, mystery, expedition, neighborhood — avoid fantasy unless interests demand it.
+- visualTheme: prefer building, science, art, detective, mystery, expedition, neighborhood — avoid fantasy unless interests demand it. History maps well to expedition or mystery. Engineering maps well to science or building.
 - Language should sound like a cool challenge for a teen, never like preschool play.
 `.trim();
   }
@@ -185,12 +201,17 @@ TEEN / YOUNG-TEEN FRAMING:
     return `${shared}
 
 OLDER-ELEMENTARY / TWEEN FRAMING:
-- Prefer creative challenges over full pretend worlds. Light theme is optional.
+- This is the major shift from pretend-play toward authentic inquiry.
+- Default toward authentic investigations, engineering challenges, field observations, historical reasoning, design problems, and real-world creative production.
+- Prefer role families such as Research Scientist, Field Scientist, Environmental Scientist, Engineer, Structural Engineer, Mechanical Engineer, or Historian when they fit naturally — do not force the title into every activity.
+- Avoid childish fantasy, arbitrary missions, decorative science themes, and make-believe jobs with no domain reasoning.
+- "Pretend you're a scientist" is not enough — the child must hypothesize, test, and explain.
 - Allow planning, strategy, simple optimization, and design constraints.
-- roleGuide.description: short challenge brief (1–2 sentences), not a long lore dump. Put the design problem in story.
+- roleGuide.description: short challenge brief (1–2 sentences), not a long lore dump. Put the design problem or investigation question in story.
 - Avoid forced make-believe dialogue and costume play.
 - Activity-level starterIdeas: at least 4 with mixed kinds.
 - Include 3 to 5 stepDetails. Each needs 2 step-specific starterIdeas, a self-contained instruction, transition-style doneWhen, and ifStuck rescue.
+- visualTheme: prefer science, building, expedition, mystery, detective, neighborhood, art.
 `.trim();
   }
 
@@ -206,6 +227,7 @@ EARLY-ELEMENTARY (AGES 6–7) FRAMING:
 - Never require the child to design the rules before beginning.
 - Make all invented locations explicit (e.g. "Call them Station 1, Station 2, and Station 3").
 - Vivid theme framing and a clear pretend role are OK when a natural role exists.
+- Thinking should stay concrete: notice, observe, compare, sequence, simple prediction, and simple cause/effect. Do not assign teen-level analysis.
 `.trim();
   }
 
@@ -215,6 +237,7 @@ EARLY-ELEMENTARY (AGES 6–7) FRAMING:
 ELEMENTARY (AGES 8–9) FRAMING:
 - Allow up to ${maxScenes} scenes, slightly more planning, simple written lists, and two-step decisions.
 - Up to ${maxActions} actions per scene when each action is concrete.
+- Increase classification, prediction, explanation, pattern finding, and evidence-based choices.
 - More open-ended creation is OK when examples are provided.
 - Keep directions concrete; avoid multi-stage planning without scaffolding.
 `.trim();
@@ -236,8 +259,8 @@ YOUNG-CHILD / UNDER-10 FRAMING:
 
 ${under10}
 
-If any participant is 10+, lean challenge-first for them while younger siblings keep simpler story beats.
-If any participant is 13+, do NOT invent nursery pretend for the whole group — use creative challenges older kids can lead.
+If any participant is 10+, their childRole must include higher-order thinking from their design-brief cognitive expectations (hypothesize, test, measure, infer, explain with evidence) while younger siblings keep concrete jobs (gather, sort, describe).
+If any participant is 13+, do NOT invent nursery pretend for the whole group — use authentic inquiry older kids can own.
 `.trim();
   }
 
@@ -300,6 +323,10 @@ export function buildActivitySuggestionsInstructions(
     options.childrenContext,
     options.groupAgeContext
   );
+  const oldest = resolveOldestAge(
+    options.childrenContext,
+    options.groupAgeContext
+  );
   const budget = getDevelopmentalComplexityBudget(youngest, style);
 
   const styleRules =
@@ -315,7 +342,7 @@ ${buildCausalStoryDesignRules(ageBand, options.childrenContext?.length || 1)}`;
 ACTIVITY FORMAT V4 (required — imaginative only):
 - Set activityFormatVersion to 4 and qualityContractVersion to 1.
 - activityStyle must be "imaginative".
-- story: WHY this situation exists — WHERE, WHAT happened before play, current PROBLEM/need/mystery, WHY it matters, WHY the child/children are needed. Under-10: ${UNDER10_OPENING_STORY_PROMPT.replace(/\n/g, " ")} No setup directions.
+- story: WHY this situation exists. For under-10: ${UNDER10_OPENING_STORY_PROMPT.replace(/\n/g, " ")} For ages 10+: a real-world scenario, investigation context, design brief, or historical question (not a whimsical fairy-tale unless interests ask for roleplay). No setup directions.
 - summary: max 2 sentences — what the child will do.
 - roleGuide: { name, description, childRoles[] }. WHO the child is. No fluff titles.
 - setupGuide: { needed[], steps[], readyWhen }. Physical prep before Scene 1 only.
@@ -376,8 +403,13 @@ ACTION WRITING RULES (hard — every actions[] item):
 
 ${buildAgeAppropriatenessRules(ageBand)}
 
+${formatDomainInquiryPromptBlock(oldest)}
+
+${formatMixedAgeCognitiveRoleRules()}
+
 MIXED-AGE / FAMILY ROLE RULES:
 - Every participating child must have a meaningful role in childRoles when activity mode is family.
+- Use the per-child cognitive expectations from the design brief. Do not give every child the same thinking job.
 - Do not make the oldest child merely supervise younger children.
 - childRoles.roleTitle must be activity-specific, never a generic one-word title.
 - childRoles.childName MUST use the participant labels from the design brief exactly (Child 1, Child 2, Child 3, …). Never insert real personal names.
@@ -428,7 +460,9 @@ OUTPUT RULES:
 - Do NOT include kidRole, mission, starterPrompts, firstMoves, steps, or roles — the server derives those.
 
 CATEGORY AND TRAIT RULES:
-- categories: pick 1 to 3 from building, creative, movement, pretend, puzzle, sensory, nature, science, music, reading, social-game, helping.
+- categories: pick 1 to 3 from building, creative, movement, pretend, puzzle, sensory, nature, science, engineering, history, music, reading, social-game, helping.
+- building is construction play. engineering is design-build-test with constraints. Do not treat them as the same.
+- reading is books/print. history is evidence, causes, and claims about the past. Do not treat them as the same.
 - traits.setupEffort: very-low | low | medium | high.
 - traits.structure: guided | open-ended.
 - traits.socialMode: solo | cooperative | competitive | flexible.

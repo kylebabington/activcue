@@ -9,6 +9,8 @@ export const ACTIVITY_CATEGORIES = [
   "sensory",
   "nature",
   "science",
+  "engineering",
+  "history",
   "music",
   "reading",
   "social-game",

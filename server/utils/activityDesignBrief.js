@@ -1,14 +1,17 @@
 import { getPolicyAgeBand, getDevelopmentalComplexityBudget } from "./activityAgePolicy.js";
+import { formatCognitiveExpectationsForBrief } from "./cognitiveInquiryProfile.js";
 
 function sanitizeChildForBrief(child, index) {
   const ageYears = Number(child?.ageYears ?? child?.age);
+  const age = Number.isFinite(ageYears) ? ageYears : null;
   return {
     label: `Child ${index + 1}`,
-    age: Number.isFinite(ageYears) ? ageYears : null,
+    age,
     ageBand: child?.ageBand || (Number.isFinite(ageYears) ? getPolicyAgeBand(ageYears) : "unknown"),
     interests: Array.isArray(child?.interests) ? child.interests : [],
     avoids: Array.isArray(child?.avoids) ? child.avoids : [],
     independence: child?.independenceLevel || "usually-independent",
+    cognitive: Number.isFinite(age) ? formatCognitiveExpectationsForBrief(age) : null,
   };
 }
 
@@ -80,6 +83,18 @@ export function buildActivityDesignBrief({
     },
     complexityBudget,
     narrativeDesign,
+    cognitiveDesign: {
+      byChild: children.map((child) => ({
+        label: child.label,
+        age: child.age,
+        ...child.cognitive,
+      })),
+      oldest: Number.isFinite(oldest)
+        ? formatCognitiveExpectationsForBrief(oldest)
+        : null,
+      note:
+        "Match each childRole to that child's primaryThinking. Complexity budget is separate from thinking type.",
+    },
   };
 }
 

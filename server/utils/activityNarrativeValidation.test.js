@@ -157,6 +157,18 @@ describe("validateActivityNarrative", () => {
     expect(result.reasons).not.toContain("story-too-thin");
   });
 
+  it("accepts a real-world design-brief story for ages 10+", () => {
+    const story =
+      "Pedestrian bridges need to be light enough to build efficiently but strong enough to support repeated loads over years of foot traffic. " +
+      "Your job is to determine which folded-paper structure supports the most weight using the least material, then explain the result.";
+    const result = validateActivityNarrative(
+      buildMinimalV4Activity({ story }),
+      { oldestAge: 12, participantCount: 1 }
+    );
+    expect(result.reasons).toEqual([]);
+    expect(result.valid).toBe(true);
+  });
+
   it("rejects under-10 story with 3 sentences but under 50 words", () => {
     const result = validateActivityNarrative(
       buildMinimalV4Activity({

@@ -68,12 +68,21 @@ describe("inferActivityTraits", () => {
 
     expect(
       inferActivityTraits({
-        title: "Backyard Nature Walk",
-        summary: "Outdoor scavenger hunt",
-        energy: "high",
+        title: "Paper Bridge Load Test",
+        summary: "Engineering prototype with a redesign after it fails",
+        energy: "medium",
         mess: "low",
       }).category
-    ).toBe("nature");
+    ).toBe("engineering");
+
+    expect(
+      inferActivityTraits({
+        title: "Ancient River Cities",
+        summary: "Historical reasons settlements grew near water",
+        energy: "low",
+        mess: "low",
+      }).category
+    ).toBe("history");
   });
 
   it("raises cleanup effort for sensory/high mess", () => {
