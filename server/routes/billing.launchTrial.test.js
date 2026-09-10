@@ -66,6 +66,23 @@ vi.mock("../lib/entitlements.js", () => ({
 
 vi.mock("../lib/stripeClient.js", () => ({
   getStripeClient: getStripeClientMock,
+  getStripeTestClient: vi.fn(() => null),
+  getStripeClientForLivemode: (livemode) => {
+    if (livemode === true) {
+      const stripe = getStripeClientMock();
+      return stripe
+        ? { ok: true, stripe, mode: "live" }
+        : { ok: false, reason: "missing-live-secret-key", mode: "live" };
+    }
+    if (livemode === false) {
+      return {
+        ok: false,
+        reason: "missing-test-secret-key",
+        mode: "test",
+      };
+    }
+    return { ok: false, reason: "invalid-livemode", mode: null };
+  },
   managedPaymentsRequestOptions: { stripeAccount: undefined },
   requireStripeClient: requireStripeClientMock,
 }));
@@ -334,6 +351,7 @@ describe("checkout.session.completed launch trial redeem", () => {
         constructEvent: vi.fn(() => ({
           id: "evt_1",
           type: "checkout.session.completed",
+          livemode: true,
           data: {
             object: {
               id: "cs_123",
@@ -393,6 +411,7 @@ describe("checkout.session.completed launch trial redeem", () => {
         constructEvent: vi.fn(() => ({
           id: "evt_2",
           type: "checkout.session.completed",
+          livemode: true,
           data: {
             object: {
               id: "cs_456",
