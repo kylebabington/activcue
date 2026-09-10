@@ -38,6 +38,13 @@ describe("buildActivityDesignBrief", () => {
     expect(brief.groupDesign.engagementMustWorkForAge).toBe(8);
     expect(brief.narrativeDesign.mode).toBe("causal-adventure");
     expect(brief.narrativeDesign.requiresSceneSetup).toBe(true);
+    expect(brief.participants.children[0].cognitive.primaryThinking).toContain(
+      "observe"
+    );
+    expect(brief.participants.children[1].cognitive.primaryThinking).toContain(
+      "classify"
+    );
+    expect(brief.cognitiveDesign.byChild).toHaveLength(2);
   });
 
   it("does not include names or birth dates in prompt JSON", () => {
@@ -58,5 +65,24 @@ describe("buildActivityDesignBrief", () => {
     });
     expect(brief.complexityBudget.maxScenes).toBe(4);
     expect(brief.complexityBudget.maxActionsPerScene).toBe(4);
+  });
+
+  it("attaches per-child cognitive expectations for mixed ages", () => {
+    const brief = buildActivityDesignBrief({
+      childrenContext: [
+        { ageYears: 7, interests: ["animals"] },
+        { ageYears: 12, interests: ["science"] },
+      ],
+      activityMode: "family",
+    });
+    expect(brief.participants.children[0].cognitive.band).toBe("early-elementary");
+    expect(brief.participants.children[0].cognitive.primaryThinking).toContain(
+      "simple-prediction"
+    );
+    expect(brief.participants.children[1].cognitive.band).toBe("older-elementary");
+    expect(brief.participants.children[1].cognitive.primaryThinking).toContain(
+      "hypothesize"
+    );
+    expect(brief.cognitiveDesign.oldest.inquiryDepth).toBe("high");
   });
 });

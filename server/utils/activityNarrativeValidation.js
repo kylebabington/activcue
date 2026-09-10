@@ -348,12 +348,12 @@ export function formatNarrativeSteerHints(reasons = []) {
 
   if (unique.includes("story-too-thin")) {
     hints.push(
-      `Write a ${UNDER10_OPENING_STORY.targetSentences} sentence opening story (~${UNDER10_OPENING_STORY.targetWords} words for under-10) with WHERE, WHAT happened before play, the current PROBLEM, WHY it matters, and WHY the child/children are needed.`
+      "Opening story/scenario: under-10 needs 3–5 sentences (~55–90 words) with WHERE, WHAT happened, PROBLEM, WHY it matters, WHY the child is needed. Ages 10+: at least 2 sentences (~40+ words) stating a real-world problem, design brief, investigation question, or historical question — whimsical fiction is not required."
     );
   }
   if (unique.includes("story-missing-problem")) {
     hints.push(
-      "Replace generic openings with a specific inciting event tied to this activity's objects."
+      "Replace generic openings with a specific inciting situation: a real problem, constraint, question, or goal tied to this activity's objects."
     );
   }
   if (
@@ -389,7 +389,7 @@ export function formatNarrativeSteerHints(reasons = []) {
     )
   ) {
     hints.push(
-      "CAUSALITY RETRY: Rebuild the scene sequence. Each scene must follow problem/change → necessary action → consequence. Do NOT add descriptive language to themed tasks — change the actions if they do not belong in the story."
+      "CAUSALITY RETRY: Rebuild the scene sequence. Each scene must follow problem/change → necessary action → consequence. For ages 10+, that chain can be investigation or design (question → test → result) rather than a fairy-tale plot. Do NOT add descriptive language to themed tasks — change the actions if they do not belong."
     );
   }
 

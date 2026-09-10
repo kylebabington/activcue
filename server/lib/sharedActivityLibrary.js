@@ -132,6 +132,7 @@ export function candidatePassesAgeRange(
     childrenContext: ages,
     activityMode,
     requireValidated: false,
+    includeInquiry: false,
   });
   return evaluation.eligible;
 }
@@ -292,7 +293,7 @@ function toLibraryRow(activity, { source = "ai", ageValidated = false } = {}) {
   };
 }
 
-async function quarantineInvalidCandidate(supabase, rowId, errors) {
+export async function quarantineInvalidCandidate(supabase, rowId, errors) {
   if (!supabase || !rowId) return;
   try {
     const now = new Date().toISOString();
@@ -905,7 +906,14 @@ export async function querySharedCandidatesForUser({
           reason === "age-range-mismatch" ||
           reason === "maturity-mismatch" ||
           reason === "mixed-age-only" ||
-          reason === "developmental-complexity"
+          reason === "developmental-complexity" ||
+          reason.startsWith("science-") ||
+          reason.startsWith("engineering-") ||
+          reason.startsWith("history-") ||
+          reason === "older-inquiry-too-shallow" ||
+          reason === "oldest-role-cognitively-shallow" ||
+          reason === "oldest-as-babysitter" ||
+          reason === "teen-pretend-story"
         ) {
           ageRejected += 1;
         }

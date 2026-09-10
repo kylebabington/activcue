@@ -107,8 +107,8 @@ describe("buildActivitySuggestionsInstructions", () => {
       { groupAgeContext: { oldestAge: 8 } }
     );
 
-    expect(imaginative.length).toBeLessThan(16000);
-    expect(simple.length).toBeLessThan(14000);
+    expect(imaginative.length).toBeLessThan(22000);
+    expect(simple.length).toBeLessThan(16000);
     expect(imaginative).not.toContain("STYLE RULES (simple");
     expect(simple).not.toContain("STYLE RULES (imaginative");
   });
@@ -239,5 +239,45 @@ describe("buildActivitySuggestionsInstructions", () => {
     );
     expect(instructions).toContain("childRoles.childName MUST use the participant labels");
     expect(instructions).toContain("Never insert real personal names");
+  });
+
+  it("steers ages 10-12 toward authentic inquiry cycles and real-world roles", () => {
+    const instructions = buildActivitySuggestionsInstructions(
+      "imaginative",
+      "playroom",
+      { groupAgeContext: { oldestAge: 11 }, childrenContext: [{ ageYears: 11 }] }
+    );
+    expect(instructions).toContain("OLDER-ELEMENTARY / TWEEN FRAMING");
+    expect(instructions).toMatch(/QUESTION → PREDICTION\/HYPOTHESIS → TEST/i);
+    expect(instructions).toMatch(/PROBLEM → CONSTRAINTS → DESIGN → BUILD → TEST/i);
+    expect(instructions).toMatch(/QUESTION → EVIDENCE\/FACTORS/i);
+    expect(instructions).toContain("Research Scientist");
+    expect(instructions).toContain("Structural Engineer");
+    expect(instructions).toContain("Historian");
+    expect(instructions).not.toContain("TEEN / YOUNG-TEEN FRAMING");
+    expect(instructions).not.toContain("control-variables");
+  });
+
+  it("defaults ages 13+ to authentic inquiry and fiction only when interests support it", () => {
+    const instructions = buildActivitySuggestionsInstructions(
+      "imaginative",
+      "playroom",
+      { groupAgeContext: { oldestAge: 13 }, childrenContext: [{ ageYears: 13 }] }
+    );
+    expect(instructions).toContain("authentic real-world inquiry");
+    expect(instructions).toContain("AGES 13+ FICTION RULE");
+    expect(instructions).toContain("engineering");
+    expect(instructions).toContain("history");
+  });
+
+  it("does not overload young-child prompts with teen inquiry", () => {
+    const instructions = buildActivitySuggestionsInstructions(
+      "imaginative",
+      "playroom",
+      { groupAgeContext: { oldestAge: 5 }, childrenContext: [{ ageYears: 5 }] }
+    );
+    expect(instructions).not.toContain("AGES 13+ FICTION RULE");
+    expect(instructions).not.toContain("control variables");
+    expect(instructions).toContain("Do not assign teen-level analysis");
   });
 });

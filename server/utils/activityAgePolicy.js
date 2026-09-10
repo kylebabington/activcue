@@ -7,8 +7,9 @@ import {
   validateActivityVoiceQuality,
   validateMixedAgeRoles,
 } from "./ageFitValidation.js";
+import { validateOlderChildInquiryQuality } from "./olderChildInquiryValidation.js";
 
-export const AGE_POLICY_VERSION = 2;
+export const AGE_POLICY_VERSION = 3;
 
 /** Refined developmental bands used by age policy + prompts. */
 export const POLICY_AGE_BANDS = Object.freeze([
@@ -111,6 +112,7 @@ export function evaluateActivityAgeFit({
   activityMode = "single-child",
   requireValidated = false,
   expectedStyle = null,
+  includeInquiry = true,
 } = {}) {
   const reasons = [];
   const warnings = [];
@@ -179,10 +181,7 @@ export function evaluateActivityAgeFit({
           if (!reasons.includes("maturity-mismatch")) {
             reasons.push("maturity-mismatch");
           }
-        } else if (
-          r === "young-child-content-for-older" ||
-          r === "teen-pretend-story"
-        ) {
+        } else if (r === "young-child-content-for-older") {
           if (!reasons.includes("developmental-complexity")) {
             reasons.push("developmental-complexity");
           }
@@ -192,10 +191,32 @@ export function evaluateActivityAgeFit({
       }
     }
 
+    const inquiry = includeInquiry
+      ? validateOlderChildInquiryQuality(activity, childrenObjs)
+      : { ok: true, reasons: [] };
+    if (!inquiry.ok) {
+      for (const r of inquiry.reasons) {
+        if (!reasons.includes(r)) {
+          reasons.push(r);
+        }
+      }
+    }
+
     if (isFamily && group.isMixedAge) {
       const mixed = validateMixedAgeRoles(activity, childrenObjs);
       if (!mixed.ok) {
-        warnings.push(...mixed.reasons);
+        const oldest = group.oldestAge;
+        const hardMixed =
+          Number.isFinite(oldest) && oldest >= 10
+            ? new Set(["oldest-as-babysitter", "oldest-role-cognitively-shallow"])
+            : new Set();
+        for (const r of mixed.reasons) {
+          if (hardMixed.has(r)) {
+            if (!reasons.includes(r)) reasons.push(r);
+          } else {
+            warnings.push(r);
+          }
+        }
       }
     }
 
