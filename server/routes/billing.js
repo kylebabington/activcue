@@ -41,6 +41,7 @@ import {
   recordProcessedStripeEvent,
 } from "../lib/stripeWebhookEvents.js";
 import { recordSubscriptionStartedOnce } from "../lib/recordProductEvent.js";
+import { verifyStripeWebhookEvent } from "../lib/verifyStripeWebhook.js";
 
 const router = Router();
 
@@ -653,21 +654,23 @@ export async function handleStripeWebhook(
       );
   }
 
-  let event;
+  /*
+   * req.body must remain the raw Buffer from express.raw().
+   * Try STRIPE_WEBHOOK_SECRET first, then optional STRIPE_WEBHOOK_SECRET_TEST.
+   * Do not inspect event.livemode or body fields until verification succeeds.
+   */
+  const verified = verifyStripeWebhookEvent(
+    stripe,
+    req.body,
+    signature
+  );
 
-  try {
-    event =
-      stripe.webhooks.constructEvent(
-        req.body,
-        signature,
-        webhookSecret
-      );
-  } catch (error) {
+  if (!verified.ok) {
     console.error(
       "Stripe webhook signature verification failed:",
-      error instanceof Error
-        ? error.message
-        : error
+      verified.error instanceof Error
+        ? verified.error.message
+        : verified.error
     );
 
     return res
@@ -676,6 +679,11 @@ export async function handleStripeWebhook(
         "Webhook signature verification failed."
       );
   }
+
+  const event = verified.event;
+  console.log(
+    `Stripe webhook signature verified with ${verified.secretSource} configuration.`
+  );
 
   try {
     if (await hasProcessedStripeEvent(event.id)) {
