@@ -13,13 +13,15 @@ export const managedPaymentsRequestOptions = {
   apiVersion: STRIPE_MANAGED_PAYMENTS_VERSION,
 };
 
-let stripeClient = null;
+let stripeLiveClient = null;
+let stripeTestClient = null;
 
 /*
- * Lazily create the Stripe SDK client.
+ * Lazily create the live Stripe SDK client (STRIPE_SECRET_KEY).
  *
- * Stripe env vars are optional at server boot; billing routes return 503 when
- * STRIPE_SECRET_KEY is missing at request time.
+ * Stripe env vars are optional at server boot for some scripts; billing routes
+ * return 503 when STRIPE_SECRET_KEY is missing at request time. Production
+ * server boot still requires STRIPE_SECRET_KEY.
  */
 export function getStripeClient() {
   const secretKey = process.env.STRIPE_SECRET_KEY;
@@ -28,11 +30,76 @@ export function getStripeClient() {
     return null;
   }
 
-  if (!stripeClient) {
-    stripeClient = new Stripe(secretKey);
+  if (!stripeLiveClient) {
+    stripeLiveClient = new Stripe(secretKey);
   }
 
-  return stripeClient;
+  return stripeLiveClient;
+}
+
+/*
+ * Optional sandbox / test-mode Stripe client (STRIPE_SECRET_KEY_TEST).
+ * Missing in production is fine until a verified livemode:false webhook arrives.
+ */
+export function getStripeTestClient() {
+  const secretKey = process.env.STRIPE_SECRET_KEY_TEST;
+
+  if (!secretKey) {
+    return null;
+  }
+
+  if (!stripeTestClient) {
+    stripeTestClient = new Stripe(secretKey);
+  }
+
+  return stripeTestClient;
+}
+
+/**
+ * After webhook signature verification, select the API client for event.livemode.
+ * Never call this with unverified request-body fields.
+ *
+ * @param {boolean} livemode
+ * @returns {{
+ *   ok: true,
+ *   stripe: import("stripe").default,
+ *   mode: "live" | "test",
+ * } | {
+ *   ok: false,
+ *   reason: "missing-live-secret-key" | "missing-test-secret-key" | "invalid-livemode",
+ *   mode: "live" | "test" | null,
+ * }}
+ */
+export function getStripeClientForLivemode(livemode) {
+  if (livemode === true) {
+    const stripe = getStripeClient();
+    if (!stripe) {
+      return {
+        ok: false,
+        reason: "missing-live-secret-key",
+        mode: "live",
+      };
+    }
+    return { ok: true, stripe, mode: "live" };
+  }
+
+  if (livemode === false) {
+    const stripe = getStripeTestClient();
+    if (!stripe) {
+      return {
+        ok: false,
+        reason: "missing-test-secret-key",
+        mode: "test",
+      };
+    }
+    return { ok: true, stripe, mode: "test" };
+  }
+
+  return {
+    ok: false,
+    reason: "invalid-livemode",
+    mode: null,
+  };
 }
 
 export function requireStripeClient() {
@@ -47,4 +114,10 @@ export function requireStripeClient() {
   }
 
   return stripe;
+}
+
+/** @internal test helper — resets cached clients between tests. */
+export function __resetStripeClientsForTests() {
+  stripeLiveClient = null;
+  stripeTestClient = null;
 }

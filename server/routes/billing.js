@@ -5,6 +5,7 @@ import { Router } from "express";
 import { BRAND } from "../../src/config/brand.js";
 import {
   getStripeClient,
+  getStripeClientForLivemode,
   managedPaymentsRequestOptions,
   requireStripeClient,
 } from "../lib/stripeClient.js";
@@ -685,6 +686,28 @@ export async function handleStripeWebhook(
     `Stripe webhook signature verified with ${verified.secretSource} configuration.`
   );
 
+  /*
+   * API calls must use the client matching the verified event's livemode.
+   * Signature verification above may use any Stripe SDK instance; retrieval
+   * and other Stripe API calls must not cross live/test modes.
+   */
+  const apiClient = getStripeClientForLivemode(event.livemode);
+  if (!apiClient.ok) {
+    console.error(
+      `Stripe webhook ${event.id} verified but the ${apiClient.mode || "unknown"} API client is not configured (${apiClient.reason}).`
+    );
+    return res
+      .status(503)
+      .send(
+        "Stripe webhook API client is not configured for this event mode."
+      );
+  }
+
+  const stripeApi = apiClient.stripe;
+  console.log(
+    `Stripe webhook ${event.id} using ${apiClient.mode} API client.`
+  );
+
   try {
     if (await hasProcessedStripeEvent(event.id)) {
       return res.json({
@@ -698,7 +721,7 @@ export async function handleStripeWebhook(
       case "checkout.session.async_payment_succeeded":
       case "checkout.session.async_payment_failed": {
         await handleCheckoutSessionEvent(
-          stripe,
+          stripeApi,
           event.data.object
         );
 
@@ -709,7 +732,7 @@ export async function handleStripeWebhook(
       case "customer.subscription.updated":
       case "customer.subscription.deleted": {
         await handleSubscriptionLifecycleEvent(
-          stripe,
+          stripeApi,
           event.data.object
         );
 
@@ -765,6 +788,7 @@ async function handleSubscriptionLifecycleEvent(
   /*
    * Always retrieve the authoritative current subscription so out-of-order
    * webhook delivery cannot overwrite newer Stripe state with a stale snapshot.
+   * Uses the livemode-matched API client passed from handleStripeWebhook.
    */
   const subscription =
     await stripe.subscriptions.retrieve(subscriptionId);

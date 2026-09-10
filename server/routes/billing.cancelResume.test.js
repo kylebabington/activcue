@@ -30,6 +30,8 @@ vi.mock("../lib/entitlements.js", () => ({
 
 vi.mock("../lib/stripeClient.js", () => ({
   getStripeClient: vi.fn(),
+  getStripeTestClient: vi.fn(() => null),
+  getStripeClientForLivemode: vi.fn(),
   managedPaymentsRequestOptions: { stripeAccount: undefined },
   requireStripeClient: requireStripeClientMock,
 }));
